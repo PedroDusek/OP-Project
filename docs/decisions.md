@@ -150,14 +150,26 @@ No Git remote existed and the `gh` CLI was not installed.
 
 ## Decision
 
-Option 3. The repository is initialised locally on branch `main` with
-`.gitignore`, `README.md` and `.env.example`. The product owner creates the
-GitHub repository and performs the first push.
+Option 3, with the outcome recorded here for accuracy.
+
+The repository was initialised locally on branch `main`. The product owner
+created `https://github.com/PedroDusek/OP-Project` manually and chose to make it
+**public**. The first push used the machine's existing SSH key
+(`~/.ssh/id_ed25519`), already registered with GitHub.
+
+The GitHub CLI was installed along the way (`winget install GitHub.cli`) but was
+not needed for the push. It remains available for later use.
 
 ## Reason
 
-Keeps credential handling entirely with the product owner. No repository URL is
-invented, and development is not blocked in the meantime.
+Keeps credential handling entirely with the product owner: no token, password or
+repository URL was ever handled by the assistant.
+
+Because the repository is public, the full commit history is readable by anyone.
+Two operational consequences follow: `docs/modelagem/` publishes the conceptual
+and logical model PDFs, and no real secret may ever enter a commit. `.gitignore`
+blocks `.env`, `.env.*`, `*.pem`, `*.key` and `*.p12`, and the history is scanned
+for secrets before every push.
 
 ## Date
 
