@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lint, tipos, testes e build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        # Mesma versao maior usada em desenvolvimento.
+        image: postgres:18
+        env:
+          POSTGRES_USER: optcg
+          POSTGRES_PASSWORD: optcg
+          POSTGRES_DB: optcg
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U optcg"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://optcg:optcg@localhost:5432/optcg?schema=public
+      TEST_DATABASE_URL: postgresql://optcg:optcg@localhost:5432/optcg_test?schema=public
+      # Valor descartavel, so para a build. Segredos reais nunca entram no repositorio.
+      AUTH_SECRET: ci-nao-e-um-segredo-real
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # A suite trunca todas as tabelas, entao o banco de teste e separado do de
+      # desenvolvimento tambem na CI. O global-setup recusa rodar se forem iguais.
+      - name: Criar banco de teste
+        run: PGPASSWORD=optcg psql -h localhost -U optcg -d optcg -c 'CREATE DATABASE optcg_test OWNER optcg;'
+
+      - name: Gerar Prisma Client
+        run: npx prisma generate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Verificacao de tipos
+        run: npm run typecheck
+
+      - name: Aplicar migrations
+        run: npx prisma migrate deploy
+
+      # Falha se o banco produzido pelas migrations divergir do schema, o que
+      # acontece quando alguem cria em SQL bruto algo que o Prisma tambem
+      # gerencia.
+      - name: Checagem de drift das migrations
+        run: |
+          diff_output=$(npx prisma migrate diff \
+            --from-config-datasource \
+            --to-schema prisma/schema.prisma \
+            --script)
+          echo "$diff_output"
+          if ! echo "$diff_output" | grep -q "This is an empty migration."; then
+            echo "::error::As migrations divergem de prisma/schema.prisma."
+            exit 1
+          fi
+
+      - name: Testes
+        run: npm test
+
+      - name: Build
+        run: npm run build
