@@ -162,3 +162,136 @@ invented, and development is not blocked in the meantime.
 ## Date
 
 2026-09-06
+
+---
+
+# Decision: 006 - Set progress with reprints
+
+## Context
+
+A card variant can be printed in several sets, and the specification requires
+set progress to be computed from `variant_printings`, never from the card code
+prefix. It explicitly asks how a reprinted variant should be counted.
+
+## Options
+
+1. The variant counts in every set it was printed in.
+2. The variant counts only in its original set.
+3. Same as 1, plus an `is_primary` flag on `variant_printings` for display.
+
+## Decision
+
+Option 1. A variant printed in N sets counts in the numerator **and** in the
+denominator of each of those N sets.
+
+## Reason
+
+It is the direct reading of "unique card variants of that set", and it keeps
+every set reachable at 100%. Global collection progress counts distinct variants,
+so nothing is double counted there. Option 2 would require storing which set is
+the original, an attribution the external source may not provide reliably.
+
+## Date
+
+2026-09-06
+
+---
+
+# Decision: 007 - Reducing a quantity below what is already allocated
+
+## Context
+
+Copies of a card can be allocated to storage locations, and the sum of those
+allocations may never exceed `collection_items.quantity`. When a user lowers the
+owned quantity below the total already allocated, the specification requires an
+explicit rule instead of an assumption.
+
+Example: the user owns 4 copies (Binder 3, Box 1) and lowers the quantity to 2.
+
+## Options
+
+1. Reject with an error and require the user to deallocate first.
+2. Deallocate automatically until the new quantity fits.
+3. Return the conflict and let the user choose which locations to take from.
+
+## Decision
+
+Option 3. The write is rejected atomically and the API responds with a conflict
+that carries the current allocations, so the client can present a resolution
+screen where the user chooses where the copies come from. The resolution is then
+submitted as a single transactional operation together with the new quantity.
+
+## Reason
+
+Chosen by the product owner. No allocation is ever removed without the user
+seeing it, and no removal order has to be invented. Cost: an extra screen and a
+structured conflict payload in the error contract, delivered at Checkpoint 9.
+
+## Date
+
+2026-09-06
+
+---
+
+# Decision: 008 - Public Trade Binder token
+
+## Context
+
+The specification requires a public page for a Trade Binder at
+`/trade/<random-token>`, with a token that is random, non sequential, does not
+expose internal ids, and is both revocable and regenerable. Neither the
+conceptual nor the logical model provides a place to store it.
+
+## Options
+
+1. Columns on `storage_locations`.
+2. A dedicated `storage_share_tokens` table keeping revoked token history.
+
+## Decision
+
+Option 1. `storage_locations` gains `public_token` and `public_token_created_at`,
+with a unique index on `public_token`. Revoking sets the token to NULL;
+regenerating writes a new random value.
+
+## Reason
+
+Covers the whole requirement without a 25th table. A share history is not
+required by the specification, and adding one now would be speculative.
+
+This is a structural change to the approved model, approved by the product owner.
+
+## Date
+
+2026-09-06
+
+---
+
+# Decision: 009 - Premium plan and trial
+
+## Context
+
+The specification defines a Premium plan with a 7 day trial, with the public
+Trade Binder as a Premium feature. Price, payment gateway and commercial policy
+are explicitly undefined. Neither model has any field for plan or trial.
+
+## Options
+
+1. Columns on `users`.
+2. A dedicated `subscriptions` table.
+
+## Decision
+
+Option 1. `users` gains `plan`, `trial_started_at` and `premium_until`.
+
+## Reason
+
+Covers exactly what is defined today without anticipating billing decisions that
+have not been made. A `subscriptions` table can be introduced later, when a
+gateway and a commercial policy exist, without invalidating this shape.
+
+This is a structural change to the approved model, approved by the product owner.
+No price, gateway or commercial policy is implied by it.
+
+## Date
+
+2026-09-06
