@@ -10,6 +10,9 @@ export default defineConfig({
   test: {
     include: ['tests/**/*.test.ts'],
     globalSetup: ['./tests/global-setup.ts'],
+    // Aponta DATABASE_URL para o banco de teste antes de qualquer import, para
+    // que o cliente Prisma da aplicacao nao toque o banco de desenvolvimento.
+    setupFiles: ['./tests/setup-env.ts'],
     // Os testes de integracao compartilham um unico banco. Rodar arquivos em
     // paralelo faria um truncate de um arquivo apagar os dados de outro.
     fileParallelism: false,

@@ -117,7 +117,6 @@ describe('vocabulario fechado', () => {
         data: {
           name: 'x',
           email: 'plano@example.test',
-          passwordHash: 'h',
           plan: 'GOLD',
         },
       }),
@@ -152,11 +151,11 @@ describe('unicidade', () => {
   it('impede dois usuarios com o mesmo e-mail', async () => {
     const db = testPrisma()
     await db.user.create({
-      data: { name: 'a', email: 'igual@example.test', passwordHash: 'h' },
+      data: { name: 'a', email: 'igual@example.test' },
     })
     await expect(
       db.user.create({
-        data: { name: 'b', email: 'igual@example.test', passwordHash: 'h' },
+        data: { name: 'b', email: 'igual@example.test' },
       }),
     ).rejects.toThrow()
   })

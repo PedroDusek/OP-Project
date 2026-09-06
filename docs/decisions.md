@@ -966,3 +966,67 @@ identidade de cada arte.
 ## Data
 
 2026-09-06
+
+---
+
+# Decisão: 025 — Banco e autenticação hospedados no Supabase
+
+## Contexto
+
+Duas necessidades apareceram juntas: terceirizar a autenticação, para que a
+responsabilidade por guardar e verificar senha não fique conosco, e hospedar o
+banco, para o serviço não depender de um computador ligado.
+
+A escolha da base de autenticação estava travada entre o Auth.js v5, que segue
+em beta após anos e cuja sessão JWT não pode ser revogada, e o better-auth, que
+é estável mas mantém a responsabilidade pela senha em casa e traz três tabelas.
+
+## Opções
+
+1. Supabase: banco PostgreSQL e autenticação no mesmo fornecedor.
+2. Neon para o banco e Clerk para a autenticação.
+3. Supabase apenas para o banco, autenticação em casa com better-auth.
+4. Adiar a hospedagem para o Checkpoint 18.
+
+## Decisão
+
+Opção 1. Em produção, banco e autenticação no Supabase, região
+**São Paulo (`sa-east-1`)**.
+
+Desenvolvimento e CI continuam com **PostgreSQL local**, o que mantém os testes
+rápidos, offline e independentes de rede. Isso não revoga as decisões 003 e 004:
+o motor continua sendo PostgreSQL e o ambiente local continua nativo.
+
+Consequência no modelo, aprovada junto: `users.password_hash` **sai**, porque a
+senha passa a viver no provedor, e entra `users.auth_user_id` com índice único,
+que amarra a conta do provedor à linha que `collections`, `storage_locations` e
+`trade_participants` referenciam.
+
+## Motivo
+
+Escolhida pelo dono do produto. O critério decisivo não foi preço, e sim ser um
+fornecedor só para as duas coisas terceirizadas: um contrato, uma fatura, uma
+região, um lugar para investigar quando algo quebrar.
+
+A região de São Paulo resolve latência para usuários brasileiros e mantém o dado
+pessoal no país, o que simplifica a postura de LGPD.
+
+Encaixe técnico verificado: é PostgreSQL de verdade, então as migrations, os três
+triggers, os dez `CHECK` e a extensão `pg_trgm` funcionam sem alteração.
+
+Dimensionamento medido, não estimado: o catálogo completo ocupa **17 MB** com
+zero usuários. O que decide se o limite de 500 MB do plano gratuito é atingido é
+a frequência de captura de preço — semanal custa cerca de 25 MB por ano, diária
+cerca de 177 MB. Quando o limite for atingido, o plano seguinte custa US$ 25 por
+mês, valor irrelevante para um produto com base de usuários que justifique isso.
+
+## Riscos aceitos
+
+- Indisponibilidade do provedor impede autenticação e acesso ao banco.
+- Nome e e-mail dos usuários passam a ser tratados por um terceiro, o que exige
+  política de privacidade explícita.
+- No plano gratuito o projeto pausa após uma semana sem acesso.
+
+## Data
+
+2026-09-06

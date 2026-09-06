@@ -98,7 +98,6 @@ describe('importacao do catalogo', () => {
       data: {
         name: 'Colecionador',
         email: 'colecionador@example.test',
-        passwordHash: 'hash',
         collection: { create: { name: 'Minha Colecao' } },
       },
       include: { collection: true },

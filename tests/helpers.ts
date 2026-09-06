@@ -72,7 +72,6 @@ export async function createUser(name = 'Usuario de teste') {
     data: {
       name,
       email: `teste-${nextSuffix()}@example.test`,
-      passwordHash: 'hash-de-teste-nao-e-uma-senha-real',
       collection: { create: { name: 'Minha Colecao' } },
     },
     include: { collection: true },
@@ -137,4 +136,21 @@ export async function allocate(
   return db.collectionItemLocation.create({
     data: { collectionItemId, storageLocationId, quantity },
   })
+}
+
+/**
+ * Limpa apenas os dados de usuario, preservando o catalogo.
+ *
+ * Os testes de API importam o catalogo uma vez, porque e caro, mas cada teste
+ * precisa comecar sem usuario: sem isto, um teste que anonimiza a conta deixa
+ * todos os seguintes recebendo 401.
+ */
+export async function resetUserData(): Promise<void> {
+  const db = testPrisma()
+  await db.$executeRawUnsafe(
+    `TRUNCATE TABLE "trade_items", "trade_participants", "trades",
+       "collection_item_locations", "collection_items", "want_items",
+       "storage_locations", "collections", "users"
+     RESTART IDENTITY CASCADE`,
+  )
 }
