@@ -633,3 +633,57 @@ de produto, então precisa estar no idioma em que essas decisões são discutida
 ## Data
 
 2026-09-06
+
+---
+
+# Decisão: 019 — Identificador externo para variantes
+
+## Contexto
+
+`card_variants` não tem chave natural. O código identifica a carta, não a
+variante, e uma mesma carta possui várias alternate arts distintas com o mesmo
+`variant_type`, então `(card_id, variant_type)` não pode ser único. Criar um
+número de variante artificial é proibido pela especificação.
+
+Sem um identificador vindo da fonte, uma segunda execução da importação não tem
+como decidir se uma variante recebida já foi gravada, e a idempotência exigida
+fica impossível justamente nas alternate arts.
+
+A investigação registrada em `integrations.md` seção 2.0 verificou que a Bandai
+atribui identificador estável por arte, no formato `OP01-016_p3`.
+
+## Opções
+
+1. Colunas `source` e `source_id` em `card_variants`, com índice único no par.
+2. Adiar a decisão até a fonte estar escolhida.
+3. Nenhuma coluna nova, casando variantes por heurística de imagem e raridade.
+
+## Decisão
+
+Opção 1. `card_variants` ganha `source` e `source_id`, com
+`UNIQUE (source, source_id)`.
+
+O identificador externo:
+
+- não substitui a chave primária interna, que continua sendo `id`;
+- nunca é exposto como identificador público em URL ou API;
+- existe exclusivamente para tornar a sincronização determinística.
+
+A coluna `source` acompanha `source_id` para que a origem fique explícita e uma
+eventual troca de fonte não colida com identificadores antigos.
+
+A migration só é escrita depois que a fonte for aprovada, porque é ela que
+define o formato de `source_id`.
+
+## Motivo
+
+Autorizada pelo dono do produto. É o caso que a especificação antecipa ao
+permitir identificadores externos no modelo físico. A opção 3 falharia
+exatamente no caso que motivou a decisão: URLs de imagem mudam, e raridade mais
+tipo colide entre as várias alternate arts da mesma carta.
+
+Esta é uma alteração estrutural do modelo aprovado.
+
+## Data
+
+2026-09-06

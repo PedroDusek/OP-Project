@@ -29,14 +29,78 @@ decisão, jamais substituídas silenciosamente.
 
 ## 2. Catálogo
 
-Fontes candidatas citadas na especificação, em ordem de prioridade, todas
-pendentes de avaliação:
+### 2.0 Avaliação das fontes — 2026-09-06
+
+Investigação concluída. Nada foi implementado.
+
+#### O que foi verificado diretamente
+
+A Bandai atribui **identificador estável por arte**. O código base ganha sufixo
+`_pN` para cada arte paralela, e cada uma é uma imagem distinta:
+
+```
+OP01-016.png      200   185.385 bytes
+OP01-016_p1.png   200   240.816 bytes
+OP01-016_p2.png   200   285.621 bytes
+OP01-016_p3.png   200   217.525 bytes
+...
+OP01-016_p9.png   200   237.361 bytes
+OP01-016_p15.png  404
+```
+
+Controle negativo aplicado: `OP01-999`, `ZZ99-001` e um nome inventado retornam
+404, então os 200 acima não são falso positivo do servidor.
+
+Duas conclusões:
+
+1. Existe a chave que faltava. `OP01-016_p3` identifica uma arte específica de
+   forma estável, que é exatamente o que a importação idempotente precisa.
+2. A ausência de `UNIQUE (card_id, variant_type)` estava certa. Uma única carta
+   comum tem cerca de dez artes distintas; várias compartilham o mesmo tipo de
+   variante.
+
+#### Comparativo
+
+| Fonte | Identidade por arte | Termos | Custo |
+|---|---|---|---|
+| Bandai, site oficial | ✅ `_pN`, verificado | reprodução proibida sem permissão | grátis |
+| `Coko7/vegapull` (raspador) | herda da Bandai | GPL-3.0 no código; dados © Bandai | grátis |
+| `arjunkai/optcg-api` | ✅ `base_id` + `variant_type` | acesso restrito a domínios aprovados; MIT cobre só o código, não os dados | mediante pedido |
+| `optcgapi.com` | ❓ não documentado | "livre para usar", sem termos formais | grátis |
+| Scrydex | ❌ variantes são array aninhado, sem id próprio | não publicados | US$ 29 a 399/mês, sem plano gratuito |
+
+#### Por que o Scrydex não serve
+
+O modelo de dados é incompatível. No Scrydex a carta é uma entidade e as
+variantes são um array aninhado com `name`, `printings`, `images` e `prices`,
+sem identificador próprio. Nosso modelo trata `card_variant` como entidade com
+identidade, porque posse, want, alocação e trade apontam para a variante. Sem id
+por variante, a importação não consegue casar uma alternate art com a linha que
+já existe, que é justamente o problema a resolver.
+
+#### O impedimento real
+
+Os termos do site oficial dizem: *"All images, text and data on this website may
+not be reproduced without permission."*
+
+O acesso automatizado não é citado, e não existe `robots.txt` no domínio. Mas
+importar o catálogo **é** reproduzir os dados, e isso está coberto pela cláusula.
+
+Isso não se resolve trocando de fonte. Todas as alternativas derivam da Bandai e
+nenhuma tem direito de sublicenciar esses dados — o `arjunkai/optcg-api` afirma
+exatamente isso no próprio README, e por isso restringe o acesso e recomenda que
+terceiros rodem o próprio pipeline.
+
+Portanto a escolha da fonte não é técnica, é uma decisão de risco do dono do
+produto, e está pendente. Nada é implementado até ela existir.
+
+### 2.1 Fontes candidatas
 
 1. `optcg-data` e outros dados derivados da fonte oficial Bandai
 2. Scrydex
 3. qualquer outra, somente após avaliação
 
-### 2.1 Interface
+### 2.2 Interface
 
 ```ts
 interface CatalogProvider {
@@ -51,7 +115,7 @@ Os DTOs são o formato interno normalizado, não o formato de nenhum provedor. C
 implementação é responsável por traduzir o próprio payload para eles, de modo que
 uma troca de fonte não alcance o resto do sistema.
 
-### 2.2 Pipeline
+### 2.3 Pipeline
 
 ```
 buscar -> normalizar -> validar -> upsert (transacional) -> relatar
@@ -65,7 +129,7 @@ adivinhado.
 A validação rejeita o registro em vez de importar algo malformado. Registros
 rejeitados são contados e registrados em log com o motivo.
 
-### 2.3 Idempotência
+### 2.4 Idempotência
 
 Rodar a importação duas vezes não pode duplicar cards, variants, sets, cores,
 traits, atributos, mecânicas, efeitos ou printings.
@@ -76,9 +140,9 @@ traits, atributos, mecânicas, efeitos ou printings.
 | `sets` | `code` | única e confiável |
 | tabelas de vocabulário | `name` | única desde a decisão 014 |
 | `variant_printings` | `(card_variant_id, set_id)` | chave primária composta |
-| `card_variants` | **não resolvida** | ver abaixo |
+| `card_variants` | `(source, source_id)` | decisão 019; `source_id` é o id por arte da Bandai, como `OP01-016_p3` |
 
-### 2.4 O problema da identidade da variante
+### 2.5 O problema da identidade da variante
 
 `card_variants` não tem chave natural. O código identifica a carta, não a
 variante, e uma mesma carta pode ter várias alternate arts distintas com o mesmo
@@ -97,11 +161,14 @@ externos no modelo físico. Qualquer identificador desse tipo:
 - não é usado como identificador público;
 - existe apenas para tornar a sincronização determinística.
 
-A proposta concreta vem no Checkpoint 3, depois que uma fonte real for avaliada e
-seus identificadores forem conhecidos. Até lá a importação não pode ser tornada
-idempotente para variantes, e o Checkpoint 3 não começa.
+**Resolvido pela decisão 019.** `card_variants` ganha `source` e `source_id`,
+com índice único no par. Para dados originados da Bandai, `source_id` é o id por
+arte verificado na seção 2.0, como `OP01-016_p3`.
 
-### 2.5 Imagens
+A coluna só é criada quando a fonte for aprovada, porque é ela que define o
+formato de `source_id`. A migration é a primeira tarefa do Checkpoint 3.
+
+### 2.6 Imagens
 
 As imagens das cartas são referenciadas por URL em `card_variants.image_url`. Se
 podem ser consumidas diretamente da origem ou precisam ser armazenadas
