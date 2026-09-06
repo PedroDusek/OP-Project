@@ -1,579 +1,623 @@
-# Decision Log
+# Log de Decisões
 
-Only approved decisions are recorded here. Open questions live in
-`docs/checkpoint-0-analise.md` under "Decisoes pendentes" and are promoted to
-this file once the product owner approves them.
+Apenas decisões aprovadas são registradas aqui. Questões em aberto ficam em
+`docs/checkpoint-0-analise.md`, na seção de decisões pendentes, e são promovidas
+para este arquivo quando aprovadas.
 
 ---
 
-# Decision: 001 - Repository location outside OneDrive
+# Decisão: 001 — Localização do repositório fora do OneDrive
 
-## Context
+## Contexto
 
-The project folder `C:\Users\pedro\OneDrive\Desktop\OPTCG PROJECT` sat inside an
-accidental Git repository whose root was the user's home directory
-(`C:\Users\pedro\.git`, 384 MB, zero commits, no remote, no `.gitignore`, with
-`.ssh/`, `.gitconfig` and `.claude.json` untracked). Any `git add` from anywhere
-under the home directory risked committing private keys and credentials.
+A pasta do projeto `C:\Users\pedro\OneDrive\Desktop\OPTCG PROJECT` estava dentro
+de um repositório Git acidental cuja raiz era o diretório home do usuário
+(`C:\Users\pedro\.git`, 384 MB, zero commits, sem remote, sem `.gitignore`, com
+`.ssh/`, `.gitconfig` e `.claude.json` não rastreados). Qualquer `git add`
+disparado de qualquer ponto do home arriscava versionar chaves privadas e
+credenciais.
 
-The folder is also inside OneDrive, which synchronises every file it sees.
-`node_modules` holds tens of thousands of small files and is a known cause of
-sync churn, file locks during builds and corrupted installs.
+A pasta também estava dentro do OneDrive, que sincroniza todo arquivo que
+enxerga. `node_modules` contém dezenas de milhares de arquivos pequenos e é causa
+conhecida de sincronização excessiva, travamento de arquivo durante build e
+instalação corrompida.
 
-## Options
+## Opções
 
-1. Move the project to `C:\dev\optcg`, outside OneDrive, and `git init` there.
-2. `git init` inside the existing OneDrive folder.
-3. Option 1 plus deleting `C:\Users\pedro\.git`.
+1. Mover o projeto para `C:\dev\optcg`, fora do OneDrive, e fazer `git init` lá.
+2. Fazer `git init` na pasta existente do OneDrive.
+3. Opção 1 mais a remoção de `C:\Users\pedro\.git`.
 
-## Decision
+## Decisão
 
-Option 1. The project lives at `C:\dev\optcg` with its own repository.
-The specification PDFs were **copied** (not moved); the originals remain in the
-OneDrive folder. `C:\Users\pedro\.git` was left untouched.
+Opção 1. O projeto vive em `C:\dev\optcg` com repositório próprio. Os PDFs de
+especificação foram **copiados**, não movidos; os originais permanecem na pasta do
+OneDrive. `C:\Users\pedro\.git` não foi tocado.
 
-## Reason
+## Motivo
 
-Removes the credential-exposure risk and the OneDrive build problems in one step,
-without any destructive action. Deleting the stray repository stays available as
-a separate, explicitly authorised step.
+Remove o risco de exposição de credenciais e os problemas de build do OneDrive de
+uma só vez, sem nenhuma ação destrutiva. Apagar o repositório acidental continua
+disponível como passo separado e explicitamente autorizado.
 
-## Date
+## Data
 
 2026-09-06
 
 ---
 
-# Decision: 002 - Stack
+# Decisão: 002 — Stack
 
-## Context
+## Contexto
 
-The project had no code. A stack had to be chosen for a mobile-first web app
-that needs strong transactional guarantees, server-side business rules and good
-performance on mobile connections.
+O projeto não tinha código. Era preciso escolher uma stack para uma aplicação web
+mobile-first que exige garantias transacionais fortes, regras de negócio no
+servidor e boa performance em conexão móvel.
 
-## Options
+## Opções
 
-1. Next.js (App Router) + TypeScript + Prisma + PostgreSQL, single repository.
-2. NestJS API + React (Vite) frontend, deployed separately.
-3. ASP.NET Core + EF Core backend + React frontend.
+1. Next.js (App Router) + TypeScript + Prisma + PostgreSQL, repositório único.
+2. API NestJS + frontend React (Vite), com deploys separados.
+3. Backend ASP.NET Core + EF Core e frontend React.
 
-## Decision
+## Decisão
 
-Option 1: Next.js + TypeScript + Prisma + PostgreSQL.
+Opção 1: Next.js + TypeScript + Prisma + PostgreSQL.
 
-The layering required by the specification (domain / persistence / business
-rules / API / frontend) is enforced by module boundaries inside `src/server`,
-which the frontend may never import directly.
+A separação de camadas exigida pela especificação (domínio, persistência, regras
+de negócio, API, frontend) é imposta por fronteiras de módulo dentro de
+`src/server`, que o frontend nunca importa diretamente.
 
-## Reason
+## Motivo
 
-One language, one test runner, one deployment. `next/image` and React Server
-Components give the best mobile performance without extra infrastructure.
-Process separation is not required to achieve layer separation, and avoiding it
-keeps the system simple, which the specification explicitly favours.
+Uma linguagem, um runner de testes, um deploy. `next/image` e React Server
+Components entregam a melhor performance mobile sem infraestrutura adicional.
+Separar processos não é necessário para separar camadas, e evitar isso mantém o
+sistema simples, o que a especificação prefere explicitamente.
 
-## Date
+## Data
 
 2026-09-06
 
 ---
 
-# Decision: 003 - PostgreSQL as the database engine
+# Decisão: 003 — PostgreSQL como motor de banco
 
-## Context
+## Contexto
 
-The specification requires guarantees that a database engine has to provide
-directly: partial unique indexes, `CHECK` constraints, row-level locking for
-concurrent quantity updates, indexed text search on card codes, and reversible
-migrations.
+A especificação exige garantias que o motor precisa fornecer diretamente: índices
+únicos parciais, restrições `CHECK`, travamento de linha para atualização
+concorrente de quantidade, busca textual indexada em código de carta e migrations
+reversíveis.
 
-## Options
+## Opções
 
 PostgreSQL, MySQL/MariaDB, SQLite.
 
-## Decision
+## Decisão
 
 PostgreSQL 17.
 
-## Reason
+## Motivo
 
-The only one of the three that supports partial unique indexes, `SELECT ... FOR
-UPDATE` with the needed semantics, trigram indexes for code search and
-transactional DDL. This is a technical decision with no product impact.
+O único dos três que suporta índices únicos parciais, `SELECT ... FOR UPDATE` com
+a semântica necessária, índices trigram para busca por código e DDL transacional.
+Decisão técnica, sem impacto de produto.
 
-## Date
+## Nota posterior
 
-2026-09-06
+A máquina de desenvolvimento acabou com o **PostgreSQL 18.6** instalado. O 18
+atende a tudo que o schema exige e é oficialmente suportado pelo Prisma (9.6 a
+18), então não há motivo técnico para retroceder ao 17. Ver `development.md`
+seção 2.
 
----
-
-# Decision: 004 - Local database runtime
-
-## Context
-
-Neither PostgreSQL nor Docker was installed on the development machine.
-
-## Options
-
-1. Native PostgreSQL installation on Windows.
-2. Docker Desktop with a `docker-compose` service.
-3. Managed service (Neon or Supabase).
-
-## Decision
-
-Option 1: native PostgreSQL installation on Windows.
-
-## Reason
-
-Chosen by the product owner. No extra runtime layer and no dependency on an
-internet connection during development.
-
-## Date
+## Data
 
 2026-09-06
 
 ---
 
-# Decision: 005 - GitHub remote
+# Decisão: 004 — Runtime local do banco
 
-## Context
+## Contexto
 
-No Git remote existed and the `gh` CLI was not installed.
+Nem PostgreSQL nem Docker estavam instalados na máquina de desenvolvimento.
 
-## Options
+## Opções
 
-1. Work without a remote for now.
-2. Configure an existing repository URL.
-3. Prepare the repository locally and hand the product owner the exact commands
-   to create the remote and push.
+1. Instalação nativa do PostgreSQL no Windows.
+2. Docker Desktop com serviço em `docker-compose`.
+3. Serviço gerenciado (Neon ou Supabase).
 
-## Decision
+## Decisão
 
-Option 3, with the outcome recorded here for accuracy.
+Opção 1: instalação nativa no Windows.
 
-The repository was initialised locally on branch `main`. The product owner
-created `https://github.com/PedroDusek/OP-Project` manually and chose to make it
-**public**. The first push used the machine's existing SSH key
-(`~/.ssh/id_ed25519`), already registered with GitHub.
+## Motivo
 
-The GitHub CLI was installed along the way (`winget install GitHub.cli`) but was
-not needed for the push. It remains available for later use.
+Escolhida pelo dono do produto. Sem camada extra de runtime e sem depender de
+conexão com a internet durante o desenvolvimento.
 
-## Reason
-
-Keeps credential handling entirely with the product owner: no token, password or
-repository URL was ever handled by the assistant.
-
-Because the repository is public, the full commit history is readable by anyone.
-Two operational consequences follow: `docs/modelagem/` publishes the conceptual
-and logical model PDFs, and no real secret may ever enter a commit. `.gitignore`
-blocks `.env`, `.env.*`, `*.pem`, `*.key` and `*.p12`, and the history is scanned
-for secrets before every push.
-
-## Date
+## Data
 
 2026-09-06
 
 ---
 
-# Decision: 006 - Set progress with reprints
+# Decisão: 005 — Remote no GitHub
 
-## Context
+## Contexto
 
-A card variant can be printed in several sets, and the specification requires
-set progress to be computed from `variant_printings`, never from the card code
-prefix. It explicitly asks how a reprinted variant should be counted.
+Não existia remote configurado e o `gh` não estava instalado.
 
-## Options
+## Opções
 
-1. The variant counts in every set it was printed in.
-2. The variant counts only in its original set.
-3. Same as 1, plus an `is_primary` flag on `variant_printings` for display.
+1. Trabalhar sem remote por enquanto.
+2. Configurar a URL de um repositório existente.
+3. Preparar o repositório localmente e entregar ao dono do produto os comandos
+   exatos para criar o remote e fazer o push.
 
-## Decision
+## Decisão
 
-Option 1. A variant printed in N sets counts in the numerator **and** in the
-denominator of each of those N sets.
+Opção 3, com o desfecho registrado aqui por exatidão.
 
-## Reason
+O repositório foi inicializado localmente na branch `main`. O dono do produto
+criou `https://github.com/PedroDusek/OP-Project` manualmente e optou por deixá-lo
+**público**. O primeiro push usou a chave SSH já existente na máquina
+(`~/.ssh/id_ed25519`), já registrada no GitHub.
 
-It is the direct reading of "unique card variants of that set", and it keeps
-every set reachable at 100%. Global collection progress counts distinct variants,
-so nothing is double counted there. Option 2 would require storing which set is
-the original, an attribution the external source may not provide reliably.
+O GitHub CLI foi instalado no caminho (`winget install GitHub.cli`), mas não foi
+necessário para o push. Permanece disponível e autenticado.
 
-## Date
+## Motivo
 
-2026-09-06
+Mantém todo o tratamento de credencial com o dono do produto: nenhum token, senha
+ou URL de repositório passou pelo assistente.
 
----
+Como o repositório é público, todo o histórico de commits é legível por qualquer
+pessoa. Duas consequências operacionais decorrem disso: `docs/modelagem/` publica
+os PDFs do modelo conceitual e lógico, e nenhum segredo real pode entrar num
+commit. O `.gitignore` bloqueia `.env`, `.env.*`, `*.pem`, `*.key` e `*.p12`, e o
+histórico é varrido em busca de segredos antes de todo push.
 
-# Decision: 007 - Reducing a quantity below what is already allocated
-
-## Context
-
-Copies of a card can be allocated to storage locations, and the sum of those
-allocations may never exceed `collection_items.quantity`. When a user lowers the
-owned quantity below the total already allocated, the specification requires an
-explicit rule instead of an assumption.
-
-Example: the user owns 4 copies (Binder 3, Box 1) and lowers the quantity to 2.
-
-## Options
-
-1. Reject with an error and require the user to deallocate first.
-2. Deallocate automatically until the new quantity fits.
-3. Return the conflict and let the user choose which locations to take from.
-
-## Decision
-
-Option 3. The write is rejected atomically and the API responds with a conflict
-that carries the current allocations, so the client can present a resolution
-screen where the user chooses where the copies come from. The resolution is then
-submitted as a single transactional operation together with the new quantity.
-
-## Reason
-
-Chosen by the product owner. No allocation is ever removed without the user
-seeing it, and no removal order has to be invented. Cost: an extra screen and a
-structured conflict payload in the error contract, delivered at Checkpoint 9.
-
-## Date
+## Data
 
 2026-09-06
 
 ---
 
-# Decision: 008 - Public Trade Binder token
+# Decisão: 006 — Progresso de set com reprints
 
-## Context
+## Contexto
 
-The specification requires a public page for a Trade Binder at
-`/trade/<random-token>`, with a token that is random, non sequential, does not
-expose internal ids, and is both revocable and regenerable. Neither the
-conceptual nor the logical model provides a place to store it.
+Uma variante pode ser impressa em vários sets, e a especificação exige que o
+progresso por set seja calculado a partir de `variant_printings`, nunca do
+prefixo do código. Ela pede explicitamente que se pergunte como contar uma
+variante reimpressa.
 
-## Options
+## Opções
 
-1. Columns on `storage_locations`.
-2. A dedicated `storage_share_tokens` table keeping revoked token history.
+1. A variante conta em todo set em que foi impressa.
+2. A variante conta apenas no set original.
+3. Igual à 1, mais uma flag `is_primary` em `variant_printings` para exibição.
 
-## Decision
+## Decisão
 
-Option 1. `storage_locations` gains `public_token` and `public_token_created_at`,
-with a unique index on `public_token`. Revoking sets the token to NULL;
-regenerating writes a new random value.
+Opção 1. Uma variante impressa em N sets conta no numerador **e** no denominador
+de cada um desses N sets.
 
-## Reason
+## Motivo
 
-Covers the whole requirement without a 25th table. A share history is not
-required by the specification, and adding one now would be speculative.
+É a leitura direta de "variantes únicas daquele set", e mantém todo set alcançável
+a 100%. O progresso global da coleção conta variantes distintas, então nada é
+contado em duplicidade ali. A opção 2 exigiria armazenar qual é o set original,
+atribuição que a fonte externa pode não fornecer com confiabilidade.
 
-This is a structural change to the approved model, approved by the product owner.
-
-## Date
-
-2026-09-06
-
----
-
-# Decision: 009 - Premium plan and trial
-
-## Context
-
-The specification defines a Premium plan with a 7 day trial, with the public
-Trade Binder as a Premium feature. Price, payment gateway and commercial policy
-are explicitly undefined. Neither model has any field for plan or trial.
-
-## Options
-
-1. Columns on `users`.
-2. A dedicated `subscriptions` table.
-
-## Decision
-
-Option 1. `users` gains `plan`, `trial_started_at` and `premium_until`.
-
-## Reason
-
-Covers exactly what is defined today without anticipating billing decisions that
-have not been made. A `subscriptions` table can be introduced later, when a
-gateway and a commercial policy exist, without invalidating this shape.
-
-This is a structural change to the approved model, approved by the product owner.
-No price, gateway or commercial policy is implied by it.
-
-## Date
+## Data
 
 2026-09-06
 
 ---
 
-# Decision: 010 - Column name for the price timestamp
+# Decisão: 007 — Reduzir quantidade abaixo do que já está alocado
 
-## Context
+## Contexto
 
-The three sources disagree on the name of the date field in `card_prices`: the
-conceptual model says `data`, the logical model says `captured_at`, and the
-specification text says `date`.
+Cópias podem estar alocadas em locais de armazenamento, e a soma dessas alocações
+nunca pode exceder `collection_items.quantity`. Quando o usuário reduz a
+quantidade possuída abaixo do total já alocado, a especificação exige uma regra
+explícita em vez de uma suposição.
 
-## Options
+Exemplo: o usuário possui 4 cópias (binder 3, box 1) e reduz a quantidade para 2.
 
-`date`, or `captured_at`.
+## Opções
 
-## Decision
+1. Rejeitar com erro e exigir que o usuário desaloque antes.
+2. Desalocar automaticamente até caber na nova quantidade.
+3. Devolver o conflito e deixar o usuário escolher de quais locais retirar.
 
-`captured_at TIMESTAMPTZ`, following the logical model.
+## Decisão
 
-## Reason
+Opção 3. A escrita é rejeitada atomicamente e a API responde com um conflito que
+carrega as alocações atuais, para que o cliente apresente uma tela de resolução
+onde o usuário escolhe de onde as cópias saem. A resolução é então enviada como
+uma única operação transacional junto com a nova quantidade.
 
-`date` is a reserved word in SQL and a type name in PostgreSQL, which forces
-quoting at every use. `captured_at` also preserves the time of day, which matters
-for resolving the price in effect at `trades.completed_at`.
+## Motivo
 
-## Date
+Escolhida pelo dono do produto. Nenhuma alocação é removida sem o usuário ver, e
+nenhuma ordem de remoção precisa ser inventada. Custo: uma tela adicional e um
+formato estruturado de conflito no contrato de erro, entregues no Checkpoint 9.
 
-2026-09-06
-
----
-
-# Decision: 011 - "Committed to trade" is derived, not stored
-
-## Context
-
-The specification distinguishes four states: possessed, available for trade,
-committed to trade, and actually traded, and requires that a user cannot commit
-the same copies to several trades at once.
-
-## Options
-
-1. Derive the committed state from active trades.
-2. Store a committed quantity on the collection.
-
-## Decision
-
-Option 1. A copy is committed when the user has a `trade_item` in a trade whose
-status is `PROPOSED`, `NEGOTIATING` or `CONFIRMED`. No new column is added.
-
-## Reason
-
-A stored counter would be a second source of truth that can drift from the trade
-rows. Since a user may hold at most one active trade at a time, the derived query
-stays cheap. Multiple simultaneous commitments are prevented by that same
-one-active-trade rule, enforced transactionally.
-
-## Date
+## Data
 
 2026-09-06
 
 ---
 
-# Decision: 012 - Conceptual model divergences resolve in favour of the logical model
+# Decisão: 008 — Token público do Trade Binder
 
-## Context
+## Contexto
 
-The conceptual model and the logical model disagree on two structural points.
+A especificação exige uma página pública do Trade Binder em `/trade/<token>`, com
+token aleatório, não sequencial, que não exponha ids internos e que seja revogável
+e regerável. Nem o modelo conceitual nem o lógico oferecem onde guardá-lo.
 
-1. Physical location: the conceptual model links `Card_Variant` directly to
-   `Storage_Location`; the logical model links `collection_item` to
-   `storage_location`.
-2. Trade items: the conceptual model links `Trade` directly to `Card_Variant`;
-   the logical model links `trade_participant` to `card_variant`.
+## Opções
 
-## Options
+1. Colunas em `storage_locations`.
+2. Tabela dedicada `storage_share_tokens`, com histórico de tokens revogados.
 
-Follow the conceptual model, or follow the logical model.
+## Decisão
 
-## Decision
+Opção 1. `storage_locations` ganha `public_token` e `public_token_created_at`,
+com índice único sobre `public_token`. Revogar define o token como `NULL`;
+regerar grava um novo valor aleatório.
 
-The logical model prevails in both cases. The divergences are documented in
-`docs/database.md`. The PDFs are left unmodified.
+## Motivo
 
-## Reason
+Cobre o requisito inteiro sem uma 25ª tabela. Histórico de compartilhamento não é
+exigido pela especificação, e criá-lo agora seria especulativo.
 
-The conceptual version of (1) loses the link to the collection and its owner,
-making it impossible to validate that allocations never exceed the owned
-quantity, or that the storage belongs to the collection owner. The conceptual
-version of (2) loses the information about which participant offers each card,
-which the trade flow depends on. The specification text agrees with the logical
-model on both points.
+Esta é uma alteração estrutural do modelo aprovado, autorizada pelo dono do
+produto.
 
-## Date
+## Data
 
 2026-09-06
 
 ---
 
-# Decision: 013 - Minimum cardinalities relaxed to optional
+# Decisão: 009 — Plano Premium e trial
 
-## Context
+## Contexto
 
-The conceptual model marks several participations as mandatory that cannot hold
-in practice: every card having at least one attribute and at least one trait,
-and every user belonging to at least one storage location and at least one trade.
+A especificação define um plano Premium com trial de 7 dias, tendo o Trade Binder
+público como recurso Premium. Preço, gateway de pagamento e política comercial
+são explicitamente indefinidos. Nenhum dos modelos possui campo de plano ou
+trial.
 
-## Options
+## Opções
 
-Enforce the conceptual minimums, or relax them to optional.
+1. Colunas em `users`.
+2. Tabela dedicada `subscriptions`.
 
-## Decision
+## Decisão
 
-Relaxed to optional in the database, matching the logical model.
+Opção 1. `users` ganha `plan`, `trial_started_at` e `premium_until`.
 
-## Reason
+## Motivo
 
-Event and Stage cards have no attribute in the OPTCG, so a mandatory
-`Card -> Attribute` participation would reject valid catalog data during import.
-A newly registered user owns no storage location and belongs to no trade, so
-those minimums would make registration impossible.
+Cobre exatamente o que está definido hoje sem antecipar decisões de cobrança que
+ainda não foram tomadas. Uma tabela `subscriptions` pode ser introduzida depois,
+quando existirem gateway e política comercial, sem invalidar este formato.
 
-## Date
+Esta é uma alteração estrutural do modelo aprovado, autorizada pelo dono do
+produto. Nenhum preço, gateway ou política comercial está implícito nela.
 
-2026-09-06
-
----
-
-# Decision: 014 - Additional uniqueness constraints
-
-## Context
-
-The specification lists the unique constraints for the main tables but does not
-mention two that the required behaviour depends on.
-
-## Options
-
-Rely on application code, or add the constraints to the schema.
-
-## Decision
-
-Two constraints are added:
-
-- `UNIQUE (collection_item_id, storage_location_id)` on `collection_item_locations`
-- `UNIQUE (name)` on `colors`, `traits`, `attributes`, `mechanics` and `effects`
-
-## Reason
-
-Without the first, the same card could have two separate allocation rows for one
-storage location, which breaks the allocation sum and lets the same copies be
-counted twice. Without the second, re-running the catalog import would insert
-duplicate vocabulary rows, violating the idempotency requirement. Both are
-additive and change no behaviour that the specification defines.
-
-## Date
+## Data
 
 2026-09-06
 
 ---
 
-# Decision: 015 - Account deletion by anonymisation
+# Decisão: 010 — Nome da coluna de data do preço
 
-## Context
+## Contexto
 
-A trade has two participants, and the record of a completed trade belongs to
-both of them. Deleting a user raises the question of what happens to
-`trade_participants`, and no delete policy can be chosen for that foreign key
-without answering it.
+As três fontes divergem sobre o nome do campo de data em `card_prices`: o modelo
+conceitual diz `data`, o modelo lógico diz `captured_at` e o texto da
+especificação diz `date`.
 
-## Options
+## Opções
 
-1. Anonymise the account and keep the row.
-2. `RESTRICT`: forbid deletion for any account with trade history.
-3. `CASCADE`: delete participations and trade items with the user.
-4. Postpone account deletion entirely.
+`date` ou `captured_at`.
 
-## Decision
+## Decisão
 
-Option 1. Accounts are anonymised and never hard deleted.
+`captured_at TIMESTAMPTZ`, seguindo o modelo lógico.
 
-`users` gains a nullable `deleted_at`. Anonymising sets it, replaces `name` with
-a placeholder, replaces `email` with `deleted+<id>@deleted.invalid`, replaces
-`password_hash` with an unusable value, and clears the plan fields. The
-collection, storage locations and want items are removed through their existing
-cascades. `trade_participants` and `trade_items` rows are kept.
+## Motivo
 
-`trade_participants.user_id` uses `RESTRICT` as a backstop, which should never
-fire because no code path hard deletes a user.
+`date` é palavra reservada em SQL e nome de tipo no PostgreSQL, o que obrigaria a
+usar aspas em todo lugar. `captured_at` também preserva a hora, o que importa
+para resolver o preço vigente em `trades.completed_at`.
 
-## Reason
-
-Option 3 would destroy the history of the remaining participant, who never
-consented to that. Option 2 leaves users unable to leave the product at all.
-Anonymisation removes the personal data and the ability to sign in, which is what
-account deletion is actually for, while keeping every trade complete for the
-other side.
-
-This is a structural change to the approved model, approved by the product owner.
-
-## Date
+## Data
 
 2026-09-06
 
 ---
 
-# Decision: 016 - Branch and pull request flow
+# Decisão: 011 — "Comprometida em troca" é derivado, não armazenado
 
-## Context
+## Contexto
 
-The repository had no established branch strategy, and the specification
-requires the flow to be agreed rather than assumed.
+A especificação distingue quatro estados: possuída, disponível para troca,
+comprometida em troca e efetivamente trocada, e exige que o usuário não consiga
+comprometer as mesmas cópias em vários trades ao mesmo tempo.
 
-## Options
+## Opções
 
-1. One branch and one pull request per checkpoint, merged by the product owner.
-2. One branch per checkpoint, merged by the assistant after approval in chat.
-3. Commits directly on `main`.
+1. Derivar o estado de comprometimento dos trades ativos.
+2. Armazenar uma quantidade comprometida na coleção.
 
-## Decision
+## Decisão
 
-Option 1. Each checkpoint gets a branch named `checkpoint-N/<topic>` and a pull
-request. The product owner reviews and merges. Smaller work uses `fix/`, `docs/`
-and `chore/` branches.
+Opção 1. Uma cópia está comprometida quando o usuário tem um `trade_item` em um
+trade com status `PROPOSED`, `NEGOTIATING` ou `CONFIRMED`. Nenhuma coluna nova é
+criada.
 
-Merge commits are used rather than squash, so the semantic commits inside a
-checkpoint survive in history. Nothing is merged while a decision on that
-checkpoint is still open.
+## Motivo
 
-## Reason
+Um contador armazenado seria uma segunda fonte de verdade, sujeita a divergir das
+linhas de trade. Como o usuário pode ter no máximo um trade ativo por vez, a
+consulta derivada permanece barata. Comprometimentos simultâneos são impedidos
+por essa mesma regra de trade único, aplicada transacionalmente.
 
-Chosen by the product owner. `main` stays deployable and every checkpoint has a
-natural review point recorded on GitHub.
-
-## Date
+## Data
 
 2026-09-06
 
 ---
 
-# Decision: 017 - Continuous integration
+# Decisão: 012 — Divergências do modelo conceitual resolvem a favor do lógico
 
-## Context
+## Contexto
 
-No CI existed. The specification asks that CI be preserved if present and
-proposed if useful.
+O modelo conceitual e o lógico discordam em dois pontos estruturais.
 
-## Options
+1. Localização física: o conceitual liga `Card_Variant` diretamente a
+   `Storage_Location`; o lógico liga `collection_item` a `storage_location`.
+2. Itens de trade: o conceitual liga `Trade` diretamente a `Card_Variant`; o
+   lógico liga `trade_participant` a `card_variant`.
 
-1. GitHub Actions from Checkpoint 2.
-2. GitHub Actions later, once the test suite matures.
-3. No CI.
+## Opções
 
-## Decision
+Seguir o modelo conceitual ou seguir o lógico.
 
-Option 1. A GitHub Actions workflow is added at Checkpoint 2, alongside the first
-code: install, lint, type check, unit tests, integration tests against a
-PostgreSQL service container, migration check and build, on pull requests and on
-`main`.
+## Decisão
 
-## Reason
+O modelo lógico prevalece nos dois casos. As divergências ficam documentadas em
+`docs/database.md`. Os PDFs permanecem inalterados.
 
-Chosen by the product owner. The pull request flow of decision 016 only has real
-value if something verifies the branch before the merge. Actions minutes are free
-on a public repository.
+## Motivo
 
-No production infrastructure, deployment target or environment is configured by
-this decision.
+A versão conceitual de (1) perde o vínculo com a coleção e com o dono, tornando
+impossível validar que as alocações nunca excedem a quantidade possuída, ou que o
+armazenamento pertence ao dono da coleção. A versão conceitual de (2) perde a
+informação de qual participante oferece cada carta, da qual o fluxo de trade
+depende. O texto da especificação concorda com o modelo lógico nos dois pontos.
 
-## Date
+## Data
+
+2026-09-06
+
+---
+
+# Decisão: 013 — Cardinalidades mínimas relaxadas para opcional
+
+## Contexto
+
+O modelo conceitual marca como obrigatórias várias participações que não se
+sustentam na prática: toda carta ter ao menos um atributo e ao menos um trait, e
+todo usuário pertencer a ao menos um armazenamento e a ao menos um trade.
+
+## Opções
+
+Impor os mínimos do conceitual ou relaxá-los para opcional.
+
+## Decisão
+
+Relaxados para opcional no banco, acompanhando o modelo lógico.
+
+## Motivo
+
+Cartas de Event e Stage não possuem atributo no OPTCG, então uma participação
+obrigatória em `Card -> Attribute` rejeitaria dados válidos do catálogo durante a
+importação. Um usuário recém-cadastrado não possui armazenamento e não participa
+de nenhum trade, então esses mínimos tornariam o cadastro impossível.
+
+## Data
+
+2026-09-06
+
+---
+
+# Decisão: 014 — Restrições de unicidade adicionais
+
+## Contexto
+
+A especificação lista as restrições de unicidade das tabelas principais, mas não
+menciona duas das quais o comportamento exigido depende.
+
+## Opções
+
+Depender do código da aplicação ou acrescentar as restrições ao schema.
+
+## Decisão
+
+Duas restrições são acrescentadas:
+
+- `UNIQUE (collection_item_id, storage_location_id)` em
+  `collection_item_locations`
+- `UNIQUE (name)` em `colors`, `traits`, `attributes`, `mechanics` e `effects`
+
+## Motivo
+
+Sem a primeira, a mesma carta poderia ter duas linhas de alocação separadas para
+um mesmo local, o que quebra a soma das alocações e permite contar as mesmas
+cópias duas vezes. Sem a segunda, reexecutar a importação do catálogo inseriria
+linhas duplicadas de vocabulário, violando o requisito de idempotência. Ambas são
+aditivas e não alteram nenhum comportamento definido pela especificação.
+
+## Data
+
+2026-09-06
+
+---
+
+# Decisão: 015 — Exclusão de conta por anonimização
+
+## Contexto
+
+Um trade tem dois participantes, e o registro de um trade concluído pertence aos
+dois. Excluir um usuário levanta a questão do que acontece com
+`trade_participants`, e nenhuma política de exclusão pode ser escolhida para essa
+chave estrangeira sem responder isso.
+
+## Opções
+
+1. Anonimizar a conta e preservar a linha.
+2. `RESTRICT`: proibir exclusão de qualquer conta com histórico de trade.
+3. `CASCADE`: apagar participações e itens de trade junto com o usuário.
+4. Adiar completamente a exclusão de conta.
+
+## Decisão
+
+Opção 1. Contas são anonimizadas e nunca excluídas fisicamente.
+
+`users` ganha um `deleted_at` opcional. Anonimizar preenche esse campo, substitui
+`name` por um placeholder, substitui `email` por `deleted+<id>@deleted.invalid`,
+substitui `password_hash` por um valor inutilizável e limpa os campos de plano. A
+coleção, os locais de armazenamento e os wants são removidos pelos cascades já
+existentes. As linhas de `trade_participants` e `trade_items` são preservadas.
+
+`trade_participants.user_id` usa `RESTRICT` como rede de segurança, que nunca
+deveria disparar porque nenhum caminho de código apaga fisicamente um usuário.
+
+## Motivo
+
+A opção 3 destruiria o histórico do participante que permanece, que nunca
+consentiu com isso. A opção 2 impede o usuário de sair do produto. A anonimização
+remove o dado pessoal e a capacidade de autenticar, que é para o que exclusão de
+conta serve, mantendo todo trade completo para o outro lado.
+
+Esta é uma alteração estrutural do modelo aprovado, autorizada pelo dono do
+produto.
+
+## Data
+
+2026-09-06
+
+---
+
+# Decisão: 016 — Fluxo de branch e pull request
+
+## Contexto
+
+O repositório não tinha estratégia de branch estabelecida, e a especificação
+exige que o fluxo seja acordado, não presumido.
+
+## Opções
+
+1. Uma branch e um pull request por checkpoint, mergeado pelo dono do produto.
+2. Uma branch por checkpoint, mergeada pelo assistente após aprovação no chat.
+3. Commits diretamente na `main`.
+
+## Decisão
+
+Opção 1. Cada checkpoint tem uma branch chamada `checkpoint-N/<tema>` e um pull
+request. O dono do produto revisa e faz o merge. Trabalhos menores usam branches
+`fix/`, `docs/` e `chore/`.
+
+Merge commits em vez de squash, para que os commits semânticos internos ao
+checkpoint sobrevivam no histórico. Nada é mergeado enquanto houver decisão
+pendente naquele checkpoint.
+
+## Motivo
+
+Escolhida pelo dono do produto. A `main` permanece publicável e cada checkpoint
+tem um ponto natural de revisão registrado no GitHub.
+
+## Data
+
+2026-09-06
+
+---
+
+# Decisão: 017 — Integração contínua
+
+## Contexto
+
+Não existia CI. A especificação pede que a CI seja preservada se já existir e
+proposta se for útil.
+
+## Opções
+
+1. GitHub Actions a partir do Checkpoint 2.
+2. GitHub Actions mais tarde, quando a suíte de testes amadurecer.
+3. Sem CI.
+
+## Decisão
+
+Opção 1. Um workflow do GitHub Actions entra no Checkpoint 2, junto com o
+primeiro código: instalação, lint, verificação de tipos, testes unitários, testes
+de integração contra um container de serviço PostgreSQL, checagem de migration e
+build, em pull requests e na `main`.
+
+## Motivo
+
+Escolhida pelo dono do produto. O fluxo de pull request da decisão 016 só tem
+valor real se algo verificar a branch antes do merge. Os minutos do Actions são
+gratuitos em repositório público.
+
+Nenhuma infraestrutura de produção, alvo de deploy ou ambiente é configurado por
+esta decisão.
+
+## Data
+
+2026-09-06
+
+---
+
+# Decisão: 018 — Idioma da documentação
+
+## Contexto
+
+A documentação foi inicialmente escrita em inglês. O dono do produto é brasileiro
+e o projeto é conduzido em português.
+
+## Opções
+
+Manter em inglês ou traduzir para português.
+
+## Decisão
+
+Toda a documentação em `docs/` e o `README.md` ficam em **português**.
+
+Os **nomes dos arquivos permanecem em inglês** (`business-rules.md`,
+`database.md`, `architecture.md`, `decisions.md`, `integrations.md`,
+`development.md`), porque a especificação os nomeia explicitamente.
+
+Mensagens de commit continuam em inglês, seguindo a convenção Conventional
+Commits, e o histórico já existente não é reescrito.
+
+## Motivo
+
+Escolhida pelo dono do produto. A documentação é lida por quem toma as decisões
+de produto, então precisa estar no idioma em que essas decisões são discutidas.
+
+## Data
 
 2026-09-06

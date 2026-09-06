@@ -1,157 +1,161 @@
-# Database
+# Banco de Dados
 
-Target engine: **PostgreSQL 17**.
+Motor: **PostgreSQL 17 ou superior**. Ver a observação sobre a versão instalada
+em `development.md`.
 
-The schema implements the 24 tables of the logical model, plus the structural
-additions approved in `decisions.md` (008 public trade binder token, 009 Premium
-and trial). Nothing else is added.
+O schema implementa as 24 tabelas do modelo lógico, mais as adições estruturais
+aprovadas em `decisions.md` (008 token público do Trade Binder, 009 Premium e
+trial, 015 exclusão de conta). Nada além disso é acrescentado.
 
-Extensions required: `pg_trgm` only, for indexed name search. Tokens are
-generated in the application with `crypto.randomBytes`, so `pgcrypto` is not
-needed.
+Extensões necessárias: apenas `pg_trgm`, para busca indexada por nome. Tokens são
+gerados na aplicação com `crypto.randomBytes`, então `pgcrypto` é dispensável.
 
 ---
 
-## 1. Conventions
+## 1. Convenções
 
-| Aspect | Convention |
+| Aspecto | Convenção |
 |---|---|
-| Naming | `snake_case`, plural table names, exactly as the logical model |
-| Primary keys | `BIGINT GENERATED ALWAYS AS IDENTITY` |
-| Timestamps | `TIMESTAMPTZ`, never naive `timestamp` |
-| Money | `DECIMAL(12,2)` as specified in the logical model |
-| Enumerations | `VARCHAR(n) + CHECK`, preserving the logical model types |
-| Foreign keys | always indexed |
+| Nomenclatura | `snake_case`, tabelas no plural, exatamente como o modelo lógico |
+| Chaves primárias | `BIGINT GENERATED ALWAYS AS IDENTITY` |
+| Timestamps | `TIMESTAMPTZ`, nunca `timestamp` sem fuso |
+| Dinheiro | `DECIMAL(12,2)`, como especifica o modelo lógico |
+| Enumerações | `VARCHAR(n) + CHECK`, preservando os tipos do modelo lógico |
+| Chaves estrangeiras | sempre indexadas |
 
-Enumerations are modelled as `VARCHAR + CHECK` rather than native PostgreSQL
-enums. This keeps the column types the logical model specifies and avoids the
-migration cost of altering an enum type later.
+Enumerações usam `VARCHAR + CHECK` em vez de enum nativo do PostgreSQL. Isso
+mantém os tipos de coluna que o modelo lógico especifica e evita o custo de
+alterar um tipo enum depois.
 
 ---
 
-## 2. Tables
+## 2. Tabelas
 
-### 2.1 Identity
+### 2.1 Identidade
 
 **users**
 
-| Column | Type | Constraints |
+| Coluna | Tipo | Restrições |
 |---|---|---|
 | `id` | bigint | PK |
 | `name` | varchar(100) | not null |
-| `email` | varchar(255) | not null, **unique** |
+| `email` | varchar(255) | not null, **único** |
 | `password_hash` | varchar(255) | not null |
-| `plan` | varchar(20) | not null, default `FREE`, check in (`FREE`, `PREMIUM`) |
-| `trial_started_at` | timestamptz | nullable |
-| `premium_until` | timestamptz | nullable |
-| `deleted_at` | timestamptz | nullable |
+| `plan` | varchar(20) | not null, default `FREE`, check em (`FREE`, `PREMIUM`) |
+| `trial_started_at` | timestamptz | nulo permitido |
+| `premium_until` | timestamptz | nulo permitido |
+| `deleted_at` | timestamptz | nulo permitido |
 | `created_at` / `updated_at` | timestamptz | not null |
 
-`plan`, `trial_started_at` and `premium_until` are the approved addition for
-decision 009. `deleted_at` is the approved addition for decision 015. Password is
-never stored in plain text.
+`plan`, `trial_started_at` e `premium_until` são a adição aprovada na decisão
+009. `deleted_at` é a adição aprovada na decisão 015. A senha nunca é armazenada
+em texto puro.
 
-A row with `deleted_at` set is an anonymised account: it can no longer sign in
-and holds no personal data, but it still exists so that the trades it took part
-in remain complete for the other participant.
+A unicidade do e-mail é garantida sem diferenciar maiúsculas por um índice único
+sobre `lower(email)`, já que endereços que diferem apenas na caixa são a mesma
+conta.
 
-Email uniqueness is enforced case-insensitively by a unique index on
-`lower(email)`, since addresses that differ only in case are the same account.
+Uma linha com `deleted_at` preenchido é uma conta anonimizada: não consegue mais
+autenticar e não guarda dado pessoal, mas continua existindo para que os trades
+de que participou permaneçam completos para o outro participante.
 
 **collections**
 
-| Column | Type | Constraints |
+| Coluna | Tipo | Restrições |
 |---|---|---|
 | `id` | bigint | PK |
-| `user_id` | bigint | not null, FK users, **unique** |
+| `user_id` | bigint | not null, FK users, **único** |
 | `name` | varchar(100) | not null |
 | `created_at` / `updated_at` | timestamptz | not null |
 
-The unique constraint on `user_id` is what makes the relationship 1:1.
+A restrição de unicidade em `user_id` é o que torna o relacionamento 1:1.
 
-### 2.2 Catalog
+### 2.2 Catálogo
 
 **cards**
 
-| Column | Type | Constraints |
+| Coluna | Tipo | Restrições |
 |---|---|---|
 | `id` | bigint | PK |
-| `code` | varchar(20) | not null, **unique**, immutable |
+| `code` | varchar(20) | not null, **único**, imutável |
 | `name` | varchar(150) | not null |
-| `type` | varchar(20) | not null, check in (`Leader`, `Character`, `Event`, `Stage`) |
-| `cost` | int | nullable |
-| `power` | int | nullable |
-| `life` | int | nullable |
-| `counter` | int | nullable |
+| `type` | varchar(20) | not null, check em (`Leader`, `Character`, `Event`, `Stage`) |
+| `cost` | int | nulo permitido |
+| `power` | int | nulo permitido |
+| `life` | int | nulo permitido |
+| `counter` | int | nulo permitido |
 | `has_trigger` | boolean | not null, default false |
-| `block_icon` | varchar(20) | nullable |
+| `block_icon` | varchar(20) | nulo permitido |
 | `created_at` / `updated_at` | timestamptz | not null |
 
-Card type is an attribute. There is no `card_types` table. `DON!!` is not part of
-the catalog.
+O tipo da carta é um atributo. Não existe tabela `card_types`. `DON!!` não faz
+parte do catálogo.
 
-`cost`, `power`, `life` and `counter` are nullable because they do not apply to
-every card type.
+`cost`, `power`, `life` e `counter` aceitam nulo porque não se aplicam a todos os
+tipos de carta.
 
 **card_variants**
 
-| Column | Type | Constraints |
+| Coluna | Tipo | Restrições |
 |---|---|---|
 | `id` | bigint | PK |
 | `card_id` | bigint | not null, FK cards |
 | `variant_type` | varchar(50) | not null |
-| `rarity` | varchar(50) | nullable |
-| `image_url` | varchar(500) | nullable |
+| `rarity` | varchar(50) | nulo permitido |
+| `image_url` | varchar(500) | nulo permitido |
 | `created_at` / `updated_at` | timestamptz | not null |
 
-There is deliberately **no** `UNIQUE (card_id, variant_type)`: one card can have
-several distinct alternate arts that share the same variant type. See section 6.
+Deliberadamente **não** existe `UNIQUE (card_id, variant_type)`: uma mesma carta
+pode ter várias alternate arts distintas com o mesmo tipo de variante. Ver a
+seção 6.
 
-Rarity is an attribute of the variant. There is no `rarities` table and no rule
-that derives rarity; the value comes from the source.
+Raridade é atributo da variante. Não existe tabela `rarities` nem regra que
+determine raridade; o valor vem da fonte.
 
 **sets**
 
-| Column | Type | Constraints |
+| Coluna | Tipo | Restrições |
 |---|---|---|
 | `id` | bigint | PK |
-| `code` | varchar(20) | not null, **unique** |
+| `code` | varchar(20) | not null, **único** |
 | `name` | varchar(150) | not null |
 
 **variant_printings**
 
-| Column | Type | Constraints |
+| Coluna | Tipo | Restrições |
 |---|---|---|
 | `card_variant_id` | bigint | not null, FK card_variants |
 | `set_id` | bigint | not null, FK sets |
 
-Primary key is the composite `(card_variant_id, set_id)`. No surrogate id, as in
-the logical model. This table is the only source of set membership; the card code
-prefix is never used to derive a set.
+A chave primária é o par `(card_variant_id, set_id)`. Sem id substituto, como no
+modelo lógico. Esta tabela é a única origem da relação carta-set; o prefixo do
+código nunca é usado para derivar o set.
 
-**Vocabulary tables** - `colors`, `traits`, `attributes`, `mechanics`, `effects`
+**Tabelas de vocabulário** — `colors`, `traits`, `attributes`, `mechanics`,
+`effects`
 
-| Column | Type | Constraints |
+| Coluna | Tipo | Restrições |
 |---|---|---|
 | `id` | bigint | PK |
-| `name` | varchar(n) | not null, **unique** |
+| `name` | varchar(n) | not null, **único** |
 
-The `UNIQUE (name)` is decision 014 and is what makes the import idempotent.
-Widths follow the logical model: 50 for colors and attributes, 100 for the rest.
+O `UNIQUE (name)` é a decisão 014 e é o que torna a importação idempotente. As
+larguras seguem o modelo lógico: 50 para colors e attributes, 100 para as demais.
 
-**Join tables** - `card_colors`, `card_traits`, `card_attributes`,
+**Tabelas de junção** — `card_colors`, `card_traits`, `card_attributes`,
 `card_mechanics`, `card_effects`
 
-Each has `card_id` and the matching `<vocabulary>_id`, both not null, with the
-pair as the composite primary key. No surrogate id.
+Cada uma tem `card_id` e o `<vocabulário>_id` correspondente, ambos not null,
+com o par como chave primária composta. Sem id substituto.
 
-Effects and mechanics are modelled as related vocabulary, not as raw effect text.
+Efeitos e mecânicas são modelados como vocabulário relacionado, não como texto
+bruto do efeito.
 
-### 2.3 Possession
+### 2.3 Posse
 
 **collection_items**
 
-| Column | Type | Constraints |
+| Coluna | Tipo | Restrições |
 |---|---|---|
 | `id` | bigint | PK |
 | `collection_id` | bigint | not null, FK collections |
@@ -160,28 +164,28 @@ Effects and mechanics are modelled as related vocabulary, not as raw effect text
 
 `UNIQUE (collection_id, card_variant_id)`.
 
-A quantity of zero is represented by the absence of the row, which keeps
-"unique cards owned" a simple row count.
+Quantidade zero é representada pela ausência da linha, o que mantém "cartas
+únicas possuídas" como uma simples contagem de linhas.
 
 **storage_locations**
 
-| Column | Type | Constraints |
+| Coluna | Tipo | Restrições |
 |---|---|---|
 | `id` | bigint | PK |
 | `user_id` | bigint | not null, FK users |
 | `name` | varchar(100) | not null |
-| `image` | varchar(500) | nullable |
-| `type` | varchar(20) | not null, check in (`BINDER`, `BOX`, `DECK`) |
-| `purpose` | varchar(20) | nullable, check in (`COLLECTION`, `TRADE`) |
-| `public_token` | varchar(64) | nullable, **unique** |
-| `public_token_created_at` | timestamptz | nullable |
+| `image` | varchar(500) | nulo permitido |
+| `type` | varchar(20) | not null, check em (`BINDER`, `BOX`, `DECK`) |
+| `purpose` | varchar(20) | nulo permitido, check em (`COLLECTION`, `TRADE`) |
+| `public_token` | varchar(64) | nulo permitido, **único** |
+| `public_token_created_at` | timestamptz | nulo permitido |
 | `created_at` / `updated_at` | timestamptz | not null |
 
-`public_token` and `public_token_created_at` are the approved addition for
-decision 008. Revoking sets the token to `NULL`; regenerating writes a new random
-value. The unique index is partial (`WHERE public_token IS NOT NULL`).
+`public_token` e `public_token_created_at` são a adição aprovada na decisão 008.
+Revogar define o token como `NULL`; regerar grava outro valor aleatório. O índice
+único é parcial (`WHERE public_token IS NOT NULL`).
 
-The type and purpose combination is enforced by a table level check:
+A combinação de tipo e propósito é imposta por um check de tabela:
 
 ```sql
 CHECK (
@@ -191,23 +195,23 @@ CHECK (
 )
 ```
 
-This expresses the storage rules exactly, including that a box may be a trade
-box.
+Isso expressa exatamente as regras de armazenamento, inclusive que uma box pode
+ser de troca.
 
 **collection_item_locations**
 
-| Column | Type | Constraints |
+| Coluna | Tipo | Restrições |
 |---|---|---|
 | `id` | bigint | PK |
 | `collection_item_id` | bigint | not null, FK collection_items |
 | `storage_location_id` | bigint | not null, FK storage_locations |
 | `quantity` | int | not null, check `> 0` |
 
-`UNIQUE (collection_item_id, storage_location_id)` - decision 014.
+`UNIQUE (collection_item_id, storage_location_id)` — decisão 014.
 
 **want_items**
 
-| Column | Type | Constraints |
+| Coluna | Tipo | Restrições |
 |---|---|---|
 | `id` | bigint | PK |
 | `user_id` | bigint | not null, FK users |
@@ -216,54 +220,54 @@ box.
 
 `UNIQUE (user_id, card_variant_id)`.
 
-### 2.4 Pricing
+### 2.4 Preços
 
 **card_prices**
 
-| Column | Type | Constraints |
+| Coluna | Tipo | Restrições |
 |---|---|---|
 | `id` | bigint | PK |
 | `card_variant_id` | bigint | not null, FK card_variants |
 | `value` | decimal(12,2) | not null, check `>= 0` |
 | `captured_at` | timestamptz | not null |
 
-Named `captured_at` per decision 010. History is append only; rows are never
-overwritten.
+Nome `captured_at` conforme a decisão 010. O histórico é somente-inserção; linhas
+nunca são sobrescritas.
 
-### 2.5 Trading
+### 2.5 Trocas
 
 **trades**
 
-| Column | Type | Constraints |
+| Coluna | Tipo | Restrições |
 |---|---|---|
 | `id` | bigint | PK |
-| `status` | varchar(30) | not null, check in the six states |
+| `status` | varchar(30) | not null, check nos seis estados |
 | `created_at` / `updated_at` | timestamptz | not null |
-| `completed_at` | timestamptz | nullable |
+| `completed_at` | timestamptz | nulo permitido |
 
 ```sql
 CHECK (status IN ('DRAFT','PROPOSED','NEGOTIATING','CONFIRMED','COMPLETED','CANCELLED'))
 CHECK ((status = 'COMPLETED') = (completed_at IS NOT NULL))
 ```
 
-The second check keeps `completed_at` and the status from drifting apart, which
-matters because historical trade value is resolved from `completed_at`.
+O segundo check impede que `completed_at` e o status divirjam, o que importa
+porque o valor histórico do trade é resolvido a partir de `completed_at`.
 
 **trade_participants**
 
-| Column | Type | Constraints |
+| Coluna | Tipo | Restrições |
 |---|---|---|
 | `id` | bigint | PK |
 | `trade_id` | bigint | not null, FK trades |
 | `user_id` | bigint | not null, FK users |
 | `role` | varchar(30) | not null |
-| `confirmed_at` | timestamptz | nullable |
+| `confirmed_at` | timestamptz | nulo permitido |
 
 `UNIQUE (trade_id, user_id)`.
 
 **trade_items**
 
-| Column | Type | Constraints |
+| Coluna | Tipo | Restrições |
 |---|---|---|
 | `id` | bigint | PK |
 | `trade_participant_id` | bigint | not null, FK trade_participants |
@@ -272,186 +276,190 @@ matters because historical trade value is resolved from `completed_at`.
 
 `UNIQUE (trade_participant_id, card_variant_id)`.
 
-The link through the participant, rather than through the trade, is what records
-who offers each card.
+A ligação pelo participante, em vez de pelo trade, é o que registra quem oferece
+cada carta.
 
 ---
 
-## 3. Rules the database cannot express
+## 3. Regras que o banco não consegue expressar
 
-Three required rules are not expressible as a declarative constraint. Each is
-enforced inside a transaction, with a trigger as defence in depth, and is
-documented here as required.
+Três regras obrigatórias não são expressáveis como restrição declarativa. Cada
+uma é imposta dentro de uma transação, com trigger como defesa em profundidade, e
+está documentada aqui conforme exigido.
 
-### 3.1 Allocations never exceed the owned quantity
+### 3.1 Alocações nunca excedem a quantidade possuída
 
-`SUM(collection_item_locations.quantity) <= collection_items.quantity` is an
-aggregate across rows, which a `CHECK` cannot evaluate.
+`SUM(collection_item_locations.quantity) <= collection_items.quantity` é um
+agregado entre linhas, que um `CHECK` não consegue avaliar.
 
-Enforcement: every write that touches either side opens a transaction, takes
-`SELECT ... FOR UPDATE` on the `collection_items` row first, then recomputes the
-sum before writing. Locking the parent row serialises all concurrent allocation
-changes for that item, so two simultaneous writes cannot both observe a stale
-sum. A constraint trigger on `collection_item_locations` repeats the check.
+Imposição: toda escrita que toca qualquer um dos lados abre uma transação, faz
+`SELECT ... FOR UPDATE` na linha de `collection_items` primeiro e só então
+recalcula a soma antes de gravar. Travar a linha pai serializa todas as alterações
+concorrentes de alocação daquele item, de modo que duas escritas simultâneas não
+podem enxergar uma soma desatualizada. Um constraint trigger em
+`collection_item_locations` repete a verificação.
 
-### 3.2 The storage location belongs to the collection owner
+### 3.2 O local de armazenamento pertence ao dono da coleção
 
-The relationship spans three tables, so a plain foreign key cannot express it.
+A relação atravessa três tabelas, então uma chave estrangeira simples não a
+expressa.
 
-Enforcement: a trigger on `collection_item_locations` verifies that
-`storage_locations.user_id` equals the `user_id` of the collection that owns the
-collection item. The application checks the same thing before writing, so the
-trigger is a backstop rather than the primary path.
+Imposição: um trigger em `collection_item_locations` verifica que
+`storage_locations.user_id` é igual ao `user_id` da coleção dona do item. A
+aplicação verifica o mesmo antes de gravar, então o trigger é rede de segurança,
+não o caminho principal.
 
-A composite foreign key could express this declaratively, but only by
-denormalising `user_id` onto `collection_items`, which would change the approved
-model. The trigger avoids that.
+Uma chave estrangeira composta expressaria isso declarativamente, mas apenas
+denormalizando `user_id` em `collection_items`, o que alteraria o modelo
+aprovado. O trigger evita isso.
 
-### 3.3 At most one active trade per user
+### 3.3 No máximo um trade ativo por usuário
 
-Active means status in `PROPOSED`, `NEGOTIATING` or `CONFIRMED`, and the status
-lives on `trades` while the user lives on `trade_participants`. A partial unique
-index cannot span the two tables.
+Ativo significa status em `PROPOSED`, `NEGOTIATING` ou `CONFIRMED`, e o status
+está em `trades` enquanto o usuário está em `trade_participants`. Um índice único
+parcial não atravessa duas tabelas.
 
-Enforcement: transitioning a trade into an active status takes
-`pg_advisory_xact_lock` keyed on each participant id, then verifies that no other
-active trade exists for those users. The advisory lock is released with the
-transaction and serialises concurrent attempts for the same user.
+Imposição: ao mover um trade para um status ativo, a transação adquire
+`pg_advisory_xact_lock` para cada participante e então verifica que não existe
+outro trade ativo daqueles usuários. O advisory lock é liberado com a transação e
+serializa tentativas concorrentes do mesmo usuário.
 
-The alternative, a denormalised `is_active` flag on `trade_participants` with a
-partial unique index, would be more robust but adds a column to the approved
-model.
+A alternativa, uma flag `is_active` denormalizada em `trade_participants` com
+índice único parcial, seria mais robusta mas acrescenta coluna ao modelo
+aprovado.
 
 ---
 
-## 4. Delete policy
+## 4. Política de exclusão
 
-Analysed relation by relation rather than applied uniformly.
+Analisada relação a relação, e não aplicada uniformemente.
 
-| Foreign key | On delete | Why |
+| Chave estrangeira | On delete | Por quê |
 |---|---|---|
-| `collections.user_id` | CASCADE | the collection is owned data with no meaning without its user |
-| `storage_locations.user_id` | CASCADE | same |
-| `want_items.user_id` | CASCADE | same |
-| `collection_items.collection_id` | CASCADE | items belong to the collection |
-| `collection_item_locations.collection_item_id` | CASCADE | an allocation cannot outlive its item |
-| `collection_item_locations.storage_location_id` | CASCADE | deleting a binder frees its allocations; the copies stay in the collection |
-| `card_variants.card_id` | RESTRICT | catalog integrity; removal goes through import tooling |
-| `variant_printings.card_variant_id` | CASCADE | a printing has no meaning without its variant |
-| `variant_printings.set_id` | RESTRICT | a set with printings is never silently removed |
-| `card_<vocabulary>.card_id` | CASCADE | rebuilt on every import |
-| `card_<vocabulary>.<vocabulary>_id` | RESTRICT | a vocabulary term in use is never silently removed |
-| `collection_items.card_variant_id` | RESTRICT | never delete a catalog variant somebody owns |
-| `want_items.card_variant_id` | RESTRICT | same |
-| `card_prices.card_variant_id` | RESTRICT | price history is business data |
-| `trade_items.card_variant_id` | RESTRICT | same, for trade history |
-| `trade_participants.trade_id` | CASCADE | participants belong to the trade |
-| `trade_items.trade_participant_id` | CASCADE | items belong to the participant |
-| `trade_participants.user_id` | RESTRICT | protects trade history; never fires, because accounts are anonymised rather than deleted |
+| `collections.user_id` | CASCADE | a coleção é dado próprio, sem sentido sem o usuário |
+| `storage_locations.user_id` | CASCADE | idem |
+| `want_items.user_id` | CASCADE | idem |
+| `collection_items.collection_id` | CASCADE | os itens pertencem à coleção |
+| `collection_item_locations.collection_item_id` | CASCADE | uma alocação não sobrevive ao item |
+| `collection_item_locations.storage_location_id` | CASCADE | apagar um binder libera as alocações; as cópias permanecem na coleção |
+| `card_variants.card_id` | RESTRICT | integridade do catálogo; remoção passa pelas ferramentas de importação |
+| `variant_printings.card_variant_id` | CASCADE | uma impressão não tem sentido sem a variante |
+| `variant_printings.set_id` | RESTRICT | um set com impressões nunca é removido silenciosamente |
+| `card_<vocabulário>.card_id` | CASCADE | reconstruído a cada importação |
+| `card_<vocabulário>.<vocabulário>_id` | RESTRICT | um termo em uso nunca é removido silenciosamente |
+| `collection_items.card_variant_id` | RESTRICT | nunca apagar variante do catálogo que alguém possui |
+| `want_items.card_variant_id` | RESTRICT | idem |
+| `card_prices.card_variant_id` | RESTRICT | histórico de preço é dado de negócio |
+| `trade_items.card_variant_id` | RESTRICT | idem, para o histórico de trades |
+| `trade_participants.trade_id` | CASCADE | participantes pertencem ao trade |
+| `trade_items.trade_participant_id` | CASCADE | itens pertencem ao participante |
+| `trade_participants.user_id` | RESTRICT | protege o histórico; nunca dispara, porque contas são anonimizadas e não excluídas |
 
-### 4.1 Deleting a user account
+### 4.1 Exclusão de conta
 
-A trade always has two sides. Cascading a user deletion into
-`trade_participants` would delete half of a completed trade, destroying history
-that belongs to the **other** user as much as to the one leaving.
+Um trade sempre tem dois lados. Cascatear a exclusão de um usuário em
+`trade_participants` apagaria metade de um trade concluído, destruindo histórico
+que pertence tanto ao **outro** usuário quanto a quem está saindo.
 
-Accounts are therefore **anonymised, never hard deleted** (decision 015):
+Por isso contas são **anonimizadas, nunca excluídas fisicamente** (decisão 015):
 
-1. `deleted_at` is set, which blocks sign in.
-2. `name` is replaced with a placeholder and `email` with a non reversible,
-   collision free value of the form `deleted+<id>@deleted.invalid`, which keeps
-   the unique index satisfied without retaining a real address.
-3. `password_hash` is replaced with a value no password can produce.
-4. `plan`, `trial_started_at` and `premium_until` are cleared.
-5. The collection, storage locations and want items are deleted through their
-   existing cascades, since that data belongs solely to the departing user.
-6. `trade_participants` and `trade_items` rows are kept, so the other side of
-   every trade stays intact.
+1. `deleted_at` é preenchido, o que bloqueia a autenticação.
+2. `name` é substituído por um placeholder e `email` por um valor não reversível
+   e sem colisão, no formato `deleted+<id>@deleted.invalid`, que satisfaz o
+   índice único sem reter um endereço real.
+3. `password_hash` é substituído por um valor que nenhuma senha produz.
+4. `plan`, `trial_started_at` e `premium_until` são limpos.
+5. Coleção, locais de armazenamento e wants são removidos pelos cascades já
+   existentes, já que esse dado pertence exclusivamente a quem está saindo.
+6. As linhas de `trade_participants` e `trade_items` são preservadas, então o
+   outro lado de cada trade permanece íntegro.
 
-The `RESTRICT` on `trade_participants.user_id` is a backstop: since no code path
-hard deletes a user row, it should never fire. If it ever does, it means an
-unintended deletion path exists, and failing loudly is the correct outcome.
+O `RESTRICT` em `trade_participants.user_id` é rede de segurança: como nenhum
+caminho de código apaga fisicamente um usuário, ele nunca deveria disparar. Se
+disparar, significa que existe um caminho de exclusão não intencional, e falhar
+alto é o comportamento correto.
 
-### 4.2 Deleting trades
+### 4.2 Exclusão de trades
 
-A `COMPLETED` trade is never deleted; it is history. Only a `DRAFT` may be
-removed. This is an application rule, not a database constraint.
+Um trade `COMPLETED` nunca é excluído; é histórico. Apenas um `DRAFT` pode ser
+removido. Isso é regra de aplicação, não restrição de banco.
 
 ---
 
-## 5. Index plan
+## 5. Plano de índices
 
-Driven by the required filters and by the requirement that exact code lookup be
-fast.
+Guiado pelos filtros exigidos e pelo requisito de que a busca exata por código
+seja rápida.
 
-| Index | Purpose |
+| Índice | Finalidade |
 |---|---|
-| `cards (code)` unique | exact code lookup, the most common search |
-| `cards USING gin (name gin_trgm_ops)` | substring and fuzzy name search |
-| `cards (type)` | type filter |
-| `card_variants (card_id)` | variant listing and playset aggregation |
-| `card_variants (rarity)`, `card_variants (variant_type)` | catalog filters |
-| `variant_printings (set_id)` | set browsing and set progress denominator |
-| `variant_printings (card_variant_id)` | reverse lookup on the card page |
-| `card_<vocabulary> (<vocabulary>_id)` | filtering by color, trait, attribute, mechanic, effect |
-| `collection_items (collection_id, card_variant_id)` unique | possession lookup and the uniqueness rule |
-| `collection_items (card_variant_id)` | reverse lookup |
-| `collection_item_locations (collection_item_id, storage_location_id)` unique | allocation lookup and the uniqueness rule |
-| `collection_item_locations (storage_location_id)` | listing the contents of a storage location |
-| `storage_locations (user_id)` | listing user storage |
-| `storage_locations (public_token)` unique partial | public trade binder lookup |
-| `want_items (user_id, card_variant_id)` unique | want lookup |
-| `want_items (card_variant_id)` | matching, from the availability side |
-| `card_prices (card_variant_id, captured_at DESC)` | current price and historical resolution |
-| `trade_participants (trade_id, user_id)` unique | participation lookup |
-| `trade_participants (user_id)` | trade history of a user, active trade check |
-| `trade_items (trade_participant_id, card_variant_id)` unique | item lookup |
-| `users (lower(email))` unique | login |
+| `cards (code)` único | busca exata por código, a mais comum |
+| `cards USING gin (name gin_trgm_ops)` | busca por trecho e aproximada no nome |
+| `cards (type)` | filtro por tipo |
+| `card_variants (card_id)` | listagem de variantes e agregação de playset |
+| `card_variants (rarity)`, `card_variants (variant_type)` | filtros do catálogo |
+| `variant_printings (set_id)` | navegação por set e denominador do progresso |
+| `variant_printings (card_variant_id)` | busca reversa na página da carta |
+| `card_<vocabulário> (<vocabulário>_id)` | filtro por cor, trait, atributo, mecânica, efeito |
+| `collection_items (collection_id, card_variant_id)` único | consulta de posse e regra de unicidade |
+| `collection_items (card_variant_id)` | busca reversa |
+| `collection_item_locations (collection_item_id, storage_location_id)` único | consulta de alocação e regra de unicidade |
+| `collection_item_locations (storage_location_id)` | listar o conteúdo de um armazenamento |
+| `storage_locations (user_id)` | listar armazenamentos do usuário |
+| `storage_locations (public_token)` único parcial | busca do Trade Binder público |
+| `want_items (user_id, card_variant_id)` único | consulta de want |
+| `want_items (card_variant_id)` | matching, pelo lado da disponibilidade |
+| `card_prices (card_variant_id, captured_at DESC)` | preço atual e resolução histórica |
+| `trade_participants (trade_id, user_id)` único | consulta de participação |
+| `trade_participants (user_id)` | histórico de trades e checagem de trade ativo |
+| `trade_items (trade_participant_id, card_variant_id)` único | consulta de item |
+| `users (lower(email))` único | autenticação |
 
-Every catalog and collection listing is paginated and filtered on the server. The
-full catalog is never loaded in a request.
-
----
-
-## 6. Known model gaps
-
-### 6.1 Variant identity
-
-`card_variants` has no natural key. The card code identifies the card, not the
-variant, and one card can have several alternate arts with the same
-`variant_type`. Creating an artificial variant number is explicitly excluded.
-
-The consequence is that an idempotent import cannot match an incoming variant to
-an existing row using only the columns in the approved model. This requires an
-identifier supplied by the source. The concrete proposal comes at Checkpoint 3,
-once a source has been evaluated, and is a pending decision until then.
-
-### 6.2 Price source
-
-`card_prices` has no column identifying which provider produced a value. This is
-sufficient while exactly one provider is in use. If more than one provider is
-ever approved, distinguishing them requires a column, which is a change to the
-approved model and would be raised before implementation.
+Toda listagem de catálogo e de coleção é paginada e filtrada no servidor. O
+catálogo completo nunca é carregado numa requisição.
 
 ---
 
-## 7. Divergence record
+## 6. Lacunas conhecidas do modelo
 
-Where the conceptual model and the logical model disagree, the logical model
-prevails (decision 012). The PDFs in `docs/modelagem/` are left unmodified; this
-section is the record of the corrections.
+### 6.1 Identidade da variante
 
-| Topic | Conceptual model | Implemented |
+`card_variants` não tem chave natural. O código identifica a carta, não a
+variante, e uma mesma carta pode ter várias alternate arts com o mesmo
+`variant_type`. Criar um número de variante artificial é explicitamente proibido.
+
+A consequência é que uma importação idempotente não consegue casar uma variante
+recebida com uma linha existente usando apenas as colunas do modelo aprovado.
+Isso exige um identificador fornecido pela fonte. A proposta concreta vem no
+Checkpoint 3, depois que uma fonte tiver sido avaliada, e até lá é decisão
+pendente.
+
+### 6.2 Origem do preço
+
+`card_prices` não tem coluna identificando qual provedor produziu o valor. Isso
+basta enquanto exatamente um provedor estiver em uso. Se mais de um vier a ser
+aprovado, distingui-los exige uma coluna, o que é alteração do modelo aprovado e
+seria levantado antes de qualquer implementação.
+
+---
+
+## 7. Registro de divergências
+
+Onde o modelo conceitual e o modelo lógico discordam, prevalece o lógico (decisão
+012). Os PDFs em `docs/modelagem/` permanecem inalterados; esta seção é o
+registro das correções.
+
+| Tema | Modelo conceitual | Implementado |
 |---|---|---|
-| Physical location | `Card_Variant` linked directly to `Storage_Location` | `collection_item_locations` links `collection_items` to `storage_locations` |
-| Trade items | `Trade` linked directly to `Card_Variant` | `trade_items` links `trade_participants` to `card_variants` |
-| Password | `password` | `password_hash` |
-| Collection timestamp | `crated_at` (typo) | `created_at` |
-| Storage timestamps | absent | `created_at`, `updated_at` |
-| Trade participation | `role` only | `role`, `confirmed_at` |
-| Price timestamp | `data` | `captured_at` |
+| Localização física | `Card_Variant` ligada direto a `Storage_Location` | `collection_item_locations` liga `collection_items` a `storage_locations` |
+| Itens de trade | `Trade` ligada direto a `Card_Variant` | `trade_items` liga `trade_participants` a `card_variants` |
+| Senha | `password` | `password_hash` |
+| Timestamp da coleção | `crated_at` (erro de digitação) | `created_at` |
+| Timestamps de armazenamento | ausentes | `created_at`, `updated_at` |
+| Participação em trade | apenas `role` | `role`, `confirmed_at` |
+| Timestamp de preço | `data` | `captured_at` |
 
-Minimum cardinalities that the conceptual model marks as mandatory are optional
-in the schema (decision 013): a card may have no attribute, which Event and Stage
-cards require; a user may own no storage location and belong to no trade, which
-newly registered users require.
+Cardinalidades mínimas que o modelo conceitual marca como obrigatórias são
+opcionais no schema (decisão 013): uma carta pode não ter atributo, o que cartas
+de Event e Stage exigem; um usuário pode não ter armazenamento nem participar de
+trade algum, o que usuários recém-cadastrados exigem.

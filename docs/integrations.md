@@ -1,40 +1,40 @@
-# Integrations
+# Integrações
 
-External data enters the system through two interfaces and never through the
-request path. After an import completes, the internal database is the
-operational source of truth. No external API is called while rendering a page.
-
----
-
-## 1. Status
-
-**No external source is approved yet.** Both the catalog source and the price
-source are open decisions.
-
-Nothing in this document assumes that any particular API exists, that any
-endpoint has a given shape, or that scraping any site is permitted. Before any
-source is implemented, the following must be verified and recorded here:
-
-- the documentation and the actual response shape;
-- availability and stability;
-- terms of service and licence;
-- whether automated access is permitted at all;
-- rate limits and the acceptable refresh frequency;
-- attribution requirements.
-
-If a preferred source turns out to be unusable, alternatives are presented for a
-decision rather than substituted silently.
+Dado externo entra no sistema por duas interfaces, e nunca pelo caminho da
+requisição. Concluída uma importação, o banco interno é a fonte operacional de
+verdade. Nenhuma API externa é chamada durante a renderização de uma página.
 
 ---
 
-## 2. Catalog
+## 1. Situação
 
-Candidate sources named in the specification, in priority order, all pending
-evaluation:
+**Nenhuma fonte externa está aprovada.** Tanto a fonte do catálogo quanto a fonte
+de preços são decisões em aberto.
 
-1. `optcg-data` and other data derived from the official Bandai source
+Nada neste documento presume que alguma API específica exista, que algum endpoint
+tenha determinado formato, ou que raspagem de qualquer site seja permitida. Antes
+de qualquer fonte ser implementada, é preciso verificar e registrar aqui:
+
+- a documentação e o formato real da resposta;
+- disponibilidade e estabilidade;
+- termos de uso e licença;
+- se o acesso automatizado é permitido;
+- limites de taxa e a frequência aceitável de atualização;
+- exigências de atribuição.
+
+Se uma fonte preferencial se mostrar inviável, alternativas são apresentadas para
+decisão, jamais substituídas silenciosamente.
+
+---
+
+## 2. Catálogo
+
+Fontes candidatas citadas na especificação, em ordem de prioridade, todas
+pendentes de avaliação:
+
+1. `optcg-data` e outros dados derivados da fonte oficial Bandai
 2. Scrydex
-3. anything else, only after evaluation
+3. qualquer outra, somente após avaliação
 
 ### 2.1 Interface
 
@@ -47,76 +47,77 @@ interface CatalogProvider {
 }
 ```
 
-The DTOs are the normalised internal shape, not the shape of any provider. A
-provider implementation is responsible for translating its own payload into
-them, so a change of source does not reach the rest of the system.
+Os DTOs são o formato interno normalizado, não o formato de nenhum provedor. Cada
+implementação é responsável por traduzir o próprio payload para eles, de modo que
+uma troca de fonte não alcance o resto do sistema.
 
 ### 2.2 Pipeline
 
 ```
-fetch -> normalise -> validate -> upsert (transactional) -> report
+buscar -> normalizar -> validar -> upsert (transacional) -> relatar
 ```
 
-Normalisation maps provider vocabulary onto the internal vocabulary tables.
-Classifications are never invented: a value that does not map to a known
-colour, trait, attribute, mechanic or effect is rejected and reported, not
-guessed.
+A normalização mapeia o vocabulário do provedor para as tabelas de vocabulário
+internas. Classificações nunca são inventadas: um valor que não corresponda a uma
+cor, trait, atributo, mecânica ou efeito conhecido é rejeitado e reportado, não
+adivinhado.
 
-Validation rejects a record rather than importing something malformed. Rejected
-records are counted and logged with the reason.
+A validação rejeita o registro em vez de importar algo malformado. Registros
+rejeitados são contados e registrados em log com o motivo.
 
-### 2.3 Idempotency
+### 2.3 Idempotência
 
-Running an import twice must not duplicate cards, variants, sets, colours,
-traits, attributes, mechanics, effects or printings.
+Rodar a importação duas vezes não pode duplicar cards, variants, sets, cores,
+traits, atributos, mecânicas, efeitos ou printings.
 
-| Entity | Match key | Status |
+| Entidade | Chave de correspondência | Situação |
 |---|---|---|
-| `cards` | `code` | unique, reliable |
-| `sets` | `code` | unique, reliable |
-| vocabulary tables | `name` | unique as of decision 014 |
-| `variant_printings` | `(card_variant_id, set_id)` | composite primary key |
-| `card_variants` | **unresolved** | see below |
+| `cards` | `code` | única e confiável |
+| `sets` | `code` | única e confiável |
+| tabelas de vocabulário | `name` | única desde a decisão 014 |
+| `variant_printings` | `(card_variant_id, set_id)` | chave primária composta |
+| `card_variants` | **não resolvida** | ver abaixo |
 
-### 2.4 The variant identity problem
+### 2.4 O problema da identidade da variante
 
-`card_variants` has no natural key. The card code identifies the card, not the
-variant, and a single card can have several distinct alternate arts that share
-the same `variant_type`, so `(card_id, variant_type)` is not unique. Creating an
-artificial variant number is excluded by the specification.
+`card_variants` não tem chave natural. O código identifica a carta, não a
+variante, e uma mesma carta pode ter várias alternate arts distintas com o mesmo
+`variant_type`, então `(card_id, variant_type)` não é único. Criar um número de
+variante artificial é proibido pela especificação.
 
-Consequently a second import run has no reliable way to decide whether an
-incoming variant is one it already stored. Matching on image URL is fragile,
-since URLs change; matching on rarity plus type collides for exactly the
-alternate art case that matters.
+Como consequência, uma segunda execução da importação não tem como decidir com
+segurança se uma variante recebida é alguma que já foi gravada. Casar pela URL da
+imagem é frágil, porque URLs mudam; casar por raridade mais tipo colide
+exatamente no caso de alternate art que importa.
 
-This is the case the specification anticipates when it allows external
-identifiers in the physical model. Any such identifier would:
+Este é o cenário que a especificação antecipa ao permitir identificadores
+externos no modelo físico. Qualquer identificador desse tipo:
 
-- not replace the internal primary key;
-- not be used as a public identifier;
-- exist only to make synchronisation deterministic.
+- não substitui a chave primária interna;
+- não é usado como identificador público;
+- existe apenas para tornar a sincronização determinística.
 
-A concrete proposal comes at Checkpoint 3, once a real source has been evaluated
-and its identifiers are known. Until then the import cannot be made idempotent
-for variants, and Checkpoint 3 does not start.
+A proposta concreta vem no Checkpoint 3, depois que uma fonte real for avaliada e
+seus identificadores forem conhecidos. Até lá a importação não pode ser tornada
+idempotente para variantes, e o Checkpoint 3 não começa.
 
-### 2.5 Images
+### 2.5 Imagens
 
-Card images are referenced by URL in `card_variants.image_url`. Whether images
-may be hot linked or must be cached locally depends on the terms of the approved
-source, and is decided together with it.
+As imagens das cartas são referenciadas por URL em `card_variants.image_url`. Se
+podem ser consumidas diretamente da origem ou precisam ser armazenadas
+localmente depende dos termos da fonte aprovada, e é decidido junto com ela.
 
 ---
 
-## 3. Prices
+## 3. Preços
 
-The goal is a market price for Brazil. LigaOnePiece is the preferred source when
-a real integration exists, is technically available and is permitted.
+O objetivo é preço de mercado para o Brasil. A LigaOnePiece é a fonte
+preferencial quando existir integração real, tecnicamente disponível e
+permitida.
 
-None of that is established yet. No API is assumed to exist and no scraping is
-assumed to be allowed. This is verified before Checkpoint 11, and alternatives
-are presented if the preferred source cannot be used.
+Nada disso está estabelecido. Nenhuma API é presumida como existente e nenhuma
+raspagem é presumida como permitida. Isso é verificado antes do Checkpoint 11, e
+alternativas são apresentadas caso a fonte preferencial não possa ser usada.
 
 ### 3.1 Interface
 
@@ -128,27 +129,28 @@ interface PriceProvider {
 }
 ```
 
-The abstraction exists so the source can change without touching the valuation
-logic. Prices are written to `card_prices` as new rows with a `captured_at`;
-existing rows are never updated, because historical trade values are resolved
-from that history.
+A abstração existe para que a fonte possa mudar sem tocar na lógica de valoração.
+Preços são gravados em `card_prices` como novas linhas com `captured_at`; linhas
+existentes nunca são atualizadas, porque o valor histórico dos trades é resolvido
+a partir desse histórico.
 
-### 3.2 One provider at a time
+### 3.2 Um provedor por vez
 
-`card_prices` has no column identifying the provider. That is sufficient while
-exactly one provider is active. Supporting more than one simultaneously would
-require a column, which is a change to the approved model and would be raised
-before implementation.
+`card_prices` não tem coluna identificando o provedor. Isso basta enquanto
+exatamente um provedor estiver ativo. Suportar mais de um simultaneamente exigiria
+uma coluna, o que é alteração do modelo aprovado e seria levantado antes de
+qualquer implementação.
 
 ---
 
-## 4. Observability
+## 4. Observabilidade
 
-Every import run logs, as structured events:
+Toda execução de importação registra, como eventos estruturados:
 
-- start, with the provider name and the run identifier;
-- counts of records processed, inserted, updated, rejected and failed;
-- each rejection with its reason and the identifying fields of the record;
-- finish, with the duration and the final counts.
+- início, com o nome do provedor e o identificador da execução;
+- contagens de registros processados, inseridos, atualizados, rejeitados e com
+  falha;
+- cada rejeição com o motivo e os campos que identificam o registro;
+- término, com a duração e as contagens finais.
 
-Logs never contain credentials, tokens or personal data.
+Logs nunca contêm credenciais, tokens ou dados pessoais.

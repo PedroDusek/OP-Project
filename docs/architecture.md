@@ -1,77 +1,77 @@
-# Architecture
+# Arquitetura
 
 ## 1. Stack
 
-| Layer | Choice |
+| Camada | Escolha |
 |---|---|
 | Runtime | Node.js 20 |
 | Framework | Next.js 15, App Router |
-| Language | TypeScript, `strict` |
+| Linguagem | TypeScript, `strict` |
 | ORM | Prisma |
-| Database | PostgreSQL 17 |
-| Validation | Zod |
-| Authentication | Auth.js v5, credentials provider |
-| Password hashing | Argon2id |
-| Styling | Tailwind CSS |
-| UI primitives | Radix UI via shadcn/ui |
-| Client data | TanStack Query |
-| List virtualization | TanStack Virtual |
-| Unit and integration tests | Vitest |
-| End to end tests | Playwright |
-| Lint and format | ESLint, Prettier |
+| Banco de dados | PostgreSQL 17 ou superior |
+| Validação | Zod |
+| Autenticação | Auth.js v5, provider de credenciais |
+| Hash de senha | Argon2id |
+| Estilos | Tailwind CSS |
+| Primitivos de UI | Radix UI via shadcn/ui |
+| Estado de servidor no cliente | TanStack Query |
+| Virtualização de listas | TanStack Virtual |
+| Testes unitários e de integração | Vitest |
+| Testes ponta a ponta | Playwright |
+| Lint e formatação | ESLint, Prettier |
 
-Rationale for the stack itself is in `decisions.md` 002 and 003.
+A justificativa da stack está em `decisions.md` 002 e 003.
 
-Nothing here is hand written where a mature library exists: hashing, ORM,
-validation, session handling, UI primitives and test tooling are all libraries.
-No dependency is added without a concrete need.
+Nada aqui é escrito à mão onde existe biblioteca madura: hash, ORM, validação,
+sessão, primitivos de UI e ferramentas de teste são todos bibliotecas. Nenhuma
+dependência entra sem necessidade concreta.
 
 ---
 
-## 2. Layers
+## 2. Camadas
 
-The separation required is by module, enforced by lint rules, not by splitting
-the system into separate processes.
+A separação exigida é por módulo, imposta por regras de lint, e não por dividir o
+sistema em processos separados.
 
 ```
 src/
-  app/                    Next.js routes: pages and route handlers. Thin.
-  components/             UI components. No business logic.
+  app/                    Rotas do Next.js: páginas e route handlers. Finas.
+  components/             Componentes de UI. Sem regra de negócio.
   server/
-    domain/               Pure functions and types. No I/O, no Prisma, no HTTP.
-    application/          Use cases. Owns transaction boundaries and locking.
-    infrastructure/       Prisma client, repositories, external providers.
-    http/                 Zod schemas, error mapping, authorization guards.
-  lib/                    Utilities shared by client and server.
-prisma/                   schema.prisma and migrations
+    domain/               Funções e tipos puros. Sem I/O, sem Prisma, sem HTTP.
+    application/          Casos de uso. Dono das transações e dos locks.
+    infrastructure/       Cliente Prisma, repositórios, provedores externos.
+    http/                 Schemas Zod, mapeamento de erro, guardas de autorização.
+  lib/                    Utilidades compartilhadas entre cliente e servidor.
+prisma/                   schema.prisma e migrations
 tests/
-  domain/                 pure unit tests, no database
-  integration/            real PostgreSQL, real transactions
+  domain/                 testes unitários puros, sem banco
+  integration/            PostgreSQL real, transações reais
   e2e/                    Playwright
 ```
 
-### 2.1 Dependency rules
+### 2.1 Regras de dependência
 
-- `domain` imports nothing from the other layers. It is pure, synchronous and
-  fully testable without a database.
-- `application` may import `domain` and `infrastructure`.
-- `app` and `components` may import `application` and `http`, never
-  `infrastructure` directly.
-- `components` never contains business logic. Any number shown on screen is
-  computed on the server.
+- `domain` não importa nada das outras camadas. É puro, síncrono e totalmente
+  testável sem banco.
+- `application` pode importar `domain` e `infrastructure`.
+- `app` e `components` podem importar `application` e `http`, nunca
+  `infrastructure` diretamente.
+- `components` nunca contém regra de negócio. Todo número exibido na tela é
+  calculado no servidor.
 
-These rules are enforced with the ESLint `no-restricted-imports` rule, so a
-violation fails the build rather than relying on discipline.
+Essas regras são impostas pela regra `no-restricted-imports` do ESLint, de modo
+que uma violação quebra o build em vez de depender de disciplina.
 
-### 2.2 What lives where
+### 2.2 O que fica onde
 
-| Concern | Layer |
+| Assunto | Camada |
 |---|---|
-| Playset, progress, availability, matching arithmetic | `domain` |
-| Transaction boundaries, row locks, advisory locks | `application` |
-| Ownership checks | `application`, on every use case |
-| Prisma queries, raw SQL for locking | `infrastructure` |
-| Request parsing, response shape, HTTP status | `http` |
+| Aritmética de playset, progresso, disponibilidade e matching | `domain` |
+| Fronteiras de transação, locks de linha, advisory locks | `application` |
+| Verificação de propriedade | `application`, em todo caso de uso |
+| Consultas Prisma, SQL bruto para travamento | `infrastructure` |
+| Parsing da requisição, formato da resposta, status HTTP | `http` |
 
 ---
 
@@ -79,139 +79,143 @@ violation fails the build rather than relying on discipline.
 
 ### 3.1 API
 
-Route handlers under `app/api`. Read paths that only feed a page are served by
-React Server Components calling the same use cases directly, which avoids an
-unnecessary HTTP hop while keeping one implementation of each rule.
+Route handlers em `app/api`. Leituras que apenas alimentam uma página são
+servidas por React Server Components chamando os mesmos casos de uso
+diretamente, o que evita um salto HTTP desnecessário mantendo uma única
+implementação de cada regra.
 
-Every endpoint:
+Todo endpoint:
 
-1. resolves the session on the server;
-2. parses input with a Zod schema;
-3. calls exactly one use case;
-4. maps the result to a response.
+1. resolve a sessão no servidor;
+2. valida a entrada com um schema Zod;
+3. chama exatamente um caso de uso;
+4. mapeia o resultado para a resposta.
 
-A `user_id` is never read from the request body or the query string. It always
-comes from the session.
+Um `user_id` nunca é lido do corpo da requisição nem da query string. Vem sempre
+da sessão.
 
-### 3.2 Transactions and concurrency
+### 3.2 Transações e concorrência
 
-Every operation that changes quantities, allocations or trade state runs in a
-single transaction. Where the correctness of a write depends on rows it just
-read, the transaction takes an explicit lock first:
+Toda operação que altera quantidades, alocações ou estado de trade roda numa
+única transação. Quando a correção da escrita depende de linhas que acabaram de
+ser lidas, a transação adquire um lock explícito antes:
 
-| Operation | Lock |
+| Operação | Lock |
 |---|---|
-| Change owned quantity or allocations | `SELECT ... FOR UPDATE` on the `collection_items` row |
-| Bulk edit inside a storage location | the same lock, once per touched item, taken in ascending id order |
-| Activate a trade | `pg_advisory_xact_lock` on each participant |
-| Complete a trade | advisory locks on both participants, then row locks on the affected collection items |
+| Alterar quantidade possuída ou alocações | `SELECT ... FOR UPDATE` na linha de `collection_items` |
+| Bulk edit dentro de um armazenamento | o mesmo lock, um por item tocado, em ordem crescente de id |
+| Ativar um trade | `pg_advisory_xact_lock` por participante |
+| Concluir um trade | advisory locks nos dois participantes, depois locks de linha nos itens afetados |
 
-Locks are always acquired in ascending identifier order so that concurrent
-operations cannot deadlock by taking the same locks in opposite orders.
+Locks são sempre adquiridos em ordem crescente de identificador, para que
+operações concorrentes não entrem em deadlock por pegarem os mesmos locks em
+ordens opostas.
 
-Bulk edit follows the specified flow: the user edits locally, reviews, confirms,
-and the backend applies the whole set in one transaction that either commits or
-rolls back. No dedicated table is involved.
+O bulk edit segue o fluxo especificado: o usuário edita localmente, revisa,
+confirma, e o backend aplica o conjunto inteiro numa transação que ou commita ou
+sofre rollback. Nenhuma tabela dedicada participa disso.
 
-### 3.3 Error handling
+### 3.3 Tratamento de erro
 
-A single error taxonomy, mapped once at the HTTP boundary:
+Uma única taxonomia de erro, mapeada uma vez na fronteira HTTP:
 
-| Domain error | Status | Body |
+| Erro de domínio | Status | Corpo |
 |---|---|---|
-| `ValidationError` | 400 | field level messages |
-| `AuthenticationError` | 401 | generic message |
-| `AuthorizationError` | 403 | generic message |
-| `NotFoundError` | 404 | generic message |
-| `ConflictError` | 409 | machine readable `code` plus the data needed to resolve it |
-| `RateLimitError` | 429 | retry hint |
-| unexpected | 500 | generic message and a correlation id |
+| `ValidationError` | 400 | mensagens por campo |
+| `AuthenticationError` | 401 | mensagem genérica |
+| `AuthorizationError` | 403 | mensagem genérica |
+| `NotFoundError` | 404 | mensagem genérica |
+| `ConflictError` | 409 | `code` legível por máquina e os dados necessários para resolver |
+| `RateLimitError` | 429 | indicação de nova tentativa |
+| inesperado | 500 | mensagem genérica e um id de correlação |
 
-The 409 case carries structure, because reducing a quantity below what is
-allocated returns the current allocations so the client can present the
-resolution screen. Internal details, SQL text and stack traces are never sent to
-the client; they are logged with the correlation id.
+O caso 409 carrega estrutura, porque reduzir a quantidade abaixo do que está
+alocado devolve as alocações atuais para que o cliente apresente a tela de
+resolução. Detalhes internos, texto de SQL e stack traces nunca são enviados ao
+cliente; ficam no log, associados ao id de correlação.
 
-### 3.4 Authentication
+### 3.4 Autenticação
 
-Auth.js v5 with the credentials provider and Argon2id password hashing.
+Auth.js v5 com o provider de credenciais e hash Argon2id.
 
-Sessions are JWT based, in a `httpOnly`, `secure`, `sameSite=lax` cookie. This is
-a deliberate consequence of the credentials provider, which does not support
-database sessions, and it means the schema gains no session tables, keeping the
-approved model intact.
+As sessões são baseadas em JWT, num cookie `httpOnly`, `secure`,
+`sameSite=lax`. Isso é consequência deliberada do provider de credenciais, que
+não suporta sessão em banco, e significa que o schema não ganha nenhuma tabela de
+sessão, preservando o modelo aprovado.
 
-The trade off is that a session cannot be revoked server side before it expires.
-Session lifetime is therefore kept short. If revocation becomes a requirement, it
-needs a `sessions` table, which is a change to the approved model and would be
-raised first.
+O custo é que uma sessão não pode ser revogada no servidor antes de expirar. Por
+isso o tempo de vida da sessão é mantido curto. Se revogação virar requisito,
+será necessária uma tabela `sessions`, que é alteração do modelo aprovado e seria
+levantada antes.
 
-### 3.5 Authorization
+### 3.5 Autorização
 
-Ownership is checked inside the use case, against the session user, for every
-read and every write. There is no path where a resource is fetched by id and
-returned without an ownership check.
+A propriedade do recurso é verificada dentro do caso de uso, contra o usuário da
+sessão, em toda leitura e toda escrita. Não existe caminho em que um recurso seja
+buscado por id e devolvido sem essa verificação.
 
-The public trade binder route is the single unauthenticated read path. It
-resolves a storage location by token, verifies that its purpose is `TRADE` and
-that its owner is Premium, and returns only that binder.
+A rota pública do Trade Binder é o único caminho de leitura não autenticado. Ela
+resolve um local de armazenamento pelo token, confirma que o propósito é `TRADE`
+e que o dono é Premium, e devolve apenas aquele binder.
 
-### 3.6 Security
+### 3.6 Segurança
 
-- Argon2id for passwords, never plain text, never a fast hash.
-- Rate limiting on authentication, registration and the public trade route.
-- CORS restricted to the application origin.
-- All secrets from environment variables, never in code, never committed.
-- Prisma parameterises every query; raw SQL is used only for locking and is
-  always parameterised.
-- Logs never contain passwords, tokens or session cookies.
-- Public tokens are 32 random bytes, base64url encoded, generated with
-  `crypto.randomBytes`, never derived from an internal id.
+- Argon2id para senhas, nunca texto puro, nunca hash rápido.
+- Rate limiting em autenticação, cadastro e na rota pública de trade.
+- CORS restrito à origem da aplicação.
+- Todos os segredos vêm de variáveis de ambiente, nunca do código, nunca
+  versionados.
+- O Prisma parametriza toda consulta; SQL bruto é usado apenas para travamento e
+  é sempre parametrizado.
+- Logs nunca contêm senhas, tokens ou cookies de sessão.
+- Tokens públicos são 32 bytes aleatórios em base64url, gerados com
+  `crypto.randomBytes`, nunca derivados de um id interno.
 
 ---
 
 ## 4. Frontend
 
-### 4.1 Mobile first
+### 4.1 Mobile-first
 
-The design starts at 360px and expands. It is not a reduced desktop layout.
+O design começa em 360px e se expande. Não é um layout de desktop reduzido.
 
-| Breakpoint | Target |
+| Breakpoint | Alvo |
 |---|---|
-| base | phone, single column, bottom navigation |
-| `md` | tablet, two columns, filters in a side panel |
-| `lg` | desktop, wider grid, persistent navigation |
+| base | celular, coluna única, navegação inferior |
+| `md` | tablet, duas colunas, filtros em painel lateral |
+| `lg` | desktop, grid mais largo, navegação persistente |
 
-Patterns: bottom navigation bar, bottom sheets for filters and quantity editing,
-drawers for secondary navigation, touch targets of at least 44px, quantity
-steppers reachable with one thumb.
+Padrões: barra de navegação inferior, bottom sheets para filtros e edição de
+quantidade, drawers para navegação secundária, alvos de toque de no mínimo 44px,
+steppers de quantidade alcançáveis com um polegar.
 
-Large tables that force horizontal scrolling on a phone are avoided. Collection
-and catalog listings are image first grids; quantity is shown as a discreet
-badge on the card image.
+Tabelas grandes que forçam rolagem horizontal no celular são evitadas. As
+listagens de coleção e catálogo são grids orientados a imagem; a quantidade
+aparece como badge discreto sobre a imagem.
 
 ### 4.2 Performance
 
-- Server side pagination and filtering on every list. The catalog is never
-  fetched whole.
-- `next/image` with responsive sizes and lazy loading for card images.
-- Virtualized grids for long lists.
-- Debounced search input; exact code lookup hits the unique index directly.
-- TanStack Query for caching and infinite lists on interactive screens; React
-  Server Components for first render.
+- Paginação e filtro no servidor em toda listagem. O catálogo nunca é buscado
+  inteiro.
+- `next/image` com tamanhos responsivos e carregamento tardio para as imagens.
+- Grids virtualizados em listas longas.
+- Busca com debounce; a busca exata por código vai direto ao índice único.
+- TanStack Query para cache e listas infinitas nas telas interativas; React
+  Server Components na primeira renderização.
 
-### 4.3 Card presentation
+### 4.3 Apresentação da carta
 
-The interface is visual. The card image is the primary element. Opening a card
-shows its information, the owned quantity, quantity management, where the copies
-are stored, the price, and its variants and sets.
+A interface é visual. A imagem é o elemento principal. Ao abrir uma carta,
+aparecem suas informações, a quantidade possuída, a gestão de quantidade, onde as
+cópias estão guardadas, o preço, e suas variantes e sets.
 
 ---
 
-## 5. Integrations
+## 5. Integrações
 
-Two interfaces isolate external data. Neither is consulted during page rendering;
-after import the internal database is the operational source.
+Duas interfaces isolam o dado externo. Nenhuma é consultada durante a
+renderização de página; depois da importação, o banco interno é a fonte
+operacional.
 
 ```ts
 interface CatalogProvider {
@@ -225,56 +229,56 @@ interface PriceProvider {
 }
 ```
 
-Imports are idempotent: running one twice inserts nothing new. Details, and the
-still open question of how variants are identified across runs, are in
-`integrations.md`.
+As importações são idempotentes: rodar duas vezes não insere nada novo. Os
+detalhes, e a questão ainda aberta de como identificar variantes entre execuções,
+estão em `integrations.md`.
 
 ---
 
-## 6. Testing strategy
+## 6. Estratégia de testes
 
-| Level | Tool | Scope |
+| Nível | Ferramenta | Escopo |
 |---|---|---|
-| Domain unit | Vitest | playset, progress, availability, matching arithmetic. No database. The ten required scenarios live here. |
-| Integration | Vitest against a real PostgreSQL test database | constraints, triggers, transactions, concurrency, ownership, import idempotency |
-| API | Vitest | route handlers, validation, status codes, authorization |
-| Component | Vitest with Testing Library | interactive components |
-| End to end | Playwright | registration and login, adding to the collection, storage allocation, want list, trade binder sharing, a full trade |
+| Unitário de domínio | Vitest | aritmética de playset, progresso, disponibilidade e matching. Sem banco. Os dez cenários obrigatórios vivem aqui. |
+| Integração | Vitest contra um PostgreSQL de teste real | constraints, triggers, transações, concorrência, propriedade, idempotência da importação |
+| API | Vitest | route handlers, validação, códigos de status, autorização |
+| Componente | Vitest com Testing Library | componentes interativos |
+| Ponta a ponta | Playwright | cadastro e login, adicionar à coleção, alocar em armazenamento, want list, compartilhar Trade Binder, um trade completo |
 
-Integration tests run against `TEST_DATABASE_URL`, which is reset by migrations
-before the suite. They never touch the development database.
+Os testes de integração rodam contra `TEST_DATABASE_URL`, que é recriado pelas
+migrations antes da suíte. Eles nunca tocam o banco de desenvolvimento.
 
-Concurrency is tested explicitly, not assumed: two simultaneous allocation
-writes against the same collection item must not exceed the owned quantity, and
-two simultaneous attempts to activate a trade for the same user must leave
-exactly one active.
+Concorrência é testada explicitamente, não presumida: duas alocações simultâneas
+no mesmo item da coleção não podem ultrapassar a quantidade possuída, e duas
+tentativas simultâneas de ativar um trade do mesmo usuário precisam deixar
+exatamente um ativo.
 
-Responsive behaviour is verified in Playwright at phone, tablet and desktop
-viewports.
+O comportamento responsivo é verificado no Playwright em viewports de celular,
+tablet e desktop.
 
 ---
 
-## 7. Git strategy
+## 7. Estratégia de Git
 
-Approved, decision 016.
+Aprovada, decisão 016.
 
-- `main` always deployable. No direct commits.
-- One branch per checkpoint, named `checkpoint-N/<topic>`; `fix/`, `docs/` and
-  `chore/` branches for smaller work.
-- One pull request per checkpoint, describing what changed, the tests run, the
-  decisions taken and any breaking change.
-- Merge commits rather than squash, so the small semantic commits inside a
-  checkpoint survive in history.
-- Conventional Commits for messages.
-- Nothing is merged while a decision on that checkpoint is still open.
+- `main` sempre publicável. Sem commits diretos.
+- Uma branch por checkpoint, no formato `checkpoint-N/<tema>`; branches `fix/`,
+  `docs/` e `chore/` para trabalhos menores.
+- Um pull request por checkpoint, descrevendo o que mudou, os testes executados,
+  as decisões tomadas e qualquer quebra de compatibilidade.
+- Merge commit em vez de squash, para que os commits semânticos internos ao
+  checkpoint sobrevivam no histórico.
+- Conventional Commits nas mensagens.
+- Nada é mergeado enquanto houver decisão pendente naquele checkpoint.
 
-## 8. Continuous integration
+## 8. Integração contínua
 
-Approved, decision 017. Added at Checkpoint 2, alongside the first code.
+Aprovada, decisão 017. Entra no Checkpoint 2, junto com o primeiro código.
 
-A GitHub Actions workflow on pull requests and on `main`: install, lint, type
-check, unit tests, integration tests against a PostgreSQL service container,
-migration check, build.
+Um workflow do GitHub Actions em pull requests e na `main`: instalação, lint,
+verificação de tipos, testes unitários, testes de integração contra um container
+de serviço PostgreSQL, checagem de migration e build.
 
-No production infrastructure, deployment target or environment is configured
-without explicit approval.
+Nenhuma infraestrutura de produção, alvo de deploy ou ambiente é configurado sem
+aprovação explícita.
