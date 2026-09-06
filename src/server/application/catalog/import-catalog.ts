@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
+import { PROMO_SET } from '@/server/domain/catalog/types'
 import type { CardDTO, CatalogPage, CatalogProvider } from '@/server/domain/catalog/types'
 
 /**
@@ -31,11 +32,13 @@ export interface ImportReport {
   rejected: { sourceId: string | null; reason: string }[]
   failures: { seriesId: string; reason: string }[]
   /**
-   * Produtos citados pela fonte sem codigo, que por isso nao viraram set. As
-   * variantes deles entram no catalogo sem set e nao contam para progresso de
-   * set. Fica no relatorio para que a lacuna seja visivel. Decisao pendente.
+   * Nomes dos produtos promocionais agrupados no set PROMO (decisao 024). O
+   * agrupamento perde de qual evento veio cada carta, entao a lista fica aqui
+   * para que o que foi colapsado seja visivel.
    */
-  unmappedSetNames: string[]
+  promotionalProductNames: string[]
+  /** Variantes que a fonte trouxe sem campo de sets. */
+  variantsWithoutSet: string[]
 }
 
 export interface ImportOptions {
@@ -66,9 +69,10 @@ export async function importCatalog(
     printingsUpserted: 0,
     rejected: [],
     failures: [],
-    unmappedSetNames: [],
+    promotionalProductNames: [],
+    variantsWithoutSet: [],
   }
-  const unmapped = new Set<string>()
+  const promotional = new Set<string>()
 
   const seriesIds = options.seriesIds ?? (await provider.listSeriesIds())
   log.info(`[import] inicio provider=${provider.name} series=${seriesIds.length}`)
@@ -87,7 +91,8 @@ export async function importCatalog(
       report.variantsUpserted += counts.variants
       report.printingsUpserted += counts.printings
       report.rejected.push(...page.rejected)
-      for (const name of page.unmappedSetNames) unmapped.add(name)
+      for (const name of page.promotionalProductNames) promotional.add(name)
+      report.variantsWithoutSet.push(...page.variantsWithoutSet)
 
       log.info(
         `[import] serie=${seriesId} sets=${counts.sets} cards=${counts.cards} ` +
@@ -102,20 +107,28 @@ export async function importCatalog(
     }
   }
 
-  report.unmappedSetNames = [...unmapped].sort()
+  report.promotionalProductNames = [...promotional].sort()
   report.finishedAt = new Date()
 
-  if (report.unmappedSetNames.length > 0) {
+  if (report.promotionalProductNames.length > 0) {
+    log.info(
+      `[import] ${report.promotionalProductNames.length} produtos promocionais sem codigo ` +
+        `agrupados no set ${PROMO_SET.code}.`,
+    )
+  }
+
+  if (report.variantsWithoutSet.length > 0) {
     log.warn(
-      `[import] ${report.unmappedSetNames.length} produtos citados sem codigo nao viraram set. ` +
-        'As variantes deles ficam sem set e fora do progresso por set.',
+      `[import] ${report.variantsWithoutSet.length} variantes sem set: a fonte omitiu o campo. ` +
+        report.variantsWithoutSet.slice(0, 5).join(', '),
     )
   }
 
   log.info(
     `[import] fim processadas=${report.seriesProcessed} falhas=${report.seriesFailed} ` +
       `cards=${report.cardsUpserted} variants=${report.variantsUpserted} ` +
-      `rejeitados=${report.rejected.length} sets_sem_codigo=${report.unmappedSetNames.length} ` +
+      `rejeitados=${report.rejected.length} promocionais=${report.promotionalProductNames.length} ` +
+      `sem_set=${report.variantsWithoutSet.length} ` +
       `duracao=${report.finishedAt.getTime() - report.startedAt.getTime()}ms`,
   )
   return report

@@ -886,3 +886,58 @@ filtrável no catálogo.
 ## Data
 
 2026-09-06
+
+---
+
+# Decisão: 024 — Set único para produtos promocionais
+
+## Contexto
+
+A fonte identifica 59 sets com código entre colchetes (`[OP-17]`, `[EB-03]`) e
+cita outros **131 produtos sem código nenhum**: `Tournament Pack Vol.4`,
+`Premium Card Collection -Best Selection Vol.4-`, `Pre-Release OP02`,
+`Anime Expo 2023`, entre outros.
+
+Como `sets.code` é obrigatório e único, esses produtos não podiam virar set, e
+**538 variantes (11% do catálogo) ficavam sem set**, fora do progresso por set e
+do filtro por produto.
+
+A composição dessas 538 justifica tratá-las como um grupo: 173 são cartas promo
+numeradas (`P-xxx`) e as outras 365 são artes distribuídas em eventos. Todas
+chegaram ao jogador por distribuição promocional.
+
+## Opções
+
+1. Um set agregado para todas, como a LigaOnePiece faz com
+   "One Piece Promotion Cards".
+2. Um set por produto, com código derivado do nome.
+3. Alargar `sets.code` e usar um slug do nome.
+4. Deixar as 538 sem set.
+
+## Decisão
+
+Opção 1. Todo produto citado sem código entra no set
+`PROMO` — `One Piece Promotion Cards`.
+
+O nome original de cada produto **não é armazenado**: `variant_printings` é
+apenas o par variante e set, e guardar de qual evento a carta veio exigiria uma
+coluna nova. Os 131 nomes aparecem no relatório de importação, para que o que
+foi colapsado fique registrado.
+
+## Motivo
+
+Escolhida pelo dono do produto, seguindo a classificação que a LigaOnePiece já
+usa no mercado brasileiro. Resolve as 538 variantes de uma vez, sem inventar 131
+identidades e sem alterar o modelo aprovado.
+
+A opção 2 poluiria a lista de sets com 131 entradas de 1 a 13 cartas, quase todas
+impossíveis de completar. A opção 4 deixaria 11% do catálogo permanentemente
+fora do progresso por set.
+
+Revisível: se a granularidade por evento passar a importar, basta uma coluna em
+`variant_printings` e uma reimportação, sem perda, porque `source_id` preserva a
+identidade de cada arte.
+
+## Data
+
+2026-09-06

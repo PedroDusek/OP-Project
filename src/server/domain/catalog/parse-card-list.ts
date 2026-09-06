@@ -2,6 +2,7 @@ import {
   CARD_TYPES,
   KNOWN_MECHANICS,
   MECHANIC_ALIASES,
+  PROMO_SET,
   type CardDTO,
   type CardType,
   type CatalogPage,
@@ -97,26 +98,27 @@ function extractMechanics(effectText: string): string[] {
  * variante reimpressa lista varias linhas, e e dali que vem variant_printings:
  * o set nunca e derivado do prefixo do codigo da carta.
  */
-function parseSets(rawSets: string | null): { sets: SetDTO[]; unmapped: string[] } {
-  if (!rawSets) return { sets: [], unmapped: [] }
+function parseSets(rawSets: string | null): { sets: SetDTO[]; promotional: string[] } {
+  if (!rawSets) return { sets: [], promotional: [] }
   const sets: SetDTO[] = []
-  const unmapped: string[] = []
+  const promotional: string[] = []
   for (const rawLine of rawSets.split('\n')) {
     const line = rawLine.trim()
     if (line === '') continue
     const match = /^(.*?)\s*\[([^\]]+)\]\s*$/.exec(line)
     const code = match?.[2]?.trim()
     if (!code) {
-      // Produtos promocionais ("Tournament Pack Vol.4") vem sem codigo. Sao
-      // registrados em vez de sumirem: a variante entra no catalogo sem set, e
-      // isso precisa aparecer no relatorio de importacao.
-      unmapped.push(line)
+      // Produtos promocionais ("Tournament Pack Vol.4") vem sem codigo proprio.
+      // Todos caem no set agregado PROMO (decisao 024). O nome original segue
+      // no relatorio, para que o que foi colapsado nao suma sem registro.
+      promotional.push(line)
+      sets.push(PROMO_SET)
       continue
     }
     const name = (match?.[1] ?? '').trim()
     sets.push({ name: name === '' ? code : name, code })
   }
-  return { sets, unmapped }
+  return { sets, promotional }
 }
 
 /**
@@ -137,7 +139,8 @@ export function parseCardList(html: string): CatalogPage {
   const setsByCode = new Map<string, SetDTO>()
   const variants: VariantDTO[] = []
   const rejected: RejectedEntry[] = []
-  const unmappedSetNames = new Set<string>()
+  const promotionalProductNames = new Set<string>()
+  const variantsWithoutSet: string[] = []
 
   for (const block of blocks) {
     const sourceId = /<dl class="modalCol" id="([^"]+)"/.exec(block)?.[1]?.trim() ?? null
@@ -203,7 +206,8 @@ export function parseCardList(html: string): CatalogPage {
     for (const set of printings.sets) {
       if (!setsByCode.has(set.code)) setsByCode.set(set.code, set)
     }
-    for (const name of printings.unmapped) unmappedSetNames.add(name)
+    for (const name of printings.promotional) promotionalProductNames.add(name)
+    if (printings.sets.length === 0) variantsWithoutSet.push(sourceId)
 
     variants.push({
       sourceId,
@@ -220,7 +224,8 @@ export function parseCardList(html: string): CatalogPage {
     cards: [...cardsByCode.values()],
     variants,
     rejected,
-    unmappedSetNames: [...unmappedSetNames],
+    promotionalProductNames: [...promotionalProductNames],
+    variantsWithoutSet,
   }
 }
 

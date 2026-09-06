@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { parseCardList } from '@/server/domain/catalog/parse-card-list'
-import { KNOWN_MECHANICS } from '@/server/domain/catalog/types'
+import { KNOWN_MECHANICS, PROMO_SET } from '@/server/domain/catalog/types'
 
 /** Monta uma entrada minima com o texto de efeito informado. */
 function parseSingle(effectText: string) {
@@ -193,15 +193,83 @@ describe('produtos sem codigo de set', () => {
       </dl>`
     const parsed = parseCardList(block)
 
-    // A carta entra normalmente; o que falta e o set.
+    // O produto vira o set promocional agregado, nao um set proprio.
     expect(parsed.cards).toHaveLength(1)
-    expect(parsed.variants[0].printedInSetCodes).toEqual([])
-    expect(parsed.sets).toEqual([])
-    // E a lacuna fica visivel.
-    expect(parsed.unmappedSetNames).toEqual(['Tournament Pack Vol.4'])
+    expect(parsed.sets).toEqual([PROMO_SET])
+    expect(parsed.variants[0].printedInSetCodes).toEqual([PROMO_SET.code])
+    // E o nome original do produto nao se perde sem registro.
+    expect(parsed.promotionalProductNames).toEqual(['Tournament Pack Vol.4'])
   })
 
-  it('nao reporta lacuna quando todo produto tem codigo', () => {
-    expect(page.unmappedSetNames).toEqual([])
+  it('nao reporta produto promocional quando todos tem codigo', () => {
+    expect(page.promotionalProductNames).toEqual([])
+    expect(page.sets.map((s) => s.code)).not.toContain(PROMO_SET.code)
+  })
+
+  it('agrupa produtos promocionais diferentes no mesmo set', () => {
+    const entry = (id: string, produto: string) => `
+      <dl class="modalCol" id="${id}">
+        <dt>
+          <div class="infoCol"><span>${id}</span> | <span>SR</span> | <span>CHARACTER</span></div>
+          <div class="cardName">Promo ${id}</div>
+        </dt>
+        <dd><div class="backCol">
+          <div class="cost"><h3>Cost</h3>2</div>
+          <div class="attribute"><h3>Attribute</h3><i>Slash</i></div>
+          <div class="power"><h3>Power</h3>2000</div>
+          <div class="counter"><h3>Counter</h3>-</div>
+          <div class="color"><h3>Color</h3>Red</div>
+          <div class="block"><h3>Block icon</h3>5</div>
+          <div class="feature"><h3>Type</h3>Teste</div>
+          <div class="text"><h3>Effect</h3>-</div>
+          <div class="getInfo"><h3>Card Set(s)</h3>${produto}</div>
+        </div></dd>
+      </dl>`
+    const parsed = parseCardList(
+      entry('TST-010', 'Tournament Pack Vol.4') + entry('TST-011', 'Anime Expo 2023'),
+    )
+
+    // Um unico set, dois nomes de produto preservados no relatorio.
+    expect(parsed.sets).toEqual([PROMO_SET])
+    expect(parsed.promotionalProductNames.sort()).toEqual([
+      'Anime Expo 2023',
+      'Tournament Pack Vol.4',
+    ])
+    for (const variant of parsed.variants) {
+      expect(variant.printedInSetCodes).toEqual([PROMO_SET.code])
+    }
+  })
+})
+
+describe('variantes que a fonte deixa sem set', () => {
+  it('sinaliza a ausencia em vez de deixa-la invisivel', () => {
+    // Entrada real da fonte: ST14-010_r1 nao traz o campo de sets.
+    const block = `
+      <dl class="modalCol" id="TST-020_r1">
+        <dt>
+          <div class="infoCol"><span>TST-020</span> | <span>C</span> | <span>CHARACTER</span></div>
+          <div class="cardName">Sem set</div>
+        </dt>
+        <dd><div class="backCol">
+          <div class="cost"><h3>Cost</h3>5</div>
+          <div class="attribute"><h3>Attribute</h3><i>Slash</i></div>
+          <div class="power"><h3>Power</h3>5000</div>
+          <div class="counter"><h3>Counter</h3>-</div>
+          <div class="color"><h3>Color</h3>Red</div>
+          <div class="block"><h3>Block icon</h3>5</div>
+          <div class="feature"><h3>Type</h3>Teste</div>
+          <div class="text"><h3>Effect</h3>-</div>
+        </div></dd>
+      </dl>`
+    const parsed = parseCardList(block)
+
+    // A carta entra: a lacuna e do dado da fonte, nao motivo para descartar.
+    expect(parsed.cards).toHaveLength(1)
+    expect(parsed.variants[0].printedInSetCodes).toEqual([])
+    expect(parsed.variantsWithoutSet).toEqual(['TST-020_r1'])
+  })
+
+  it('nao sinaliza nada quando toda variante tem set', () => {
+    expect(page.variantsWithoutSet).toEqual([])
   })
 })
