@@ -136,17 +136,22 @@ cliente; ficam no log, associados ao id de correlação.
 
 ### 3.4 Autenticação
 
-Auth.js v5 com o provider de credenciais e hash Argon2id.
+**Terceirizada** (decisão 025). O Supabase guarda e verifica a credencial; a
+senha nunca chega ao nosso servidor e não existe hash no nosso banco. Sessão em
+banco do provedor, portanto revogável.
 
-As sessões são baseadas em JWT, num cookie `httpOnly`, `secure`,
-`sameSite=lax`. Isso é consequência deliberada do provider de credenciais, que
-não suporta sessão em banco, e significa que o schema não ganha nenhuma tabela de
-sessão, preservando o modelo aprovado.
+O sistema não fala com o provedor: fala com a interface `SessionProvider`, em
+`src/server/http/session-provider.ts`. Trocar de provedor mexe numa
+implementação, não nas rotas nem nos casos de uso — e é isso que permite os
+testes rodarem sem rede, com um provedor falso.
 
-O custo é que uma sessão não pode ser revogada no servidor antes de expirar. Por
-isso o tempo de vida da sessão é mantido curto. Se revogação virar requisito,
-será necessária uma tabela `sessions`, que é alteração do modelo aprovado e seria
-levantada antes.
+`users.auth_user_id` amarra a conta do provedor à nossa linha. Traduzir uma
+identidade externa em usuário é caso de uso, não detalhe de transporte, então
+vive em `application/auth/resolve-user.ts`: é ali que a conta e a coleção nascem
+na primeira visita, porque "todo usuário tem exatamente uma coleção e ela nasce
+vazia" é regra de negócio.
+
+Uma conta anonimizada não autentica, mesmo com sessão válida no provedor.
 
 ### 3.5 Autorização
 
