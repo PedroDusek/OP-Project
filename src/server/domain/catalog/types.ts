@@ -51,15 +51,33 @@ export interface CatalogPage {
   /** Entradas descartadas, com o motivo. Nunca adivinhadas. */
   rejected: RejectedEntry[]
   /**
-   * Produtos citados pela fonte sem codigo entre colchetes, como
-   * "Tournament Pack Vol.4". Nao viram set porque `sets.code` e obrigatorio e a
-   * fonte nao fornece um; derivar um codigo seria inventar identidade.
+   * Nomes dos produtos promocionais citados pela fonte sem codigo, que foram
+   * agrupados em PROMO_SET (decisao 024).
    *
-   * Ficam listados aqui em vez de sumirem em silencio: as variantes desses
-   * produtos entram no catalogo sem set, e isso precisa ser visivel no relatorio
-   * de importacao. Decisao pendente.
+   * O agrupamento descarta de qual evento cada carta veio, entao a lista fica
+   * no relatorio de importacao para que o que foi colapsado seja visivel.
    */
-  unmappedSetNames: string[]
+  promotionalProductNames: string[]
+  /**
+   * sourceIds de variantes que a fonte trouxe sem campo de sets. Nao e erro de
+   * parsing: a origem simplesmente omite o campo para elas. Ficam listadas para
+   * que a ausencia seja visivel em vez de silenciosa.
+   */
+  variantsWithoutSet: string[]
+}
+
+/**
+ * Set unico para tudo que a fonte distribui promocionalmente sem codigo
+ * proprio: packs de torneio, eventos de lancamento, sets de aniversario,
+ * colecoes especiais (decisao 024).
+ *
+ * A fonte cita 131 produtos assim e nao da codigo a nenhum. Como `sets.code` e
+ * obrigatorio e unico, ou eles viram um set agregado ou 538 variantes ficam sem
+ * set nenhum.
+ */
+export const PROMO_SET: SetDTO = {
+  code: 'PROMO',
+  name: 'One Piece Promotion Cards',
 }
 
 export interface RejectedEntry {

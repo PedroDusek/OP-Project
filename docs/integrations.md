@@ -237,13 +237,25 @@ produtos sem código nenhum**: `Tournament Pack Vol.4`,
 `Premium Card Collection -Best Selection Vol.4-`, `Pre-Release OP02`,
 `Anime Expo 2023`.
 
-Esses 131 não viram set, porque `sets.code` é obrigatório e único, a fonte não
-fornece um, e derivar um seria inventar identidade. A consequência é concreta:
-**538 variantes, 11% do catálogo, ficam sem set** e fora do progresso por set.
+Esses 131 não têm código próprio, e `sets.code` é obrigatório e único. Deixá-los
+de fora custava **538 variantes, 11% do catálogo, sem set nenhum** e fora do
+progresso por set.
 
-Na primeira versão isso acontecia em silêncio, o que era pior que o problema em
-si. Hoje a importação avisa e lista os produtos afetados. Como representá-los é
-decisão pendente.
+Pela decisão 024, todos entram num set agregado: `PROMO` —
+`One Piece Promotion Cards`, a mesma classificação que a LigaOnePiece usa. A
+composição justifica o agrupamento: 173 são cartas promo numeradas (`P-xxx`) e
+as outras 365 são artes distribuídas em eventos.
+
+O nome do produto individual não é armazenado, porque `variant_printings` é
+apenas o par variante e set. Os 131 nomes ficam no relatório de importação, para
+que o que foi colapsado não suma sem registro.
+
+Na primeira versão esses produtos eram descartados **em silêncio**, o que era
+pior que o problema em si.
+
+Sobra exatamente uma variante sem set: `ST14-010_r1`, para a qual a fonte omite o
+campo por completo. É lacuna da origem, não de parsing, e agora aparece no
+relatório.
 
 #### Efeitos: não implementado, e por quê
 
