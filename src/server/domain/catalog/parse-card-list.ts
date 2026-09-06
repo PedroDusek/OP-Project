@@ -1,6 +1,7 @@
 import {
   CARD_TYPES,
   KNOWN_MECHANICS,
+  MECHANIC_ALIASES,
   type CardDTO,
   type CardType,
   type CatalogPage,
@@ -83,7 +84,10 @@ function toCardType(raw: string): CardType | null {
  */
 function extractMechanics(effectText: string): string[] {
   const bracketed = new Set(
-    Array.from(effectText.matchAll(/\[([^\]]+)\]/g), (match) => match[1].trim()),
+    Array.from(effectText.matchAll(/\[([^\]]+)\]/g), (match) => {
+      const term = match[1].trim()
+      return MECHANIC_ALIASES[term] ?? term
+    }),
   )
   return KNOWN_MECHANICS.filter((mechanic) => bracketed.has(mechanic))
 }
@@ -93,17 +97,26 @@ function extractMechanics(effectText: string): string[] {
  * variante reimpressa lista varias linhas, e e dali que vem variant_printings:
  * o set nunca e derivado do prefixo do codigo da carta.
  */
-function parseSets(rawSets: string | null): SetDTO[] {
-  if (!rawSets) return []
+function parseSets(rawSets: string | null): { sets: SetDTO[]; unmapped: string[] } {
+  if (!rawSets) return { sets: [], unmapped: [] }
   const sets: SetDTO[] = []
-  for (const line of rawSets.split('\n')) {
-    const match = /^(.*?)\s*\[([^\]]+)\]\s*$/.exec(line.trim())
-    if (!match) continue
-    const name = match[1].trim()
-    const code = match[2].trim()
-    if (code !== '') sets.push({ name: name === '' ? code : name, code })
+  const unmapped: string[] = []
+  for (const rawLine of rawSets.split('\n')) {
+    const line = rawLine.trim()
+    if (line === '') continue
+    const match = /^(.*?)\s*\[([^\]]+)\]\s*$/.exec(line)
+    const code = match?.[2]?.trim()
+    if (!code) {
+      // Produtos promocionais ("Tournament Pack Vol.4") vem sem codigo. Sao
+      // registrados em vez de sumirem: a variante entra no catalogo sem set, e
+      // isso precisa aparecer no relatorio de importacao.
+      unmapped.push(line)
+      continue
+    }
+    const name = (match?.[1] ?? '').trim()
+    sets.push({ name: name === '' ? code : name, code })
   }
-  return sets
+  return { sets, unmapped }
 }
 
 /**
@@ -124,6 +137,7 @@ export function parseCardList(html: string): CatalogPage {
   const setsByCode = new Map<string, SetDTO>()
   const variants: VariantDTO[] = []
   const rejected: RejectedEntry[] = []
+  const unmappedSetNames = new Set<string>()
 
   for (const block of blocks) {
     const sourceId = /<dl class="modalCol" id="([^"]+)"/.exec(block)?.[1]?.trim() ?? null
@@ -186,9 +200,10 @@ export function parseCardList(html: string): CatalogPage {
     if (!cardsByCode.has(code)) cardsByCode.set(code, card)
 
     const printings = parseSets(divValue(block, 'getInfo'))
-    for (const set of printings) {
+    for (const set of printings.sets) {
       if (!setsByCode.has(set.code)) setsByCode.set(set.code, set)
     }
+    for (const name of printings.unmapped) unmappedSetNames.add(name)
 
     variants.push({
       sourceId,
@@ -196,7 +211,7 @@ export function parseCardList(html: string): CatalogPage {
       variantType: variantTypeFor(sourceId, code),
       rarity: rarity === '' || rarity === '-' ? null : rarity,
       imageUrl: rawImage ? absoluteImageUrl(rawImage) : null,
-      printedInSetCodes: printings.map((set) => set.code),
+      printedInSetCodes: printings.sets.map((set) => set.code),
     })
   }
 
@@ -205,6 +220,7 @@ export function parseCardList(html: string): CatalogPage {
     cards: [...cardsByCode.values()],
     variants,
     rejected,
+    unmappedSetNames: [...unmappedSetNames],
   }
 }
 

@@ -820,3 +820,69 @@ rica for aprovada depois, ela pode ser derivada sem reimportar nada.
 ## Data
 
 2026-09-06
+
+---
+
+# Decisão: 022 — Vocabulário de mecânicas
+
+## Contexto
+
+A especificação nomeia seis mecânicas. O texto das cartas usa colchetes para
+muito mais que isso, e o Checkpoint 3 mostrou que aceitar todo colchete criaria
+classificações inventadas.
+
+O levantamento sobre o catálogo completo — 60 séries, 4.844 artes, 2.785 códigos
+de carta — encontrou 217 termos distintos entre colchetes. Cruzando cada termo
+contra os 1.170 nomes de carta do próprio catálogo:
+
+| Grupo | Termos |
+|---|---|
+| Já aceitos pela especificação | 6 |
+| Marcadores de custo (`DON!! xN`) | 3 |
+| **Coincidem com nome de carta** | **195** |
+| Candidatos a mecânica | 13 |
+
+Os 195 são nomes de personagem e lugar: `[Sanji]`, `[Nami]`, `[Upper Yard]`.
+Sem a allowlist, o catálogo teria 195 mecânicas inexistentes.
+
+## Opções
+
+Sobre os 13 candidatos, apresentados em quatro grupos: palavras-chave de
+habilidade (`Double Attack`, `Banish`, `Unblockable`), gatilhos de efeito
+(`On K.O.`, `On Block`, `On Your Opponent's Attack`, `End of Your Turn`),
+condições de fase e turno (`Main`, `Counter`, `Your Turn`, `Opponent's Turn`) e
+`Trigger`.
+
+## Decisão
+
+Entram apenas os **gatilhos de efeito**. O vocabulário fica com dez termos:
+
+```
+Rush   Blocker   On Play   When Attacking   Activate: Main   Once Per Turn
+On K.O.   On Block   On Your Opponent's Attack   End of Your Turn
+```
+
+`Rush: Character` é normalizado para `Rush`, e não vira termo próprio.
+
+Ficam de fora, por ora: as palavras-chave de habilidade, as condições de fase e
+turno, e `Trigger`.
+
+## Motivo
+
+Escolhida pelo dono do produto. Os gatilhos são da mesma natureza de `On Play` e
+`When Attacking`, que a especificação já aceita, então entram sem mudar o
+critério.
+
+As condições de fase são as mais frequentes e as menos discriminantes: filtrar
+por `Main` devolveria cerca de 10% do catálogo. `Trigger` duplicaria
+`cards.has_trigger`, que já existe no modelo.
+
+`Rush: Character` é `Rush` com alvo restrito. Normalizar mantém as 11 cartas que
+o concedem visíveis para quem filtra por `Rush`, que é a intenção de quem busca.
+
+Ampliar o vocabulário de novo exige aprovação, porque define o que passa a ser
+filtrável no catálogo.
+
+## Data
+
+2026-09-06
