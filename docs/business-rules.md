@@ -1,0 +1,256 @@
+# Regras de Negócio
+
+Declaração oficial das regras de domínio. Toda regra descrita aqui é coberta por
+teste automatizado; os cenários da seção 7 correspondem a `tests/domain`.
+
+Todas elas são aplicadas no servidor. O frontend nunca é fonte de verdade para
+nenhuma delas.
+
+---
+
+## 1. Modelo de posse
+
+### 1.1 Coleção
+
+Cada usuário possui exatamente uma coleção (`collections.user_id` é único). A
+coleção nasce vazia e representa tudo o que o usuário possui.
+
+Catálogo e coleção são conceitos diferentes: uma variante pode existir no
+catálogo e não pertencer a coleção nenhuma.
+
+### 1.2 O que significa possuir
+
+`collection_items.quantity` é o número de cópias físicas de uma variante que o
+usuário possui. É a única fonte de verdade sobre posse.
+
+Uma cópia que está num deck, numa caixa de troca ou em lugar nenhum continua
+sendo possuída. Alocar em armazenamento nunca altera o que a coleção contém.
+
+---
+
+## 2. Contagem
+
+| Métrica | Definição |
+|---|---|
+| **Total de cartas** | `SUM(collection_items.quantity)` na coleção |
+| **Cartas únicas** | quantidade de `card_variant_id` distintos com `quantity > 0` |
+| **Playsets fechados** | ver 2.1 |
+
+Normal, Alternate Art e Manga são variantes distintas e contam separadamente
+para as únicas.
+
+### 2.1 Playset
+
+Playset é definido por **código de carta**, não por variante.
+
+1. Agrupe todas as variantes possuídas por `cards.id`.
+2. Some as quantidades de todas as variantes daquela carta.
+3. Se a soma for `>= 4`, aquela carta vale **exatamente um** playset fechado.
+
+O resultado é binário por carta. Oito cópias continuam sendo um playset; a
+contagem nunca é `floor(soma / 4)`.
+
+Cartas do tipo `Leader` nunca contam playset. `DON!!` está fora do catálogo.
+`Character`, `Event` e `Stage` contam.
+
+### 2.2 Progresso
+
+```
+progresso da coleção = variantes distintas possuídas / variantes distintas do catálogo
+
+progresso do set = variantes distintas possuídas impressas no set
+                   / variantes distintas impressas no set
+```
+
+Ambos usam variantes distintas, nunca contagem de cópias.
+
+A participação num set vem sempre de `variant_printings`. Nunca é derivada do
+prefixo do código da carta.
+
+Uma variante impressa em vários sets conta no numerador **e** no denominador de
+cada set em que aparece, de modo que todo set continua alcançando 100%. O
+progresso da coleção conta variantes distintas, então nada é contado em
+duplicidade ali.
+
+---
+
+## 3. Armazenamento físico
+
+### 3.1 Locais de armazenamento
+
+Um local de armazenamento tem `type` e `purpose`:
+
+| type | purpose permitido |
+|---|---|
+| `BINDER` | `COLLECTION` ou `TRADE` |
+| `BOX` | `COLLECTION` ou `TRADE` |
+| `DECK` | `NULL` |
+
+Uma box pode ser de troca. Isso é explicitamente permitido.
+
+Deck é um local de armazenamento do tipo `DECK`. Não existe tabela separada de
+deck, nem deck builder, validação de leader, formato ou banlist nesta versão.
+
+### 3.2 Alocação
+
+`collection_item_locations.quantity` registra quantas cópias de um item da
+coleção estão em um local de armazenamento.
+
+A invariante é:
+
+```
+SUM(collection_item_locations.quantity) <= collection_items.quantity
+```
+
+A soma pode ser **menor** que a quantidade possuída. Cópias sem localização
+registrada são normais e esperadas. Não existe local "Unallocated".
+
+O local de armazenamento precisa pertencer ao mesmo usuário dono da coleção.
+
+### 3.3 Reduzir a quantidade abaixo do que está alocado
+
+Quando o usuário reduz `quantity` abaixo do total já alocado, a escrita é
+rejeitada atomicamente e a API devolve um conflito contendo as alocações atuais.
+O cliente apresenta uma tela de resolução onde o usuário escolhe de quais locais
+as cópias saem, e envia essa resolução junto com a nova quantidade como uma
+única operação transacional.
+
+Alocações nunca são removidas silenciosamente, e nenhuma ordem de remoção é
+presumida.
+
+---
+
+## 4. Trocas
+
+### 4.1 Os quatro estados
+
+São quatro coisas diferentes e nunca são tratadas como iguais:
+
+| Estado | Significado | Origem |
+|---|---|---|
+| **Possuída** | o usuário possui | `collection_items.quantity` |
+| **Disponível para troca** | está em local com purpose `TRADE` | soma das alocações em armazenamento `TRADE` |
+| **Comprometida em troca** | está listada em um trade ativo do usuário | derivado dos `trade_items` de trades em `PROPOSED`, `NEGOTIATING` ou `CONFIRMED` |
+| **Efetivamente trocada** | o trade chegou a `COMPLETED` | `trades.completed_at` |
+
+A disponibilidade conta apenas armazenamento com purpose `TRADE`. Cópias em
+armazenamento `COLLECTION` e em decks são excluídas, embora continuem
+integralmente na coleção.
+
+### 4.2 Trade Binder não é reserva
+
+Estar no Trade Binder significa disponível para troca. Não significa
+comprometida com ninguém.
+
+### 4.3 Matching
+
+O matching compara a disponibilidade de troca de um usuário com a want list de
+outro:
+
+```
+quantidade do match = MIN(disponível_para_troca, quantidade_desejada)
+```
+
+Um match é sugestão. Não cria obrigação e não é persistido.
+
+### 4.4 Want list
+
+Wants são por variante. As versões Normal e Manga da mesma carta são dois wants
+independentes. Não existe prioridade nem campo de observação nesta versão.
+
+### 4.5 Ciclo de vida do trade
+
+```
+DRAFT -> PROPOSED -> NEGOTIATING -> CONFIRMED -> COMPLETED
+                                              -> CANCELLED
+```
+
+Não existem outros estados.
+
+- Um `DRAFT` pode estar incompleto.
+- Um trade efetivo tem exatamente dois participantes.
+- Cada `trade_item` pertence a um participante, e é isso que identifica quem
+  oferece qual carta.
+- Um usuário pode ter **no máximo um trade ativo por vez**, sendo ativo os
+  estados `PROPOSED`, `NEGOTIATING` e `CONFIRMED`. É isso que impede que as
+  mesmas cópias sejam comprometidas em vários trades ao mesmo tempo.
+- Um usuário pode ter qualquer quantidade de trades históricos.
+
+### 4.6 Conclusão
+
+Concluir um trade valida, numa única transação:
+
+1. exatamente dois participantes;
+2. o trade possui itens;
+3. toda variante oferecida pertence ao participante que a oferece;
+4. toda quantidade oferecida está de fato disponível para troca;
+5. as duas coleções são atualizadas;
+6. as localizações são atualizadas quando aplicável;
+7. `completed_at` é definido.
+
+Se qualquer etapa falhar, a transação inteira sofre rollback. Um trade nunca é
+concluído parcialmente.
+
+---
+
+## 5. Preços e valoração
+
+`card_prices` mantém histórico: uma linha por variante por captura, com
+`captured_at`. Preços nunca são sobrescritos.
+
+| Valor | Definição |
+|---|---|
+| Valor da coleção | `SUM(quantidade * preço de mercado atual)` |
+| Valor do set | idem, restrito às variantes impressas no set |
+| Valor do Trade Binder | idem, restrito às alocações em armazenamento `TRADE` |
+| Valor do trade | idem, por lado do trade |
+
+### 5.1 Valor histórico do trade
+
+O valor de um trade concluído reflete o preço vigente em `trades.completed_at`,
+resolvido a partir de `card_prices`. Não existe coluna de snapshot de preço em
+`trade_items`.
+
+Uma variação posterior de preço nunca altera o valor histórico registrado de um
+trade passado.
+
+### 5.2 Durante a negociação
+
+A interface mostra os dois lados, as cartas, as quantidades, os preços
+unitários, o total de cada lado e a diferença. O valor é indicativo.
+
+---
+
+## 6. Compartilhamento e acesso
+
+### 6.1 Trade Binder público
+
+Um usuário Premium pode publicar um Trade Binder em `/trade/<token>`. O token é
+aleatório, não sequencial, nunca derivado de um id interno, e pode ser revogado
+e regerado.
+
+A página pública expõe **somente** aquele Trade Binder. Nunca expõe a coleção,
+outros armazenamentos, decks, wants ou qualquer dado pessoal.
+
+### 6.2 Autorização
+
+Toda requisição é autorizada no servidor contra o usuário autenticado. Um
+`user_id` enviado pelo cliente nunca é confiável. Um usuário nunca consegue ler
+ou modificar recursos privados de outro usuário.
+
+---
+
+## 7. Testes obrigatórios de domínio
+
+| # | Cenário | Esperado |
+|---|---|---|
+| 1 | Normal x2, AA x1, Manga x1 | total 4, únicas 3, playsets 1 |
+| 2 | Normal x4, AA x4 | total 8, únicas 2, playsets 1 |
+| 3 | Leader x10 | playsets 0 |
+| 4 | possui 5: binder 2, box collection 1, box trade 1, deck 1 | total 5, disponível para troca 1 |
+| 5 | armazenamento tipo `BOX` com purpose `TRADE` | válido |
+| 6 | carta alocada em deck | continua contando na coleção |
+| 7 | possui 4, alocações binder 3 + box 2 | rejeitado |
+| 8 | want 2, disponível 5 | match 2 |
+| 9 | wants de Normal e Manga | independentes |
+| 10 | preço R$100 na conclusão, R$150 depois | valor histórico permanece R$100 |

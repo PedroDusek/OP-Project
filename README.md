@@ -1,31 +1,38 @@
 # OPTCG Collection Manager
 
-Web app (mobile-first) for managing a One Piece Card Game collection:
-catalog, collection, physical storage (binders / boxes / decks), want list,
-trade binder, trade matching and pricing.
+Aplicação web mobile-first para gerenciar coleção do One Piece Card Game:
+catálogo, coleção, armazenamento físico (binders, boxes e decks), want list,
+Trade Binder, matching de trocas e preços.
 
-## Status
+## Situação
 
-Under construction, developed in approved checkpoints.
-See [`docs/decisions.md`](docs/decisions.md) for the decision log and
-[`docs/checkpoint-0-analise.md`](docs/checkpoint-0-analise.md) for the initial analysis.
+Em construção, desenvolvido em checkpoints aprovados.
 
-## Specification of record
+- [`docs/decisions.md`](docs/decisions.md) — log de decisões
+- [`docs/checkpoint-0-analise.md`](docs/checkpoint-0-analise.md) — análise inicial
+- [`docs/business-rules.md`](docs/business-rules.md) — regras de negócio
+- [`docs/database.md`](docs/database.md) — modelo físico e restrições
+- [`docs/architecture.md`](docs/architecture.md) — arquitetura, testes e Git
+- [`docs/integrations.md`](docs/integrations.md) — fontes externas
+- [`docs/development.md`](docs/development.md) — como rodar localmente
 
-The data model is specified by two documents kept in
+## Especificação de referência
+
+O modelo de dados é especificado por dois documentos mantidos em
 [`docs/modelagem/`](docs/modelagem/):
 
 - `Modelo Conceitual Banco de Dados OP Project.pdf`
 - `Modelo Logico OP Project.pdf`
 
-The logical model defines 24 tables and is the authoritative source whenever it
-diverges from the conceptual model. Divergences are recorded in `docs/database.md`.
+O modelo lógico define 24 tabelas e prevalece sempre que divergir do modelo
+conceitual. As divergências estão registradas em
+[`docs/database.md`](docs/database.md).
 
-## Requirements
+## Requisitos
 
 - Node.js 20+
 - PostgreSQL 17+
 
-## Getting started
+## Como começar
 
-Not yet available. The application is scaffolded at Checkpoint 2.
+Ainda não disponível. A aplicação é criada no Checkpoint 2.
