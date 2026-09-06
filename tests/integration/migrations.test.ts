@@ -1,4 +1,6 @@
 import { execFileSync } from 'node:child_process'
+import { readdirSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it } from 'vitest'
 import { disconnect, testPrisma } from '../helpers'
 
@@ -38,19 +40,29 @@ describe('migrations', () => {
     expect(output).toContain('This is an empty migration.')
   })
 
-  it('registram as duas migrations como aplicadas', async () => {
+  it('registram como aplicada toda migration presente no repositorio', async () => {
+    // Compara com o diretorio em vez de uma lista fixa: uma lista fixa
+    // quebraria a cada migration nova sem apontar nenhum defeito real.
+    const onDisk = readdirSync(
+      fileURLToPath(new URL('../../prisma/migrations', import.meta.url)),
+      { withFileTypes: true },
+    )
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .sort()
+
     const rows = await testPrisma().$queryRawUnsafe<
-      { migration_name: string; finished_at: Date | null }[]
+      { migration_name: string; finished_at: Date | null; rolled_back_at: Date | null }[]
     >(
-      `SELECT migration_name, finished_at FROM _prisma_migrations
+      `SELECT migration_name, finished_at, rolled_back_at FROM _prisma_migrations
        ORDER BY migration_name`,
     )
-    expect(rows.map((r) => r.migration_name)).toEqual([
-      '20260906000000_init',
-      '20260906000100_constraints_and_triggers',
-    ])
+
+    expect(onDisk.length).toBeGreaterThan(0)
+    expect(rows.map((r) => r.migration_name)).toEqual(onDisk)
     for (const row of rows) {
-      expect(row.finished_at).not.toBeNull()
+      expect(row.finished_at, `${row.migration_name} nao terminou`).not.toBeNull()
+      expect(row.rolled_back_at, `${row.migration_name} sofreu rollback`).toBeNull()
     }
   })
 
