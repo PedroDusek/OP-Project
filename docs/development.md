@@ -113,6 +113,19 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 | `npm run db:seed` | seed estrutural |
 | `npm run db:studio` | navegador de dados do Prisma |
 | `npm run prisma:generate` | regenera o Prisma Client |
+| `npm run catalog:import` | importa o catálogo da fonte aprovada |
+
+A importação aceita identificadores de série para limitar o alcance:
+
+```
+npm run catalog:import              # todas as séries
+npm run catalog:import -- 569117    # apenas a série indicada
+```
+
+É executada sob demanda, nunca por requisição de usuário. As requisições à
+origem são serializadas com intervalo mínimo entre elas, e as imagens são apenas
+referenciadas, nunca baixadas — mitigações obrigatórias da decisão 020. Rodar
+duas vezes não duplica nada e não altera os ids internos.
 
 `npm run typecheck` chama `next typegen` antes do `tsc` porque o Next 16 gera
 tipos de rota (como `LayoutProps`) em `.next/types`. Sem essa etapa, uma
