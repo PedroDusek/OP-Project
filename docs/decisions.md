@@ -295,3 +295,159 @@ No price, gateway or commercial policy is implied by it.
 ## Date
 
 2026-09-06
+
+---
+
+# Decision: 010 - Column name for the price timestamp
+
+## Context
+
+The three sources disagree on the name of the date field in `card_prices`: the
+conceptual model says `data`, the logical model says `captured_at`, and the
+specification text says `date`.
+
+## Options
+
+`date`, or `captured_at`.
+
+## Decision
+
+`captured_at TIMESTAMPTZ`, following the logical model.
+
+## Reason
+
+`date` is a reserved word in SQL and a type name in PostgreSQL, which forces
+quoting at every use. `captured_at` also preserves the time of day, which matters
+for resolving the price in effect at `trades.completed_at`.
+
+## Date
+
+2026-09-06
+
+---
+
+# Decision: 011 - "Committed to trade" is derived, not stored
+
+## Context
+
+The specification distinguishes four states: possessed, available for trade,
+committed to trade, and actually traded, and requires that a user cannot commit
+the same copies to several trades at once.
+
+## Options
+
+1. Derive the committed state from active trades.
+2. Store a committed quantity on the collection.
+
+## Decision
+
+Option 1. A copy is committed when the user has a `trade_item` in a trade whose
+status is `PROPOSED`, `NEGOTIATING` or `CONFIRMED`. No new column is added.
+
+## Reason
+
+A stored counter would be a second source of truth that can drift from the trade
+rows. Since a user may hold at most one active trade at a time, the derived query
+stays cheap. Multiple simultaneous commitments are prevented by that same
+one-active-trade rule, enforced transactionally.
+
+## Date
+
+2026-09-06
+
+---
+
+# Decision: 012 - Conceptual model divergences resolve in favour of the logical model
+
+## Context
+
+The conceptual model and the logical model disagree on two structural points.
+
+1. Physical location: the conceptual model links `Card_Variant` directly to
+   `Storage_Location`; the logical model links `collection_item` to
+   `storage_location`.
+2. Trade items: the conceptual model links `Trade` directly to `Card_Variant`;
+   the logical model links `trade_participant` to `card_variant`.
+
+## Options
+
+Follow the conceptual model, or follow the logical model.
+
+## Decision
+
+The logical model prevails in both cases. The divergences are documented in
+`docs/database.md`. The PDFs are left unmodified.
+
+## Reason
+
+The conceptual version of (1) loses the link to the collection and its owner,
+making it impossible to validate that allocations never exceed the owned
+quantity, or that the storage belongs to the collection owner. The conceptual
+version of (2) loses the information about which participant offers each card,
+which the trade flow depends on. The specification text agrees with the logical
+model on both points.
+
+## Date
+
+2026-09-06
+
+---
+
+# Decision: 013 - Minimum cardinalities relaxed to optional
+
+## Context
+
+The conceptual model marks several participations as mandatory that cannot hold
+in practice: every card having at least one attribute and at least one trait,
+and every user belonging to at least one storage location and at least one trade.
+
+## Options
+
+Enforce the conceptual minimums, or relax them to optional.
+
+## Decision
+
+Relaxed to optional in the database, matching the logical model.
+
+## Reason
+
+Event and Stage cards have no attribute in the OPTCG, so a mandatory
+`Card -> Attribute` participation would reject valid catalog data during import.
+A newly registered user owns no storage location and belongs to no trade, so
+those minimums would make registration impossible.
+
+## Date
+
+2026-09-06
+
+---
+
+# Decision: 014 - Additional uniqueness constraints
+
+## Context
+
+The specification lists the unique constraints for the main tables but does not
+mention two that the required behaviour depends on.
+
+## Options
+
+Rely on application code, or add the constraints to the schema.
+
+## Decision
+
+Two constraints are added:
+
+- `UNIQUE (collection_item_id, storage_location_id)` on `collection_item_locations`
+- `UNIQUE (name)` on `colors`, `traits`, `attributes`, `mechanics` and `effects`
+
+## Reason
+
+Without the first, the same card could have two separate allocation rows for one
+storage location, which breaks the allocation sum and lets the same copies be
+counted twice. Without the second, re-running the catalog import would insert
+duplicate vocabulary rows, violating the idempotency requirement. Both are
+additive and change no behaviour that the specification defines.
+
+## Date
+
+2026-09-06
