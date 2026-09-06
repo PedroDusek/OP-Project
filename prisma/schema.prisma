@@ -27,7 +27,11 @@ model User {
   id             BigInt    @id @default(autoincrement())
   name           String    @db.VarChar(100)
   email          String    @unique @db.VarChar(255)
-  passwordHash   String    @map("password_hash") @db.VarChar(255)
+  // Identidade no provedor de autenticacao (decisao 025). A senha nunca chega
+  // ao nosso banco: quem guarda e verifica credencial e o Supabase. Esta coluna
+  // apenas amarra a conta de la a esta linha, que collections, storage_locations
+  // e trade_participants referenciam.
+  authUserId     String?   @unique @map("auth_user_id") @db.VarChar(64)
   plan           String    @default("FREE") @db.VarChar(20)
   trialStartedAt DateTime? @map("trial_started_at") @db.Timestamptz(6)
   premiumUntil   DateTime? @map("premium_until") @db.Timestamptz(6)

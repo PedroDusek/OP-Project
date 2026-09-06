@@ -72,7 +72,6 @@ export async function createUser(name = 'Usuario de teste') {
     data: {
       name,
       email: `teste-${nextSuffix()}@example.test`,
-      passwordHash: 'hash-de-teste-nao-e-uma-senha-real',
       collection: { create: { name: 'Minha Colecao' } },
     },
     include: { collection: true },

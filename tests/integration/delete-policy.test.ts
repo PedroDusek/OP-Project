@@ -156,7 +156,6 @@ describe('anonimizacao preserva o outro lado do trade', () => {
         data: {
           name: 'Usuario removido',
           email: `deleted+${leaving.id}@deleted.invalid`,
-          passwordHash: '!',
           plan: 'FREE',
           trialStartedAt: null,
           premiumUntil: null,
