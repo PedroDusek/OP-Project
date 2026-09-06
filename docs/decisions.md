@@ -745,3 +745,144 @@ origem não alcance o resto do sistema.
 ## Data
 
 2026-09-06
+
+---
+
+# Decisão: 021 — Efeitos permanecem sem preenchimento
+
+## Contexto
+
+A especificação lista nove efeitos que o catálogo deve conhecer: `Draw Card`,
+`Search`, `Reduce Cost`, `Increase Power`, `Reduce Power`, `KO`, `Rest`,
+`Return to Hand` e `Trash`.
+
+A implementação do Checkpoint 3 mostrou que nenhum deles aparece literalmente na
+fonte. São categorias semânticas que só existiriam se fossem inferidas do texto
+livre da carta. Mecânicas, ao contrário, aparecem entre colchetes e podem ser
+lidas.
+
+## Opções
+
+1. Conjunto determinístico de regras de palavra-chave sobre o texto.
+2. Manter a tabela vazia até existir dado confiável.
+3. Armazenar o texto do efeito numa coluna e buscar dentro dele.
+
+## Decisão
+
+Opção 2. `effects` e `card_effects` permanecem vazias. O filtro por efeito
+existe no código de busca e funciona; ele apenas não retorna nada enquanto não
+houver dado.
+
+## Motivo
+
+Escolhida pelo dono do produto. A opção 1 é inferência, e a especificação proíbe
+inventar classificações; erraria em cartas de texto complexo, que são
+justamente as que o usuário mais quereria filtrar. A opção 3 alteraria o modelo
+aprovado e contraria a instrução de não substituir a estrutura de efeitos por
+texto bruto.
+
+A estrutura fica pronta. Preenchê-la depende de uma fonte que classifique
+efeitos, ou de uma decisão futura de aceitar inferência.
+
+## Data
+
+2026-09-06
+
+---
+
+# Decisão: 023 — Tipo de variante fica Normal e Parallel
+
+## Contexto
+
+A especificação cita Normal, Alternate Art e Manga como exemplos de variantes
+distintas. A fonte não faz essa distinção: ela marca a arte base sem sufixo e
+cada arte paralela com `_pN`, sem dizer se é manga art, alternate art ou
+qualquer outra categoria da comunidade.
+
+## Opções
+
+1. Usar apenas `Normal` e `Parallel`, que é o que a fonte permite afirmar.
+2. Derivar `Alternate Art` e `Manga` a partir de raridade e outros sinais.
+
+## Decisão
+
+Opção 1.
+
+## Motivo
+
+Escolhida pelo dono do produto. O sufixo `_p` é a própria notação da fonte para
+arte paralela, então `Normal` e `Parallel` são leitura, não interpretação. A
+opção 2 seria inferência: nada na fonte separa manga art de alternate art.
+
+O custo é baixo porque `source_id` preserva o sufixo exato. Se uma taxonomia mais
+rica for aprovada depois, ela pode ser derivada sem reimportar nada.
+
+## Data
+
+2026-09-06
+
+---
+
+# Decisão: 022 — Vocabulário de mecânicas
+
+## Contexto
+
+A especificação nomeia seis mecânicas. O texto das cartas usa colchetes para
+muito mais que isso, e o Checkpoint 3 mostrou que aceitar todo colchete criaria
+classificações inventadas.
+
+O levantamento sobre o catálogo completo — 60 séries, 4.844 artes, 2.785 códigos
+de carta — encontrou 217 termos distintos entre colchetes. Cruzando cada termo
+contra os 1.170 nomes de carta do próprio catálogo:
+
+| Grupo | Termos |
+|---|---|
+| Já aceitos pela especificação | 6 |
+| Marcadores de custo (`DON!! xN`) | 3 |
+| **Coincidem com nome de carta** | **195** |
+| Candidatos a mecânica | 13 |
+
+Os 195 são nomes de personagem e lugar: `[Sanji]`, `[Nami]`, `[Upper Yard]`.
+Sem a allowlist, o catálogo teria 195 mecânicas inexistentes.
+
+## Opções
+
+Sobre os 13 candidatos, apresentados em quatro grupos: palavras-chave de
+habilidade (`Double Attack`, `Banish`, `Unblockable`), gatilhos de efeito
+(`On K.O.`, `On Block`, `On Your Opponent's Attack`, `End of Your Turn`),
+condições de fase e turno (`Main`, `Counter`, `Your Turn`, `Opponent's Turn`) e
+`Trigger`.
+
+## Decisão
+
+Entram apenas os **gatilhos de efeito**. O vocabulário fica com dez termos:
+
+```
+Rush   Blocker   On Play   When Attacking   Activate: Main   Once Per Turn
+On K.O.   On Block   On Your Opponent's Attack   End of Your Turn
+```
+
+`Rush: Character` é normalizado para `Rush`, e não vira termo próprio.
+
+Ficam de fora, por ora: as palavras-chave de habilidade, as condições de fase e
+turno, e `Trigger`.
+
+## Motivo
+
+Escolhida pelo dono do produto. Os gatilhos são da mesma natureza de `On Play` e
+`When Attacking`, que a especificação já aceita, então entram sem mudar o
+critério.
+
+As condições de fase são as mais frequentes e as menos discriminantes: filtrar
+por `Main` devolveria cerca de 10% do catálogo. `Trigger` duplicaria
+`cards.has_trigger`, que já existe no modelo.
+
+`Rush: Character` é `Rush` com alvo restrito. Normalizar mantém as 11 cartas que
+o concedem visíveis para quem filtra por `Rush`, que é a intenção de quem busca.
+
+Ampliar o vocabulário de novo exige aprovação, porque define o que passa a ser
+filtrável no catálogo.
+
+## Data
+
+2026-09-06

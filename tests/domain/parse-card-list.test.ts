@@ -2,6 +2,34 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { parseCardList } from '@/server/domain/catalog/parse-card-list'
+import { KNOWN_MECHANICS } from '@/server/domain/catalog/types'
+
+/** Monta uma entrada minima com o texto de efeito informado. */
+function parseSingle(effectText: string) {
+  const block = `
+    <dl class="modalCol" id="TST-001">
+      <dt>
+        <div class="infoCol"><span>TST-001</span> | <span>C</span> | <span>CHARACTER</span></div>
+        <div class="cardName">Carta de teste</div>
+      </dt>
+      <dd>
+        <div class="backCol">
+          <div class="cost"><h3>Cost</h3>1</div>
+          <div class="attribute"><h3>Attribute</h3><i>Slash</i></div>
+          <div class="power"><h3>Power</h3>1000</div>
+          <div class="counter"><h3>Counter</h3>-</div>
+          <div class="color"><h3>Color</h3>Red</div>
+          <div class="block"><h3>Block icon</h3>5</div>
+          <div class="feature"><h3>Type</h3>Teste</div>
+          <div class="text"><h3>Effect</h3>${effectText}</div>
+          <div class="getInfo"><h3>Card Set(s)</h3>TESTE [TST-01]</div>
+        </div>
+      </dd>
+    </dl>`
+  const parsed = parseCardList(block)
+  expect(parsed.rejected).toEqual([])
+  return parsed.cards[0]
+}
 
 /**
  * Teste puro: nao toca rede nem banco.
@@ -79,20 +107,36 @@ describe('parser da listagem de cartas', () => {
 
   it('extrai apenas mecanicas do vocabulario conhecido', () => {
     const all = page.cards.flatMap((c) => c.mechanics)
-    const allowed = [
-      'Rush',
-      'Blocker',
-      'On Play',
-      'When Attacking',
-      'Activate: Main',
-      'Once Per Turn',
-    ]
     for (const mechanic of all) {
-      expect(allowed).toContain(mechanic)
+      expect(KNOWN_MECHANICS as readonly string[]).toContain(mechanic)
     }
-    // Nomes de personagem entre colchetes nunca viram mecanica.
+    // Nomes de personagem entre colchetes nunca viram mecanica. O levantamento
+    // sobre o catalogo completo achou 195 termos assim.
     expect(all).not.toContain('Shanks')
     expect(all).not.toContain('Edward.Newgate')
+    expect(all).not.toContain('Nami')
+  })
+
+  it('ignora marcadores de custo e condicoes de fase nao aprovadas', () => {
+    const card = parseSingle(
+      '[DON!! x2] [Main] [Counter] [Your Turn] [Double Attack] [Banish] [Blocker]',
+    )
+    // Apenas Blocker esta no vocabulario aprovado.
+    expect(card.mechanics).toEqual(['Blocker'])
+  })
+
+  it('reconhece os gatilhos de efeito aprovados na decisao 022', () => {
+    const card = parseSingle(
+      "[On K.O.] algo [On Block] algo [On Your Opponent's Attack] algo [End of Your Turn] algo",
+    )
+    expect(card.mechanics.sort()).toEqual(
+      ['End of Your Turn', 'On Block', 'On K.O.', "On Your Opponent's Attack"].sort(),
+    )
+  })
+
+  it('normaliza Rush: Character para Rush', () => {
+    const card = parseSingle('Esta carta ganha [Rush: Character] ate o fim do turno.')
+    expect(card.mechanics).toEqual(['Rush'])
   })
 
   it('resolve os sets pelo campo da fonte, nunca pelo prefixo do codigo', () => {
@@ -124,5 +168,40 @@ describe('parser da listagem de cartas', () => {
     expect(empty.cards).toEqual([])
     expect(empty.variants).toEqual([])
     expect(empty.rejected).toEqual([])
+  })
+})
+
+describe('produtos sem codigo de set', () => {
+  it('registra o produto em vez de descarta-lo em silencio', () => {
+    const block = `
+      <dl class="modalCol" id="TST-002">
+        <dt>
+          <div class="infoCol"><span>TST-002</span> | <span>SR</span> | <span>CHARACTER</span></div>
+          <div class="cardName">Promo de teste</div>
+        </dt>
+        <dd><div class="backCol">
+          <div class="cost"><h3>Cost</h3>2</div>
+          <div class="attribute"><h3>Attribute</h3><i>Slash</i></div>
+          <div class="power"><h3>Power</h3>2000</div>
+          <div class="counter"><h3>Counter</h3>-</div>
+          <div class="color"><h3>Color</h3>Red</div>
+          <div class="block"><h3>Block icon</h3>5</div>
+          <div class="feature"><h3>Type</h3>Teste</div>
+          <div class="text"><h3>Effect</h3>-</div>
+          <div class="getInfo"><h3>Card Set(s)</h3>Tournament Pack Vol.4</div>
+        </div></dd>
+      </dl>`
+    const parsed = parseCardList(block)
+
+    // A carta entra normalmente; o que falta e o set.
+    expect(parsed.cards).toHaveLength(1)
+    expect(parsed.variants[0].printedInSetCodes).toEqual([])
+    expect(parsed.sets).toEqual([])
+    // E a lacuna fica visivel.
+    expect(parsed.unmappedSetNames).toEqual(['Tournament Pack Vol.4'])
+  })
+
+  it('nao reporta lacuna quando todo produto tem codigo', () => {
+    expect(page.unmappedSetNames).toEqual([])
   })
 })

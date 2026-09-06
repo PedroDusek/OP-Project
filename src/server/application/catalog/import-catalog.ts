@@ -30,6 +30,12 @@ export interface ImportReport {
   printingsUpserted: number
   rejected: { sourceId: string | null; reason: string }[]
   failures: { seriesId: string; reason: string }[]
+  /**
+   * Produtos citados pela fonte sem codigo, que por isso nao viraram set. As
+   * variantes deles entram no catalogo sem set e nao contam para progresso de
+   * set. Fica no relatorio para que a lacuna seja visivel. Decisao pendente.
+   */
+  unmappedSetNames: string[]
 }
 
 export interface ImportOptions {
@@ -60,7 +66,9 @@ export async function importCatalog(
     printingsUpserted: 0,
     rejected: [],
     failures: [],
+    unmappedSetNames: [],
   }
+  const unmapped = new Set<string>()
 
   const seriesIds = options.seriesIds ?? (await provider.listSeriesIds())
   log.info(`[import] inicio provider=${provider.name} series=${seriesIds.length}`)
@@ -79,6 +87,7 @@ export async function importCatalog(
       report.variantsUpserted += counts.variants
       report.printingsUpserted += counts.printings
       report.rejected.push(...page.rejected)
+      for (const name of page.unmappedSetNames) unmapped.add(name)
 
       log.info(
         `[import] serie=${seriesId} sets=${counts.sets} cards=${counts.cards} ` +
@@ -93,11 +102,20 @@ export async function importCatalog(
     }
   }
 
+  report.unmappedSetNames = [...unmapped].sort()
   report.finishedAt = new Date()
+
+  if (report.unmappedSetNames.length > 0) {
+    log.warn(
+      `[import] ${report.unmappedSetNames.length} produtos citados sem codigo nao viraram set. ` +
+        'As variantes deles ficam sem set e fora do progresso por set.',
+    )
+  }
+
   log.info(
     `[import] fim processadas=${report.seriesProcessed} falhas=${report.seriesFailed} ` +
       `cards=${report.cardsUpserted} variants=${report.variantsUpserted} ` +
-      `rejeitados=${report.rejected.length} ` +
+      `rejeitados=${report.rejected.length} sets_sem_codigo=${report.unmappedSetNames.length} ` +
       `duracao=${report.finishedAt.getTime() - report.startedAt.getTime()}ms`,
   )
   return report

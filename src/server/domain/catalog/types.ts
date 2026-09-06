@@ -50,6 +50,16 @@ export interface CatalogPage {
   variants: VariantDTO[]
   /** Entradas descartadas, com o motivo. Nunca adivinhadas. */
   rejected: RejectedEntry[]
+  /**
+   * Produtos citados pela fonte sem codigo entre colchetes, como
+   * "Tournament Pack Vol.4". Nao viram set porque `sets.code` e obrigatorio e a
+   * fonte nao fornece um; derivar um codigo seria inventar identidade.
+   *
+   * Ficam listados aqui em vez de sumirem em silencio: as variantes desses
+   * produtos entram no catalogo sem set, e isso precisa ser visivel no relatorio
+   * de importacao. Decisao pendente.
+   */
+  unmappedSetNames: string[]
 }
 
 export interface RejectedEntry {
@@ -61,22 +71,42 @@ export interface RejectedEntry {
  * Vocabulario de mecanicas aceito na importacao.
  *
  * Esta lista existe porque o texto das cartas usa colchetes para varias coisas
- * diferentes: mecanicas de verdade, mas tambem nomes de personagem
- * ("[Shanks]", "[Edward.Newgate]") e marcadores de custo ("[DON!! x2]").
- * Extrair todo colchete criaria mecanicas chamadas "Fossa", que e exatamente o
- * tipo de classificacao inventada que a especificacao proibe.
+ * diferentes. O levantamento sobre o catalogo completo achou 217 termos
+ * distintos entre colchetes, e 195 deles batem exatamente com nomes de carta
+ * do proprio catalogo: "[Sanji]", "[Nami]", "[Upper Yard]". Aceitar todo
+ * colchete criaria 195 mecanicas que sao nomes de personagem, exatamente o tipo
+ * de classificacao inventada que a especificacao proibe.
  *
- * O conteudo e o que a especificacao lista. Ampliar exige aprovacao, porque
+ * Conteudo aprovado: as seis que a especificacao nomeia, mais os quatro
+ * gatilhos de efeito da decisao 022. Ampliar de novo exige aprovacao, porque
  * define o que passa a ser filtravel no catalogo.
  */
 export const KNOWN_MECHANICS = [
+  // Especificacao, secao 25.
   'Rush',
   'Blocker',
   'On Play',
   'When Attacking',
   'Activate: Main',
   'Once Per Turn',
+  // Gatilhos de efeito, decisao 022. Dizem quando o efeito dispara, na mesma
+  // natureza de "On Play" e "When Attacking".
+  'On K.O.',
+  'On Block',
+  "On Your Opponent's Attack",
+  'End of Your Turn',
 ] as const
+
+/**
+ * Termos da fonte que sao a mesma mecanica escrita de outro jeito.
+ *
+ * "Rush: Character" e Rush com alvo restrito, nao uma mecanica separada:
+ * normalizar mantem as 11 cartas que a concedem visiveis para quem filtra por
+ * Rush, que e a intencao de quem busca (decisao 022).
+ */
+export const MECHANIC_ALIASES: Readonly<Record<string, string>> = {
+  'Rush: Character': 'Rush',
+}
 
 export interface CatalogProvider {
   readonly name: string

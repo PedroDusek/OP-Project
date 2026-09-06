@@ -208,14 +208,42 @@ HTML:
 #### Vocabulário de mecânicas
 
 Por causa do item 3, mecânicas só são reconhecidas contra uma **allowlist
-explícita**, que hoje contém exatamente as seis que a especificação nomeia:
-`Rush`, `Blocker`, `On Play`, `When Attacking`, `Activate: Main`,
-`Once Per Turn`.
+explícita**. O levantamento sobre o catálogo completo mediu o tamanho do risco:
 
-A fonte contém outros termos entre colchetes que são mecânicas de verdade —
-`On K.O.`, `Trigger`, `Counter`, `Banish`, `Unblockable`, `On Your Opponent's
-Attack`, entre outros. Eles são **descartados hoje**, porque ampliar a lista
-muda o que é filtrável no catálogo e é decisão de produto, não técnica.
+| Grupo | Termos |
+|---|---|
+| Já aceitos pela especificação | 6 |
+| Marcadores de custo (`DON!! xN`) | 3 |
+| **Coincidem com nome de carta** | **195** |
+| Candidatos a mecânica | 13 |
+
+A classificação não foi por julgamento: cada termo foi cruzado contra os 1.170
+nomes de carta do próprio catálogo. Sem a allowlist, o produto teria 195
+mecânicas chamadas `Sanji`, `Nami` e `Upper Yard`.
+
+A decisão 022 fixou o vocabulário em dez termos: as seis da especificação mais
+os quatro gatilhos de efeito `On K.O.`, `On Block`,
+`On Your Opponent's Attack` e `End of Your Turn`. `Rush: Character` é
+normalizado para `Rush`.
+
+Ficam de fora as palavras-chave de habilidade (`Double Attack`, `Banish`,
+`Unblockable`), as condições de fase e turno (`Main`, `Counter`, `Your Turn`,
+`Opponent's Turn`) e `Trigger`, que duplicaria `cards.has_trigger`.
+
+#### Produtos sem código de set
+
+A fonte cita 59 sets com código entre colchetes (`[OP-17]`, `[EB-03]`) e **131
+produtos sem código nenhum**: `Tournament Pack Vol.4`,
+`Premium Card Collection -Best Selection Vol.4-`, `Pre-Release OP02`,
+`Anime Expo 2023`.
+
+Esses 131 não viram set, porque `sets.code` é obrigatório e único, a fonte não
+fornece um, e derivar um seria inventar identidade. A consequência é concreta:
+**538 variantes, 11% do catálogo, ficam sem set** e fora do progresso por set.
+
+Na primeira versão isso acontecia em silêncio, o que era pior que o problema em
+si. Hoje a importação avisa e lista os produtos afetados. Como representá-los é
+decisão pendente.
 
 #### Efeitos: não implementado, e por quê
 
