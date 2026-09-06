@@ -471,6 +471,20 @@ cópias duas vezes. Sem a segunda, reexecutar a importação do catálogo inseri
 linhas duplicadas de vocabulário, violando o requisito de idempotência. Ambas são
 aditivas e não alteram nenhum comportamento definido pela especificação.
 
+## Nota posterior: uma terceira restrição
+
+A revisão de normalização feita antes da migração para o Supabase encontrou uma
+lacuna da mesma natureza: `card_prices` aceitava duas capturas da mesma variante
+no mesmo instante. Reexecutar a importação de preços duplicaria o histórico, e o
+valor histórico de um trade passaria a depender de qual linha a consulta pegasse
+— justamente a garantia que a decisão 052 da especificação exige.
+
+Acrescentado `UNIQUE (card_variant_id, captured_at)`, aprovado pelo dono do
+produto. Ele substitui o índice de consulta anterior sobre as mesmas colunas em
+ordem decrescente, porque um btree ascendente varrido para trás já atende a
+consulta de preço mais recente. Confirmado por `EXPLAIN`: o plano usa
+`Index Scan Backward` sobre este índice.
+
 ## Data
 
 2026-09-06
@@ -499,7 +513,8 @@ Opção 1. Contas são anonimizadas e nunca excluídas fisicamente.
 
 `users` ganha um `deleted_at` opcional. Anonimizar preenche esse campo, substitui
 `name` por um placeholder, substitui `email` por `deleted+<id>@deleted.invalid`,
-substitui `password_hash` por um valor inutilizável e limpa os campos de plano. A
+limpa `auth_user_id`, desfazendo o vínculo com a conta do provedor, e limpa os
+campos de plano. A
 coleção, os locais de armazenamento e os wants são removidos pelos cascades já
 existentes. As linhas de `trade_participants` e `trade_items` são preservadas.
 

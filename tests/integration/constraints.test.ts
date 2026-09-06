@@ -228,3 +228,60 @@ describe('identidade de variante', () => {
     expect(new Set(variants.map((v) => v.id)).size).toBe(3)
   })
 })
+
+describe('historico de precos', () => {
+  it('impede duas capturas da mesma variante no mesmo instante', async () => {
+    // Sem isto, reexecutar a importacao de precos duplicaria o historico, e o
+    // valor historico de um trade dependeria de qual linha a consulta pegasse.
+    const db = testPrisma()
+    const { variant } = await createCardWithVariant()
+    const capturedAt = new Date('2026-09-06T12:00:00.000Z')
+
+    await db.cardPrice.create({
+      data: { cardVariantId: variant.id, value: 100, capturedAt },
+    })
+    await expect(
+      db.cardPrice.create({
+        data: { cardVariantId: variant.id, value: 150, capturedAt },
+      }),
+    ).rejects.toThrow()
+  })
+
+  it('aceita capturas em instantes diferentes', async () => {
+    const db = testPrisma()
+    const { variant } = await createCardWithVariant()
+
+    await db.cardPrice.create({
+      data: {
+        cardVariantId: variant.id,
+        value: 100,
+        capturedAt: new Date('2026-09-06T12:00:00.000Z'),
+      },
+    })
+    await db.cardPrice.create({
+      data: {
+        cardVariantId: variant.id,
+        value: 150,
+        capturedAt: new Date('2026-09-07T12:00:00.000Z'),
+      },
+    })
+
+    expect(await db.cardPrice.count()).toBe(2)
+  })
+
+  it('aceita a mesma captura para variantes diferentes', async () => {
+    const db = testPrisma()
+    const first = await createCardWithVariant()
+    const second = await createCardWithVariant()
+    const capturedAt = new Date('2026-09-06T12:00:00.000Z')
+
+    await db.cardPrice.create({
+      data: { cardVariantId: first.variant.id, value: 100, capturedAt },
+    })
+    await db.cardPrice.create({
+      data: { cardVariantId: second.variant.id, value: 100, capturedAt },
+    })
+
+    expect(await db.cardPrice.count()).toBe(2)
+  })
+})

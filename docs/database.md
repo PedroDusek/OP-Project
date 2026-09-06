@@ -53,7 +53,7 @@ serializa `BigInt`: toda resposta de API precisa converter id para string. Isso
 | `id` | bigint | PK |
 | `name` | varchar(100) | not null |
 | `email` | varchar(255) | not null, **único** |
-| `password_hash` | varchar(255) | not null |
+| `auth_user_id` | varchar(64) | nulo permitido, **único** |
 | `plan` | varchar(20) | not null, default `FREE`, check em (`FREE`, `PREMIUM`) |
 | `trial_started_at` | timestamptz | nulo permitido |
 | `premium_until` | timestamptz | nulo permitido |
@@ -61,8 +61,12 @@ serializa `BigInt`: toda resposta de API precisa converter id para string. Isso
 | `created_at` / `updated_at` | timestamptz | not null |
 
 `plan`, `trial_started_at` e `premium_until` são a adição aprovada na decisão
-009. `deleted_at` é a adição aprovada na decisão 015. A senha nunca é armazenada
-em texto puro.
+009. `deleted_at` é a adição aprovada na decisão 015.
+
+Não existe coluna de senha. A credencial vive no provedor de autenticação
+(decisão 025) e nunca chega ao nosso banco; `auth_user_id` apenas amarra a conta
+de lá a esta linha, que `collections`, `storage_locations` e
+`trade_participants` referenciam.
 
 O e-mail tem índice único simples. A insensibilidade a maiúsculas é obtida
 normalizando o endereço para minúsculas na aplicação antes de gravar e antes de
@@ -264,6 +268,15 @@ aparenta estar correta na leitura.
 Nome `captured_at` conforme a decisão 010. O histórico é somente-inserção; linhas
 nunca são sobrescritas.
 
+`UNIQUE (card_variant_id, captured_at)` — decisão 014. Sem ela, reexecutar a
+importação de preços duplicaria o histórico, e o valor histórico de um trade
+passaria a depender de qual linha a consulta escolhesse.
+
+Esse índice único substitui o índice de consulta que existia antes sobre as
+mesmas colunas em ordem decrescente: o PostgreSQL varre um btree ascendente para
+trás, então ele já atende "preço mais recente desta variante". Verificado por
+`EXPLAIN`, que mostra `Index Scan Backward` usando exatamente este índice.
+
 ### 2.5 Trocas
 
 **trades**
@@ -416,7 +429,7 @@ Por isso contas são **anonimizadas, nunca excluídas fisicamente** (decisão 01
 2. `name` é substituído por um placeholder e `email` por um valor não reversível
    e sem colisão, no formato `deleted+<id>@deleted.invalid`, que satisfaz o
    índice único sem reter um endereço real.
-3. `password_hash` é substituído por um valor que nenhuma senha produz.
+3. `auth_user_id` é limpo, o que desfaz o vínculo com a conta do provedor.
 4. `plan`, `trial_started_at` e `premium_until` são limpos.
 5. Coleção, locais de armazenamento e wants são removidos pelos cascades já
    existentes, já que esse dado pertence exclusivamente a quem está saindo.
@@ -458,7 +471,7 @@ seja rápida.
 | `storage_locations (public_token)` único | busca do Trade Binder público |
 | `want_items (user_id, card_variant_id)` único | consulta de want |
 | `want_items (card_variant_id)` | matching, pelo lado da disponibilidade |
-| `card_prices (card_variant_id, captured_at DESC)` | preço atual e resolução histórica |
+| `card_prices (card_variant_id, captured_at)` único | uma captura por instante; serve o preço atual varrido para trás |
 | `trade_participants (trade_id, user_id)` único | consulta de participação |
 | `trade_participants (user_id)` | histórico de trades e checagem de trade ativo |
 | `trade_items (trade_participant_id, card_variant_id)` único | consulta de item |
