@@ -463,3 +463,117 @@ additive and change no behaviour that the specification defines.
 ## Date
 
 2026-09-06
+
+---
+
+# Decision: 015 - Account deletion by anonymisation
+
+## Context
+
+A trade has two participants, and the record of a completed trade belongs to
+both of them. Deleting a user raises the question of what happens to
+`trade_participants`, and no delete policy can be chosen for that foreign key
+without answering it.
+
+## Options
+
+1. Anonymise the account and keep the row.
+2. `RESTRICT`: forbid deletion for any account with trade history.
+3. `CASCADE`: delete participations and trade items with the user.
+4. Postpone account deletion entirely.
+
+## Decision
+
+Option 1. Accounts are anonymised and never hard deleted.
+
+`users` gains a nullable `deleted_at`. Anonymising sets it, replaces `name` with
+a placeholder, replaces `email` with `deleted+<id>@deleted.invalid`, replaces
+`password_hash` with an unusable value, and clears the plan fields. The
+collection, storage locations and want items are removed through their existing
+cascades. `trade_participants` and `trade_items` rows are kept.
+
+`trade_participants.user_id` uses `RESTRICT` as a backstop, which should never
+fire because no code path hard deletes a user.
+
+## Reason
+
+Option 3 would destroy the history of the remaining participant, who never
+consented to that. Option 2 leaves users unable to leave the product at all.
+Anonymisation removes the personal data and the ability to sign in, which is what
+account deletion is actually for, while keeping every trade complete for the
+other side.
+
+This is a structural change to the approved model, approved by the product owner.
+
+## Date
+
+2026-09-06
+
+---
+
+# Decision: 016 - Branch and pull request flow
+
+## Context
+
+The repository had no established branch strategy, and the specification
+requires the flow to be agreed rather than assumed.
+
+## Options
+
+1. One branch and one pull request per checkpoint, merged by the product owner.
+2. One branch per checkpoint, merged by the assistant after approval in chat.
+3. Commits directly on `main`.
+
+## Decision
+
+Option 1. Each checkpoint gets a branch named `checkpoint-N/<topic>` and a pull
+request. The product owner reviews and merges. Smaller work uses `fix/`, `docs/`
+and `chore/` branches.
+
+Merge commits are used rather than squash, so the semantic commits inside a
+checkpoint survive in history. Nothing is merged while a decision on that
+checkpoint is still open.
+
+## Reason
+
+Chosen by the product owner. `main` stays deployable and every checkpoint has a
+natural review point recorded on GitHub.
+
+## Date
+
+2026-09-06
+
+---
+
+# Decision: 017 - Continuous integration
+
+## Context
+
+No CI existed. The specification asks that CI be preserved if present and
+proposed if useful.
+
+## Options
+
+1. GitHub Actions from Checkpoint 2.
+2. GitHub Actions later, once the test suite matures.
+3. No CI.
+
+## Decision
+
+Option 1. A GitHub Actions workflow is added at Checkpoint 2, alongside the first
+code: install, lint, type check, unit tests, integration tests against a
+PostgreSQL service container, migration check and build, on pull requests and on
+`main`.
+
+## Reason
+
+Chosen by the product owner. The pull request flow of decision 016 only has real
+value if something verifies the branch before the merge. Actions minutes are free
+on a public repository.
+
+No production infrastructure, deployment target or environment is configured by
+this decision.
+
+## Date
+
+2026-09-06

@@ -44,10 +44,16 @@ migration cost of altering an enum type later.
 | `plan` | varchar(20) | not null, default `FREE`, check in (`FREE`, `PREMIUM`) |
 | `trial_started_at` | timestamptz | nullable |
 | `premium_until` | timestamptz | nullable |
+| `deleted_at` | timestamptz | nullable |
 | `created_at` / `updated_at` | timestamptz | not null |
 
 `plan`, `trial_started_at` and `premium_until` are the approved addition for
-decision 009. Password is never stored in plain text.
+decision 009. `deleted_at` is the approved addition for decision 015. Password is
+never stored in plain text.
+
+A row with `deleted_at` set is an anonymised account: it can no longer sign in
+and holds no personal data, but it still exists so that the trades it took part
+in remain complete for the other participant.
 
 Email uniqueness is enforced case-insensitively by a unique index on
 `lower(email)`, since addresses that differ only in case are the same account.
@@ -341,19 +347,30 @@ Analysed relation by relation rather than applied uniformly.
 | `trade_items.card_variant_id` | RESTRICT | same, for trade history |
 | `trade_participants.trade_id` | CASCADE | participants belong to the trade |
 | `trade_items.trade_participant_id` | CASCADE | items belong to the participant |
-| `trade_participants.user_id` | **open question** | see below |
+| `trade_participants.user_id` | RESTRICT | protects trade history; never fires, because accounts are anonymised rather than deleted |
 
-### 4.1 Open question: deleting a user account
+### 4.1 Deleting a user account
 
 A trade always has two sides. Cascading a user deletion into
 `trade_participants` would delete half of a completed trade, destroying history
 that belongs to the **other** user as much as to the one leaving.
 
-`RESTRICT` protects that history, but then an account with any trade history can
-never be deleted, which conflicts with a normal account deletion feature.
+Accounts are therefore **anonymised, never hard deleted** (decision 015):
 
-This needs a product decision and is listed as pending in the Checkpoint 1
-report. Nothing is implemented until it is resolved.
+1. `deleted_at` is set, which blocks sign in.
+2. `name` is replaced with a placeholder and `email` with a non reversible,
+   collision free value of the form `deleted+<id>@deleted.invalid`, which keeps
+   the unique index satisfied without retaining a real address.
+3. `password_hash` is replaced with a value no password can produce.
+4. `plan`, `trial_started_at` and `premium_until` are cleared.
+5. The collection, storage locations and want items are deleted through their
+   existing cascades, since that data belongs solely to the departing user.
+6. `trade_participants` and `trade_items` rows are kept, so the other side of
+   every trade stays intact.
+
+The `RESTRICT` on `trade_participants.user_id` is a backstop: since no code path
+hard deletes a user row, it should never fire. If it ever does, it means an
+unintended deletion path exists, and failing loudly is the correct outcome.
 
 ### 4.2 Deleting trades
 

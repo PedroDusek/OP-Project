@@ -256,7 +256,7 @@ viewports.
 
 ## 7. Git strategy
 
-Proposed, pending approval.
+Approved, decision 016.
 
 - `main` always deployable. No direct commits.
 - One branch per checkpoint, named `checkpoint-N/<topic>`; `fix/`, `docs/` and
@@ -270,7 +270,7 @@ Proposed, pending approval.
 
 ## 8. Continuous integration
 
-Proposed, pending approval. No CI exists today.
+Approved, decision 017. Added at Checkpoint 2, alongside the first code.
 
 A GitHub Actions workflow on pull requests and on `main`: install, lint, type
 check, unit tests, integration tests against a PostgreSQL service container,
