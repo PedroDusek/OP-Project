@@ -513,7 +513,8 @@ Opção 1. Contas são anonimizadas e nunca excluídas fisicamente.
 
 `users` ganha um `deleted_at` opcional. Anonimizar preenche esse campo, substitui
 `name` por um placeholder, substitui `email` por `deleted+<id>@deleted.invalid`,
-substitui `password_hash` por um valor inutilizável e limpa os campos de plano. A
+limpa `auth_user_id`, desfazendo o vínculo com a conta do provedor, e limpa os
+campos de plano. A
 coleção, os locais de armazenamento e os wants são removidos pelos cascades já
 existentes. As linhas de `trade_participants` e `trade_items` são preservadas.
 

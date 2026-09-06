@@ -53,7 +53,7 @@ serializa `BigInt`: toda resposta de API precisa converter id para string. Isso
 | `id` | bigint | PK |
 | `name` | varchar(100) | not null |
 | `email` | varchar(255) | not null, **único** |
-| `password_hash` | varchar(255) | not null |
+| `auth_user_id` | varchar(64) | nulo permitido, **único** |
 | `plan` | varchar(20) | not null, default `FREE`, check em (`FREE`, `PREMIUM`) |
 | `trial_started_at` | timestamptz | nulo permitido |
 | `premium_until` | timestamptz | nulo permitido |
@@ -61,8 +61,12 @@ serializa `BigInt`: toda resposta de API precisa converter id para string. Isso
 | `created_at` / `updated_at` | timestamptz | not null |
 
 `plan`, `trial_started_at` e `premium_until` são a adição aprovada na decisão
-009. `deleted_at` é a adição aprovada na decisão 015. A senha nunca é armazenada
-em texto puro.
+009. `deleted_at` é a adição aprovada na decisão 015.
+
+Não existe coluna de senha. A credencial vive no provedor de autenticação
+(decisão 025) e nunca chega ao nosso banco; `auth_user_id` apenas amarra a conta
+de lá a esta linha, que `collections`, `storage_locations` e
+`trade_participants` referenciam.
 
 O e-mail tem índice único simples. A insensibilidade a maiúsculas é obtida
 normalizando o endereço para minúsculas na aplicação antes de gravar e antes de
@@ -425,7 +429,7 @@ Por isso contas são **anonimizadas, nunca excluídas fisicamente** (decisão 01
 2. `name` é substituído por um placeholder e `email` por um valor não reversível
    e sem colisão, no formato `deleted+<id>@deleted.invalid`, que satisfaz o
    índice único sem reter um endereço real.
-3. `password_hash` é substituído por um valor que nenhuma senha produz.
+3. `auth_user_id` é limpo, o que desfaz o vínculo com a conta do provedor.
 4. `plan`, `trial_started_at` e `premium_until` são limpos.
 5. Coleção, locais de armazenamento e wants são removidos pelos cascades já
    existentes, já que esse dado pertence exclusivamente a quem está saindo.
