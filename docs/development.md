@@ -85,7 +85,7 @@ cp .env.example .env
 | Variável | Significado |
 |---|---|
 | `NODE_ENV` | `development`, `test` ou `production` |
-| `APP_URL` | URL base da aplicação |
+| `APP_URL` | URL base. `http://localhost:3000` em dev, `https://colexa.com.br` em produção |
 | `DATABASE_URL` | string de conexão do banco de desenvolvimento |
 | `TEST_DATABASE_URL` | string de conexão do banco de teste, recriado pela suíte |
 | `AUTH_SECRET` | segredo de assinatura da sessão |
@@ -159,8 +159,18 @@ explícitos:
 |---|---|
 | `npm run supabase status` | conta o que existe lá hoje |
 | `npm run supabase migrate` | aplica as migrations pendentes |
-| `npm run supabase import` | importa o catálogo completo da fonte |
+| `npm run supabase import` | importa o catálogo, baixando da fonte |
 | `npm run supabase import 569117` | importa apenas as séries informadas |
+| `npm run supabase import --from=DIR` | importa de um snapshot local |
+
+**Prefira `--from` quando o snapshot já existir.** Rebaixar o catálogo inteiro a
+cada importação é carga evitável sobre a origem, e a decisão 020 nos obriga a
+evitá-la. O `BandaiCatalogProvider` serve para criar ou atualizar o snapshot; o
+`FileCatalogProvider` serve para toda importação subsequente.
+
+O snapshot fica **fora do repositório** — são megabytes de HTML da Bandai, e
+versioná-los seria redistribuir o conteúdo deles, justamente o que a decisão 020
+evita. Na máquina de desenvolvimento atual ele está em `C:\dev\optcg-snapshot`.
 
 Antes de agir, o script imprime host e banco de destino, e recusa rodar se a URL
 estiver ausente, apontar para `localhost` ou ser igual a `DATABASE_URL`.

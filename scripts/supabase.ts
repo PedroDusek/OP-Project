@@ -2,15 +2,20 @@ import 'dotenv/config'
 import { execFileSync } from 'node:child_process'
 import { importCatalog } from '@/server/application/catalog/import-catalog'
 import { BandaiCatalogProvider } from '@/server/infrastructure/catalog/bandai-catalog-provider'
+import { FileCatalogProvider } from '@/server/infrastructure/catalog/file-catalog-provider'
 import { createPrisma } from '@/server/infrastructure/prisma'
 
 /**
  * Operacoes contra o banco de producao no Supabase.
  *
  *   npm run supabase migrate           aplica as migrations pendentes
- *   npm run supabase import            importa o catalogo completo
- *   npm run supabase import 569117     importa apenas as series informadas
- *   npm run supabase status            mostra o que existe la hoje
+ *   npm run supabase import             importa o catalogo, baixando da fonte
+ *   npm run supabase import 569117      importa apenas as series informadas
+ *   npm run supabase import --from=DIR  importa de um snapshot local
+ *   npm run supabase status             mostra o que existe la hoje
+ *
+ * Prefira `--from` quando o snapshot ja existir: rebaixar o catalogo inteiro a
+ * cada importacao e carga evitavel sobre a origem (decisao 020).
  *
  * Producao nunca e o alvo padrao. `DATABASE_URL` continua apontando para o
  * banco local em todo o resto do projeto; so este script usa
@@ -71,9 +76,18 @@ async function main(): Promise<void> {
 
   if (command === 'import') {
     const seriesIds = args.filter((a) => /^\d+$/.test(a))
+    const from = args.find((a) => a.startsWith('--from='))?.slice('--from='.length)
+
+    const provider = from ? new FileCatalogProvider(from) : new BandaiCatalogProvider()
+    console.log(
+      from
+        ? `[supabase] lendo do snapshot em ${from}`
+        : '[supabase] baixando da fonte oficial',
+    )
+
     const prisma = createPrisma(url)
     try {
-      const report = await importCatalog(prisma, new BandaiCatalogProvider(), {
+      const report = await importCatalog(prisma, provider, {
         seriesIds: seriesIds.length > 0 ? seriesIds : undefined,
       })
       if (report.seriesFailed > 0) process.exitCode = 1
@@ -86,6 +100,24 @@ async function main(): Promise<void> {
   if (command === 'status') {
     const prisma = createPrisma(url)
     try {
+      // Banco novo nao tem tabela nenhuma. Perguntar ao catalogo primeiro evita
+      // quebrar no comando que todo mundo roda antes de qualquer outro.
+      const [{ applied }] = await prisma.$queryRawUnsafe<{ applied: bigint }[]>(
+        `SELECT count(*)::bigint AS applied
+         FROM information_schema.tables
+         WHERE table_schema = 'public' AND table_name = '_prisma_migrations'`,
+      )
+      if (Number(applied) === 0) {
+        console.log('[supabase] banco vazio: nenhuma migration aplicada ainda.')
+        console.log('[supabase] proximo passo: npm run supabase migrate')
+        return
+      }
+
+      const migrations = await prisma.$queryRawUnsafe<{ migration_name: string }[]>(
+        `SELECT migration_name FROM _prisma_migrations
+         WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL
+         ORDER BY migration_name`,
+      )
       const [cards, variants, sets, printings, users] = await Promise.all([
         prisma.card.count(),
         prisma.cardVariant.count(),
@@ -93,6 +125,7 @@ async function main(): Promise<void> {
         prisma.variantPrinting.count(),
         prisma.user.count(),
       ])
+      console.log(`[supabase] migrations aplicadas: ${migrations.length}`)
       console.log(
         `[supabase] cards=${cards} variants=${variants} sets=${sets} ` +
           `printings=${printings} users=${users}`,

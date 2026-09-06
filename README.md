@@ -1,8 +1,10 @@
-# OPTCG Collection Manager
+# ColeXa
 
 Aplicação web mobile-first para gerenciar coleção do One Piece Card Game:
 catálogo, coleção, armazenamento físico (binders, boxes e decks), want list,
 Trade Binder, matching de trocas e preços.
+
+Domínio: **colexa.com.br**. Marca em [`docs/marca/`](docs/marca/).
 
 ## Situação
 
@@ -15,6 +17,7 @@ Em construção, desenvolvido em checkpoints aprovados.
 - [`docs/architecture.md`](docs/architecture.md) — arquitetura, testes e Git
 - [`docs/integrations.md`](docs/integrations.md) — fontes externas
 - [`docs/development.md`](docs/development.md) — como rodar localmente
+- [`docs/marca/`](docs/marca/) — identidade visual
 
 ## Especificação de referência
 
