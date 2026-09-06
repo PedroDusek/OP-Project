@@ -537,18 +537,30 @@ exige que o fluxo seja acordado, não presumido.
 
 ## Decisão
 
-Opção 1. Cada checkpoint tem uma branch chamada `checkpoint-N/<tema>` e um pull
-request. O dono do produto revisa e faz o merge. Trabalhos menores usam branches
-`fix/`, `docs/` e `chore/`.
+Opção 2, revisada em 2026-09-06 a pedido do dono do produto.
+
+Cada checkpoint tem uma branch chamada `checkpoint-N/<tema>` e um pull request.
+Trabalhos menores usam branches `fix/`, `docs/` e `chore/`.
+
+**O assistente abre a branch, abre o pull request e faz o merge** quando o
+checkpoint estiver completo e sem decisão pendente. O dono do produto não
+precisa apertar o botão de merge.
 
 Merge commits em vez de squash, para que os commits semânticos internos ao
 checkpoint sobrevivam no histórico. Nada é mergeado enquanto houver decisão
 pendente naquele checkpoint.
 
+Esta mudança **não** afeta a parada obrigatória entre checkpoints: o assistente
+continua apresentando o relatório do checkpoint e aguardando autorização antes de
+iniciar o próximo. Mergear é fechar o trabalho já feito, não autorização para
+começar o seguinte.
+
 ## Motivo
 
-Escolhida pelo dono do produto. A `main` permanece publicável e cada checkpoint
-tem um ponto natural de revisão registrado no GitHub.
+A versão original exigia que o dono do produto mergeasse cada PR manualmente, o
+que virou um ponto de espera sem valor: o PR já é revisável a qualquer momento e
+o histórico continua registrado no GitHub. O ponto de controle real é a
+autorização entre checkpoints, que permanece intacta.
 
 ## Data
 

@@ -267,10 +267,14 @@ Aprovada, decisão 016.
   `docs/` e `chore/` para trabalhos menores.
 - Um pull request por checkpoint, descrevendo o que mudou, os testes executados,
   as decisões tomadas e qualquer quebra de compatibilidade.
+- O assistente abre a branch, abre o pull request e faz o merge quando o
+  checkpoint está completo e sem decisão pendente.
 - Merge commit em vez de squash, para que os commits semânticos internos ao
   checkpoint sobrevivam no histórico.
 - Conventional Commits nas mensagens.
 - Nada é mergeado enquanto houver decisão pendente naquele checkpoint.
+- Mergear não é autorização para começar o próximo checkpoint. A parada entre
+  checkpoints permanece.
 
 ## 8. Integração contínua
 
