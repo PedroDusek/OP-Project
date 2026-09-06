@@ -94,6 +94,11 @@ model CardVariant {
   variantType String   @map("variant_type") @db.VarChar(50)
   rarity      String?  @db.VarChar(50)
   imageUrl    String?  @map("image_url") @db.VarChar(500)
+  // Identificador externo, decisao 019. Nao substitui a chave primaria e nunca
+  // e exposto publicamente: existe so para a importacao ser deterministica.
+  // Para dados da Bandai, sourceId e o id por arte, como "OP01-016_p3".
+  source      String?  @db.VarChar(30)
+  sourceId    String?  @map("source_id") @db.VarChar(60)
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -107,6 +112,7 @@ model CardVariant {
   wantItems       WantItem[]
   tradeItems      TradeItem[]
 
+  @@unique([source, sourceId])
   @@index([cardId])
   @@index([rarity])
   @@index([variantType])

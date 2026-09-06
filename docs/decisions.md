@@ -687,3 +687,61 @@ Esta é uma alteração estrutural do modelo aprovado.
 ## Data
 
 2026-09-06
+
+---
+
+# Decisão: 020 — Fonte do catálogo e mitigações
+
+## Contexto
+
+A avaliação registrada em `integrations.md` seção 2.0 concluiu que o único
+identificador estável por arte vem da numeração da Bandai, e que todas as fontes
+disponíveis derivam dela. Os termos do site oficial dizem que imagens, texto e
+dados não podem ser reproduzidos sem permissão. Acesso automatizado não é
+mencionado e não existe `robots.txt`, mas importar o catálogo é reprodução.
+
+Nenhuma fonte intermediária resolve isso, porque nenhuma tem direito de
+sublicenciar os dados da Bandai.
+
+## Opções
+
+1. Pipeline próprio a partir da fonte oficial, com mitigações.
+2. Pedir permissão à Bandai antes de qualquer implementação.
+3. Catálogo fornecido pelo dono do produto.
+4. Adiar o Checkpoint 3 e seguir por outros checkpoints.
+
+## Decisão
+
+Opção 1, com o risco assumido explicitamente pelo dono do produto, a quem a
+especificação reserva essa escolha.
+
+As mitigações fazem parte da decisão e são obrigatórias na implementação:
+
+- **Rate limiting respeitoso.** A importação serializa as requisições e mantém
+  intervalo entre elas. Nunca dispara em paralelo contra a origem.
+- **Somente dados factuais.** São armazenados código, nome, tipo, custo, poder,
+  vida, counter, trigger, cores, traits, atributos, mecânicas, efeitos, raridade
+  e a que sets pertence. Nada além do necessário para o produto funcionar.
+- **Imagens referenciadas na origem.** `card_variants.image_url` guarda a URL da
+  Bandai. As imagens não são copiadas, nem armazenadas, nem reservidas.
+- **Atribuição visível.** A interface credita © Eiichiro Oda / Shueisha, Toei
+  Animation e Bandai Namco Entertainment.
+- **Sem reexposição.** O catálogo nunca é publicado como API pública. Ele serve
+  apenas às telas autenticadas do produto e à página pública de Trade Binder,
+  que mostra somente as cartas daquele binder.
+- **Importação sob demanda.** Executada manualmente ou em agenda esparsa, nunca
+  a cada requisição de usuário.
+
+## Motivo
+
+Escolhida pelo dono do produto depois de a limitação ter sido apresentada com
+clareza. As mitigações reduzem a exposição sem fingir que a eliminam: os dados
+factuais continuam sendo copiados.
+
+Esta decisão pode ser revista se a Bandai se manifestar ou se surgir uma fonte
+licenciada. A abstração `CatalogProvider` existe exatamente para que trocar a
+origem não alcance o resto do sistema.
+
+## Data
+
+2026-09-06

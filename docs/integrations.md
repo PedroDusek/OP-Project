@@ -8,8 +8,10 @@ verdade. Nenhuma API externa é chamada durante a renderização de uma página.
 
 ## 1. Situação
 
-**Nenhuma fonte externa está aprovada.** Tanto a fonte do catálogo quanto a fonte
-de preços são decisões em aberto.
+**Catálogo: fonte aprovada** na decisão 020, com mitigações obrigatórias.
+Implementado no Checkpoint 3.
+
+**Preços: em aberto.** Nenhuma fonte de preço foi avaliada ou aprovada.
 
 Nada neste documento presume que alguma API específica exista, que algum endpoint
 tenha determinado formato, ou que raspagem de qualquer site seja permitida. Antes
@@ -170,9 +172,61 @@ formato de `source_id`. A migration é a primeira tarefa do Checkpoint 3.
 
 ### 2.6 Imagens
 
-As imagens das cartas são referenciadas por URL em `card_variants.image_url`. Se
-podem ser consumidas diretamente da origem ou precisam ser armazenadas
-localmente depende dos termos da fonte aprovada, e é decidido junto com ela.
+As imagens são **referenciadas na origem**, nunca copiadas nem rearmazenadas, o
+que é uma das mitigações obrigatórias da decisão 020. `card_variants.image_url`
+guarda a URL canônica da fonte, sem a query de cache, que não faz parte da
+identidade do arquivo.
+
+### 2.7 Implementação
+
+| Peça | Onde | Camada |
+|---|---|---|
+| Tipos e vocabulário | `src/server/domain/catalog/types.ts` | domain |
+| Parser HTML → DTO | `src/server/domain/catalog/parse-card-list.ts` | domain, puro |
+| Provedor HTTP | `src/server/infrastructure/catalog/bandai-catalog-provider.ts` | infrastructure |
+| Importação idempotente | `src/server/application/catalog/import-catalog.ts` | application |
+| Busca com filtros | `src/server/application/catalog/search-cards.ts` | application |
+| Execução manual | `scripts/import-catalog.ts` (`npm run catalog:import`) | — |
+
+A extração inteira vive no parser puro, testado contra um recorte real da fonte
+sem tocar a rede. O provedor só faz I/O, e é onde o rate limiting mora.
+
+#### O que o parser precisou aprender do dado real
+
+Três coisas que o desenho no papel não previa e que só apareceram ao olhar o
+HTML:
+
+1. **Leader reusa a `div` de custo com o rótulo `Life`.** Ler pela classe
+   colocaria a vida no campo de custo em toda carta de Leader.
+2. **Event e Stage trazem a `div` de atributo vazia**, com um traço. A ausência
+   de atributo é real, o que confirma a decisão 013 na prática: 17 Events e 1
+   Stage importados ficaram sem atributo, e 108 Characters e 6 Leaders com.
+3. **Nem tudo entre colchetes é mecânica.** O texto usa colchetes também para
+   nomes de personagem (`[Shanks]`, `[Edward.Newgate]`) e marcadores de custo
+   (`[DON!! x2]`). Extrair todo colchete criaria uma mecânica chamada "Fossa".
+
+#### Vocabulário de mecânicas
+
+Por causa do item 3, mecânicas só são reconhecidas contra uma **allowlist
+explícita**, que hoje contém exatamente as seis que a especificação nomeia:
+`Rush`, `Blocker`, `On Play`, `When Attacking`, `Activate: Main`,
+`Once Per Turn`.
+
+A fonte contém outros termos entre colchetes que são mecânicas de verdade —
+`On K.O.`, `Trigger`, `Counter`, `Banish`, `Unblockable`, `On Your Opponent's
+Attack`, entre outros. Eles são **descartados hoje**, porque ampliar a lista
+muda o que é filtrável no catálogo e é decisão de produto, não técnica.
+
+#### Efeitos: não implementado, e por quê
+
+`effects` fica vazia. A especificação lista nove efeitos (`Draw Card`, `Search`,
+`Reduce Cost`, `Increase Power`, `Reduce Power`, `KO`, `Rest`,
+`Return to Hand`, `Trash`), mas nenhum deles aparece literalmente no dado: são
+categorias semânticas que teriam de ser inferidas do texto livre da carta.
+
+Inferir é justamente o que a especificação proíbe ao dizer para não inventar
+classificações. O filtro por efeito existe no código de busca e funciona; ele
+apenas não retorna nada enquanto a tabela estiver vazia. Decisão pendente.
 
 ---
 
