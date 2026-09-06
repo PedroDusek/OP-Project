@@ -146,7 +146,40 @@ Ela usa `prisma migrate deploy`, o mesmo comando da CI e do deploy, e não
 `migrate dev`. Assim o que os testes validam é o que vai para produção, e a
 suíte não precisa de `CREATEDB`.
 
-## 6. Git
+## 6. Produção no Supabase
+
+O banco de produção fica no Supabase, região São Paulo (decisão 025). O banco
+local continua sendo desenvolvimento e teste.
+
+**Produção nunca é o alvo padrão.** `DATABASE_URL` aponta sempre para o banco
+local; o Supabase vive em `SUPABASE_DATABASE_URL` e só é alcançado por comandos
+explícitos:
+
+| Comando | O que faz |
+|---|---|
+| `npm run supabase status` | conta o que existe lá hoje |
+| `npm run supabase migrate` | aplica as migrations pendentes |
+| `npm run supabase import` | importa o catálogo completo da fonte |
+| `npm run supabase import 569117` | importa apenas as séries informadas |
+
+Antes de agir, o script imprime host e banco de destino, e recusa rodar se a URL
+estiver ausente, apontar para `localhost` ou ser igual a `DATABASE_URL`.
+
+**Não existe `reset` para produção.** Derrubar o banco de produção não deve ser
+um comando a um passo de distância; se for mesmo necessário, faça pelo painel do
+Supabase, conscientemente.
+
+### 6.1 Se a conexão direta falhar
+
+O Supabase serve a conexão direta por IPv6. Em rede sem IPv6, a conexão expira
+sem erro claro. Nesse caso use a string do **Session pooler**, que é compatível
+com IPv4 e serve migrations igualmente — está em *Settings → Database →
+Connection string*, na aba do pooler em modo *session*.
+
+O *Transaction pooler* não serve para migrations: ele não mantém estado de
+sessão, e o Prisma precisa disso para aplicar DDL.
+
+## 7. Git
 
 Estado atual: repositório em `C:\dev\optcg`, remote `origin` em
 `github.com/PedroDusek/OP-Project` por SSH, branch padrão `main`.
@@ -158,7 +191,7 @@ Antes de todo push o histórico completo é varrido em busca de segredos. O
 `.gitignore` bloqueia `.env`, `.env.*`, `*.pem`, `*.key` e `*.p12`. O repositório
 é público, então nada sensível pode entrar em um commit.
 
-## 7. Definição de pronto
+## 8. Definição de pronto
 
 Uma funcionalidade só está pronta quando o código está implementado, o banco está
 consistente, backend e frontend estão implementados, as validações funcionam, os

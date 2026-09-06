@@ -16,7 +16,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "prisma:generate": "prisma generate",
-    "catalog:import": "tsx scripts/import-catalog.ts"
+    "catalog:import": "tsx scripts/import-catalog.ts",
+    "supabase": "tsx scripts/supabase.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.0",
