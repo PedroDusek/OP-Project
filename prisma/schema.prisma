@@ -326,7 +326,15 @@ model CardPrice {
 
   cardVariant CardVariant @relation(fields: [cardVariantId], references: [id], onDelete: Restrict)
 
-  @@index([cardVariantId, capturedAt(sort: Desc)])
+  // Uma captura por variante por instante. Sem isto, reexecutar a importacao de
+  // precos duplicaria o historico, e o valor historico de um trade passaria a
+  // depender de qual linha a consulta escolhesse.
+  //
+  // Este unico substitui o indice de consulta que existia antes em
+  // (card_variant_id, captured_at DESC): um btree ascendente e varrido para tras
+  // pelo PostgreSQL, entao ele ja atende "preco mais recente desta variante".
+  // Manter os dois custaria escrita e espaco sem ganho de leitura.
+  @@unique([cardVariantId, capturedAt])
   @@map("card_prices")
 }
 

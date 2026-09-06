@@ -264,6 +264,15 @@ aparenta estar correta na leitura.
 Nome `captured_at` conforme a decisão 010. O histórico é somente-inserção; linhas
 nunca são sobrescritas.
 
+`UNIQUE (card_variant_id, captured_at)` — decisão 014. Sem ela, reexecutar a
+importação de preços duplicaria o histórico, e o valor histórico de um trade
+passaria a depender de qual linha a consulta escolhesse.
+
+Esse índice único substitui o índice de consulta que existia antes sobre as
+mesmas colunas em ordem decrescente: o PostgreSQL varre um btree ascendente para
+trás, então ele já atende "preço mais recente desta variante". Verificado por
+`EXPLAIN`, que mostra `Index Scan Backward` usando exatamente este índice.
+
 ### 2.5 Trocas
 
 **trades**
@@ -458,7 +467,7 @@ seja rápida.
 | `storage_locations (public_token)` único | busca do Trade Binder público |
 | `want_items (user_id, card_variant_id)` único | consulta de want |
 | `want_items (card_variant_id)` | matching, pelo lado da disponibilidade |
-| `card_prices (card_variant_id, captured_at DESC)` | preço atual e resolução histórica |
+| `card_prices (card_variant_id, captured_at)` único | uma captura por instante; serve o preço atual varrido para trás |
 | `trade_participants (trade_id, user_id)` único | consulta de participação |
 | `trade_participants (user_id)` | histórico de trades e checagem de trade ativo |
 | `trade_items (trade_participant_id, card_variant_id)` único | consulta de item |
