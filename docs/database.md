@@ -17,7 +17,7 @@ gerados na aplicação com `crypto.randomBytes`, então `pgcrypto` é dispensáv
 | Aspecto | Convenção |
 |---|---|
 | Nomenclatura | `snake_case`, tabelas no plural, exatamente como o modelo lógico |
-| Chaves primárias | `BIGINT GENERATED ALWAYS AS IDENTITY` |
+| Chaves primárias | `BIGSERIAL` (`bigint` + sequência) |
 | Timestamps | `TIMESTAMPTZ`, nunca `timestamp` sem fuso |
 | Dinheiro | `DECIMAL(12,2)`, como especifica o modelo lógico |
 | Enumerações | `VARCHAR(n) + CHECK`, preservando os tipos do modelo lógico |
@@ -26,6 +26,19 @@ gerados na aplicação com `crypto.randomBytes`, então `pgcrypto` é dispensáv
 Enumerações usam `VARCHAR + CHECK` em vez de enum nativo do PostgreSQL. Isso
 mantém os tipos de coluna que o modelo lógico especifica e evita o custo de
 alterar um tipo enum depois.
+
+As chaves primárias são `BIGSERIAL`, e não `GENERATED ALWAYS AS IDENTITY` como
+esta seção previa antes da implementação. O tipo da coluna é `bigint` nos dois
+casos, como o modelo lógico exige; a diferença está em como o valor padrão é
+gerado. O Prisma emite e gerencia `BIGSERIAL`, e usar identity criaria
+divergência permanente entre `schema.prisma` e o banco, que toda migration
+futura tentaria desfazer. A garantia extra do identity, impedir inserção
+explícita de id, não compensa esse custo.
+
+Como o modelo lógico especifica `bigint` em todos os ids, eles chegam ao
+TypeScript como `BigInt`. A consequência prática é que `JSON.stringify` não
+serializa `BigInt`: toda resposta de API precisa converter id para string. Isso
+é tratado uma única vez na camada `http`, e não caso a caso.
 
 ---
 
@@ -51,9 +64,12 @@ alterar um tipo enum depois.
 009. `deleted_at` é a adição aprovada na decisão 015. A senha nunca é armazenada
 em texto puro.
 
-A unicidade do e-mail é garantida sem diferenciar maiúsculas por um índice único
-sobre `lower(email)`, já que endereços que diferem apenas na caixa são a mesma
-conta.
+O e-mail tem índice único simples. A insensibilidade a maiúsculas é obtida
+normalizando o endereço para minúsculas na aplicação antes de gravar e antes de
+consultar, e não por um índice funcional sobre `lower(email)`. O motivo é o
+mesmo das chaves primárias: o Prisma gerencia índices e não expressa índices
+funcionais, então um índice criado à mão em SQL viraria `DROP INDEX` na próxima
+migration gerada.
 
 Uma linha com `deleted_at` preenchido é uma conta anonimizada: não consegue mais
 autenticar e não guarda dado pessoal, mas continua existindo para que os trades
@@ -182,8 +198,12 @@ Quantidade zero é representada pela ausência da linha, o que mantém "cartas
 | `created_at` / `updated_at` | timestamptz | not null |
 
 `public_token` e `public_token_created_at` são a adição aprovada na decisão 008.
-Revogar define o token como `NULL`; regerar grava outro valor aleatório. O índice
-único é parcial (`WHERE public_token IS NOT NULL`).
+Revogar define o token como `NULL`; regerar grava outro valor aleatório.
+
+O índice único é simples, não parcial: no PostgreSQL um índice único trata cada
+`NULL` como distinto, então qualquer número de armazenamentos sem token convive
+sem conflito. Um índice parcial só economizaria espaço, ao custo de sair do
+controle do Prisma.
 
 A combinação de tipo e propósito é imposta por um check de tabela:
 
@@ -191,12 +211,22 @@ A combinação de tipo e propósito é imposta por um check de tabela:
 CHECK (
   (type = 'DECK'  AND purpose IS NULL)
   OR
-  (type IN ('BINDER', 'BOX') AND purpose IN ('COLLECTION', 'TRADE'))
+  (type IN ('BINDER', 'BOX') AND COALESCE(purpose, '') IN ('COLLECTION', 'TRADE'))
 )
 ```
 
 Isso expressa exatamente as regras de armazenamento, inclusive que uma box pode
 ser de troca.
+
+O `COALESCE` não é enfeite, e a primeira versão desta constraint estava errada
+sem ele. `purpose` aceita nulo, e no SQL `NULL IN (...)` resulta em `NULL`, não
+em `FALSE`. Um `CHECK` só reprova quando a expressão dá `FALSE`: diante de
+`NULL` ele aprova. Sem o `COALESCE`, um `BINDER` sem propósito passava. Foram os
+testes de integridade que expuseram isso.
+
+A lição vale para toda constraint futura sobre coluna que aceita nulo: escrever
+o teste que espera a rejeição é o que revela o buraco, porque a constraint
+aparenta estar correta na leitura.
 
 **collection_item_locations**
 
@@ -280,6 +310,25 @@ A ligação pelo participante, em vez de pelo trade, é o que registra quem ofer
 cada carta.
 
 ---
+
+## 2.6 O que vive em SQL bruto e o que vive no schema
+
+As migrations têm duas metades, e a divisão não é estética.
+
+O Prisma **gerencia** tabelas, colunas, chaves e **índices**. Tudo isso é
+declarado em `schema.prisma`, inclusive o índice GIN de trigrama e a extensão
+`pg_trgm`, que o Prisma sabe expressar. Criar um índice à mão em SQL faria o
+Prisma considerá-lo estranho ao modelo e emitir `DROP INDEX` na próxima
+migration gerada — isso aconteceu de fato durante a implementação e foi
+revertido.
+
+O Prisma **não modela** restrições `CHECK`, funções e triggers, e por isso não
+tenta removê-los. Só esses objetos ficam em SQL bruto, na migration
+`constraints_and_triggers`.
+
+A regra prática: se o Prisma sabe expressar, declare no schema; se não sabe,
+escreva em SQL. Nunca as duas coisas. A CI executa uma checagem de drift que
+falha caso essa fronteira seja violada.
 
 ## 3. Regras que o banco não consegue expressar
 
@@ -394,7 +443,7 @@ seja rápida.
 | Índice | Finalidade |
 |---|---|
 | `cards (code)` único | busca exata por código, a mais comum |
-| `cards USING gin (name gin_trgm_ops)` | busca por trecho e aproximada no nome |
+| `cards_name_idx` GIN `(name gin_trgm_ops)` | busca por trecho e aproximada no nome |
 | `cards (type)` | filtro por tipo |
 | `card_variants (card_id)` | listagem de variantes e agregação de playset |
 | `card_variants (rarity)`, `card_variants (variant_type)` | filtros do catálogo |
@@ -406,7 +455,7 @@ seja rápida.
 | `collection_item_locations (collection_item_id, storage_location_id)` único | consulta de alocação e regra de unicidade |
 | `collection_item_locations (storage_location_id)` | listar o conteúdo de um armazenamento |
 | `storage_locations (user_id)` | listar armazenamentos do usuário |
-| `storage_locations (public_token)` único parcial | busca do Trade Binder público |
+| `storage_locations (public_token)` único | busca do Trade Binder público |
 | `want_items (user_id, card_variant_id)` único | consulta de want |
 | `want_items (card_variant_id)` | matching, pelo lado da disponibilidade |
 | `card_prices (card_variant_id, captured_at DESC)` | preço atual e resolução histórica |
