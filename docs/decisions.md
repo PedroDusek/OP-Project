@@ -817,6 +817,31 @@ opção 2 seria inferência: nada na fonte separa manga art de alternate art.
 O custo é baixo porque `source_id` preserva o sufixo exato. Se uma taxonomia mais
 rica for aprovada depois, ela pode ser derivada sem reimportar nada.
 
+## Nota posterior: e o sufixo `_r`?
+
+A fonte usa dois sufixos, não um: 1.647 variantes com `_p` e 412 com `_r`, que é
+a notação de reimpressão. Chegou-se a considerar um terceiro valor `Reprint`.
+
+Não é necessário, e seria pior. A informação de reimpressão já está no modelo,
+no nível da **carta**: a Bandai cunha um id de arte novo a cada impressão, então
+nenhuma variante isolada aparece em dois sets, mas a carta aparece.
+
+Medido sobre o catálogo completo:
+
+| | |
+|---|---|
+| Cartas associadas a mais de um set | 642 |
+| Cartas com alguma variante `_r` | 377 |
+| Dessas, quantas estão em mais de um set | 377 de 377 |
+| Cartas em vários sets **sem** nenhum `_r` | 265 |
+
+As 265 são o argumento decisivo: `OP01-016` está em 7 sets sem ter uma única
+variante `_r`. Um `variant_type = Reprint` marcaria 377 cartas e deixaria essas
+265 de fora, sendo menos informativo que a relação que já existe.
+
+Regra derivada: uma carta foi reimpressa quando suas variantes somam mais de um
+set distinto em `variant_printings`.
+
 ## Data
 
 2026-09-06
