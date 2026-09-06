@@ -745,3 +745,78 @@ origem não alcance o resto do sistema.
 ## Data
 
 2026-09-06
+
+---
+
+# Decisão: 021 — Efeitos permanecem sem preenchimento
+
+## Contexto
+
+A especificação lista nove efeitos que o catálogo deve conhecer: `Draw Card`,
+`Search`, `Reduce Cost`, `Increase Power`, `Reduce Power`, `KO`, `Rest`,
+`Return to Hand` e `Trash`.
+
+A implementação do Checkpoint 3 mostrou que nenhum deles aparece literalmente na
+fonte. São categorias semânticas que só existiriam se fossem inferidas do texto
+livre da carta. Mecânicas, ao contrário, aparecem entre colchetes e podem ser
+lidas.
+
+## Opções
+
+1. Conjunto determinístico de regras de palavra-chave sobre o texto.
+2. Manter a tabela vazia até existir dado confiável.
+3. Armazenar o texto do efeito numa coluna e buscar dentro dele.
+
+## Decisão
+
+Opção 2. `effects` e `card_effects` permanecem vazias. O filtro por efeito
+existe no código de busca e funciona; ele apenas não retorna nada enquanto não
+houver dado.
+
+## Motivo
+
+Escolhida pelo dono do produto. A opção 1 é inferência, e a especificação proíbe
+inventar classificações; erraria em cartas de texto complexo, que são
+justamente as que o usuário mais quereria filtrar. A opção 3 alteraria o modelo
+aprovado e contraria a instrução de não substituir a estrutura de efeitos por
+texto bruto.
+
+A estrutura fica pronta. Preenchê-la depende de uma fonte que classifique
+efeitos, ou de uma decisão futura de aceitar inferência.
+
+## Data
+
+2026-09-06
+
+---
+
+# Decisão: 023 — Tipo de variante fica Normal e Parallel
+
+## Contexto
+
+A especificação cita Normal, Alternate Art e Manga como exemplos de variantes
+distintas. A fonte não faz essa distinção: ela marca a arte base sem sufixo e
+cada arte paralela com `_pN`, sem dizer se é manga art, alternate art ou
+qualquer outra categoria da comunidade.
+
+## Opções
+
+1. Usar apenas `Normal` e `Parallel`, que é o que a fonte permite afirmar.
+2. Derivar `Alternate Art` e `Manga` a partir de raridade e outros sinais.
+
+## Decisão
+
+Opção 1.
+
+## Motivo
+
+Escolhida pelo dono do produto. O sufixo `_p` é a própria notação da fonte para
+arte paralela, então `Normal` e `Parallel` são leitura, não interpretação. A
+opção 2 seria inferência: nada na fonte separa manga art de alternate art.
+
+O custo é baixo porque `source_id` preserva o sufixo exato. Se uma taxonomia mais
+rica for aprovada depois, ela pode ser derivada sem reimportar nada.
+
+## Data
+
+2026-09-06
