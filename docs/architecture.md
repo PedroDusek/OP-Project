@@ -5,9 +5,9 @@
 | Camada | Escolha |
 |---|---|
 | Runtime | Node.js 20 |
-| Framework | Next.js 15, App Router |
+| Framework | Next.js 16, App Router |
 | Linguagem | TypeScript, `strict` |
-| ORM | Prisma |
+| ORM | Prisma 7, com driver adapter `@prisma/adapter-pg` |
 | Banco de dados | PostgreSQL 17 ou superior |
 | Validação | Zod |
 | Autenticação | Auth.js v5, provider de credenciais |

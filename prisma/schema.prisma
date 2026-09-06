@@ -1,0 +1,366 @@
+// Schema do OPTCG Collection Manager.
+//
+// Implementa as 24 tabelas do modelo logico mais as adicoes estruturais
+// aprovadas em docs/decisions.md (008 token publico, 009 Premium e trial,
+// 015 exclusao por anonimizacao).
+//
+// Nomes de tabela e coluna seguem exatamente o modelo logico, em snake_case,
+// via @map e @@map. Os nomes em camelCase existem apenas no cliente.
+//
+// Restricoes CHECK, indices parciais, indices GIN de trigrama e triggers nao
+// sao expressaveis no schema do Prisma. Eles vivem em SQL bruto dentro das
+// migrations. Ver docs/database.md secao 3.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [pg_trgm]
+}
+
+// ---------------------------------------------------------------- identidade
+
+model User {
+  id             BigInt    @id @default(autoincrement())
+  name           String    @db.VarChar(100)
+  email          String    @unique @db.VarChar(255)
+  passwordHash   String    @map("password_hash") @db.VarChar(255)
+  plan           String    @default("FREE") @db.VarChar(20)
+  trialStartedAt DateTime? @map("trial_started_at") @db.Timestamptz(6)
+  premiumUntil   DateTime? @map("premium_until") @db.Timestamptz(6)
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  collection        Collection?
+  storageLocations  StorageLocation[]
+  wantItems         WantItem[]
+  tradeParticipants TradeParticipant[]
+
+  @@map("users")
+}
+
+model Collection {
+  id        BigInt   @id @default(autoincrement())
+  userId    BigInt   @unique @map("user_id")
+  name      String   @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CollectionItem[]
+
+  @@map("collections")
+}
+
+// ------------------------------------------------------------------ catalogo
+
+model Card {
+  id         BigInt   @id @default(autoincrement())
+  code       String   @unique @db.VarChar(20)
+  name       String   @db.VarChar(150)
+  type       String   @db.VarChar(20)
+  cost       Int?
+  power      Int?
+  life       Int?
+  counter    Int?
+  hasTrigger Boolean  @default(false) @map("has_trigger")
+  blockIcon  String?  @map("block_icon") @db.VarChar(20)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  variants   CardVariant[]
+  colors     CardColor[]
+  traits     CardTrait[]
+  attributes CardAttribute[]
+  mechanics  CardMechanic[]
+  effects    CardEffect[]
+
+  // Busca por trecho do nome. A busca exata por codigo usa o indice unico de
+  // code e nao passa por aqui. Declarado no schema, e nao em SQL bruto, para
+  // que o Prisma o gerencie: um indice que ele desconhece vira DROP INDEX na
+  // proxima migration gerada.
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([type])
+  @@map("cards")
+}
+
+model CardVariant {
+  id          BigInt   @id @default(autoincrement())
+  cardId      BigInt   @map("card_id")
+  variantType String   @map("variant_type") @db.VarChar(50)
+  rarity      String?  @db.VarChar(50)
+  imageUrl    String?  @map("image_url") @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Deliberadamente sem @@unique([cardId, variantType]): uma mesma carta possui
+  // varias alternate arts distintas com o mesmo variant_type.
+  // Ver docs/database.md secao 6.1.
+  card            Card              @relation(fields: [cardId], references: [id], onDelete: Restrict)
+  printings       VariantPrinting[]
+  prices          CardPrice[]
+  collectionItems CollectionItem[]
+  wantItems       WantItem[]
+  tradeItems      TradeItem[]
+
+  @@index([cardId])
+  @@index([rarity])
+  @@index([variantType])
+  @@map("card_variants")
+}
+
+model Set {
+  id   BigInt @id @default(autoincrement())
+  code String @unique @db.VarChar(20)
+  name String @db.VarChar(150)
+
+  printings VariantPrinting[]
+
+  @@map("sets")
+}
+
+model VariantPrinting {
+  cardVariantId BigInt @map("card_variant_id")
+  setId         BigInt @map("set_id")
+
+  cardVariant CardVariant @relation(fields: [cardVariantId], references: [id], onDelete: Cascade)
+  set         Set         @relation(fields: [setId], references: [id], onDelete: Restrict)
+
+  @@id([cardVariantId, setId])
+  @@index([setId])
+  @@map("variant_printings")
+}
+
+// ---------------------------------------------------------------- vocabulario
+
+model Color {
+  id   BigInt @id @default(autoincrement())
+  name String @unique @db.VarChar(50)
+
+  cards CardColor[]
+
+  @@map("colors")
+}
+
+model Trait {
+  id   BigInt @id @default(autoincrement())
+  name String @unique @db.VarChar(100)
+
+  cards CardTrait[]
+
+  @@map("traits")
+}
+
+model Attribute {
+  id   BigInt @id @default(autoincrement())
+  name String @unique @db.VarChar(50)
+
+  cards CardAttribute[]
+
+  @@map("attributes")
+}
+
+model Mechanic {
+  id   BigInt @id @default(autoincrement())
+  name String @unique @db.VarChar(100)
+
+  cards CardMechanic[]
+
+  @@map("mechanics")
+}
+
+model Effect {
+  id   BigInt @id @default(autoincrement())
+  name String @unique @db.VarChar(100)
+
+  cards CardEffect[]
+
+  @@map("effects")
+}
+
+model CardColor {
+  cardId  BigInt @map("card_id")
+  colorId BigInt @map("color_id")
+
+  card  Card  @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  color Color @relation(fields: [colorId], references: [id], onDelete: Restrict)
+
+  @@id([cardId, colorId])
+  @@index([colorId])
+  @@map("card_colors")
+}
+
+model CardTrait {
+  cardId  BigInt @map("card_id")
+  traitId BigInt @map("trait_id")
+
+  card  Card  @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  trait Trait @relation(fields: [traitId], references: [id], onDelete: Restrict)
+
+  @@id([cardId, traitId])
+  @@index([traitId])
+  @@map("card_traits")
+}
+
+model CardAttribute {
+  cardId      BigInt @map("card_id")
+  attributeId BigInt @map("attribute_id")
+
+  card      Card      @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  attribute Attribute @relation(fields: [attributeId], references: [id], onDelete: Restrict)
+
+  @@id([cardId, attributeId])
+  @@index([attributeId])
+  @@map("card_attributes")
+}
+
+model CardMechanic {
+  cardId     BigInt @map("card_id")
+  mechanicId BigInt @map("mechanic_id")
+
+  card     Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  mechanic Mechanic @relation(fields: [mechanicId], references: [id], onDelete: Restrict)
+
+  @@id([cardId, mechanicId])
+  @@index([mechanicId])
+  @@map("card_mechanics")
+}
+
+model CardEffect {
+  cardId   BigInt @map("card_id")
+  effectId BigInt @map("effect_id")
+
+  card   Card   @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  effect Effect @relation(fields: [effectId], references: [id], onDelete: Restrict)
+
+  @@id([cardId, effectId])
+  @@index([effectId])
+  @@map("card_effects")
+}
+
+// --------------------------------------------------------------------- posse
+
+model CollectionItem {
+  id            BigInt @id @default(autoincrement())
+  collectionId  BigInt @map("collection_id")
+  cardVariantId BigInt @map("card_variant_id")
+  quantity      Int
+
+  collection  Collection              @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  cardVariant CardVariant             @relation(fields: [cardVariantId], references: [id], onDelete: Restrict)
+  locations   CollectionItemLocation[]
+
+  @@unique([collectionId, cardVariantId])
+  @@index([cardVariantId])
+  @@map("collection_items")
+}
+
+model StorageLocation {
+  id                   BigInt    @id @default(autoincrement())
+  userId               BigInt    @map("user_id")
+  name                 String    @db.VarChar(100)
+  image                String?   @db.VarChar(500)
+  type                 String    @db.VarChar(20)
+  purpose              String?   @db.VarChar(20)
+  publicToken          String?   @unique @map("public_token") @db.VarChar(64)
+  publicTokenCreatedAt DateTime? @map("public_token_created_at") @db.Timestamptz(6)
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user      User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  locations CollectionItemLocation[]
+
+  @@index([userId])
+  @@map("storage_locations")
+}
+
+model CollectionItemLocation {
+  id                BigInt @id @default(autoincrement())
+  collectionItemId  BigInt @map("collection_item_id")
+  storageLocationId BigInt @map("storage_location_id")
+  quantity          Int
+
+  collectionItem  CollectionItem  @relation(fields: [collectionItemId], references: [id], onDelete: Cascade)
+  storageLocation StorageLocation @relation(fields: [storageLocationId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionItemId, storageLocationId])
+  @@index([storageLocationId])
+  @@map("collection_item_locations")
+}
+
+model WantItem {
+  id            BigInt @id @default(autoincrement())
+  userId        BigInt @map("user_id")
+  cardVariantId BigInt @map("card_variant_id")
+  quantity      Int
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardVariant CardVariant @relation(fields: [cardVariantId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, cardVariantId])
+  @@index([cardVariantId])
+  @@map("want_items")
+}
+
+// -------------------------------------------------------------------- precos
+
+model CardPrice {
+  id            BigInt   @id @default(autoincrement())
+  cardVariantId BigInt   @map("card_variant_id")
+  value         Decimal  @db.Decimal(12, 2)
+  capturedAt    DateTime @map("captured_at") @db.Timestamptz(6)
+
+  cardVariant CardVariant @relation(fields: [cardVariantId], references: [id], onDelete: Restrict)
+
+  @@index([cardVariantId, capturedAt(sort: Desc)])
+  @@map("card_prices")
+}
+
+// -------------------------------------------------------------------- trocas
+
+model Trade {
+  id          BigInt    @id @default(autoincrement())
+  status      String    @db.VarChar(30)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
+
+  participants TradeParticipant[]
+
+  @@index([status])
+  @@map("trades")
+}
+
+model TradeParticipant {
+  id          BigInt    @id @default(autoincrement())
+  tradeId     BigInt    @map("trade_id")
+  userId      BigInt    @map("user_id")
+  role        String    @db.VarChar(30)
+  confirmedAt DateTime? @map("confirmed_at") @db.Timestamptz(6)
+
+  trade Trade       @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  user  User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  items TradeItem[]
+
+  @@unique([tradeId, userId])
+  @@index([userId])
+  @@map("trade_participants")
+}
+
+model TradeItem {
+  id                 BigInt @id @default(autoincrement())
+  tradeParticipantId BigInt @map("trade_participant_id")
+  cardVariantId      BigInt @map("card_variant_id")
+  quantity           Int
+
+  tradeParticipant TradeParticipant @relation(fields: [tradeParticipantId], references: [id], onDelete: Cascade)
+  cardVariant      CardVariant      @relation(fields: [cardVariantId], references: [id], onDelete: Restrict)
+
+  @@unique([tradeParticipantId, cardVariantId])
+  @@index([cardVariantId])
+  @@map("trade_items")
+}
