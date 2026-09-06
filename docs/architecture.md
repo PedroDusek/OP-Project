@@ -10,8 +10,8 @@
 | ORM | Prisma 7, com driver adapter `@prisma/adapter-pg` |
 | Banco de dados | PostgreSQL 17 ou superior |
 | Validação | Zod |
-| Autenticação | Auth.js v5, provider de credenciais |
-| Hash de senha | Argon2id |
+| Autenticação | Supabase Auth, terceirizada (decisão 025) |
+| Hospedagem em produção | Supabase, região São Paulo |
 | Estilos | Tailwind CSS |
 | Primitivos de UI | Radix UI via shadcn/ui |
 | Estado de servidor no cliente | TanStack Query |
@@ -22,9 +22,9 @@
 
 A justificativa da stack está em `decisions.md` 002 e 003.
 
-Nada aqui é escrito à mão onde existe biblioteca madura: hash, ORM, validação,
-sessão, primitivos de UI e ferramentas de teste são todos bibliotecas. Nenhuma
-dependência entra sem necessidade concreta.
+Nada aqui é escrito à mão onde existe biblioteca madura: ORM, validação,
+primitivos de UI e ferramentas de teste são bibliotecas, e a autenticação é
+terceirizada por inteiro. Nenhuma dependência entra sem necessidade concreta.
 
 ---
 
@@ -165,8 +165,9 @@ e que o dono é Premium, e devolve apenas aquele binder.
 
 ### 3.6 Segurança
 
-- Argon2id para senhas, nunca texto puro, nunca hash rápido.
-- Rate limiting em autenticação, cadastro e na rota pública de trade.
+- Nenhuma senha passa pelo nosso servidor nem é armazenada por nós: credencial e
+  hash são responsabilidade do provedor (decisão 025).
+- Rate limiting na rota pública de trade e nas rotas de escrita.
 - CORS restrito à origem da aplicação.
 - Todos os segredos vêm de variáveis de ambiente, nunca do código, nunca
   versionados.
