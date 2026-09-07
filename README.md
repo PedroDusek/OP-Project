@@ -10,6 +10,7 @@ Domínio: **colexa.com.br**. Marca em [`docs/marca/`](docs/marca/).
 
 Em construção, desenvolvido em checkpoints aprovados.
 
+- [`docs/handoff.md`](docs/handoff.md) — **estado atual e retomada de contexto**
 - [`docs/decisions.md`](docs/decisions.md) — log de decisões
 - [`docs/checkpoint-0-analise.md`](docs/checkpoint-0-analise.md) — análise inicial
 - [`docs/business-rules.md`](docs/business-rules.md) — regras de negócio
