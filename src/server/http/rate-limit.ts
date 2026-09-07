@@ -79,3 +79,32 @@ export const CATALOG_READ_LIMIT: RateLimitOptions = {
   limit: 300,
   windowMs: 60_000,
 }
+
+/**
+ * Tentativas de entrar, por endereco de e-mail.
+ *
+ * Dez por dez minutos: quem erra a senha algumas vezes seguidas nao esbarra
+ * nisso, e quem esta chutando consegue mil tentativas por dia por conta, o que
+ * torna adivinhacao inviavel contra qualquer senha razoavel.
+ *
+ * O contador vive em memoria de processo, com a limitacao ja descrita no topo
+ * deste arquivo. Para conter chute distribuido, isso e insuficiente por si so —
+ * o Supabase tambem aplica limite proprio do lado dele.
+ */
+export const AUTH_ATTEMPT_LIMIT: RateLimitOptions = {
+  limit: 10,
+  windowMs: 10 * 60_000,
+}
+
+/**
+ * Operacoes que fazem o provedor **enviar e-mail**: cadastro e redefinicao.
+ *
+ * Bem mais apertado que o login, por dois motivos. Cada chamada custa uma
+ * mensagem na caixa de outra pessoa, entao repeticao vira incomodo dirigido; e
+ * o servico de e-mail embutido do Supabase tem cota propria e baixa, que
+ * estourada derruba o cadastro para todo mundo.
+ */
+export const EMAIL_SEND_LIMIT: RateLimitOptions = {
+  limit: 3,
+  windowMs: 15 * 60_000,
+}

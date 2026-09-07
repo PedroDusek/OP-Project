@@ -18,9 +18,9 @@ export async function middleware(request: NextRequest) {
 
   // Sem configuracao nao ha o que renovar. A rota decide o que fazer com a
   // ausencia de sessao; o middleware nao derruba a requisicao por isso.
-  if (!url || !publishableKey) return NextResponse.next({ request })
+  if (!url || !publishableKey) return NextResponse.next({ request: withPathname(request) })
 
-  let response = NextResponse.next({ request })
+  let response = NextResponse.next({ request: withPathname(request) })
 
   const supabase = createServerClient(url, publishableKey, {
     cookies: {
@@ -29,7 +29,7 @@ export async function middleware(request: NextRequest) {
         for (const { name, value } of cookiesToSet) {
           request.cookies.set(name, value)
         }
-        response = NextResponse.next({ request })
+        response = NextResponse.next({ request: withPathname(request) })
         for (const { name, value, options } of cookiesToSet) {
           response.cookies.set(name, value, options)
         }
@@ -42,6 +42,22 @@ export async function middleware(request: NextRequest) {
   await supabase.auth.getClaims()
 
   return response
+}
+
+/**
+ * Carrega o caminho atual para dentro da requisicao.
+ *
+ * Um layout nao tem como saber que rota esta sendo servida — o Next nao expoe
+ * isso — e o layout da area autenticada precisa saber, para que quem for
+ * mandado ao login volte exatamente onde queria em vez de cair no inicio.
+ *
+ * O cabecalho e escrito **aqui**, e nao aceito de fora: se viesse do cliente,
+ * seria ele quem escolheria o destino do redirecionamento pos-login.
+ */
+function withPathname(request: NextRequest) {
+  const headers = new Headers(request.headers)
+  headers.set('x-pathname', request.nextUrl.pathname)
+  return { headers }
 }
 
 export const config = {
