@@ -83,16 +83,38 @@ As 25 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 ## Pendências
 
-**Bloqueiam o Checkpoint 6:**
+**Nada bloqueia o Checkpoint 6.** A paleta foi confirmada pelo dono do produto e
+as telas de referência existem.
 
-- Confirmar a cor da marca. Os arquivos são CMYK com perfil de impressão; pelo
-  perfil embutido o símbolo é `#38277B` (índigo), mas uma visualização ingênua
-  mostra um azul bem mais vivo. A diferença é grande demais para adivinhar, e
-  esse valor vira token de cor de toda a interface. Ver `docs/marca/README.md`.
-- Produzir SVG e PNG em RGB com transparência. Os JPGs de 4500 px em CMYK não
-  servem para interface.
+### Paleta oficial
 
-**Não bloqueiam:**
+| Token | Claro | Escuro |
+|---|---|---|
+| Fundo | `#F2F2F3` | `#131219` |
+| Roxo (ênfase) | `#38287B` | `#504797` |
+| Texto | `#000000` | `#FFFFFF` |
+
+O roxo **muda entre os temas**, e não é o mesmo tom clareado: `#504797` é mais
+claro e menos saturado, para manter contraste sobre o fundo escuro. Use dois
+tokens, nunca um com filtro.
+
+Confirmação útil: a conversão do CMYK pelo perfil embutido dera `#38277B`, um
+dígito do valor real. O perfil estava certo.
+
+### Referência de telas
+
+`docs/referencia-telas/` tem nove PNGs cobrindo Login, Início, Catálogo, Carta e
+Variante, Coleção, Armazenamento, Edição em massa, Wants + Trades, e Trocas com
+histórico e perfil. **Leia essas imagens antes de desenhar qualquer tela** — elas
+são a intenção de produto, e o Checkpoint 6 deve nascer delas.
+
+### Ainda falta produzir
+
+SVG e PNG da marca em RGB com transparência. Os JPGs de 4500 px em CMYK que
+estão em `docs/marca/originais/` são exportação de impressão e não servem para
+interface.
+
+**Pendências que não bloqueiam:**
 
 - `users.plan` pode ser derivável de `premium_until` — depende da política
   comercial, que a especificação reserva ao dono do produto.
