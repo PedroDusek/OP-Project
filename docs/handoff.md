@@ -30,7 +30,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 8 concluídos.** 376 testes de unidade, integração e
+**Checkpoints 0 a 9 concluídos.** 442 testes de unidade, integração e
 componente, mais 27 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -44,6 +44,7 @@ componente, mais 27 ponta a ponta. Lint, typecheck e build passando.
 | 6 | Frontend base: marca vetorizada, design system, shell responsivo, 20+ componentes |
 | 7 | Entrada e autenticação na interface: landing, entrar, criar conta, recuperar senha, sair |
 | 8 | Catálogo na interface: busca, filtros, sets, detalhe do set e da variante |
+| 9 | Coleção na interface: grade, filtros, playsets, quantidade, progresso real |
 
 **Banco de produção populado e conferido:** 2.785 cartas, 4.843 variantes, 60
 sets, 4.842 impressões — números idênticos ao local, estrutura conferida objeto
@@ -51,7 +52,7 @@ a objeto.
 
 ## As decisões que mais restringem o que vem depois
 
-As 37 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 41 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
@@ -154,6 +155,10 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     o CSS fica correto, e a imagem simplesmente não desenha — foi assim que
     passou despercebido por dois checkpoints. Toda imagem de carta passa por
     `CardArt`.
+19. **O código da carta aparece duas vezes no DOM** — no texto e no lugar da
+    arte que não carregou, dentro de `CardArt`. `getByText('OP01-001')` encontra
+    dois elementos e o teste falha por ambiguidade. Localize a linha por algo
+    que exista uma vez só: a barra de progresso, o botão, o `alt`.
 
 ## Pendências
 
@@ -237,18 +242,18 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 
 ## Próximo passo
 
-**Coleção na interface** — telas 17 a 20: minha coleção, filtros, playsets e
-edição de quantidade. É onde o produto passa a guardar algo de quem usa, e onde
-entram os casos de uso que faltam:
+**Armazenamento na interface** — telas 21 a 24: locais, capacidade, alocação de
+cópias e a resolução do conflito da decisão 007, que é o pedaço deixado em
+aberto pelo Checkpoint 9. Hoje o servidor recusa a redução abaixo do alocado e o
+painel de quantidade mostra onde as cópias estão; falta o atalho para retirar
+dali.
 
-- **Adicionar e alterar quantidade**, com o lock de linha em `collection_items`
-  e o conflito estruturado da decisão 007 quando a redução fica abaixo do que já
-  está alocado.
-- **Contagem e progresso** (`business-rules.md` 2), que destrava as barras nas
-  telas de set e a Home, hoje vazias de propósito.
-- **Playsets**, com a regra por código e a exclusão de `Leader`.
+O que já existe e será usado: `collection_item_locations` no banco desde o
+Checkpoint 2, `AllocationSnapshot` na resposta do conflito, e o lock de linha em
+`collection_items` que a alocação precisa respeitar — alocar mais do que se
+possui é o mesmo erro pela outra ponta.
 
-Depois: armazenamento (21 a 24), edição em massa (25 a 28) e trocas (29 a 35).
+Depois: edição em massa (25 a 28) e trocas (29 a 35).
 
 O protocolo continua: uma branch e um PR por checkpoint, o assistente merge
 quando estiver completo e sem pendência, e para antes de iniciar o próximo

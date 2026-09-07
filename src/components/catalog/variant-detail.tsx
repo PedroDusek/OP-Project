@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { CardArt } from './card-art'
+import { AddToCollection } from '@/components/collection/add-to-collection'
 import { Panel } from '@/components/ui/surface'
 import type { getCardVariant } from '@/server/application/catalog/get-card-variant'
 import { displaySetCode, displaySetName } from '@/server/domain/catalog/sets'
@@ -21,7 +22,13 @@ type Variant = Awaited<ReturnType<typeof getCardVariant>>
  * encheria a tela de traços e faria a pessoa procurar o dado que existe no meio
  * dos que não existem.
  */
-export function VariantDetail({ variant }: { variant: Variant }) {
+export function VariantDetail({
+  variant,
+  ownedQuantity = 0,
+}: {
+  variant: Variant
+  ownedQuantity?: number
+}) {
   const { card } = variant
 
   return (
@@ -52,6 +59,15 @@ export function VariantDetail({ variant }: { variant: Variant }) {
             {card.hasTrigger ? <Badge tone="warning">Trigger</Badge> : null}
           </div>
         </header>
+
+        <AddToCollection
+          variantId={String(variant.variantId)}
+          code={card.code}
+          name={card.name}
+          imageUrl={variant.imageUrl}
+          labels={[variant.rarity, variant.variantType].filter((l): l is string => Boolean(l))}
+          currentQuantity={ownedQuantity}
+        />
 
         <section className="flex flex-col gap-2">
           <h2 className="text-sm font-semibold text-text">Informações</h2>
