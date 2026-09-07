@@ -1,26 +1,180 @@
 @import "tailwindcss";
 
+/*
+ * Tokens do design system.
+ *
+ * A fonte e `docs/marca/COLEXA_Especificacao_Oficial_UI_Design_Marca_v1.2.docx`,
+ * secoes 3.2 e 3.4, resumida em `docs/design-system.md`. Seis cores sao
+ * oficiais — fundo, roxo de enfase e texto, em cada tema — e todo o resto e
+ * derivado delas por regra escrita, nunca por escolha avulsa num componente.
+ *
+ * ## Por que nao existe variante `dark:` neste projeto
+ *
+ * O roxo **muda** entre os temas: #38287B no claro e #504797 no escuro. Nao e o
+ * mesmo tom clareado por filtro, e nenhuma regra de CSS deve derivar um do
+ * outro. Se cada componente escrevesse `bg-accent dark:bg-accent-dark`, essa
+ * regra passaria a depender de disciplina em cada arquivo novo.
+ *
+ * Aqui os tokens sao **semanticos** e ja carregam os dois valores. Um componente
+ * escreve `bg-accent` e esta certo nos dois temas; nenhum precisa saber que
+ * existe tema escuro.
+ *
+ * ## Por que `light-dark()` e nao dois blocos
+ *
+ * A alternativa seria repetir a lista inteira de tokens dentro de
+ * `@media (prefers-color-scheme: dark)` e de novo em `[data-theme="dark"]`. Sao
+ * tres copias da mesma lista, e nada impede que uma mude sem as outras — o tipo
+ * de divergencia que ninguem nota ate a tela ficar errada num tema so.
+ *
+ * Com `light-dark()` cada token e declarado uma vez com os dois valores lado a
+ * lado, e quem decide qual vale e `color-scheme`. Trocar de tema vira uma
+ * unica propriedade.
+ *
+ * ## Os tres estados do tema
+ *
+ * Sem `data-theme` no `<html>`, `color-scheme: light dark` deixa valer a
+ * preferencia do sistema. Com `data-theme="light"` ou `"dark"`, vale a escolha
+ * da pessoa, **nos dois sentidos**: quem usa sistema escuro consegue pedir
+ * claro. Ver `src/lib/theme.ts`.
+ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light dark;
+
+  /* --- Oficiais. Nao alterar sem revisao da identidade. ------------------ */
+  --colexa-background: light-dark(#f2f2f3, #131219);
+  --colexa-accent: light-dark(#38287b, #504797);
+  --colexa-text: light-dark(#000000, #ffffff);
+
+  /* --- Derivados. A regra de cada um esta em `docs/design-system.md`. ---- */
+  --colexa-surface: light-dark(#ffffff, #1c1b24);
+  --colexa-surface-muted: light-dark(#ebebed, #26242f);
+  --colexa-border: light-dark(rgb(0 0 0 / 0.1), rgb(255 255 255 / 0.12));
+  --colexa-border-strong: light-dark(rgb(0 0 0 / 0.22), rgb(255 255 255 / 0.26));
+  --colexa-text-muted: light-dark(rgb(0 0 0 / 0.62), rgb(255 255 255 / 0.66));
+  --colexa-text-subtle: light-dark(rgb(0 0 0 / 0.55), rgb(255 255 255 / 0.48));
+  --colexa-accent-hover: light-dark(#2c1f63, #635aad);
+  /*
+   * A enfase quando ela e **tinta** e nao preenchimento.
+   *
+   * No tema claro os dois papeis coincidem: #38287B da 11.9:1 sobre a
+   * superficie. No escuro, nao — #504797 sobre #1C1B24 da 2.18:1, e sobre o
+   * proprio `accent-soft` cai para 1.82:1. O roxo escuro da paleta foi feito
+   * para receber texto branco por cima (7.8:1), nao para ser o texto.
+   *
+   * Entao a tinta escura e um clareamento da mesma matiz, medido para passar em
+   * todas as superficies onde aparece: 6.0:1 sobre `surface`, 5.0:1 sobre
+   * `accent-soft`, 6.6:1 sobre o fundo da pagina. O logotipo continua usando
+   * `accent` exato: marca registrada nao se corrige por contraste.
+   */
+  --colexa-accent-ink: light-dark(#38287b, #9990e0);
+  --colexa-accent-soft: light-dark(rgb(56 40 123 / 0.09), rgb(80 71 151 / 0.28));
+  --colexa-accent-contrast: #ffffff;
+  --colexa-success: light-dark(#146c43, #59d09a);
+  --colexa-success-soft: light-dark(rgb(20 108 67 / 0.11), rgb(89 208 154 / 0.16));
+  --colexa-danger: light-dark(#a5271f, #f08c85);
+  --colexa-danger-soft: light-dark(rgb(165 39 31 / 0.1), rgb(240 140 133 / 0.16));
+  --colexa-warning: light-dark(#7a5300, #e5b25c);
+  --colexa-warning-soft: light-dark(rgb(122 83 0 / 0.12), rgb(229 178 92 / 0.16));
+  --colexa-overlay: light-dark(rgb(0 0 0 / 0.45), rgb(0 0 0 / 0.62));
+  --colexa-skeleton: light-dark(rgb(0 0 0 / 0.07), rgb(255 255 255 / 0.09));
+
+  /* `light-dark()` resolve cor, nao a sombra inteira; a cor e que muda. */
+  --colexa-shadow-color: light-dark(rgb(0 0 0 / 0.08), rgb(0 0 0 / 0.5));
+  --colexa-shadow-card: 0 1px 2px var(--colexa-shadow-color);
+  --colexa-shadow-raised: 0 4px 12px var(--colexa-shadow-color);
+  --colexa-shadow-sheet: 0 -8px 32px var(--colexa-shadow-color);
+}
+
+/* A escolha da pessoa. Vence a preferencia do sistema nos dois sentidos. */
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--colexa-background);
+  --color-surface: var(--colexa-surface);
+  --color-surface-muted: var(--colexa-surface-muted);
+  --color-border: var(--colexa-border);
+  --color-border-strong: var(--colexa-border-strong);
+  --color-text: var(--colexa-text);
+  --color-text-muted: var(--colexa-text-muted);
+  --color-text-subtle: var(--colexa-text-subtle);
+  --color-accent: var(--colexa-accent);
+  --color-accent-hover: var(--colexa-accent-hover);
+  --color-accent-ink: var(--colexa-accent-ink);
+  --color-accent-soft: var(--colexa-accent-soft);
+  --color-accent-contrast: var(--colexa-accent-contrast);
+  --color-success: var(--colexa-success);
+  --color-success-soft: var(--colexa-success-soft);
+  --color-danger: var(--colexa-danger);
+  --color-danger-soft: var(--colexa-danger-soft);
+  --color-warning: var(--colexa-warning);
+  --color-warning-soft: var(--colexa-warning-soft);
+  --color-overlay: var(--colexa-overlay);
+  --color-skeleton: var(--colexa-skeleton);
+
+  /* Secao 3.4: controles 8-12 px, cards 12-16 px, sheets 16-24 px. */
+  --radius-control: 10px;
+  --radius-card: 14px;
+  --radius-sheet: 20px;
+
+  --shadow-card: var(--colexa-shadow-card);
+  --shadow-raised: var(--colexa-shadow-raised);
+  --shadow-sheet: var(--colexa-shadow-sheet);
+
+  --font-sans: var(--font-colexa-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    /* A barra inferior fixa nao pode tapar o alvo de uma ancora interna. */
+    scroll-padding-bottom: 6rem;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-text);
+    -webkit-font-smoothing: antialiased;
+    /* Sem isto o iOS aumenta a fonte ao girar para paisagem. */
+    text-size-adjust: 100%;
+  }
+
+  /*
+   * Secao 18: foco de teclado visivel. `:focus-visible`, e nao `:focus`, para
+   * que o anel apareca em navegacao por teclado e nao a cada clique de mouse.
+   */
+  :focus-visible {
+    /* A tinta, e nao o preenchimento: um anel de foco precisa de 3:1 contra o
+       que esta em volta, e no tema escuro `accent` nao alcanca. */
+    outline: 2px solid var(--color-accent-ink);
+    outline-offset: 2px;
+  }
+
+  /* Respeita quem pediu menos movimento no sistema. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  /* Barra inferior e sheets encostam no gesto do iOS sem isto. */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .h-safe-bottom {
+    height: env(safe-area-inset-bottom, 0px);
+  }
 }
