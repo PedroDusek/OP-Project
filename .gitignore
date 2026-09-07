@@ -58,3 +58,4 @@ $RECYCLE.BIN/
 
 # ---- Vercel / deploy ----
 .vercel/
+.claude/
