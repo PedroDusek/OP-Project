@@ -2,27 +2,50 @@ import type { Metadata } from 'next'
 import { PageHeader } from '@/components/layout/app-shell'
 import { ThemeControl } from '@/components/theme/theme-control'
 import { Panel, PanelList, ListRow } from '@/components/ui/surface'
+import { Avatar } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
 import { DESTINATIONS } from '@/components/layout/navigation'
+import { SignOutButton } from '@/components/auth/sign-out-button'
+import { currentViewer } from '@/server/http/viewer'
+import { isPremium } from '@/server/application/authorization'
 
 export const metadata: Metadata = { title: 'Mais' }
 
 /**
  * Mais.
  *
- * Secao 4: armazenamento, perfil, Premium e configuracoes. Destes, so a
- * aparencia existe hoje — e existe de verdade, nao como demonstracao: a escolha
- * de tema vale na hora e sobrevive ao recarregamento.
+ * Secao 4: armazenamento, perfil, Premium e configuracoes. Destes existem hoje
+ * a identidade de quem esta logado, a aparencia e sair da conta — e existem de
+ * verdade, nao como demonstracao.
  *
  * As outras entradas nao aparecem como itens desabilitados de proposito. Uma
  * lista de seis linhas em que cinco nao levam a lugar nenhum ensina a pessoa a
  * nao tocar na lista.
  */
-export default function MaisPage() {
+export default async function MaisPage() {
+  // O layout ja exigiu sessao; aqui ela so e lida de novo para os dados.
+  const viewer = await currentViewer()
+
   return (
     <>
-      <PageHeader title="Mais" description="Preferências e o resto da sua conta." />
+      <PageHeader title="Mais" description="Sua conta e suas preferências." />
 
       <div className="flex flex-col gap-6">
+        {viewer ? (
+          <Panel className="flex items-center gap-3 p-4">
+            <Avatar name={viewer.name} size="lg" />
+            <div className="flex min-w-0 flex-col gap-1">
+              <p className="truncate text-lg font-semibold text-text">{viewer.name}</p>
+              <p className="truncate text-sm text-text-muted">{viewer.email}</p>
+              {isPremium(viewer) ? (
+                <span className="mt-0.5">
+                  <Badge tone="accent">Membro Premium</Badge>
+                </span>
+              ) : null}
+            </div>
+          </Panel>
+        ) : null}
+
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold text-text">Aparência</h2>
           <Panel className="p-3">
@@ -69,6 +92,10 @@ export default function MaisPage() {
             />
           </PanelList>
         </section>
+
+        <PanelList>
+          <SignOutButton />
+        </PanelList>
       </div>
     </>
   )

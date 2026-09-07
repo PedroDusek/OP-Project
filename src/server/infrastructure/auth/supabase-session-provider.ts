@@ -22,13 +22,35 @@ interface SupabaseAuthConfig {
   publishableKey: string
 }
 
-function readConfig(): SupabaseAuthConfig {
+let warnedAboutConfig = false
+
+/**
+ * Sem configuracao, **nao ha sessao**.
+ *
+ * Devolver `null` em vez de lancar e a direcao segura: o efeito e que ninguem
+ * esta autenticado, entao toda leitura protegida recusa e toda pagina do app
+ * manda para a tela de entrar. Uma configuracao faltando fica impossivel de nao
+ * notar, sem derrubar a renderizacao de toda pagina com um erro 500.
+ *
+ * Lancar aqui seria pior de duas formas: a mesma falha viraria erro interno em
+ * vez de "entre na sua conta", e a tela publica de Trade Binder, que nao precisa
+ * de sessao, cairia junto.
+ *
+ * O aviso sai uma vez por processo. Repeti-lo a cada requisicao encheria o log
+ * exatamente quando ele precisa estar legivel.
+ */
+function readConfig(): SupabaseAuthConfig | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
   if (!url || !publishableKey) {
-    throw new Error(
-      'NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY precisam estar definidas.',
-    )
+    if (!warnedAboutConfig) {
+      warnedAboutConfig = true
+      console.warn(
+        '[auth] NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY nao estao ' +
+          'definidas. Nenhuma sessao sera reconhecida ate que estejam.',
+      )
+    }
+    return null
   }
   return { url, publishableKey }
 }
@@ -58,7 +80,10 @@ export class SupabaseSessionProvider implements SessionProvider {
   readonly name = 'supabase'
 
   async identify(request: Request): Promise<ProviderIdentity | null> {
-    const { url, publishableKey } = readConfig()
+    const config = readConfig()
+    if (!config) return null
+
+    const { url, publishableKey } = config
     const supabase = createServerClient(url, publishableKey, {
       cookies: cookiesFromRequest(request),
     })

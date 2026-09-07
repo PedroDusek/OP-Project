@@ -1,24 +1,31 @@
 import { expect, test } from '@playwright/test'
 
 /**
- * Responsividade do shell.
+ * Responsividade do shell e do tema.
  *
  * As tres larguras sao as de `architecture.md` 4.1: 360 e o celular pequeno que
  * o projeto toma como piso, 768 e a entrada do `md`, 1280 e o desktop.
  *
  * O que se verifica e a **exclusividade**: em cada largura existe exatamente uma
- * navegacao visivel. O erro que este teste pega e o par de barras aparecendo
- * junto, que nenhum teste em jsdom enxerga.
+ * navegacao. O erro que isto pega e o par de barras aparecendo junto, que
+ * nenhum teste em jsdom enxerga — para o jsdom, `md:hidden` e so uma string.
+ *
+ * As medidas rodam em `/design-system`, a unica rota publica que desenha o
+ * shell: as cinco secoes exigem sessao, e autenticar aqui pediria uma conta real
+ * no provedor. O shell e o mesmo componente nos dois lugares.
  */
 
 const MOBILE = { width: 360, height: 740 }
 const TABLET = { width: 768, height: 1024 }
 const DESKTOP = { width: 1280, height: 800 }
 
+/** A rota publica que renderiza o shell. */
+const SHELL = '/design-system'
+
 test.describe('navegação responsiva', () => {
   test('no celular, apenas a barra inferior', async ({ page }) => {
     await page.setViewportSize(MOBILE)
-    await page.goto('/inicio')
+    await page.goto(SHELL)
 
     // Uma so navegacao chega a arvore de acessibilidade. As duas existem no
     // HTML — e assim que um layout unico atende os tres tamanhos — mas a
@@ -26,7 +33,6 @@ test.describe('navegação responsiva', () => {
     // leitor de tela nunca ouve os cinco destinos duas vezes.
     await expect(page.getByRole('navigation', { name: 'Navegação principal' })).toHaveCount(1)
 
-    // E ela e a de baixo: encostada no rodape e ocupando a largura toda.
     const box = await page.locator('nav:visible').boundingBox()
     expect(box).not.toBeNull()
     expect(box!.y + box!.height).toBeGreaterThan(MOBILE.height - 80)
@@ -35,7 +41,7 @@ test.describe('navegação responsiva', () => {
 
   test('no tablet, apenas a coluna lateral', async ({ page }) => {
     await page.setViewportSize(TABLET)
-    await page.goto('/inicio')
+    await page.goto(SHELL)
 
     const visible = page.locator('nav:visible')
     await expect(visible).toHaveCount(1)
@@ -48,7 +54,7 @@ test.describe('navegação responsiva', () => {
 
   test('no desktop, coluna lateral com rótulos', async ({ page }) => {
     await page.setViewportSize(DESKTOP)
-    await page.goto('/inicio')
+    await page.goto(SHELL)
 
     const visible = page.locator('nav:visible')
     await expect(visible).toHaveCount(1)
@@ -62,10 +68,10 @@ test.describe('navegação responsiva', () => {
    * Rolagem horizontal no celular e o defeito responsivo mais comum e o mais
    * facil de nao notar em emulador de desktop.
    */
-  test('nenhuma página rola na horizontal a 360 px', async ({ page }) => {
+  test('nenhuma página pública rola na horizontal a 360 px', async ({ page }) => {
     await page.setViewportSize(MOBILE)
 
-    for (const path of ['/inicio', '/colecao', '/catalogo', '/trocas', '/mais', '/design-system']) {
+    for (const path of ['/', '/entrar', '/criar-conta', '/recuperar-senha', '/termos', SHELL]) {
       await page.goto(path)
       const overflow = await page.evaluate(
         () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -81,46 +87,20 @@ test.describe('navegação responsiva', () => {
    */
   test('o conteúdo não fica sob a barra inferior', async ({ page }) => {
     await page.setViewportSize(MOBILE)
-    await page.goto('/mais')
+    await page.goto(SHELL)
 
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
-    // A rolagem por inercia do navegador precisa assentar antes de medir.
     await page.waitForFunction(() => {
       const limite = document.documentElement.scrollHeight - window.innerHeight
       return Math.abs(window.scrollY - limite) < 2
     })
 
     const nav = await page.locator('nav:visible').boundingBox()
-    const last = await page.getByText('Sua coleção. Do seu jeito.').boundingBox()
+    // O último bloco do guia de estilo. Ancorar num texto do fim é o que
+    // torna a medida sensível ao respiro que a barra fixa exige.
+    const last = await page.getByRole('heading', { name: 'Avatar' }).boundingBox()
 
     expect(last!.y + last!.height).toBeLessThanOrEqual(nav!.y)
-  })
-})
-
-test.describe('navegação entre seções', () => {
-  test('percorre os cinco destinos e marca o ativo', async ({ page }) => {
-    await page.setViewportSize(MOBILE)
-    await page.goto('/inicio')
-
-    for (const [label, path] of [
-      ['Coleção', '/colecao'],
-      ['Catálogo', '/catalogo'],
-      ['Trocas', '/trocas'],
-      ['Mais', '/mais'],
-      ['Início', '/inicio'],
-    ] as const) {
-      await page.locator('nav:visible').getByRole('link', { name: label }).click()
-      await expect(page).toHaveURL(path)
-      await expect(page.locator('nav:visible').getByRole('link', { name: label })).toHaveAttribute(
-        'aria-current',
-        'page',
-      )
-    }
-  })
-
-  test('a raiz leva ao início', async ({ page }) => {
-    await page.goto('/')
-    await expect(page).toHaveURL('/inicio')
   })
 })
 
@@ -131,7 +111,7 @@ test.describe('tema', () => {
    * pintado de escuro, sem passar pelo claro.
    */
   test('a escolha vale desde a primeira pintura', async ({ page }) => {
-    await page.goto('/inicio')
+    await page.goto('/')
     await page.evaluate(() => localStorage.setItem('colexa:theme', 'dark'))
     await page.reload()
 
@@ -147,7 +127,7 @@ test.describe('tema', () => {
   })
 
   test('a paleta oficial vale no tema claro', async ({ page }) => {
-    await page.goto('/inicio')
+    await page.goto('/')
     await page.evaluate(() => localStorage.setItem('colexa:theme', 'light'))
     await page.reload()
 
@@ -162,12 +142,12 @@ test.describe('tema', () => {
 
   test('a escolha sobrevive à navegação', async ({ page }) => {
     await page.setViewportSize(DESKTOP)
-    await page.goto('/mais')
+    await page.goto(SHELL)
 
-    await page.getByRole('radio', { name: 'Escuro' }).click()
+    await page.getByRole('radio', { name: 'Escuro' }).first().click()
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
 
-    await page.getByRole('link', { name: 'Catálogo' }).first().click()
+    await page.goto('/entrar')
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   })
 })
@@ -175,7 +155,7 @@ test.describe('tema', () => {
 test.describe('acessibilidade do shell', () => {
   test('o atalho de pular para o conteúdo aparece ao focar', async ({ page }) => {
     await page.setViewportSize(DESKTOP)
-    await page.goto('/inicio')
+    await page.goto(SHELL)
 
     await page.keyboard.press('Tab')
     const skip = page.getByRole('link', { name: 'Pular para o conteúdo' })
@@ -183,13 +163,13 @@ test.describe('acessibilidade do shell', () => {
     await expect(skip).toBeVisible()
   })
 
-  test('cada página tem um h1', async ({ page }) => {
+  test('cada página pública tem um h1', async ({ page }) => {
     for (const [path, title] of [
-      ['/inicio', 'Início'],
-      ['/colecao', 'Minha Coleção'],
-      ['/catalogo', 'Catálogo'],
-      ['/trocas', 'Trocas'],
-      ['/mais', 'Mais'],
+      ['/entrar', 'Bem-vindo de volta!'],
+      ['/criar-conta', 'Criar sua conta'],
+      ['/recuperar-senha', 'Esqueceu a senha?'],
+      ['/termos', 'Termos de Uso'],
+      ['/privacidade', 'Política de Privacidade'],
     ] as const) {
       await page.goto(path)
       await expect(page.getByRole('heading', { level: 1 })).toHaveText(title)

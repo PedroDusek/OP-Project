@@ -8,7 +8,7 @@ Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 13 PRs mergeados, CI verde em todos |
+| Branch | `main`, 14 PRs mergeados, CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -30,9 +30,8 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 6 concluídos.** 217 testes de unidade, integração e
-componente, mais 12 de responsividade no Playwright. Lint, typecheck e build
-passando.
+**Checkpoints 0 a 7 concluídos.** 292 testes de unidade, integração e
+componente, mais 26 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
 |---|---|
@@ -43,6 +42,7 @@ passando.
 | 4 | Backend base: taxonomia de erro, validação Zod, fronteira de sessão |
 | 5 | Autenticação Supabase, propriedade de recurso, limite de taxa |
 | 6 | Frontend base: marca vetorizada, design system, shell responsivo, 20+ componentes |
+| 7 | Entrada e autenticação na interface: landing, entrar, criar conta, recuperar senha, sair |
 
 **Banco de produção populado e conferido:** 2.785 cartas, 4.843 variantes, 60
 sets, 4.842 impressões — números idênticos ao local, estrutura conferida objeto
@@ -50,7 +50,7 @@ a objeto.
 
 ## As decisões que mais restringem o que vem depois
 
-As 29 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 32 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
@@ -60,13 +60,16 @@ As 29 estão em `decisions.md`. Estas mudam o que se pode fazer:
 - **026** — consequência direta da 020 no frontend: a imagem de carta **não**
   passa pelo otimizador do `next/image`, que baixaria o arquivo e o serviria do
   nosso domínio. É `<img>` com proporção reservada por CSS.
+- **030** — Termos de Uso e Política de Privacidade **não existem**, e isso é
+  bloqueio de lançamento. Ver abaixo.
 - **021** — `effects` fica vazia. Os nove efeitos da especificação não aparecem
   literalmente na fonte; preenchê-los seria inferir classificação.
 - **022** — mecânicas só entram por allowlist de 10 termos. Dos 217 termos entre
   colchetes no catálogo, **195 são nomes de carta**: sem a allowlist o produto
   teria uma mecânica chamada "Sanji".
 - **024** — 131 produtos promocionais sem código viram um set único `PROMO`.
-- **025** — autenticação terceirizada. Não existe senha no nosso banco.
+- **025 + 031** — autenticação terceirizada, e o login acontece por Server
+  Action. Não existe senha no nosso banco nem SDK de autenticação no navegador.
 - **007** — reduzir quantidade abaixo do alocado devolve **conflito com as
   alocações atuais** para o usuário resolver, não erro seco nem desalocação
   automática. Isso obriga a API a ter formato de conflito estruturado.
@@ -75,6 +78,17 @@ As 29 estão em `decisions.md`. Estas mudam o que se pode fazer:
   decoração. Arte de franquia só dentro da imagem da carta catalogada. Isso
   restringe toda tela daqui para frente: capa de set, avatar e ilustração de
   estado vazio usam formas próprias.
+
+**Escopo:** múltiplos TCGs saíram do escopo por decisão do dono do produto em
+07/09/2026. O produto é One Piece Card Game até o fim do projeto; escalar para
+outros TCGs é projeto futuro. As telas 08 e 36 mostram outros TCGs como "em
+breve" — é referência estética, não funcional, e não deve ser implementada.
+
+**As telas de referência** em `docs/referencia-telas/` valem para **estética,
+layout e aplicação de cor**, não para função. A função vem de
+`business-rules.md`, do modelo de dados e da especificação oficial. Onde a
+imagem e o documento discordarem, o documento vence — já discordaram na cor de
+ênfase, e a paleta oficial prevaleceu.
 
 ## Armadilhas já pagas — não repetir
 
@@ -100,53 +114,73 @@ As 29 estão em `decisions.md`. Estas mudam o que se pode fazer:
    progresso passava dois nós e quebrava em tempo de build, não de tipo.
 10. **jsdom não avalia media query.** Nenhum teste de componente prova
     responsividade; para isso existe `npm run test:e2e`.
+11. **Um arquivo `'use server'` só pode exportar função assíncrona.** Exportar
+    uma constante de lá **passa no build** e quebra no primeiro envio do
+    formulário. Por isso `src/app/(auth)/state.ts` existe separado de
+    `actions.ts`.
+12. **O React reseta o `<form action={...}>` quando a ação termina**, inclusive
+    em erro. Campo não controlado perde o que foi digitado a cada falha.
+13. **O Next mantém um `role="alert"` fora do `main`** (`__next-route-announcer__`).
+    Toda busca por alerta em teste ponta a ponta precisa ser escopada ao `main`,
+    ou encontra dois elementos.
 
 ## Pendências
 
-**Nada bloqueia o próximo checkpoint.**
+### Bloqueios de lançamento
+
+1. **Termos de Uso e Política de Privacidade** (decisão 030). As rotas existem e
+   dizem que o texto está em preparação. O produto **não pode receber cadastro
+   de pessoa real** assim. O texto é decisão do dono do produto.
+2. **SMTP próprio no Supabase.** O serviço de e-mail embutido tem cota baixa por
+   hora e é do projeto inteiro: estourada, ninguém consegue confirmar conta nem
+   redefinir senha. Ver `development.md` 6.1.
+3. **Redirect URLs no painel do Supabase** precisam listar
+   `<APP_URL>/auth/callback` de cada ambiente.
 
 ### Decisões que o dono do produto ainda pode querer revisitar
 
-- As três cores semânticas — sucesso `#146C43`, perigo `#A5271F`, atenção
-  `#7A5300`, com seus pares no tema escuro — **não vêm da especificação**. Foram
-  derivadas e medidas por contraste. Trocar é uma linha por tema em
-  `globals.css`, e nenhum componente muda.
+- As três cores semânticas — sucesso, perigo, atenção — **não vêm da
+  especificação**. Foram derivadas e medidas por contraste. Trocar é uma linha
+  por tema em `globals.css`, e nenhum componente muda.
 - `/design-system` é o guia de estilo, fora da navegação e fora dos buscadores.
-  Antes de publicar o produto, decidir se continua acessível precisa ser uma
-  escolha consciente.
-- **Múltiplos TCGs.** As telas 08 e 36 preveem Pokémon, Magic, Yu-Gi-Oh!,
-  Lorcana e Digimon como "em breve", mas o modelo de dados aprovado não tem
-  nenhum conceito de TCG — as 24 tabelas são de One Piece. Introduzir isso é
-  alteração do modelo e precisa de aprovação.
+  Antes de publicar, decidir se continua acessível precisa ser escolha
+  consciente. Hoje ele também é a única rota pública que desenha o shell, e é
+  onde os testes de responsividade medem.
+- **Google e Apple** estão desligados. Ligar no painel faz os botões aparecerem
+  sozinhos, sem mudança de código (decisão 032). A Apple tem exigências de marca
+  e de fluxo mais estritas, que valem conferir antes.
 
 ### Pendências que não bloqueiam
 
 - `users.plan` pode ser derivável de `premium_until` — depende da política
   comercial, que a especificação reserva ao dono do produto.
 - Limite de taxa não escala horizontalmente: contador em memória de processo.
+  Vale para as três cotas, inclusive a de tentativas de login.
 - Node 20 depreciado pelo SDK do Supabase.
 - O `middleware.ts` está deprecado no Next 16, que agora prefere `proxy.ts`. O
-  build avisa a cada execução. Migração mecânica, não feita neste checkpoint por
-  ser mudança na fronteira de sessão do Checkpoint 5.
+  build avisa a cada execução. Migração mecânica, adiada por ser mudança na
+  fronteira de sessão.
 - Pagamento (Checkpoint 15): Supabase não processa. Para assinatura recorrente
   no Brasil, conta Stripe brasileira **não** tem Pix Automático; PSPs nacionais
   como Asaas e Mercado Pago têm.
 
 ## Próximo passo
 
-**Telas de entrada e autenticação na interface** (telas 01 a 04): splash,
-landing, criar conta e entrar. Ficaram fora do Checkpoint 6 pela decisão 029.
+**Catálogo na interface** — telas 09 a 12: catálogo, lista de sets, detalhe do
+set e filtros. É a primeira tela com dado real, e o backend dela já existe:
+`searchCards` e `getCardVariant` respondem, e o catálogo está importado.
 
-Dois bloqueios que **não são de código** e precisam do dono do produto antes:
+O que essa etapa precisa resolver e ainda não está resolvido:
 
-1. **Google e Apple como provedores** precisam ser habilitados no painel do
-   Supabase. O assistente não faz isso.
-2. **Termos de Uso e Política de Privacidade** — o texto é decisão do dono do
-   produto, e a tela 03 exige o aceite dos dois.
+- **Imagem de carta na grade** aparece pela primeira vez, com a restrição da
+  decisão 026: referência à origem, sem otimizador.
+- **Capa de set** — as telas mostram arte de mangá, que a seção 19 proíbe. Vai
+  precisar de tratamento próprio, com forma e cor, não com arte de franquia.
+- **Virtualização** de lista longa: 2.785 cartas não cabem numa página.
+- **Filtros** combináveis, com o `FilterSheet` que já existe.
 
-Depois disso, a ordem natural é catálogo (telas 09 a 12), carta e variantes
-(13 a 16), coleção (17 a 20), armazenamento (21 a 24), edição em massa (25 a 28)
-e trocas (29 a 35).
+Depois: carta e variantes (13 a 16), coleção (17 a 20), armazenamento (21 a 24),
+edição em massa (25 a 28) e trocas (29 a 35).
 
 O protocolo continua: uma branch e um PR por checkpoint, o assistente merge
 quando estiver completo e sem pendência, e para antes de iniciar o próximo

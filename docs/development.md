@@ -90,6 +90,11 @@ cp .env.example .env
 | `TEST_DATABASE_URL` | string de conexão do banco de teste, recriado pela suíte |
 | `AUTH_SECRET` | segredo de assinatura da sessão |
 
+`APP_URL` deixou de ser cosmética no Checkpoint 7: é dela que saem os links de
+confirmação de e-mail e de redefinição de senha. Em produção ela é obrigatória,
+e a aplicação recusa subir sem ela em vez de mandar e-mail com link para
+`localhost`.
+
 Gere o segredo de sessão com:
 
 ```
@@ -217,7 +222,26 @@ estiver ausente, apontar para `localhost` ou ser igual a `DATABASE_URL`.
 um comando a um passo de distância; se for mesmo necessário, faça pelo painel do
 Supabase, conscientemente.
 
-### 6.1 Se a conexão direta falhar
+### 6.1 Autenticação: o que depende do painel
+
+Três coisas do fluxo de conta **não** se resolvem em código:
+
+| O quê | Onde | Situação |
+|---|---|---|
+| Redirect URLs | *Authentication → URL Configuration* | precisa listar `<APP_URL>/auth/callback` de cada ambiente |
+| Google e Apple | *Authentication → Providers* | desligados hoje; ligar faz os botões aparecerem sozinhos (decisão 032) |
+| SMTP próprio | *Project Settings → Auth → SMTP* | não configurado |
+
+O serviço de e-mail embutido do Supabase serve para desenvolvimento e tem cota
+baixa por hora. Sem SMTP próprio, confirmação de conta e redefinição de senha
+param de chegar assim que a cota estoura — e isso vale para todo mundo ao mesmo
+tempo, porque a cota é do projeto.
+
+Estado atual do projeto, conferido em 07/09/2026 pelo endpoint público
+`/auth/v1/settings`: e-mail e senha habilitados, cadastro aberto, confirmação de
+e-mail **obrigatória**, nenhum provedor social ligado.
+
+### 6.2 Se a conexão direta falhar
 
 O Supabase serve a conexão direta por IPv6. Em rede sem IPv6, a conexão expira
 sem erro claro. Nesse caso use a string do **Session pooler**, que é compatível

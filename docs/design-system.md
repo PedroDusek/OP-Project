@@ -212,6 +212,23 @@ Os treze componentes da seção 15 do documento oficial e onde estão:
 | Modal / Bottom Sheet | `ui/sheet.tsx`, `ui/confirm-dialog.tsx` |
 | Toast | `ui/toast.tsx` |
 
+Acrescentados no checkpoint de autenticação, porque as telas 03 e 04 pedem:
+
+| Componente | Arquivo |
+|---|---|
+| Checkbox | `ui/checkbox.tsx` |
+| Campo de senha com o olho | `ui/password-input.tsx` |
+| Separador com rótulo | `ui/divider.tsx` |
+| Peças de formulário de conta | `auth/form-parts.tsx` |
+| Botões de provedor social | `auth/social-buttons.tsx` |
+| Marca d'água | `brand/watermark.tsx` |
+
+`Checkbox` e `Switch` não são intercambiáveis: a caixa serve para escolha que só
+vale quando o formulário é enviado — aceitar os termos, lembrar de mim — e o
+interruptor para o que tem efeito imediato. Trocar os dois faz a pessoa esperar
+por algo que já aconteceu, ou achar que aconteceu algo que ainda não foi
+enviado.
+
 **Nenhum componente calcula regra de negócio** (`architecture.md` 2.1). O
 `ProgressBar` recebe `value` e `total` e não decide o que conta como progresso;
 o `StatTile` recebe o número já formatado. Todo número exibido é calculado no
@@ -285,7 +302,31 @@ cada uma, e que nenhuma página rola na horizontal a 360 px.
 
 ---
 
-## 9. Guia de estilo
+## 9. Formulário
+
+Duas regras que valem para todo formulário do produto, e que custaram um teste
+cada para descobrir:
+
+**Campo controlado.** O React reseta um `<form action={...}>` quando a ação
+termina, **inclusive quando ela termina em erro**. Com campo não controlado, uma
+senha errada apaga o e-mail já digitado e a segunda tentativa começa do zero.
+Guardar o valor em estado é o que sobrevive a esse reset.
+
+**Erro em dois níveis.** O que vale para o formulário inteiro — senha errada,
+limite de tentativas — aparece acima do botão, com `role="alert"`. O que vale
+para um campo aparece sob ele, ligado por `aria-describedby`, com
+`aria-invalid` no campo. Quando há erro de campo, a mensagem geral fica vazia:
+repetir "dados inválidos" acima de campos que já dizem o que há de errado só
+acrescenta ruído.
+
+O mapeamento de erro de caso de uso para estado de formulário acontece uma vez,
+em `src/server/http/form-state.ts`. É o equivalente de `errorResponse` para
+Server Actions, e obedece à mesma regra: detalhe interno, SQL e stack trace
+nunca saem de lá.
+
+---
+
+## 10. Guia de estilo
 
 `/design-system` mostra todos os componentes em uma tela, nos dois temas.
 
@@ -302,7 +343,7 @@ arte de franquia como decoração, e um guia de estilo é decoração por defini
 
 ---
 
-## 10. Propriedade intelectual
+## 11. Propriedade intelectual
 
 Seção 19, regra obrigatória, que restringe toda tela daqui para frente:
 

@@ -170,6 +170,25 @@ consegue devolver `Set-Cookie` antes do handler é o middleware. O provedor usad
 pelas rotas só lê cookie, de propósito: escrever em dois lugares daria duas
 fontes de verdade para o mesmo cookie.
 
+**Criar e destruir sessão é outra coisa.** `AuthProvider`, em
+`src/server/http/auth-provider.ts`, recebe um `CookieStore` capaz de escrever, e
+é usado por entrar, cadastrar, sair e redefinir senha. Não conflita com o
+parágrafo acima: ler acontece em toda requisição e concorre com a renovação;
+criar e destruir acontece uma vez, numa ação explícita, e não concorre com nada.
+
+**Entrar acontece no servidor** (decisão 031). Os formulários são
+`<form action={serverAction}>`, e não existe cliente Supabase no pacote enviado
+ao navegador. É o que mantém a validação, o limite de tentativas e o mapeamento
+de erro num lugar só — e o que faz o formulário funcionar sem JavaScript.
+
+**Quais provedores sociais existem vem do provedor** (decisão 032), não de
+variável de ambiente, para que a tela nunca ofereça um botão que termina em erro.
+
+`APP_URL` é obrigatória em produção: os links de confirmação de e-mail e de
+redefinição de senha precisam voltar para o ambiente certo, e derivar isso do
+cabeçalho `Host` deixaria quem chama escolher o destino de um link que cria
+sessão.
+
 ### 3.5 Autorização
 
 A propriedade do recurso é verificada dentro do caso de uso, contra o usuário da
@@ -191,11 +210,31 @@ já veio de outro lugar, e lança `NotFoundError`, não `AuthorizationError`.
 `assertPermitted` é o oposto e responde 403: a pessoa vê o recurso e o que se
 recusa é a operação. Esconder algo que ela comprovadamente enxerga seria mentir.
 
+As telas de entrada — landing, entrar, criar conta, recuperar senha — e as
+páginas legais são públicas. O layout de `src/app/(app)` exige sessão e
+redireciona para `/entrar?next=…`, mas isso é **conveniência de navegação**: a
+proteção real continua sendo a verificação de propriedade dentro do caso de uso,
+que valeria mesmo sem o redirecionamento.
+
 A rota pública do Trade Binder é o único caminho de leitura não autenticado. Ela
 resolve um local de armazenamento pelo token, confirma que o propósito é `TRADE`
 e que o dono é Premium, e devolve apenas aquele binder.
 
 ### 3.5.1 Limite de taxa
+
+Três cotas, todas por identidade e não por rota:
+
+| Cota | Chave | Valor |
+|---|---|---|
+| Leitura do catálogo | usuário | 300 / minuto |
+| Tentativas de entrar | endereço de e-mail | 10 / 10 minutos |
+| Operações que enviam e-mail | endereço de e-mail | 3 / 15 minutos |
+
+A cota de entrar conta **toda** tentativa, e não só as que falham: contar apenas
+falhas deixaria a cota infinita para quem acerta, e ela existe contra quem está
+chutando até acertar. É por endereço porque o ataque que importa é adivinhar a
+senha de uma conta; por IP seria fácil de contornar e bloquearia gente inocente
+atrás do mesmo NAT.
 
 Contador por janela fixa, chaveado por **usuário** e não por rota — limitar por
 rota deixaria uma pessoa derrubar a cota de todas as outras.
