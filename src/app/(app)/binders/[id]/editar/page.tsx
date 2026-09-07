@@ -13,9 +13,9 @@ export const metadata: Metadata = { title: 'Editar local' }
 /** Editar informações, a partir da tela 22. */
 export default async function EditarLocalPage({
   params,
-}: PageProps<'/armazenamento/[id]/editar'>) {
+}: PageProps<'/binders/[id]/editar'>) {
   const { id } = await params
-  const viewer = await requireViewer(`/armazenamento/${id}/editar`)
+  const viewer = await requireViewer(`/binders/${id}/editar`)
 
   if (!/^\d+$/.test(id)) notFound()
   const location = await getStorageLocation(viewer, BigInt(id))
@@ -28,7 +28,7 @@ export default async function EditarLocalPage({
         description={location.name}
         action={
           <Button asChild variant="ghost">
-            <Link href={`/armazenamento/${location.id}`}>Cancelar</Link>
+            <Link href={`/binders/${location.id}`}>Cancelar</Link>
           </Button>
         }
       />

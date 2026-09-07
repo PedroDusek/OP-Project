@@ -6,7 +6,7 @@ import { CatalogResults } from '@/components/catalog/catalog-results'
 import { CatalogSearch } from '@/components/catalog/catalog-search'
 import { SetHeader } from '@/components/catalog/set-header'
 import { getCatalogVocabulary, getSet, searchCatalog } from '@/server/application/catalog'
-import { countActiveFilters, toCatalogQuery } from '@/lib/catalog-params'
+import { countActiveFilters, currentPath, toCatalogQuery } from '@/lib/catalog-params'
 
 export async function generateMetadata({
   params,
@@ -54,7 +54,11 @@ export default async function SetPage({ params, searchParams }: PageProps<'/cata
           <CatalogFilters vocabulary={vocabulary} activeCount={countActiveFilters(query)} />
         </div>
 
-        <CatalogResults result={result} query={catalogQuery} />
+        <CatalogResults
+          result={result}
+          query={catalogQuery}
+          origin={currentPath(`/catalogo/sets/${encodeURIComponent(setCode)}`, query)}
+        />
       </div>
     </>
   )

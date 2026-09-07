@@ -43,8 +43,8 @@ export function VariantAllocationsPanel({
         <EmptyState
           icon={<Archive className="size-8" aria-hidden />}
           title="Nenhum local ainda"
-          description="Crie um binder, uma caixa ou um deck para dizer onde esta carta está."
-          action={{ label: 'Criar um local', href: '/armazenamento/novo' }}
+          description="Binder, caixa e deck se criam na aba Binders. Depois, esta carta pode entrar em qualquer um deles."
+          action={{ label: 'Criar em Binders', href: '/binders/novo' }}
         />
       ) : (
         <>

@@ -25,19 +25,35 @@ const integer = (label: string) =>
 
 const nonEmpty = (max: number) => z.string().trim().min(1).max(max)
 
+/**
+ * Filtro que aceita um valor ou varios.
+ *
+ * `?cor=Black&cor=Blue` chega como lista; `?cor=Black`, como string. As duas
+ * formas viram lista aqui, para o caso de uso nao ter de saber a diferenca.
+ *
+ * O teto de vinte nao e capricho: cada valor vira um item de `IN`, e uma URL
+ * com mil cores repetidas viraria uma consulta cara feita de graca.
+ */
+const MAX_VALUES_PER_FILTER = 20
+
+const multi = <T extends z.ZodTypeAny>(item: T) =>
+  z
+    .union([item, z.array(item).min(1).max(MAX_VALUES_PER_FILTER)])
+    .transform((value) => (Array.isArray(value) ? value : [value]) as z.infer<T>[])
+
 export const catalogQuerySchema = z.object({
   search: nonEmpty(150).optional(),
   code: nonEmpty(20).optional(),
   name: nonEmpty(150).optional(),
   setCode: nonEmpty(20).optional(),
-  type: z.enum(CARD_TYPES).optional(),
-  color: nonEmpty(50).optional(),
-  trait: nonEmpty(100).optional(),
-  attribute: nonEmpty(50).optional(),
-  mechanic: nonEmpty(100).optional(),
-  effect: nonEmpty(100).optional(),
-  rarity: nonEmpty(50).optional(),
-  variantType: nonEmpty(50).optional(),
+  type: multi(z.enum(CARD_TYPES)).optional(),
+  color: multi(nonEmpty(50)).optional(),
+  trait: multi(nonEmpty(100)).optional(),
+  attribute: multi(nonEmpty(50)).optional(),
+  mechanic: multi(nonEmpty(100)).optional(),
+  effect: multi(nonEmpty(100)).optional(),
+  rarity: multi(nonEmpty(50)).optional(),
+  variantType: multi(nonEmpty(50)).optional(),
   costMin: integer('costMin').optional(),
   costMax: integer('costMax').optional(),
   powerMin: integer('powerMin').optional(),

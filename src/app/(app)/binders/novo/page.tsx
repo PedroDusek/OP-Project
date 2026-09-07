@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: 'Novo local' }
 
 /** Criar storage (tela 24). */
 export default async function NovoLocalPage() {
-  await requireViewer('/armazenamento/novo')
+  await requireViewer('/binders/novo')
 
   return (
     <>

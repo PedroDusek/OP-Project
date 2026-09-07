@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react'
 import { CardGrid, CardTile } from './card-tile'
 import { Button } from '@/components/ui/button'
 import { cardCountLabel } from '@/server/domain/catalog/sets'
+import { cardHref } from '@/lib/catalog-params'
 
 /**
  * Grade que carrega mais ao chegar no fim.
@@ -42,6 +43,12 @@ export interface InfiniteCardGridProps {
   pageSize: number
   /** Query da API sem `page`, ja traduzida do portugues da URL. */
   apiQuery: string
+  /**
+   * O caminho desta lista, com os filtros, para o detalhe saber para onde
+   * voltar. Sem ele, voltar devolve o catalogo inteiro e a pessoa refaz o
+   * filtro a cada carta que registra.
+   */
+  origin?: string
 }
 
 export function InfiniteCardGrid({
@@ -49,6 +56,7 @@ export function InfiniteCardGrid({
   total,
   pageSize,
   apiQuery,
+  origin,
 }: InfiniteCardGridProps) {
   const [items, setItems] = useState(initialItems)
   const [page, setPage] = useState(1)
@@ -131,7 +139,7 @@ export function InfiniteCardGrid({
             name={item.cardName}
             imageUrl={item.imageUrl}
             labels={labelsFor(item.rarity, item.variantType)}
-            href={`/catalogo/carta/${item.variantId}`}
+            href={cardHref(item.variantId, origin)}
             // A primeira fileira aparece sem esperar a rolagem; o resto e tardio.
             priority={index < 3}
           />

@@ -38,9 +38,9 @@ export async function createLocationAction(
     return formErrorFrom(error)
   }
 
-  revalidatePath('/armazenamento')
+  revalidatePath('/binders')
   // Fora do try: `redirect` sinaliza por exceção, e um catch a engoliria.
-  redirect(`/armazenamento/${id}`)
+  redirect(`/binders/${id}`)
 }
 
 export async function updateLocationAction(
@@ -59,9 +59,9 @@ export async function updateLocationAction(
     return formErrorFrom(error)
   }
 
-  revalidatePath('/armazenamento')
-  revalidatePath(`/armazenamento/${id}`)
-  redirect(`/armazenamento/${id}`)
+  revalidatePath('/binders')
+  revalidatePath(`/binders/${id}`)
+  redirect(`/binders/${id}`)
 }
 
 export async function deleteLocationAction(
@@ -82,9 +82,9 @@ export async function deleteLocationAction(
 
   // A coleção não muda ao excluir um local, mas as telas que mostram onde as
   // cartas estão, sim.
-  revalidatePath('/armazenamento')
+  revalidatePath('/binders')
   revalidatePath('/colecao')
-  redirect('/armazenamento')
+  redirect('/binders')
 }
 
 export async function setAllocationAction(
@@ -116,9 +116,9 @@ export async function setAllocationAction(
       quantity,
     )
 
-    revalidatePath('/armazenamento')
-    revalidatePath(`/armazenamento/${storageLocationId}`)
-    revalidatePath(`/armazenamento/${storageLocationId}/cartas`)
+    revalidatePath('/binders')
+    revalidatePath(`/binders/${storageLocationId}`)
+    revalidatePath(`/binders/${storageLocationId}/cartas`)
     revalidatePath(`/catalogo/carta/${variantId}`)
 
     return {

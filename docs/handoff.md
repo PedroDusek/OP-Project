@@ -30,7 +30,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 10 concluídos.** 530 testes de unidade, integração e
+**Checkpoints 0 a 10 concluídos.** 580 testes de unidade, integração e
 componente, mais 28 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -45,7 +45,7 @@ componente, mais 28 ponta a ponta. Lint, typecheck e build passando.
 | 7 | Entrada e autenticação na interface: landing, entrar, criar conta, recuperar senha, sair |
 | 8 | Catálogo na interface: busca, filtros, sets, detalhe do set e da variante |
 | 9 | Coleção na interface: grade, filtros, playsets, quantidade, progresso real |
-| 10 | Armazenamento: locais, alocação, upload de imagem, resolução da decisão 007 |
+| 10 | Binders: locais, alocação, upload de imagem, resolução da decisão 007 |
 
 **Banco de produção populado e conferido:** 2.785 cartas, 4.843 variantes, 60
 sets, 4.842 impressões — números idênticos ao local, estrutura conferida objeto
@@ -53,7 +53,7 @@ a objeto.
 
 ## As decisões que mais restringem o que vem depois
 
-As 43 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 44 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
@@ -173,6 +173,14 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     isso; o Storage passava. Por isso o provedor de imagens fala REST com
     `fetch`. Um dublê nos testes de caso de uso não pega isto — é preciso um
     teste que **instancie** o provedor de verdade.
+23. **`Object.fromEntries(searchParams)` perde parâmetro repetido.** Fica com o
+    último valor, sem erro: `?cor=Black&cor=Blue` filtrava só por azul. Use
+    `getAll` quando o filtro puder ter mais de um valor — e desconfie de
+    qualquer lugar que converta query string em objeto simples.
+24. **A barra inferior tem cinco lugares.** Seis alvos a 360 px dão 60 px cada,
+    abaixo do confortável. Destino novo entra tirando outro; hoje Trocas está
+    fora, dentro de "Mais" (decisão 044). `SECONDARY_DESTINATIONS` existe para
+    esses, e `activeDestination` olha os dois conjuntos.
 
 ## Pendências
 
@@ -230,6 +238,11 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
   "A FIST OF DIVINE SPEED" e não "The Blackbeard Pirates"; `OP-12` é
   "LEGACY OF THE MASTER" e não "The Revolutionary Army". A tela mostra o nome da
   fonte. Trocar por nomes próprios seria manter uma segunda lista à mão.
+- **Trocas fora da barra.** Sai de `SECONDARY_DESTINATIONS` e volta para
+  `DESTINATIONS` quando a seção existir — e aí a barra passa a ter seis, ou algo
+  sai. Decisão do dono do produto na hora.
+- **Edição em massa dentro de um binder.** O dono do produto definiu o lugar: a
+  aba Binders, com um local escolhido. É por onde o Checkpoint 11 começa.
 - **"Playsets aqui" no detalhe do local.** A tela 22 mostra uma contagem de
   playsets dentro de um binder, e a definição da `business-rules.md` 2.1 é sobre
   a coleção inteira. A leitura adotada é a física — cartas inteiras naquele
@@ -267,10 +280,14 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 ## Próximo passo
 
 **Edição em massa** — telas 25 a 28: selecionar várias cartas e aplicar a mesma
-operação. É a primeira vez que uma ação escreve em muitas linhas de uma vez, e
-as duas perguntas a responder são o alcance da transação e o que acontece quando
-parte da seleção falha — a decisão 007 vale para cada carta, e cinquenta
-conflitos ao mesmo tempo não cabem no painel de resolução de uma.
+operação. O dono do produto já definiu onde ela mora: **dentro da aba Binders,
+com um local escolhido** — a operação em massa é sobre o conteúdo daquele
+binder, não sobre a coleção solta.
+
+É a primeira vez que uma ação escreve em muitas linhas de uma vez, e as duas
+perguntas a responder são o alcance da transação e o que acontece quando parte
+da seleção falha — a decisão 007 vale para cada carta, e cinquenta conflitos ao
+mesmo tempo não cabem no painel de resolução de uma.
 
 O que já existe e será usado: `CardTile` tem modo de seleção desde o Checkpoint
 6; a alocação e a quantidade já são transacionais por carta, com o lock na linha

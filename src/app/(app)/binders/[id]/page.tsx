@@ -22,9 +22,9 @@ export const metadata: Metadata = { title: 'Local' }
  * de dinheiro seria pior que não mostrar nada, e mostrar "R$ 0,00" seria mentira
  * com aparência de verdade. O espaço volta quando o preço tiver origem.
  */
-export default async function LocalPage({ params }: PageProps<'/armazenamento/[id]'>) {
+export default async function LocalPage({ params }: PageProps<'/binders/[id]'>) {
   const { id } = await params
-  const viewer = await requireViewer(`/armazenamento/${id}`)
+  const viewer = await requireViewer(`/binders/${id}`)
 
   if (!/^\d+$/.test(id)) notFound()
   const location = await getStorageLocation(viewer, BigInt(id))
@@ -68,7 +68,7 @@ export default async function LocalPage({ params }: PageProps<'/armazenamento/[i
 
         <PanelList>
           <ListRow
-            href={`/armazenamento/${location.id}/cartas`}
+            href={`/binders/${location.id}/cartas`}
             leading={<Layers className="size-5 text-text-muted" aria-hidden />}
             title="Ver cartas"
             description={
@@ -78,7 +78,7 @@ export default async function LocalPage({ params }: PageProps<'/armazenamento/[i
             }
           />
           <ListRow
-            href={`/armazenamento/${location.id}/editar`}
+            href={`/binders/${location.id}/editar`}
             leading={<SquarePen className="size-5 text-text-muted" aria-hidden />}
             title="Editar informações"
           />

@@ -23,7 +23,7 @@ const setAllocationAction = vi.hoisted(() =>
   })),
 )
 
-vi.mock('@/app/(app)/armazenamento/actions', () => ({
+vi.mock('@/app/(app)/binders/actions', () => ({
   setAllocationAction,
   deleteLocationAction: vi.fn(),
   createLocationAction: vi.fn(),

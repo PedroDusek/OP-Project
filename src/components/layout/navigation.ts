@@ -1,14 +1,25 @@
-import { House, Layers, Search, ArrowLeftRight, Ellipsis } from 'lucide-react'
+import { House, Layers, Search, ArrowLeftRight, Ellipsis, BookOpen } from 'lucide-react'
 
 /**
  * Os cinco destinos da navegacao principal.
  *
- * Sao exatamente os da secao 4 do documento oficial. Ficam num arquivo so
- * porque a barra inferior, a coluna lateral e o menu "Mais" precisam da mesma
- * lista: com tres copias, um destino novo entraria em duas e sumiria da
- * terceira.
+ * Ficam num arquivo so porque a barra inferior, a coluna lateral e o menu
+ * "Mais" precisam da mesma lista: com tres copias, um destino novo entraria em
+ * duas e sumiria da terceira.
+ *
+ * ## Por que Binders entrou e Trocas saiu
+ *
+ * Binders e onde se cria e edita binder, caixa e deck. Estava dentro de "Mais",
+ * uma gaveta de configuracao — e criar coisa nao e configurar. Uma secao em que
+ * se cria conteudo o dia inteiro precisa estar na barra.
+ *
+ * A barra continua com **cinco**. Seis alvos a 360 px dao 60 px cada, abaixo do
+ * confortavel para o polegar; escolha do dono do produto, Trocas espera dentro
+ * de "Mais" ate o checkpoint que a constroi. Ela continua aparecendo la, com a
+ * mesma descricao, e volta para a barra quando existir de verdade.
  *
  * As rotas estao em portugues, como o dominio e a documentacao do projeto.
+ * `binders` e a excecao porque e a palavra que quem joga usa.
  */
 
 export interface Destination {
@@ -39,16 +50,32 @@ export const DESTINATIONS: Destination[] = [
     description: 'Sets, cartas, variantes e filtros de todo o One Piece Card Game.',
   },
   {
-    href: '/trocas',
-    label: 'Trocas',
-    icon: ArrowLeftRight,
-    description: 'Want list, Trade Binder, matches e negociações.',
+    href: '/binders',
+    label: 'Binders',
+    icon: BookOpen,
+    description: 'Seus binders, caixas e decks: criar, editar e ver o que está em cada um.',
   },
   {
     href: '/mais',
     label: 'Mais',
     icon: Ellipsis,
-    description: 'Armazenamento, perfil, Premium e configurações.',
+    description: 'Trocas, perfil, Premium e configurações.',
+  },
+]
+
+/**
+ * Destinos que existem, mas nao cabem na barra hoje.
+ *
+ * Aparecem so no menu "Mais". Estao aqui, e nao soltos naquela pagina, para
+ * `activeDestination` continuar reconhecendo a rota — sem isso, quem entra em
+ * `/trocas` nao ve nenhum item marcado na navegacao.
+ */
+export const SECONDARY_DESTINATIONS: Destination[] = [
+  {
+    href: '/trocas',
+    label: 'Trocas',
+    icon: ArrowLeftRight,
+    description: 'Want list, Trade Binder, matches e negociações.',
   },
 ]
 
@@ -60,7 +87,7 @@ export const DESTINATIONS: Destination[] = [
  * que a pessoa entrasse em qualquer detalhe.
  */
 export function activeDestination(pathname: string): Destination | undefined {
-  return DESTINATIONS.find(
+  return [...DESTINATIONS, ...SECONDARY_DESTINATIONS].find(
     (destination) =>
       pathname === destination.href || pathname.startsWith(`${destination.href}/`),
   )

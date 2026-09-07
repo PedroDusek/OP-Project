@@ -64,7 +64,7 @@ describe('BottomNav', () => {
 
 describe('SideNav', () => {
   it('usa os mesmos destinos, na mesma ordem', () => {
-    pathname.value = '/trocas'
+    pathname.value = '/binders'
     render(<SideNav />)
 
     const links = screen.getAllByRole('link')
@@ -76,9 +76,22 @@ describe('SideNav', () => {
   })
 
   it('marca a secao ativa com aria-current', () => {
+    pathname.value = '/binders'
+    render(<SideNav />)
+
+    expect(screen.getByRole('link', { name: 'Binders' })).toHaveAttribute('aria-current', 'page')
+  })
+
+  /**
+   * Trocas saiu da barra para ela ficar em cinco, mas continua sendo uma secao:
+   * `activeDestination` precisa reconhece-la, senao quem entra em `/trocas` nao
+   * ve nada marcado em lugar nenhum.
+   */
+  it('reconhece a secao que ficou fora da barra', () => {
     pathname.value = '/trocas'
     render(<SideNav />)
 
-    expect(screen.getByRole('link', { name: 'Trocas' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.queryByRole('link', { name: 'Trocas' })).not.toBeInTheDocument()
+    expect(activeDestination('/trocas')?.label).toBe('Trocas')
   })
 })

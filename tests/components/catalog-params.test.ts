@@ -4,6 +4,9 @@ import {
   countActiveFilters,
   PARAM,
   toCatalogQuery,
+  cardHref,
+  currentPath,
+  safeReturnTo,
 } from '@/lib/catalog-params'
 
 /**
@@ -28,15 +31,17 @@ describe('toCatalogQuery', () => {
       pagina: '3',
     })
 
+    // Facetas viram lista mesmo com um valor so: quem recebe nao precisa
+    // distinguir "um" de "varios".
     expect(query).toMatchObject({
       search: 'luffy',
-      type: 'Character',
-      color: 'Red',
-      rarity: 'SR',
-      variantType: 'Parallel',
-      attribute: 'Strike',
-      mechanic: 'Rush',
-      trait: 'Straw Hat Crew',
+      type: ['Character'],
+      color: ['Red'],
+      rarity: ['SR'],
+      variantType: ['Parallel'],
+      attribute: ['Strike'],
+      mechanic: ['Rush'],
+      trait: ['Straw Hat Crew'],
       costMin: 2,
       costMax: 5,
       page: 3,
@@ -57,8 +62,21 @@ describe('toCatalogQuery', () => {
     expect(query.powerMax).toBeUndefined()
   })
 
-  it('trata parametro repetido pelo primeiro valor', () => {
-    expect(toCatalogQuery({ tipo: ['Character', 'Event'] }).type).toBe('Character')
+  /**
+   * Dentro de uma faceta os valores se somam por ou. Antes, o repetido perdia
+   * todos menos o primeiro, e marcar Preto e Azul filtrava so por preto.
+   */
+  it('mantem todos os valores de um filtro repetido', () => {
+    expect(toCatalogQuery({ tipo: ['Character', 'Event'] }).type).toEqual([
+      'Character',
+      'Event',
+    ])
+    expect(toCatalogQuery({ cor: ['Black', 'Blue'] }).color).toEqual(['Black', 'Blue'])
+  })
+
+  it('descarta os valores vazios de uma lista', () => {
+    expect(toCatalogQuery({ cor: ['Black', '  ', ''] }).color).toEqual(['Black'])
+    expect(toCatalogQuery({ cor: ['', ' '] }).color).toBeUndefined()
   })
 
   it('descarta valor so de espacos', () => {
@@ -78,6 +96,12 @@ describe('countActiveFilters', () => {
     expect(countActiveFilters({ q: 'luffy', pagina: '4' })).toBe(0)
     expect(countActiveFilters({ tipo: 'Character', cor: 'Red' })).toBe(2)
     expect(countActiveFilters({ custoMin: '2', custoMax: '5' })).toBe(2)
+  })
+
+  /** Conta escolhas, e nao secoes: e o numero de coisas a desfazer. */
+  it('conta cada valor de uma faceta multivalorada', () => {
+    expect(countActiveFilters({ cor: ['Black', 'Blue'] })).toBe(2)
+    expect(countActiveFilters({ cor: ['Black', 'Blue'], raridade: 'SR' })).toBe(3)
   })
 
   it('ignora parametro vazio', () => {
@@ -121,5 +145,49 @@ describe('buildCatalogHref', () => {
       [PARAM.tipo]: undefined,
     })
     expect(href).toBe('/catalogo')
+  })
+})
+
+describe('volta para a lista de origem', () => {
+  it('carrega o caminho de origem no link da carta', () => {
+    expect(cardHref('7', '/catalogo?cor=Blue')).toBe(
+      `/catalogo/carta/7?de=${encodeURIComponent('/catalogo?cor=Blue')}`,
+    )
+  })
+
+  it('sem origem, o link fica limpo', () => {
+    expect(cardHref('7')).toBe('/catalogo/carta/7')
+  })
+
+  it('monta o caminho atual com os filtros repetidos', () => {
+    expect(currentPath('/catalogo', { cor: ['Black', 'Blue'], raridade: 'SR' })).toBe(
+      '/catalogo?cor=Black&cor=Blue&raridade=SR',
+    )
+  })
+
+  it('sem parametro nenhum, e so o caminho', () => {
+    expect(currentPath('/catalogo', {})).toBe('/catalogo')
+  })
+
+  /**
+   * So caminho relativo entra. Um valor absoluto — ou `//outro.site`, que o
+   * navegador le como outro dominio — transformaria "voltar" num desvio para
+   * fora do site.
+   */
+  it('recusa destino que sai do site', () => {
+    expect(safeReturnTo('https://outro.test/phishing', '/catalogo')).toBe('/catalogo')
+    expect(safeReturnTo('//outro.test/phishing', '/catalogo')).toBe('/catalogo')
+    expect(safeReturnTo('javascript:alert(1)', '/catalogo')).toBe('/catalogo')
+  })
+
+  it('aceita caminho relativo com filtros', () => {
+    expect(safeReturnTo('/catalogo?cor=Blue&cor=Black', '/catalogo')).toBe(
+      '/catalogo?cor=Blue&cor=Black',
+    )
+  })
+
+  it('sem valor, usa o padrao', () => {
+    expect(safeReturnTo(undefined, '/catalogo')).toBe('/catalogo')
+    expect(safeReturnTo('', '/catalogo')).toBe('/catalogo')
   })
 })

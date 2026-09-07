@@ -17,9 +17,12 @@ import { toApiQuery } from '@/lib/catalog-params'
 export function CatalogResults({
   result,
   query,
+  origin,
 }: {
   result: CatalogResult
   query: CatalogQuery
+  /** O caminho desta lista, com filtros, para o detalhe voltar ao mesmo lugar. */
+  origin?: string
 }) {
   if (result.total === 0) {
     return (
@@ -40,6 +43,7 @@ export function CatalogResults({
       total={result.total}
       pageSize={result.pageSize}
       apiQuery={toApiQuery(query)}
+      origin={origin}
     />
   )
 }

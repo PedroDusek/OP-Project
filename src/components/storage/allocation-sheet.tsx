@@ -1,8 +1,8 @@
 'use client'
 
 import { useActionState, useEffect, useState } from 'react'
-import { setAllocationAction } from '@/app/(app)/armazenamento/actions'
-import { ALLOCATION_IDLE } from '@/app/(app)/armazenamento/state'
+import { setAllocationAction } from '@/app/(app)/binders/actions'
+import { ALLOCATION_IDLE } from '@/app/(app)/binders/state'
 import { Button } from '@/components/ui/button'
 import { CardArt } from '@/components/catalog/card-art'
 import { QuantitySelector } from '@/components/ui/quantity-selector'

@@ -63,7 +63,7 @@ test.describe('rota protegida', () => {
       '/catalogo',
       '/trocas',
       '/mais',
-      '/armazenamento',
+      '/binders',
     ]) {
       await page.goto(path)
       await expect(page).toHaveURL(`/entrar?next=${encodeURIComponent(path)}`)
@@ -224,20 +224,20 @@ test.describe('catálogo protegido', () => {
   })
 })
 
-test.describe('armazenamento protegido', () => {
+test.describe('binders protegidos', () => {
   /**
-   * Um local guarda onde ficam as cartas de uma pessoa. As rotas internas —
+   * Um binder guarda onde ficam as cartas de uma pessoa. As rotas internas —
    * detalhe, cartas, edicao, criacao — pedem sessao pelo mesmo motivo que a
    * lista, e sao testadas uma a uma porque cada uma tem seu proprio
    * `requireViewer`: uma que esquecesse a chamada passaria despercebida.
    */
-  test('as rotas de armazenamento pedem sessão', async ({ page }) => {
+  test('as rotas de binders pedem sessão', async ({ page }) => {
     for (const path of [
-      '/armazenamento',
-      '/armazenamento/novo',
-      '/armazenamento/1',
-      '/armazenamento/1/cartas',
-      '/armazenamento/1/editar',
+      '/binders',
+      '/binders/novo',
+      '/binders/1',
+      '/binders/1/cartas',
+      '/binders/1/editar',
     ]) {
       await page.goto(path)
       await expect(page).toHaveURL(`/entrar?next=${encodeURIComponent(path)}`)

@@ -24,11 +24,23 @@ export function parseOrThrow<T>(schema: ZodType<T>, input: unknown): T {
 /**
  * Query string para objeto simples.
  *
- * Parametros repetidos ficam como o ultimo valor. O catalogo nao tem filtro
- * multivalorado hoje, e aceitar array em silencio esconderia um erro de cliente.
+ * Parametro repetido vira lista; parametro unico continua string. Quem valida
+ * decide se aceita as duas formas — o filtro do catalogo aceita, porque cor e
+ * raridade sao multivalorados.
+ *
+ * Antes disto, repetidos ficavam com o ultimo valor: `?cor=Black&cor=Blue`
+ * filtrava so por azul, em silencio. Descarte silencioso e pior que rejeicao,
+ * e aqui nao havia nem rejeicao.
  */
-export function queryToObject(url: URL): Record<string, string> {
-  return Object.fromEntries(url.searchParams.entries())
+export function queryToObject(url: URL): Record<string, string | string[]> {
+  const result: Record<string, string | string[]> = {}
+
+  for (const key of new Set(url.searchParams.keys())) {
+    const values = url.searchParams.getAll(key)
+    result[key] = values.length > 1 ? values : values[0]
+  }
+
+  return result
 }
 
 /** Corpo JSON, com corpo malformado virando erro de validacao e nao 500. */
