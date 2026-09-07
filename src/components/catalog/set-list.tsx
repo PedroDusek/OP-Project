@@ -89,7 +89,7 @@ export function SetList({ sets, initialKind = 'collection' }: { sets: SetSummary
                   <CardArt
                     src={set.coverUrl}
                     alt=""
-                    fallback={set.code}
+                    fallback={set.displayCode}
                     sizes="44px"
                     className="w-11 shrink-0 rounded-md"
                   />
@@ -99,7 +99,7 @@ export function SetList({ sets, initialKind = 'collection' }: { sets: SetSummary
                       {set.displayName}
                     </span>
                     <span className="text-xs text-text-muted tabular-nums">
-                      {set.code} · {cardCountLabel(set.variantCount)}
+                      {set.displayCode} · {cardCountLabel(set.variantCount)}
                     </span>
                   </span>
 

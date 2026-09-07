@@ -11,7 +11,7 @@ import type { CatalogResult } from '@/server/application/catalog/search-cards'
 
 const SETS: SetSummary[] = [
   {
-    code: 'OP01',
+    code: 'OP01', displayCode: 'OP01',
     name: '-ROMANCE DAWN-',
     displayName: 'ROMANCE DAWN',
     variantCount: 154,
@@ -19,7 +19,7 @@ const SETS: SetSummary[] = [
     coverUrl: 'https://en.onepiece-cardgame.com/images/cardlist/card/OP01-001.png',
   },
   {
-    code: 'OP-13',
+    code: 'OP-13', displayCode: 'OP13',
     name: '-CARRYING ON HIS WILL-',
     displayName: 'CARRYING ON HIS WILL',
     variantCount: 175,
@@ -27,7 +27,7 @@ const SETS: SetSummary[] = [
     coverUrl: null,
   },
   {
-    code: 'ST-01',
+    code: 'ST-01', displayCode: 'ST01',
     name: '-Straw Hat Crew-',
     displayName: 'Straw Hat Crew',
     variantCount: 17,
@@ -354,9 +354,9 @@ describe('VariantDetail', () => {
     variantType: 'Normal',
     rarity: 'SR',
     imageUrl: 'https://en.onepiece-cardgame.com/images/cardlist/card/OP01-001.png',
-    sets: [{ code: 'OP01', name: '-ROMANCE DAWN-' }],
+    sets: [{ code: 'OP01', displayCode: 'OP01', name: '-ROMANCE DAWN-' }],
     card: {
-      code: 'OP01-001',
+      code: 'OP01-001', displayCode: 'OP01-001',
       name: 'Roronoa Zoro',
       type: 'Character',
       cost: 3,

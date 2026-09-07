@@ -4,6 +4,7 @@ import {
   compareSetCodes,
   compareSetsByRelease,
   compareSetsForCatalog,
+  displaySetCode,
   displaySetName,
   releasePosition,
   setKind,
@@ -258,5 +259,37 @@ describe('compareSetsForCatalog', () => {
     const tras = [...sets].reverse().sort(compareSetsForCatalog)
     expect(frente).toEqual(tras)
     expect(compareSetsForCatalog('OP01', 'OP01')).toBe(0)
+  })
+})
+
+describe('displaySetCode', () => {
+  /**
+   * A fonte grafa a mesma familia de dois jeitos: `OP01` ate `OP06` sem hifen e
+   * `OP-07` em diante com. Numa lista isso parece defeito.
+   */
+  it('tira o hifen entre as letras e o numero', () => {
+    expect(displaySetCode('ST-01')).toBe('ST01')
+    expect(displaySetCode('OP-07')).toBe('OP07')
+    expect(displaySetCode('EB-01')).toBe('EB01')
+    expect(displaySetCode('PRB-02')).toBe('PRB02')
+    expect(displaySetCode('GC-01')).toBe('GC01')
+  })
+
+  it('nao mexe no que ja esta uniforme', () => {
+    expect(displaySetCode('OP01')).toBe('OP01')
+    expect(displaySetCode('ST13')).toBe('ST13')
+    expect(displaySetCode('PROMO')).toBe('PROMO')
+  })
+
+  /** Ali o hifen junta duas identidades de set, e nao e decoracao. */
+  it('preserva o hifen que separa dois codigos', () => {
+    expect(displaySetCode('OP14-EB04')).toBe('OP14-EB04')
+    expect(displaySetCode('OP15-EB04')).toBe('OP15-EB04')
+  })
+
+  /** O codigo real continua indo na URL: normalizar quebraria link antigo. */
+  it('e so exibicao, e nao substitui o codigo', () => {
+    expect(displaySetCode('ST-01')).not.toBe('ST-01')
+    expect(displaySetCode('ST-01')).toBe('ST01')
   })
 })

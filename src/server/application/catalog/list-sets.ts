@@ -2,6 +2,7 @@ import type { PrismaClient } from '@prisma/client'
 import { NotFoundError } from '@/server/domain/errors'
 import {
   compareSetsByRelease,
+  displaySetCode,
   displaySetName,
   setKind,
   type SetKind,
@@ -21,7 +22,10 @@ import {
  */
 
 export interface SetSummary {
+  /** Como a fonte publicou. E o que vai na URL. */
   code: string
+  /** Codigo normalizado para exibir: `ST-01` vira `ST01`. */
+  displayCode: string
   /** Nome como a fonte publicou. */
   name: string
   /** Nome sem os hifens decorativos, para exibir. */
@@ -63,7 +67,32 @@ const SETS_QUERY = `
       join card_variants cv on cv.id = vp2.card_variant_id
       join cards c on c.id = cv.card_id
       where vp2.set_id = s.id and cv.image_url is not null
-      order by c.code asc, cv.id asc
+      order by
+        /*
+         * Uma carta do proprio set primeiro.
+         *
+         * Sem isto, "a primeira por codigo" trazia carta de outro set em 40 dos
+         * 60: um set com reimpressao contem cartas de codigo mais antigo, e o
+         * OP-03 acabava se apresentando com uma carta de OP01.
+         *
+         * A comparacao ignora a pontuacao, porque a fonte grafa OP01 e OP-07.
+         * OP14-EB04 contem cartas OP14 e EB04, e as duas casam por estarem
+         * contidas no codigo do set -- dai strpos em vez de igualdade. O
+         * prefixo precisa ter letra E numero, para nao deixar um P-001 casar
+         * com qualquer set que tenha a letra P.
+         */
+        case
+          when regexp_replace(upper(split_part(c.code, '-', 1)), '[^A-Z0-9]', '', 'g') ~ '^[A-Z]+[0-9]+$'
+           and strpos(
+                 regexp_replace(upper(s.code), '[^A-Z0-9]', '', 'g'),
+                 regexp_replace(upper(split_part(c.code, '-', 1)), '[^A-Z0-9]', '', 'g')
+               ) > 0
+          then 0 else 1
+        end,
+        -- O Leader e a face do set: e a carta que estampa o produto.
+        case when c.type = 'Leader' then 0 else 1 end,
+        c.code asc,
+        cv.id asc
       limit 1
     ) as cover_url
   from sets s
@@ -74,6 +103,7 @@ const SETS_QUERY = `
 function toSummary(row: SetRow): SetSummary {
   return {
     code: row.code,
+    displayCode: displaySetCode(row.code),
     name: row.name,
     displayName: displaySetName(row.name),
     variantCount: row.variant_count,
