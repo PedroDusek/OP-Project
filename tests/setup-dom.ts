@@ -36,6 +36,22 @@ beforeEach(() => {
     }))
   }
 
+  if (!window.IntersectionObserver) {
+    // A rolagem infinita observa o botao de carregar mais. Sem o stub, o
+    // componente quebra dentro do efeito, longe do que se quer testar.
+    window.IntersectionObserver = class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+      takeRecords() {
+        return []
+      }
+      root = null
+      rootMargin = ''
+      thresholds = []
+    } as unknown as typeof IntersectionObserver
+  }
+
   if (!window.ResizeObserver) {
     window.ResizeObserver = class {
       observe() {}

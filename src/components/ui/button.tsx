@@ -32,7 +32,7 @@ const SIZES: Record<ButtonSize, string> = {
   lg: 'h-13 px-5 text-base gap-2',
 }
 
-export interface ButtonProps extends React.ComponentPropsWithoutRef<'button'> {
+export interface ButtonProps extends React.ComponentPropsWithRef<'button'> {
   variant?: ButtonVariant
   size?: ButtonSize
   /** Ocupa a largura toda. E o padrao das acoes principais no celular. */

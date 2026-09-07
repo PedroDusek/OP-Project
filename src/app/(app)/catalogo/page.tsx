@@ -29,12 +29,6 @@ export default async function CatalogoPage({ searchParams }: PageProps<'/catalog
 
   const [result, vocabulary] = await Promise.all([searchCatalog(query), getCatalogVocabulary()])
 
-  const urlParams = new URLSearchParams(
-    Object.entries(params).flatMap(([key, value]) =>
-      value === undefined ? [] : [[key, Array.isArray(value) ? value[0] : value] as [string, string]],
-    ),
-  )
-
   return (
     <>
       <PageHeader
@@ -60,12 +54,12 @@ export default async function CatalogoPage({ searchParams }: PageProps<'/catalog
           <ListRow
             href="/catalogo/sets?tipo=deck"
             leading={<Layers className="size-5 text-text-muted" aria-hidden />}
-            title="Decks"
-            description="Starter e ultra decks, prontos para jogar."
+            title="Starter Decks"
+            description="Decks prontos para jogar, vendidos fechados."
           />
         </PanelList>
 
-        <CatalogResults result={result} pathname="/catalogo" searchParams={urlParams} />
+        <CatalogResults result={result} query={query} />
       </div>
 
       <p className="mt-8 text-xs text-text-subtle">

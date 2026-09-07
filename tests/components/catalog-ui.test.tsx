@@ -1,11 +1,11 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SetList } from '@/components/catalog/set-list'
 import { SetHeader } from '@/components/catalog/set-header'
 import { CatalogResults } from '@/components/catalog/catalog-results'
+import { InfiniteCardGrid, type CatalogItemView } from '@/components/catalog/infinite-card-grid'
 import { VariantDetail } from '@/components/catalog/variant-detail'
-import { Pagination } from '@/components/ui/pagination'
 import type { SetSummary } from '@/server/application/catalog/list-sets'
 import type { CatalogResult } from '@/server/application/catalog/search-cards'
 
@@ -122,7 +122,7 @@ describe('SetList', () => {
     expect(screen.getAllByRole('link')).toHaveLength(2)
     expect(screen.queryByText('Straw Hat Crew')).not.toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole('tab', { name: /Decks/ }))
+    await userEvent.click(screen.getByRole('tab', { name: /Starter Decks/ }))
 
     expect(screen.getByText('Straw Hat Crew')).toBeInTheDocument()
     expect(screen.queryByText('ROMANCE DAWN')).not.toBeInTheDocument()
@@ -137,7 +137,7 @@ describe('SetList', () => {
     render(<SetList sets={SETS} />)
 
     expect(screen.getByRole('tab', { name: /Coleções.*2/ })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: /Decks.*1/ })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: /Starter Decks.*1/ })).toBeInTheDocument()
   })
 
   /** Buscar pela grafia da fonte, com hifens, ainda encontra. */
@@ -176,9 +176,9 @@ describe('SetHeader', () => {
     )
   })
 
-  it('deck volta para os decks', () => {
+  it('deck volta para os starter decks', () => {
     render(<SetHeader set={SETS[2]} />)
-    expect(screen.getByRole('link', { name: /Decks/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Starter Decks/ })).toHaveAttribute(
       'href',
       '/catalogo/sets?tipo=deck',
     )
@@ -203,102 +203,148 @@ describe('SetHeader', () => {
 })
 
 describe('CatalogResults', () => {
+  const query = { pageSize: 24 }
+
   it('mostra o total e leva ao detalhe de cada variante', () => {
-    render(
-      <CatalogResults result={result()} pathname="/catalogo" searchParams={new URLSearchParams()} />,
-    )
+    render(<CatalogResults result={result()} query={query} />)
 
     expect(screen.getByRole('status')).toHaveTextContent('2 cartas')
     expect(screen.getAllByRole('link')[0]).toHaveAttribute('href', '/catalogo/carta/1')
   })
 
-  /**
-   * A imagem vem da origem, sem passar pelo otimizador do `next/image`, que
-   * baixaria o arquivo e o serviria do nosso domínio (decisões 020 e 026).
-   */
-  it('referencia a imagem na origem', () => {
-    render(
-      <CatalogResults result={result()} pathname="/catalogo" searchParams={new URLSearchParams()} />,
-    )
-
-    const image = screen.getByRole('img', { name: /OP01-001/ })
-    expect(image).toHaveAttribute('src', expect.stringContaining('en.onepiece-cardgame.com'))
-    expect(image).toHaveAttribute('loading', 'lazy')
-  })
-
   /** "Normal" em toda carta é ruído: o que se procura na grade é o que não é. */
   it('etiqueta a variante só quando ela não é Normal', () => {
-    render(
-      <CatalogResults result={result()} pathname="/catalogo" searchParams={new URLSearchParams()} />,
-    )
+    render(<CatalogResults result={result()} query={query} />)
 
     expect(screen.getByText('Parallel')).toBeInTheDocument()
     expect(screen.queryByText('Normal')).not.toBeInTheDocument()
   })
 
   it('não mostra quantidade: isso é informação de coleção', () => {
-    render(
-      <CatalogResults result={result()} pathname="/catalogo" searchParams={new URLSearchParams()} />,
-    )
+    render(<CatalogResults result={result()} query={query} />)
     expect(screen.queryByText(/^x\d+$/)).not.toBeInTheDocument()
   })
 
   it('explica o vazio em vez de mostrar grade vazia', () => {
-    render(
-      <CatalogResults
-        result={result({ items: [], total: 0 })}
-        pathname="/catalogo"
-        searchParams={new URLSearchParams()}
-      />,
-    )
+    render(<CatalogResults result={result({ items: [], total: 0 })} query={query} />)
 
     expect(screen.getByText('Nenhuma carta encontrada')).toBeInTheDocument()
   })
 
-  it('mostra a faixa exibida quando há mais de uma página', () => {
+  /**
+   * Saiu com a paginação: com rolagem infinita, "mostrando 1–24" descreveria um
+   * recorte que muda sozinho enquanto a pessoa rola.
+   */
+  it('não anuncia mais a faixa exibida', () => {
     render(
       <CatalogResults
-        result={result({ page: 2, pageSize: 24, total: 100, totalPages: 5 })}
-        pathname="/catalogo"
-        searchParams={new URLSearchParams()}
+        result={result({ page: 1, pageSize: 24, total: 100, totalPages: 5 })}
+        query={query}
       />,
     )
 
-    expect(screen.getByRole('status')).toHaveTextContent('mostrando 25–48')
+    expect(screen.getByRole('status')).toHaveTextContent('100 cartas')
+    expect(screen.queryByText(/mostrando/i)).not.toBeInTheDocument()
   })
 })
 
-describe('Pagination', () => {
-  const hrefFor = (page: number) => `/catalogo?pagina=${page}`
+describe('InfiniteCardGrid', () => {
+  const items = (from: number, count: number): CatalogItemView[] =>
+    Array.from({ length: count }, (_, i) => ({
+      variantId: String(from + i),
+      cardCode: `OP01-${String(from + i).padStart(3, '0')}`,
+      cardName: 'Exemplo',
+      rarity: 'C',
+      variantType: 'Normal',
+      imageUrl: null,
+    }))
 
-  it('não aparece com uma página só', () => {
-    const { container } = render(<Pagination page={1} totalPages={1} hrefFor={hrefFor} />)
-    expect(container).toBeEmptyDOMElement()
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
-  it('anuncia a posição e liga as duas pontas', () => {
-    render(<Pagination page={3} totalPages={12} hrefFor={hrefFor} />)
+  /**
+   * O botão **é** o sentinela: o observador dispara a mesma carga que o clique.
+   * É o que salva quem navega por teclado e nunca "rola até o fim".
+   */
+  it('oferece um botão alcançável enquanto houver mais', () => {
+    render(<InfiniteCardGrid initialItems={items(1, 3)} total={10} pageSize={3} apiQuery="pageSize=3" />)
 
-    expect(screen.getByText('Página 3 de 12')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Anterior/ })).toHaveAttribute(
-      'href',
-      '/catalogo?pagina=2',
-    )
-    expect(screen.getByRole('link', { name: /Próxima/ })).toHaveAttribute(
-      'href',
-      '/catalogo?pagina=4',
-    )
+    expect(screen.getByRole('button', { name: 'Carregar mais' })).toBeInTheDocument()
   })
 
-  /** O alvo continua no lugar nas pontas, em vez de sumir e mover os outros. */
-  it('desabilita sem remover nas pontas', () => {
-    render(<Pagination page={1} totalPages={5} hrefFor={hrefFor} />)
+  it('some com o botão quando tudo já veio', () => {
+    render(<InfiniteCardGrid initialItems={items(1, 3)} total={3} pageSize={3} apiQuery="pageSize=3" />)
 
-    expect(screen.getByRole('link', { name: /Anterior/ })).toHaveAttribute(
-      'aria-disabled',
-      'true',
+    expect(screen.queryByRole('button', { name: 'Carregar mais' })).not.toBeInTheDocument()
+  })
+
+  it('acrescenta a leva seguinte à grade', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ items: items(4, 3) }), { status: 200 })),
     )
-    expect(screen.getByRole('link', { name: /Próxima/ })).not.toHaveAttribute('aria-disabled', 'true')
+
+    render(<InfiniteCardGrid initialItems={items(1, 3)} total={6} pageSize={3} apiQuery="pageSize=3" />)
+    await userEvent.click(screen.getByRole('button', { name: 'Carregar mais' }))
+
+    expect(await screen.findByRole('link', { name: /OP01-004/ })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /OP01-001/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Carregar mais' })).not.toBeInTheDocument()
+  })
+
+  /** A cota da API é o que sustenta o compromisso de não reexpor o catálogo. */
+  it('pede a próxima página à API, com a consulta e a página', async () => {
+    const fetchMock = vi.fn(
+      async () => new Response(JSON.stringify({ items: items(4, 3) }), { status: 200 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(
+      <InfiniteCardGrid
+        initialItems={items(1, 3)}
+        total={9}
+        pageSize={3}
+        apiQuery="setCode=OP01&pageSize=3"
+      />,
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Carregar mais' }))
+
+    await screen.findByRole('link', { name: /OP01-004/ })
+    expect(fetchMock).toHaveBeenCalledWith('/api/catalog?setCode=OP01&pageSize=3&page=2')
+  })
+
+  it('mostra o erro e deixa repetir', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(JSON.stringify({ error: { message: 'Muitas tentativas.' } }), { status: 429 }),
+      ),
+    )
+
+    render(<InfiniteCardGrid initialItems={items(1, 3)} total={9} pageSize={3} apiQuery="pageSize=3" />)
+    await userEvent.click(screen.getByRole('button', { name: 'Carregar mais' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Muitas tentativas.')
+    expect(screen.getByRole('button', { name: 'Tentar de novo' })).toBeInTheDocument()
+  })
+
+  /**
+   * Trocar de filtro monta uma grade nova. Sem isso, os resultados novos
+   * apareceriam concatenados aos antigos.
+   */
+  it('recomeça quando a lista inicial muda', () => {
+    const { rerender } = render(
+      <InfiniteCardGrid initialItems={items(1, 3)} total={9} pageSize={3} apiQuery="pageSize=3" />,
+    )
+    expect(screen.getByRole('link', { name: /OP01-001/ })).toBeInTheDocument()
+
+    rerender(
+      <InfiniteCardGrid initialItems={items(50, 2)} total={2} pageSize={3} apiQuery="pageSize=3" />,
+    )
+
+    expect(screen.queryByRole('link', { name: /OP01-001/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /OP01-050/ })).toBeInTheDocument()
   })
 })
 
@@ -338,11 +384,17 @@ describe('VariantDetail', () => {
     expect(screen.getByText('OP01-001')).toBeInTheDocument()
   })
 
-  it('mostra a arte da variante, referenciada na origem', () => {
+  /**
+   * A arte passa pelo otimizador do Next, que serve do nosso dominio: o servidor
+   * da Bandai manda `cross-origin-resource-policy: same-site` e o navegador
+   * recusaria a imagem vinda direto de la. Ver a decisao 038.
+   */
+  it('serve a arte pelo otimizador, apontando para a origem', () => {
     render(<VariantDetail variant={variant} />)
 
-    expect(screen.getByRole('img', { name: 'OP01-001 — Roronoa Zoro' })).toHaveAttribute(
-      'src',
+    const src = screen.getByRole('img', { name: 'OP01-001 — Roronoa Zoro' }).getAttribute('src')
+    expect(src).toContain('/_next/image')
+    expect(decodeURIComponent(src ?? '')).toContain(
       'https://en.onepiece-cardgame.com/images/cardlist/card/OP01-001.png',
     )
   })

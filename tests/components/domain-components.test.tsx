@@ -10,11 +10,17 @@ import { Switch } from '@/components/ui/switch'
 
 describe('CardTile', () => {
   /**
-   * A imagem vem da origem, sem passar pelo nosso servidor: a decisao 020 manda
-   * referenciar e nunca copiar, e o otimizador do `next/image` copiaria. O teste
-   * fixa que a URL exibida e a que entrou.
+   * A arte passa pelo otimizador do Next, que a serve do nosso dominio.
+   *
+   * Este teste ja afirmou o contrario, e estava errado: o servidor da Bandai
+   * manda `cross-origin-resource-policy: same-site`, entao o navegador
+   * **recusa** desenhar a imagem vinda direto de la. Referenciar a origem, como
+   * a decisao 026 previa, resultava em nenhuma imagem na tela. Ver a decisao 038.
+   *
+   * O que continua garantido: a URL da origem e o que alimenta o otimizador, e
+   * o banco guarda so ela.
    */
-  it('referencia a imagem na origem, com carregamento tardio', () => {
+  it('serve a arte pelo otimizador, apontando para a origem', () => {
     render(
       <CardTile
         code="OP01-001"
@@ -24,12 +30,12 @@ describe('CardTile', () => {
       />,
     )
 
-    const image = screen.getByRole('img', { name: 'OP01-001 — Roronoa Zoro' })
-    expect(image).toHaveAttribute(
-      'src',
+    const src = screen.getByRole('img', { name: 'OP01-001 — Roronoa Zoro' }).getAttribute('src')
+
+    expect(src).toContain('/_next/image')
+    expect(decodeURIComponent(src ?? '')).toContain(
       'https://en.onepiece-cardgame.com/images/cardlist/card/OP01-001.png',
     )
-    expect(image).toHaveAttribute('loading', 'lazy')
   })
 
   it('mostra o codigo quando nao ha imagem', () => {

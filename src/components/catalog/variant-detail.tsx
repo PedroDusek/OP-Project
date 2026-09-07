@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
+import { CardArt } from './card-art'
 import { Panel } from '@/components/ui/surface'
 import type { getCardVariant } from '@/server/application/catalog/get-card-variant'
 import { displaySetName } from '@/server/domain/catalog/sets'
@@ -26,21 +27,14 @@ export function VariantDetail({ variant }: { variant: Variant }) {
   return (
     <div className="flex flex-col gap-5 md:flex-row md:items-start md:gap-8">
       <div className="mx-auto w-full max-w-64 shrink-0 md:mx-0 md:max-w-80">
-        <div className="aspect-[5/7] w-full overflow-hidden rounded-card border border-border bg-surface-muted shadow-card">
-          {variant.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- decisão 026
-            <img
-              src={variant.imageUrl}
-              alt={`${card.code} — ${card.name}`}
-              className="size-full object-cover"
-              decoding="async"
-            />
-          ) : (
-            <span className="flex size-full items-center justify-center text-sm text-text-subtle">
-              {card.code}
-            </span>
-          )}
-        </div>
+        <CardArt
+          src={variant.imageUrl}
+          alt={`${card.code} — ${card.name}`}
+          fallback={card.code}
+          sizes="(max-width: 767px) 256px, 320px"
+          priority
+          className="shadow-card"
+        />
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-5">
@@ -113,23 +107,17 @@ export function VariantDetail({ variant }: { variant: Variant }) {
                     aria-current={sibling.current ? 'page' : undefined}
                     className="flex flex-col gap-1.5"
                   >
-                    <span
+                    <CardArt
+                      src={sibling.imageUrl}
+                      alt={`${card.code}, ${sibling.variantType}`}
+                      // Sem arte, o util e o que distingue esta versao das
+                      // outras. O codigo e o mesmo nas quatro; o tipo, nao.
+                      fallback={sibling.variantType}
+                      sizes="(max-width: 639px) 33vw, 20vw"
                       className={cn(
-                        'block aspect-[5/7] w-full overflow-hidden rounded-card border bg-surface-muted',
-                        sibling.current ? 'border-accent-ink ring-2 ring-accent-ink' : 'border-border',
+                        sibling.current && 'border-accent-ink ring-2 ring-accent-ink',
                       )}
-                    >
-                      {sibling.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element -- decisão 026
-                        <img
-                          src={sibling.imageUrl}
-                          alt={`${card.code}, ${sibling.variantType}`}
-                          loading="lazy"
-                          decoding="async"
-                          className="size-full object-cover"
-                        />
-                      ) : null}
-                    </span>
+                    />
                     <span className="truncate text-xs text-text-muted">
                       {sibling.rarity ?? sibling.variantType}
                       {sibling.current ? ' · atual' : ''}

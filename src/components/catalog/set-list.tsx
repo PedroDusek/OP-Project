@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { ChevronRight } from 'lucide-react'
 import Link from 'next/link'
+import { CardArt } from '@/components/catalog/card-art'
 import { SearchBar } from '@/components/ui/search-bar'
 import { Segmented } from '@/components/ui/segmented'
 import { Panel } from '@/components/ui/surface'
@@ -85,22 +86,13 @@ export function SetList({ sets, initialKind = 'collection' }: { sets: SetSummary
                   href={`/catalogo/sets/${encodeURIComponent(set.code)}`}
                   className="flex items-center gap-3 p-3"
                 >
-                  <span className="relative block aspect-[5/7] w-11 shrink-0 overflow-hidden rounded-md border border-border bg-surface-muted">
-                    {set.coverUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- decisão 026
-                      <img
-                        src={set.coverUrl}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        className="size-full object-cover"
-                      />
-                    ) : (
-                      <span className="flex size-full items-center justify-center px-0.5 text-center text-[9px] font-bold text-text-subtle">
-                        {set.code}
-                      </span>
-                    )}
-                  </span>
+                  <CardArt
+                    src={set.coverUrl}
+                    alt=""
+                    fallback={set.code}
+                    sizes="44px"
+                    className="w-11 shrink-0 rounded-md"
+                  />
 
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="truncate text-sm font-semibold text-text">
