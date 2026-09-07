@@ -13,6 +13,8 @@ import { defineConfig, devices } from '@playwright/test'
  * Roda contra o build de producao, e nao contra `next dev`: e o artefato que
  * vai para producao, sem overlay de desenvolvimento por cima dos elementos.
  */
+const BASE_URL = 'http://127.0.0.1:3100'
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
@@ -21,7 +23,7 @@ export default defineConfig({
   reporter: process.env.CI ? 'line' : 'list',
 
   use: {
-    baseURL: 'http://127.0.0.1:3100',
+    baseURL: BASE_URL,
     trace: 'on-first-retry',
   },
 
@@ -29,8 +31,23 @@ export default defineConfig({
 
   webServer: {
     command: 'npm run start -- --port 3100',
-    url: 'http://127.0.0.1:3100/inicio',
+    url: `${BASE_URL}/entrar`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    env: {
+      /*
+       * O servidor de teste e um build de producao, e em producao a aplicacao
+       * **exige** APP_URL: e dela que saem os links de confirmacao de e-mail e
+       * de redefinicao de senha, e derivar isso do cabecalho `Host` deixaria
+       * quem chama escolher o destino de um link que cria sessao.
+       *
+       * Aqui ela precisa ser o endereco deste servidor, e nao o do `.env` de
+       * quem esta rodando: com o valor errado, o retorno de `/auth/callback`
+       * redireciona para outra origem e os testes passam ou falham conforme o
+       * servidor de desenvolvimento esteja de pe — que foi exatamente o que
+       * aconteceu antes de esta linha existir.
+       */
+      APP_URL: BASE_URL,
+    },
   },
 })
