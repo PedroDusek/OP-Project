@@ -195,3 +195,40 @@ describe('faixas de custo e poder', () => {
     expect(result.total).toBe(0)
   })
 })
+
+describe('classificacao e capa', () => {
+  it('classifica cada set e traz a arte da primeira carta', async () => {
+    const sets = await listSets(testPrisma())
+
+    for (const set of sets) {
+      expect(['collection', 'deck', 'promo']).toContain(set.kind)
+      // Todo set da amostra tem carta com imagem, entao tem capa.
+      if (set.variantCount > 0) expect(set.coverUrl).toBeTruthy()
+    }
+  })
+
+  /** A capa e deterministica: a primeira carta por codigo, sempre a mesma. */
+  it('escolhe sempre a mesma capa', async () => {
+    const primeira = await listSets(testPrisma())
+    const segunda = await listSets(testPrisma())
+
+    expect(primeira.map((s) => s.coverUrl)).toEqual(segunda.map((s) => s.coverUrl))
+  })
+
+  it('getSet devolve a mesma capa e o mesmo tipo que a lista', async () => {
+    const [alvo] = await listSets(testPrisma())
+    const set = await getSet(testPrisma(), alvo.code)
+
+    expect(set.coverUrl).toBe(alvo.coverUrl)
+    expect(set.kind).toBe(alvo.kind)
+  })
+
+  /** A capa e URL da origem; nada de imagem no nosso banco (decisao 020). */
+  it('a capa e uma URL da origem', async () => {
+    const sets = await listSets(testPrisma())
+
+    for (const set of sets) {
+      if (set.coverUrl) expect(set.coverUrl).toMatch(/^https:\/\/en\.onepiece-cardgame\.com\//)
+    }
+  })
+})

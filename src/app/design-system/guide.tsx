@@ -296,20 +296,22 @@ export function Guide() {
               name: '-ROMANCE DAWN-',
               displayName: 'ROMANCE DAWN',
               variantCount: 154,
+              kind: 'collection',
+              coverUrl: null,
             }}
           />
           <p className="text-xs text-text-muted">
-            O cabeçalho do set usa forma e cor próprias. A tela de referência abre com arte de
-            mangá, que a diretriz de propriedade intelectual não permite como decoração — e o
-            modelo de dados não guarda capa de set.
+            O cabeçalho do set usa a primeira carta do set como ambientação, desfocada sob uma
+            camada do roxo da marca — o que garante contraste do texto sobre arte que não
+            controlamos. Aqui aparece sem arte, porque o guia não usa imagem de carta.
           </p>
 
           <SetList
             sets={[
-              { code: 'OP01', name: '-ROMANCE DAWN-', displayName: 'ROMANCE DAWN', variantCount: 154 },
-              { code: 'OP-13', name: '-CARRYING ON HIS WILL-', displayName: 'CARRYING ON HIS WILL', variantCount: 175 },
-              { code: 'ST-01', name: '-Straw Hat Crew-', displayName: 'Straw Hat Crew', variantCount: 17 },
-              { code: 'PROMO', name: 'One Piece Promotion Cards', displayName: 'One Piece Promotion Cards', variantCount: 537 },
+              { code: 'OP01', name: '-ROMANCE DAWN-', displayName: 'ROMANCE DAWN', variantCount: 154, kind: 'collection', coverUrl: null },
+              { code: 'OP-13', name: '-CARRYING ON HIS WILL-', displayName: 'CARRYING ON HIS WILL', variantCount: 175, kind: 'collection', coverUrl: null },
+              { code: 'ST-01', name: '-Straw Hat Crew-', displayName: 'Straw Hat Crew', variantCount: 17, kind: 'deck', coverUrl: null },
+              { code: 'PROMO', name: 'One Piece Promotion Cards', displayName: 'One Piece Promotion Cards', variantCount: 537, kind: 'promo', coverUrl: null },
             ]}
           />
 

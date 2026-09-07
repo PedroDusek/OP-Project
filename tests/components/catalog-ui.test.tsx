@@ -10,14 +10,30 @@ import type { SetSummary } from '@/server/application/catalog/list-sets'
 import type { CatalogResult } from '@/server/application/catalog/search-cards'
 
 const SETS: SetSummary[] = [
-  { code: 'OP01', name: '-ROMANCE DAWN-', displayName: 'ROMANCE DAWN', variantCount: 154 },
+  {
+    code: 'OP01',
+    name: '-ROMANCE DAWN-',
+    displayName: 'ROMANCE DAWN',
+    variantCount: 154,
+    kind: 'collection',
+    coverUrl: 'https://en.onepiece-cardgame.com/images/cardlist/card/OP01-001.png',
+  },
   {
     code: 'OP-13',
     name: '-CARRYING ON HIS WILL-',
     displayName: 'CARRYING ON HIS WILL',
     variantCount: 175,
+    kind: 'collection',
+    coverUrl: null,
   },
-  { code: 'ST-01', name: '-Straw Hat Crew-', displayName: 'Straw Hat Crew', variantCount: 17 },
+  {
+    code: 'ST-01',
+    name: '-Straw Hat Crew-',
+    displayName: 'Straw Hat Crew',
+    variantCount: 17,
+    kind: 'deck',
+    coverUrl: null,
+  },
 ]
 
 function result(overrides: Partial<CatalogResult> = {}): CatalogResult {
@@ -66,7 +82,7 @@ describe('SetList', () => {
 
     const item = screen.getByRole('link', { name: /ROMANCE DAWN/ })
     expect(within(item).getByText('ROMANCE DAWN')).toBeInTheDocument()
-    expect(within(item).getByText(/154 variantes/)).toBeInTheDocument()
+    expect(within(item).getByText(/154 cartas/)).toBeInTheDocument()
   })
 
   it('leva ao set com o código codificado na URL', () => {
@@ -78,21 +94,50 @@ describe('SetList', () => {
     )
   })
 
-  it('usa singular para um set de uma variante', () => {
+  /** A palavra na tela e "cartas"; a contagem continua sendo de variantes. */
+  it('diz cartas, e usa singular para uma só', () => {
     render(<SetList sets={[{ ...SETS[0], variantCount: 1 }]} />)
-    expect(screen.getByText(/1 variante$/)).toBeInTheDocument()
+    expect(screen.getByText(/1 carta$/)).toBeInTheDocument()
   })
 
   it('filtra por código e por nome', async () => {
     render(<SetList sets={SETS} />)
     const busca = screen.getByRole('searchbox', { name: 'Buscar sets' })
 
-    await userEvent.type(busca, 'straw')
+    await userEvent.type(busca, 'romance')
     expect(screen.getAllByRole('link')).toHaveLength(1)
 
     await userEvent.clear(busca)
     await userEvent.type(busca, 'OP-13')
     expect(screen.getAllByRole('link')).toHaveLength(1)
+  })
+
+  /**
+   * Coleções e decks são coisas diferentes de procurar: 36 decks iniciantes no
+   * meio das coletâneas atrapalham quem quer saber o que falta de um booster.
+   */
+  it('separa coleções de decks', async () => {
+    render(<SetList sets={SETS} />)
+
+    expect(screen.getAllByRole('link')).toHaveLength(2)
+    expect(screen.queryByText('Straw Hat Crew')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('tab', { name: /Decks/ }))
+
+    expect(screen.getByText('Straw Hat Crew')).toBeInTheDocument()
+    expect(screen.queryByText('ROMANCE DAWN')).not.toBeInTheDocument()
+  })
+
+  it('abre direto na categoria pedida pela rota', () => {
+    render(<SetList sets={SETS} initialKind="deck" />)
+    expect(screen.getByText('Straw Hat Crew')).toBeInTheDocument()
+  })
+
+  it('conta cada categoria na aba', () => {
+    render(<SetList sets={SETS} />)
+
+    expect(screen.getByRole('tab', { name: /Coleções.*2/ })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: /Decks.*1/ })).toBeInTheDocument()
   })
 
   /** Buscar pela grafia da fonte, com hifens, ainda encontra. */
@@ -120,15 +165,40 @@ describe('SetHeader', () => {
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('ROMANCE DAWN')
     expect(screen.getByText('OP01')).toBeInTheDocument()
-    expect(screen.getByText('154 variantes')).toBeInTheDocument()
+    expect(screen.getByText('154 cartas')).toBeInTheDocument()
   })
 
-  it('volta para a lista de sets', () => {
+  it('volta para a categoria de onde veio', () => {
     render(<SetHeader set={SETS[0]} />)
-    expect(screen.getByRole('link', { name: /Todos os sets/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Coleções/ })).toHaveAttribute(
       'href',
-      '/catalogo/sets',
+      '/catalogo/sets?tipo=collection',
     )
+  })
+
+  it('deck volta para os decks', () => {
+    render(<SetHeader set={SETS[2]} />)
+    expect(screen.getByRole('link', { name: /Decks/ })).toHaveAttribute(
+      'href',
+      '/catalogo/sets?tipo=deck',
+    )
+  })
+
+  /**
+   * A arte é a primeira carta do set, decorativa: entra com `alt` vazio, porque
+   * o código e o nome já estão escritos ao lado e repeti-los seria ruído.
+   */
+  it('usa a arte do set como ambientação, sem anunciá-la', () => {
+    const { container } = render(<SetHeader set={SETS[0]} />)
+    const art = container.querySelector('img')
+
+    expect(art).toHaveAttribute('src', expect.stringContaining('OP01-001.png'))
+    expect(art).toHaveAttribute('alt', '')
+  })
+
+  it('funciona sem arte', () => {
+    render(<SetHeader set={SETS[1]} />)
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('CARRYING ON HIS WILL')
   })
 })
 
@@ -138,7 +208,7 @@ describe('CatalogResults', () => {
       <CatalogResults result={result()} pathname="/catalogo" searchParams={new URLSearchParams()} />,
     )
 
-    expect(screen.getByRole('status')).toHaveTextContent('2 variantes')
+    expect(screen.getByRole('status')).toHaveTextContent('2 cartas')
     expect(screen.getAllByRole('link')[0]).toHaveAttribute('href', '/catalogo/carta/1')
   })
 

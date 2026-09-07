@@ -1488,3 +1488,98 @@ páginas falam com o caso de uso diretamente.
 ## Data
 
 2026-09-07
+
+---
+
+# Decisão: 036 — Ordem de lançamento informada, e sets separados de decks
+
+**Substitui a decisão 034**, que registrava a ausência de ordem de lançamento
+como limitação. A ordem passou a existir porque o dono do produto a informou.
+
+## Contexto
+
+A decisão 034 recusou oferecer "sets mais recentes" porque o modelo não guarda
+data de lançamento e ordenar códigos não é ordenar por data. Isso continua
+verdade sobre o **dado**; o que mudou é que o dono do produto forneceu a ordem
+diretamente, e pediu duas coisas mais: separar coleções de decks, e exibir a
+contagem como "cartas" em vez de "variantes".
+
+## Decisão
+
+**Ordem.** As coleções aparecem na ordem informada, que intercala os extra
+boosters entre os boosters — `OP-06`, `EB-01`, `OP-07` — e que nenhuma
+ordenação de código produz. A lista vive em `src/server/domain/catalog/sets.ts`.
+
+Ela é escrita com os códigos do **catálogo importado**, não os da lista
+original: o que lá é `OP-14` chegou como `OP14-EB04`, porque o lançamento
+internacional juntou o EB-04 aos boosters 14 e 15. Por isso `EB-04` não aparece
+— não existe como set separado no nosso catálogo.
+
+Set fora da lista cai na ordenação natural do código, depois dos conhecidos.
+Uma coletânea nova aparece no dia em que for importada, em vez de sumir por não
+ter sido prevista.
+
+**Separação.** Sets são classificados em coleção, deck e promocional pelo
+prefixo do código. Isto **não** é inferência de padrão no estilo que a decisão
+022 recusou: a fonte rotula cada série no seletor da página de listagem, e a
+correspondência foi conferida uma a uma no snapshot — todo `ST` é
+`STARTER DECK`, `STARTER DECK EX` ou `ULTRA DECK`, e nenhum booster é `ST`.
+
+**Palavra na tela.** A contagem de um set é exibida como "154 cartas" e não
+"154 variantes". É mudança de texto: a distinção entre carta e variante continua
+valendo em contagem, playset e progresso (`business-rules.md` 2).
+
+## Motivo
+
+A ordem de lançamento é a ordem em que as pessoas viveram o jogo, e a única em
+que os extra boosters caem no lugar certo. Ela não podia ser derivada; podia ser
+informada, e foi.
+
+A separação existe porque coleção e deck são coisas diferentes de procurar: 36
+decks iniciantes no meio das coletâneas atrapalham quem quer saber o que falta
+de um booster.
+
+## O que fica em aberto
+
+Guardar o rótulo da série em `sets` removeria a suposição do prefixo e corrigiria
+de quebra os nomes inconsistentes — `OP-17` foi importado como
+`BOOSTER PACK -...-` e `OP-01` como `-...-`, embora ambos sejam booster pack.
+Hoje isso é resolvido na exibição. Seria alteração do modelo e reimportação, e
+está registrado como pendência.
+
+## Data
+
+2026-09-07
+
+---
+
+# Decisão: 037 — Imagem de carta é exibida; o banco guarda só a URL
+
+## Contexto
+
+A decisão 020 lista, entre as mitigações obrigatórias, que as imagens sejam
+referenciadas na origem e nunca copiadas. Restava a dúvida sobre **exibi-las**.
+
+O dono do produto confirmou que verificou as questões legais e que as imagens do
+catálogo — as que trazem a marca d'água `SAMPLE` — podem ser exibidas, desde que
+o banco guarde apenas a URL.
+
+## Decisão
+
+As imagens aparecem na grade, no detalhe da carta, na lista de sets e como
+ambientação do cabeçalho do set. `card_variants.image_url` continua guardando a
+URL canônica da fonte e nada mais.
+
+Nada muda no que já estava construído: a decisão 026 já impedia o otimizador do
+`next/image`, justamente porque ele baixaria o arquivo e o serviria do nosso
+domínio. Esta decisão registra a confirmação e estende o uso ao cabeçalho do set.
+
+## Motivo
+
+Registrado porque a autorização é do dono do produto e a restrição é jurídica,
+não técnica: quem vier depois precisa saber que exibir é permitido e
+rearmazenar não, e que as duas coisas são diferentes.
+
+## Data
+
+2026-09-07

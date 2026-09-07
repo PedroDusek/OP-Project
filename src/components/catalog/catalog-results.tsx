@@ -3,6 +3,7 @@ import { CardGrid, CardTile } from '@/components/catalog/card-tile'
 import { Pagination } from '@/components/ui/pagination'
 import { EmptyState } from '@/components/ui/states'
 import type { CatalogResult } from '@/server/application/catalog/search-cards'
+import { cardCountLabel } from '@/server/domain/catalog/sets'
 import { buildCatalogHref, PARAM } from '@/lib/catalog-params'
 
 /**
@@ -41,9 +42,12 @@ export function CatalogResults({
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-text-muted tabular-nums" role="status">
-        {result.total === 1
-          ? '1 variante'
-          : `${result.total.toLocaleString('pt-BR')} variantes`}
+        {/*
+          Diz "cartas" e conta variantes. A palavra e escolha do dono do produto;
+          a distincao entre carta e variante continua valendo em todo o resto do
+          sistema. Ver `cardCountLabel`.
+        */}
+        {cardCountLabel(result.total)}
         {result.totalPages > 1 ? ` · mostrando ${from}–${to}` : ''}
       </p>
 
