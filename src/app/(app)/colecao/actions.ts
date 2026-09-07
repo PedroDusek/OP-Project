@@ -5,7 +5,7 @@ import { setCollectionQuantity, QUANTITY_BELOW_ALLOCATED } from '@/server/applic
 import { ConflictError, isAppError } from '@/server/domain/errors'
 import { formErrorFrom } from '@/server/http/form-state'
 import { currentViewer } from '@/server/http/viewer'
-import type { AllocationSnapshot } from '@/server/application/collection'
+import type { AllocationSnapshot, Removal } from '@/server/application/collection'
 import type { QuantityState } from './state'
 
 /**
@@ -15,6 +15,10 @@ import type { QuantityState } from './state'
  * traduz o resultado. A regra, a transacao e o lock estao no caso de uso.
  *
  * O `user_id` vem da sessao e nunca do formulario (`architecture.md` 3.1).
+ *
+ * Quando a reducao exige resolucao (decisao 007), a escolha da pessoa chega em
+ * campos `remocao` e vai junto na **mesma** chamada: desalocar e reduzir em duas
+ * idas deixaria uma janela com alocacao orfa, e um erro no meio pararia ali.
  */
 export async function setQuantityAction(
   _previous: QuantityState,
@@ -30,8 +34,11 @@ export async function setQuantityAction(
     return { status: 'error', message: 'Quantidade inválida.' }
   }
 
+  const removals = readRemovals(data)
+  if (removals === null) return { status: 'error', message: 'Retirada inválida.' }
+
   try {
-    const result = await setCollectionQuantity(viewer, BigInt(variantId), quantity)
+    const result = await setCollectionQuantity(viewer, BigInt(variantId), quantity, removals)
 
     // A colecao, os playsets e os numeros da Home mudam juntos.
     revalidatePath('/colecao')
@@ -58,4 +65,27 @@ export async function setQuantityAction(
 
     return { status: 'error', message: formErrorFrom(error).message }
   }
+}
+
+/**
+ * As retiradas escolhidas, no formato `<idDoLocal>:<quantidade>`.
+ *
+ * Um campo repetido por local, e nao um JSON num campo so: o formulario ja sabe
+ * mandar valores repetidos, e um JSON exigiria confiar na forma de um texto
+ * vindo do cliente antes de conseguir olhar para ele.
+ *
+ * Devolve `null` quando alguma entrada nao tem o formato esperado. A validacao
+ * de verdade — se a retirada existe, se cabe, se fecha a conta — e do dominio;
+ * aqui so se recusa o que nem chega a ser um par de numeros.
+ */
+function readRemovals(data: FormData): Removal[] | null {
+  const removals: Removal[] = []
+
+  for (const entry of data.getAll('remocao')) {
+    const match = /^(\d+):(\d+)$/.exec(String(entry))
+    if (!match) return null
+    removals.push({ storageLocationId: match[1], quantity: Number(match[2]) })
+  }
+
+  return removals
 }

@@ -10,7 +10,6 @@ import { CardArt } from '@/components/catalog/card-art'
 import { QuantitySelector } from '@/components/ui/quantity-selector'
 import { Sheet } from '@/components/ui/sheet'
 import { useToast } from '@/components/ui/toast'
-import { cn } from '@/lib/cn'
 
 /**
  * Editar quantidade (tela 20).
@@ -25,13 +24,17 @@ import { cn } from '@/lib/cn'
  * da coleção" e "definir para 0" são a mesma escrita, e por isso não existe uma
  * segunda ação capaz de divergir da primeira.
  *
- * ## O conflito da decisão 007
+ * ## O conflito da decisão 007, e a resolução
  *
  * Reduzir abaixo do que está guardado em armazenamento não desaloca sozinho: o
- * servidor recusa e devolve onde as cópias estão. A tela de resolução, onde a
- * pessoa escolhe de qual local retirar, depende das telas de armazenamento;
- * até lá, o painel mostra os locais e a conta, que é o suficiente para ela
- * saber o que fazer.
+ * servidor recusa e devolve onde as cópias estão. A partir daí o painel vira a
+ * tela de resolução — a pessoa escolhe **de qual local** cada cópia sai, e a
+ * escolha volta junto com a nova quantidade, numa transação só
+ * (`business-rules.md` 3.3).
+ *
+ * Nenhuma retirada vem preenchida. Escolher a ordem por ela — tirar do maior,
+ * tirar do primeiro — seria presumir de onde as cartas saíram, que é
+ * exatamente o que a regra proíbe.
  */
 
 export interface QuantitySheetProps {
@@ -58,6 +61,7 @@ export function QuantitySheet({
 }: QuantitySheetProps) {
   const [state, action, pending] = useActionState(setQuantityAction, QUANTITY_IDLE)
   const [quantity, setQuantity] = useState(() => openingQuantity(currentQuantity))
+  const [removals, setRemovals] = useState<Record<string, number>>({})
   const { toast } = useToast()
 
   // Reabrir o painel parte sempre do que está guardado hoje, e não do que a
@@ -65,7 +69,10 @@ export function QuantitySheet({
   const [lastOpen, setLastOpen] = useState(open)
   if (open !== lastOpen) {
     setLastOpen(open)
-    if (open) setQuantity(openingQuantity(currentQuantity))
+    if (open) {
+      setQuantity(openingQuantity(currentQuantity))
+      setRemovals({})
+    }
   }
 
   useEffect(() => {
@@ -80,6 +87,12 @@ export function QuantitySheet({
   }, [state, code, name, toast, onOpenChange])
 
   const conflict = state.status === 'conflict' ? state : null
+  const chosen = conflict
+    ? conflict.allocations.reduce((sum, a) => sum + (removals[a.storageLocationId] ?? 0), 0)
+    : 0
+  const missing = conflict
+    ? Math.max(0, conflict.allocations.reduce((sum, a) => sum + a.quantity, 0) - chosen - quantity)
+    : 0
 
   return (
     <Sheet
@@ -92,13 +105,7 @@ export function QuantitySheet({
         <input type="hidden" name="variantId" value={variantId} />
 
         <div className="flex items-center gap-3">
-          <CardArt
-            src={imageUrl}
-            alt=""
-            fallback={code}
-            sizes="72px"
-            className="w-18 shrink-0"
-          />
+          <CardArt src={imageUrl} alt="" fallback={code} sizes="72px" className="w-18 shrink-0" />
           <div className="flex min-w-0 flex-col gap-1">
             <p className="truncate text-sm font-semibold text-text tabular-nums">{code}</p>
             <p className="truncate text-sm text-text-muted">{name}</p>
@@ -124,9 +131,7 @@ export function QuantitySheet({
             disabled={pending}
           />
           {currentQuantity > 0 ? (
-            <p className="text-xs text-text-muted tabular-nums">
-              Você tem {currentQuantity} hoje.
-            </p>
+            <p className="text-xs text-text-muted tabular-nums">Você tem {currentQuantity} hoje.</p>
           ) : null}
         </div>
 
@@ -139,29 +144,55 @@ export function QuantitySheet({
         {conflict ? (
           <div
             role="alert"
-            className="flex flex-col gap-2 rounded-control border border-warning/30 bg-warning-soft p-3"
+            className="flex flex-col gap-3 rounded-control border border-warning/30 bg-warning-soft p-3"
           >
             <p className="flex items-start gap-2 text-sm text-text">
               <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
               {conflict.message}
             </p>
-            <ul className="flex flex-col gap-1 pl-6">
-              {conflict.allocations.map((allocation) => (
-                <li
-                  key={allocation.storageLocationId}
-                  className="flex items-center justify-between gap-2 text-sm text-text-muted"
-                >
-                  <span className="flex min-w-0 items-center gap-1.5">
-                    <Package className="size-3.5 shrink-0" aria-hidden />
-                    <span className="truncate">{allocation.storageName}</span>
-                  </span>
-                  <span className="tabular-nums">{allocation.quantity}</span>
-                </li>
-              ))}
+
+            <ul className="flex flex-col gap-3">
+              {conflict.allocations.map((allocation) => {
+                const chosenHere = removals[allocation.storageLocationId] ?? 0
+                return (
+                  <li key={allocation.storageLocationId} className="flex flex-col gap-1.5">
+                    <span className="flex items-center justify-between gap-2 text-sm text-text">
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <Package className="size-3.5 shrink-0 text-text-muted" aria-hidden />
+                        <span className="truncate">{allocation.storageName}</span>
+                      </span>
+                      <span className="shrink-0 text-text-muted tabular-nums">
+                        {allocation.quantity} guardadas
+                      </span>
+                    </span>
+                    <QuantitySelector
+                      label={`Retirar de ${allocation.storageName}`}
+                      value={chosenHere}
+                      max={allocation.quantity}
+                      disabled={pending}
+                      onValueChange={(value) =>
+                        setRemovals((current) => ({
+                          ...current,
+                          [allocation.storageLocationId]: value,
+                        }))
+                      }
+                    />
+                    {chosenHere > 0 ? (
+                      <input
+                        type="hidden"
+                        name="remocao"
+                        value={`${allocation.storageLocationId}:${chosenHere}`}
+                      />
+                    ) : null}
+                  </li>
+                )
+              })}
             </ul>
-            <p className="pl-6 text-xs text-text-subtle">
-              Retire as cópias desses locais antes de reduzir. A tela para escolher de onde
-              retirar chega com o armazenamento.
+
+            <p className="text-xs text-text-muted tabular-nums">
+              {missing > 0
+                ? `Escolha de onde saem mais ${missing}.`
+                : 'Pronto: as cópias escolhidas saem junto com a redução.'}
             </p>
           </div>
         ) : null}
@@ -173,11 +204,19 @@ export function QuantitySheet({
           uma corrida: `setState` e assincrono, e o formulario podia sair com o
           valor anterior.
         */}
-        <div className={cn('flex flex-col gap-2')}>
-          <Button type="submit" name="quantity" value={quantity} block size="lg" loading={pending}>
-            {quantity === 0 ? 'Remover da coleção' : 'Salvar'}
+        <div className="flex flex-col gap-2">
+          <Button
+            type="submit"
+            name="quantity"
+            value={quantity}
+            block
+            size="lg"
+            loading={pending}
+            disabled={conflict !== null && missing > 0}
+          >
+            {conflict ? 'Reduzir e retirar' : quantity === 0 ? 'Remover da coleção' : 'Salvar'}
           </Button>
-          {currentQuantity > 0 && quantity !== 0 ? (
+          {currentQuantity > 0 && quantity !== 0 && !conflict ? (
             <Button type="submit" name="quantity" value={0} variant="danger" block disabled={pending}>
               Remover da coleção
             </Button>

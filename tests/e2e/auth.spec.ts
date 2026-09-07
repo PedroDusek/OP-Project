@@ -57,7 +57,14 @@ test.describe('landing', () => {
 test.describe('rota protegida', () => {
 
   test('manda para o login carregando o destino', async ({ page }) => {
-    for (const path of ['/inicio', '/colecao', '/catalogo', '/trocas', '/mais']) {
+    for (const path of [
+      '/inicio',
+      '/colecao',
+      '/catalogo',
+      '/trocas',
+      '/mais',
+      '/armazenamento',
+    ]) {
       await page.goto(path)
       await expect(page).toHaveURL(`/entrar?next=${encodeURIComponent(path)}`)
     }
@@ -210,6 +217,27 @@ test.describe('catálogo protegido', () => {
       '/catalogo/sets',
       '/catalogo/sets/OP01',
       '/catalogo/carta/1',
+    ]) {
+      await page.goto(path)
+      await expect(page).toHaveURL(`/entrar?next=${encodeURIComponent(path)}`)
+    }
+  })
+})
+
+test.describe('armazenamento protegido', () => {
+  /**
+   * Um local guarda onde ficam as cartas de uma pessoa. As rotas internas —
+   * detalhe, cartas, edicao, criacao — pedem sessao pelo mesmo motivo que a
+   * lista, e sao testadas uma a uma porque cada uma tem seu proprio
+   * `requireViewer`: uma que esquecesse a chamada passaria despercebida.
+   */
+  test('as rotas de armazenamento pedem sessão', async ({ page }) => {
+    for (const path of [
+      '/armazenamento',
+      '/armazenamento/novo',
+      '/armazenamento/1',
+      '/armazenamento/1/cartas',
+      '/armazenamento/1/editar',
     ]) {
       await page.goto(path)
       await expect(page).toHaveURL(`/entrar?next=${encodeURIComponent(path)}`)

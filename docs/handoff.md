@@ -30,8 +30,8 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 9 concluídos.** 442 testes de unidade, integração e
-componente, mais 27 ponta a ponta. Lint, typecheck e build passando.
+**Checkpoints 0 a 10 concluídos.** 530 testes de unidade, integração e
+componente, mais 28 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
 |---|---|
@@ -45,6 +45,7 @@ componente, mais 27 ponta a ponta. Lint, typecheck e build passando.
 | 7 | Entrada e autenticação na interface: landing, entrar, criar conta, recuperar senha, sair |
 | 8 | Catálogo na interface: busca, filtros, sets, detalhe do set e da variante |
 | 9 | Coleção na interface: grade, filtros, playsets, quantidade, progresso real |
+| 10 | Armazenamento: locais, alocação, upload de imagem, resolução da decisão 007 |
 
 **Banco de produção populado e conferido:** 2.785 cartas, 4.843 variantes, 60
 sets, 4.842 impressões — números idênticos ao local, estrutura conferida objeto
@@ -52,7 +53,7 @@ a objeto.
 
 ## As decisões que mais restringem o que vem depois
 
-As 41 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 43 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
@@ -159,6 +160,13 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     arte que não carregou, dentro de `CardArt`. `getByText('OP01-001')` encontra
     dois elementos e o teste falha por ambiguidade. Localize a linha por algo
     que exista uma vez só: a barra de progresso, o botão, o `alt`.
+20. **O jsdom aplica a validação nativa de formulário.** Um campo `required`
+    vazio bloqueia o envio, e o teste que esperava o erro **do servidor** espera
+    para sempre. Preencha o campo antes de submeter.
+21. **`prisma migrate dev` exige `CREATEDB`** para o shadow database, que o papel
+    `optcg` não tem. Escreva o SQL da migration à mão (ou com `migrate diff`) e
+    aplique com `migrate deploy` — o mesmo comando da CI. Ver `development.md`
+    2.2.
 
 ## Pendências
 
@@ -169,7 +177,7 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
    de pessoa real** assim. O texto é decisão do dono do produto.
 2. **SMTP próprio no Supabase.** O serviço de e-mail embutido tem cota baixa por
    hora e é do projeto inteiro: estourada, ninguém consegue confirmar conta nem
-   redefinir senha. Ver `development.md` 6.1.
+   redefinir senha. Ver `development.md` 6.2.
 3. **Redirect URLs no painel do Supabase** precisam listar
    `<APP_URL>/auth/callback` de cada ambiente.
 
@@ -216,6 +224,11 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
   "A FIST OF DIVINE SPEED" e não "The Blackbeard Pirates"; `OP-12` é
   "LEGACY OF THE MASTER" e não "The Revolutionary Army". A tela mostra o nome da
   fonte. Trocar por nomes próprios seria manter uma segunda lista à mão.
+- **"Playsets aqui" no detalhe do local.** A tela 22 mostra uma contagem de
+  playsets dentro de um binder, e a definição da `business-rules.md` 2.1 é sobre
+  a coleção inteira. A leitura adotada é a física — cartas inteiras naquele
+  local —, registrada na decisão 043 como leitura e não como regra nova. Trocá-la
+  é uma função e um rótulo.
 - **Progresso por set** aparece nas telas 10 e 11 e não foi construído: é
   métrica de coleção (`business-rules.md` 2.2), e chega com as telas de coleção.
   O componente `ProgressBar` já existe esperando o número.
@@ -228,6 +241,9 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 
 ### Pendências que não bloqueiam
 
+- **Foto de perfil.** O envio de imagem existe desde o Checkpoint 10 e serve
+  para isso sem mudança. Falta a coluna em `users` para guardar a URL, que é
+  alteração do modelo de dados e depende de aprovação.
 - `users.plan` pode ser derivável de `premium_until` — depende da política
   comercial, que a especificação reserva ao dono do produto.
 - Limite de taxa não escala horizontalmente: contador em memória de processo.
@@ -242,18 +258,17 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 
 ## Próximo passo
 
-**Armazenamento na interface** — telas 21 a 24: locais, capacidade, alocação de
-cópias e a resolução do conflito da decisão 007, que é o pedaço deixado em
-aberto pelo Checkpoint 9. Hoje o servidor recusa a redução abaixo do alocado e o
-painel de quantidade mostra onde as cópias estão; falta o atalho para retirar
-dali.
+**Edição em massa** — telas 25 a 28: selecionar várias cartas e aplicar a mesma
+operação. É a primeira vez que uma ação escreve em muitas linhas de uma vez, e
+as duas perguntas a responder são o alcance da transação e o que acontece quando
+parte da seleção falha — a decisão 007 vale para cada carta, e cinquenta
+conflitos ao mesmo tempo não cabem no painel de resolução de uma.
 
-O que já existe e será usado: `collection_item_locations` no banco desde o
-Checkpoint 2, `AllocationSnapshot` na resposta do conflito, e o lock de linha em
-`collection_items` que a alocação precisa respeitar — alocar mais do que se
-possui é o mesmo erro pela outra ponta.
+O que já existe e será usado: `CardTile` tem modo de seleção desde o Checkpoint
+6; a alocação e a quantidade já são transacionais por carta, com o lock na linha
+de `collection_items`.
 
-Depois: edição em massa (25 a 28) e trocas (29 a 35).
+Depois: trocas (29 a 35), Trade Binder público e preço.
 
 O protocolo continua: uma branch e um PR por checkpoint, o assistente merge
 quando estiver completo e sem pendência, e para antes de iniciar o próximo

@@ -205,6 +205,7 @@ explícitos:
 | `npm run supabase import` | importa o catálogo, baixando da fonte |
 | `npm run supabase import 569117` | importa apenas as séries informadas |
 | `npm run supabase import --from=DIR` | importa de um snapshot local |
+| `npm run supabase storage` | cria (ou confere) o bucket das imagens do usuário |
 
 **Prefira `--from` quando o snapshot já existir.** Rebaixar o catálogo inteiro a
 cada importação é carga evitável sobre a origem, e a decisão 020 nos obriga a
@@ -222,7 +223,28 @@ estiver ausente, apontar para `localhost` ou ser igual a `DATABASE_URL`.
 um comando a um passo de distância; se for mesmo necessário, faça pelo painel do
 Supabase, conscientemente.
 
-### 6.1 Autenticação: o que depende do painel
+### 6.1 Imagens enviadas pelo usuário
+
+A foto de um local de armazenamento vai para o Supabase Storage (decisão 042).
+Um comando prepara o bucket:
+
+```
+npm run supabase storage
+```
+
+Ele cria `colexa-imagens` público para leitura, com limite de 5 MB e apenas
+`image/png` e `image/jpeg`. Rodar de novo é seguro: se já existir, os limites são
+apenas conferidos. Os valores saem da **mesma constante** que o servidor usa para
+recusar (`src/server/domain/storage/image.ts`), então não há como divergirem.
+
+Depende de `NEXT_PUBLIC_SUPABASE_URL` e `SUPABASE_SECRET_KEY` no `.env`. Sem a
+chave secreta, o campo de foto simplesmente não aparece na tela e o resto do
+armazenamento continua funcionando — ausente é diferente de quebrado.
+
+O bucket **não** é o banco: este comando não usa `SUPABASE_DATABASE_URL` e não
+falha por causa dela.
+
+### 6.2 Autenticação: o que depende do painel
 
 Três coisas do fluxo de conta **não** se resolvem em código:
 
@@ -241,7 +263,7 @@ Estado atual do projeto, conferido em 07/09/2026 pelo endpoint público
 `/auth/v1/settings`: e-mail e senha habilitados, cadastro aberto, confirmação de
 e-mail **obrigatória**, nenhum provedor social ligado.
 
-### 6.2 Habilitar Google e Apple
+### 6.3 Habilitar Google e Apple
 
 O código já está pronto: os botões aparecem sozinhos para os provedores que o
 Supabase reportar como habilitados (decisão 032). O que falta é configuração de
@@ -305,7 +327,7 @@ node -e "require('dotenv').config();fetch(process.env.NEXT_PUBLIC_SUPABASE_URL+'
 O que este comando reportar é exatamente o que a tela vai desenhar. O resultado
 fica em cache por cinco minutos no servidor da aplicação.
 
-### 6.3 Se a conexão direta falhar
+### 6.4 Se a conexão direta falhar
 
 O Supabase serve a conexão direta por IPv6. Em rede sem IPv6, a conexão expira
 sem erro claro. Nesse caso use a string do **Session pooler**, que é compatível

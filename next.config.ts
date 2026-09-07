@@ -1,5 +1,30 @@
 import type { NextConfig } from 'next'
 
+/**
+ * A origem do Supabase Storage, quando ela existe neste ambiente.
+ *
+ * Sai da mesma variavel do resto do Supabase, em vez de uma lista fixa: o
+ * projeto tem um endereco por ambiente, e escrever o de producao aqui faria a
+ * foto enviada em desenvolvimento nao desenhar — sem erro visivel, que e como
+ * a decisao 038 comecou.
+ */
+function supabaseImageHost() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (!url) return []
+
+  try {
+    return [
+      {
+        protocol: 'https' as const,
+        hostname: new URL(url).hostname,
+        pathname: '/storage/v1/object/public/**',
+      },
+    ]
+  } catch {
+    return []
+  }
+}
+
 const nextConfig: NextConfig = {
   images: {
     /**
@@ -24,6 +49,8 @@ const nextConfig: NextConfig = {
         hostname: 'en.onepiece-cardgame.com',
         pathname: '/images/cardlist/**',
       },
+      // Fotos de local de armazenamento, enviadas pela propria pessoa.
+      ...supabaseImageHost(),
     ],
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },

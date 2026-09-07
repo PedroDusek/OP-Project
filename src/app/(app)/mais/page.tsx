@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Archive } from 'lucide-react'
 import { PageHeader } from '@/components/layout/app-shell'
 import { ThemeControl } from '@/components/theme/theme-control'
 import { Panel, PanelList, ListRow } from '@/components/ui/surface'
@@ -15,8 +16,8 @@ export const metadata: Metadata = { title: 'Mais' }
  * Mais.
  *
  * Secao 4: armazenamento, perfil, Premium e configuracoes. Destes existem hoje
- * a identidade de quem esta logado, a aparencia e sair da conta — e existem de
- * verdade, nao como demonstracao.
+ * o armazenamento, a identidade de quem esta logado, a aparencia e sair da
+ * conta — e existem de verdade, nao como demonstracao.
  *
  * As outras entradas nao aparecem como itens desabilitados de proposito. Uma
  * lista de seis linhas em que cinco nao levam a lugar nenhum ensina a pessoa a
@@ -60,6 +61,12 @@ export default async function MaisPage() {
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold text-text">Seções</h2>
           <PanelList>
+            <ListRow
+              href="/armazenamento"
+              leading={<Archive className="size-5 text-text-muted" aria-hidden />}
+              title="Armazenamento"
+              description="Seus binders, caixas e decks."
+            />
             {DESTINATIONS.filter((destination) => destination.href !== '/mais').map(
               (destination) => (
                 <ListRow
