@@ -96,7 +96,21 @@ export class SupabaseAuthProvider implements AuthProvider {
 
   async exchangeCodeForSession(code: string): Promise<void> {
     const { error } = await this.client().auth.exchangeCodeForSession(code)
-    if (error) throw new AuthenticationError('Este link expirou ou já foi usado.')
+    if (error) {
+      /*
+       * Tres causas diferentes, indistinguiveis daqui, e a terceira e a mais
+       * comum de todas: o fluxo e PKCE, entao o verificador fica num cookie do
+       * **navegador que comecou** o cadastro. Abrir o link de confirmacao no
+       * navegador do celular depois de se cadastrar no desktop cai aqui.
+       *
+       * Dizer so "expirou ou ja foi usado" manda a pessoa pedir outro e-mail,
+       * que vai falhar igual e ainda gasta a cota de envio do projeto.
+       */
+      throw new AuthenticationError(
+        'Não foi possível concluir. O link pode ter expirado, já ter sido usado, ' +
+          'ou ter sido aberto em um navegador diferente do que iniciou o cadastro.',
+      )
+    }
   }
 
   async oauthUrl(provider: OAuthProviderId, redirectTo: string): Promise<string> {
