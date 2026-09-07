@@ -105,8 +105,10 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 | `npm run start` | serve o build |
 | `npm run lint` | ESLint, incluindo as fronteiras entre camadas |
 | `npm run typecheck` | gera os tipos de rota do Next e roda `tsc --noEmit` |
-| `npm test` | testes de integração contra `TEST_DATABASE_URL` |
+| `npm test` | a suíte inteira: domínio, integração e componentes |
 | `npm run test:watch` | os mesmos testes em modo observador |
+| `npm run test:ui` | só os componentes, em jsdom. **Não precisa de PostgreSQL** |
+| `npm run test:e2e` | responsividade no Playwright, contra o build de produção |
 | `npm run db:migrate` | `prisma migrate dev`, exige `CREATEDB` |
 | `npm run db:deploy` | aplica migrations pendentes, usado na CI |
 | `npm run db:reset` | derruba, recria e reaplica migrations |
@@ -114,6 +116,15 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 | `npm run db:studio` | navegador de dados do Prisma |
 | `npm run prisma:generate` | regenera o Prisma Client |
 | `npm run catalog:import` | importa o catálogo da fonte aprovada |
+
+Fora da tabela, porque não roda no dia a dia:
+
+```
+node scripts/marca/gen.mjs
+```
+
+Regenera os arquivos de marca a partir de `docs/marca/originais/COLEXA LOGO.ai`.
+Só é necessário se a identidade mudar. Ver `docs/marca/README.md`.
 
 A importação aceita identificadores de série para limitar o alcance:
 
@@ -138,13 +149,40 @@ catálogo, e pré-preenchê-lo arriscaria divergência de grafia com a fonte.
 
 ## 5. Testes
 
-A suíte roda contra `TEST_DATABASE_URL` e **trunca todas as tabelas entre os
-testes**. Por isso o `global-setup` se recusa a rodar quando `TEST_DATABASE_URL`
-é igual a `DATABASE_URL`: seria apagar o banco de desenvolvimento.
+São **dois projetos do Vitest**, com ambientes diferentes:
 
-Ela usa `prisma migrate deploy`, o mesmo comando da CI e do deploy, e não
+| Projeto | Ambiente | Onde | Precisa de banco |
+|---|---|---|---|
+| `server` | Node | `tests/domain`, `tests/integration`, `tests/unit` | sim |
+| `components` | jsdom | `tests/components` | não |
+
+`npm test` roda os dois. `npm run test:ui` roda só os componentes, o que torna o
+ciclo de escrever interface independente de ter PostgreSQL de pé.
+
+O projeto `server` roda contra `TEST_DATABASE_URL` e **trunca todas as tabelas
+entre os testes**. Por isso o `global-setup` se recusa a rodar quando
+`TEST_DATABASE_URL` é igual a `DATABASE_URL`: seria apagar o banco de
+desenvolvimento.
+
+Ele usa `prisma migrate deploy`, o mesmo comando da CI e do deploy, e não
 `migrate dev`. Assim o que os testes validam é o que vai para produção, e a
 suíte não precisa de `CREATEDB`.
+
+### 5.1 Responsividade
+
+`npm run test:e2e` sobe o **build de produção** na porta 3100 e mede as três
+larguras num Chromium de verdade. É o único nível que consegue verificar isso:
+jsdom não avalia media query, então para ele `md:hidden` é apenas uma string, e
+um teste de componente passaria com as duas navegações visíveis ao mesmo tempo.
+
+Na primeira execução, instale o navegador:
+
+```
+npx playwright install chromium
+```
+
+O `webServer` do Playwright roda `npm run start`, então é preciso ter feito
+`npm run build` antes — ou deixar que ele reaproveite um servidor já de pé.
 
 ## 6. Produção no Supabase
 
