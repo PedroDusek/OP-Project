@@ -23,18 +23,22 @@ em versão clara e escura. São a fonte da marca hoje.
 
 Convertendo o original de CMYK para RGB pelo perfil embutido:
 
-| | |
-|---|---|
-| Símbolo | `#38277B` — índigo profundo |
-| Fundo | `#F1F2F3` — cinza muito claro |
+Confirmada pelo dono do produto:
 
-**Confirme esse índigo com quem desenhou.** Conversão de CMYK para RGB não é
-única: depende do perfil de destino e da intenção de renderização. Uma
-visualização ingênua do mesmo arquivo mostra um azul bem mais vivo, e a
-diferença entre os dois é grande demais para ser adivinhada.
+| Token | Claro | Escuro |
+|---|---|---|
+| Fundo | `#F2F2F3` | `#131219` |
+| Roxo (ênfase) | `#38287B` | `#504797` |
+| Texto | `#000000` | `#FFFFFF` |
 
-Esse valor vira o token de cor de ênfase do design system no Checkpoint 6, então
-é melhor acertá-lo antes de espalhar pela interface.
+**O roxo muda entre os temas.** `#504797` não é `#38287B` clareado por filtro: é
+mais claro e menos saturado, escolhido para manter contraste sobre o fundo
+escuro. São dois tokens distintos, e nenhuma regra de CSS deve derivar um do
+outro.
+
+A conversão do CMYK pelo perfil embutido havia dado `#38277B` — um dígito do
+valor real. O perfil estava correto, e a diferença que eu via numa visualização
+crua era o renderizador, não o arquivo.
 
 ## O que falta produzir
 
