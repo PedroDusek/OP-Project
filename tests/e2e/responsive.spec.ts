@@ -22,6 +22,15 @@ const DESKTOP = { width: 1280, height: 800 }
 /** A rota publica que renderiza o shell. */
 const SHELL = '/design-system'
 
+/**
+ * A navegacao principal, pelo nome.
+ *
+ * `nav:visible` sozinho e frouxo demais: a pagina tem outras — a paginacao do
+ * catalogo tambem e um `<nav>`. Medir "a nav visivel" so funcionava enquanto
+ * houvesse uma, e o teste quebrou no dia em que apareceu a segunda.
+ */
+const MAIN_NAV = 'nav[aria-label="Navegação principal"]:visible'
+
 test.describe('navegação responsiva', () => {
   test('no celular, apenas a barra inferior', async ({ page }) => {
     await page.setViewportSize(MOBILE)
@@ -33,7 +42,7 @@ test.describe('navegação responsiva', () => {
     // leitor de tela nunca ouve os cinco destinos duas vezes.
     await expect(page.getByRole('navigation', { name: 'Navegação principal' })).toHaveCount(1)
 
-    const box = await page.locator('nav:visible').boundingBox()
+    const box = await page.locator(MAIN_NAV).boundingBox()
     expect(box).not.toBeNull()
     expect(box!.y + box!.height).toBeGreaterThan(MOBILE.height - 80)
     expect(box!.width).toBe(MOBILE.width)
@@ -43,7 +52,7 @@ test.describe('navegação responsiva', () => {
     await page.setViewportSize(TABLET)
     await page.goto(SHELL)
 
-    const visible = page.locator('nav:visible')
+    const visible = page.locator(MAIN_NAV)
     await expect(visible).toHaveCount(1)
 
     const box = await visible.boundingBox()
@@ -56,7 +65,7 @@ test.describe('navegação responsiva', () => {
     await page.setViewportSize(DESKTOP)
     await page.goto(SHELL)
 
-    const visible = page.locator('nav:visible')
+    const visible = page.locator(MAIN_NAV)
     await expect(visible).toHaveCount(1)
 
     const box = await visible.boundingBox()
@@ -95,7 +104,7 @@ test.describe('navegação responsiva', () => {
       return Math.abs(window.scrollY - limite) < 2
     })
 
-    const nav = await page.locator('nav:visible').boundingBox()
+    const nav = await page.locator(MAIN_NAV).boundingBox()
     // O último bloco do guia de estilo. Ancorar num texto do fim é o que
     // torna a medida sensível ao respiro que a barra fixa exige.
     const last = await page.getByRole('heading', { name: 'Avatar' }).boundingBox()

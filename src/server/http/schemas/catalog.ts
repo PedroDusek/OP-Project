@@ -26,6 +26,7 @@ const integer = (label: string) =>
 const nonEmpty = (max: number) => z.string().trim().min(1).max(max)
 
 export const catalogQuerySchema = z.object({
+  search: nonEmpty(150).optional(),
   code: nonEmpty(20).optional(),
   name: nonEmpty(150).optional(),
   setCode: nonEmpty(20).optional(),
@@ -37,8 +38,10 @@ export const catalogQuerySchema = z.object({
   effect: nonEmpty(100).optional(),
   rarity: nonEmpty(50).optional(),
   variantType: nonEmpty(50).optional(),
-  cost: integer('cost').optional(),
-  power: integer('power').optional(),
+  costMin: integer('costMin').optional(),
+  costMax: integer('costMax').optional(),
+  powerMin: integer('powerMin').optional(),
+  powerMax: integer('powerMax').optional(),
   counter: integer('counter').optional(),
   hasTrigger: booleanish.optional(),
   blockIcon: nonEmpty(20).optional(),
@@ -47,6 +50,15 @@ export const catalogQuerySchema = z.object({
   // silenciosamente reduzido, para o cliente saber que pediu demais.
   pageSize: integer('pageSize').pipe(z.number().int().min(1).max(100)).optional(),
 })
+  /*
+   * Parametro desconhecido e **erro**, nao silencio.
+   *
+   * Sem `strict`, `?custo=3` — em portugues, ou com um typo — passaria batido e
+   * devolveria o catalogo inteiro, e quem chamou acharia que filtrou. E o mesmo
+   * modo de falha que ja custou caro na importacao: descarte silencioso e pior
+   * que rejeicao, porque a rejeicao pelo menos avisa.
+   */
+  .strict()
 
 export type CatalogQueryInput = z.infer<typeof catalogQuerySchema>
 

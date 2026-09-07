@@ -1,29 +1,75 @@
 import type { Metadata } from 'next'
-import { Search } from 'lucide-react'
+import Link from 'next/link'
+import { Library } from 'lucide-react'
 import { PageHeader } from '@/components/layout/app-shell'
-import { EmptyState } from '@/components/ui/states'
+import { CatalogFilters } from '@/components/catalog/catalog-filters'
+import { CatalogResults } from '@/components/catalog/catalog-results'
+import { CatalogSearch } from '@/components/catalog/catalog-search'
+import { ListRow, PanelList } from '@/components/ui/surface'
+import { getCatalogVocabulary, searchCatalog } from '@/server/application/catalog'
+import { countActiveFilters, toCatalogQuery } from '@/lib/catalog-params'
 
 export const metadata: Metadata = { title: 'Catálogo' }
 
 /**
- * Catálogo.
+ * Catálogo (tela 09).
  *
- * Diferente de Início e Coleção, aqui **nao** cabe um estado vazio: o catálogo
- * tem 2.785 cartas importadas, e dizer que está vazio seria falso. A tela
- * anuncia o que falta, que é a listagem.
+ * A busca e os filtros vivem na URL, então esta página é renderizada no
+ * servidor já filtrada. Ver `src/lib/catalog-params.ts`.
+ *
+ * A tela de referência traz também "Sets mais recentes". Não existe: o modelo
+ * de dados não guarda data de lançamento, e ordenar códigos não é o mesmo que
+ * ordenar por data — `OP-17` vir depois de `OP13` no alfabeto não diz qual saiu
+ * antes. Chamar isso de "mais recentes" seria afirmar o que não sabemos, então
+ * a entrada para os sets é uma só e honesta.
  */
-export default function CatalogoPage() {
+export default async function CatalogoPage({ searchParams }: PageProps<'/catalogo'>) {
+  const params = await searchParams
+  const query = toCatalogQuery(params, { pageSize: 24 })
+
+  const [result, vocabulary] = await Promise.all([searchCatalog(query), getCatalogVocabulary()])
+
+  const urlParams = new URLSearchParams(
+    Object.entries(params).flatMap(([key, value]) =>
+      value === undefined ? [] : [[key, Array.isArray(value) ? value[0] : value] as [string, string]],
+    ),
+  )
+
   return (
     <>
       <PageHeader
         title="Catálogo"
         description="Explore todas as cartas do One Piece Card Game."
       />
-      <EmptyState
-        icon={<Search className="size-10" aria-hidden />}
-        title="Listagem em preparação"
-        description="A busca, os sets e a grade de cartas entram na próxima etapa. O catálogo já está importado e a API de busca já responde."
-      />
+
+      <div className="flex flex-col gap-4">
+        <div className="flex gap-2">
+          <div className="min-w-0 flex-1">
+            <CatalogSearch />
+          </div>
+          <CatalogFilters vocabulary={vocabulary} activeCount={countActiveFilters(params)} />
+        </div>
+
+        <PanelList>
+          <ListRow
+            href="/catalogo/sets"
+            leading={<Library className="size-5 text-text-muted" aria-hidden />}
+            title="Sets"
+            description="Navegue por coletânea, com a contagem de variantes de cada uma."
+          />
+        </PanelList>
+
+        <CatalogResults result={result} pathname="/catalogo" searchParams={urlParams} />
+      </div>
+
+      <p className="mt-8 text-xs text-text-subtle">
+        Dados de cartas do site oficial do One Piece Card Game, da Bandai. O ColeXa não tem
+        vínculo, parceria ou endosso da Bandai.{' '}
+        <Link href="/mais" className="underline underline-offset-2">
+          Mais informações
+        </Link>
+        .
+      </p>
     </>
   )
 }

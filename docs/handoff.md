@@ -8,7 +8,7 @@ Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 14 PRs mergeados, CI verde em todos |
+| Branch | `main`, 18 PRs mergeados, CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -30,8 +30,8 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 7 concluídos.** 292 testes de unidade, integração e
-componente, mais 26 ponta a ponta. Lint, typecheck e build passando.
+**Checkpoints 0 a 8 concluídos.** 357 testes de unidade, integração e
+componente, mais 27 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
 |---|---|
@@ -43,6 +43,7 @@ componente, mais 26 ponta a ponta. Lint, typecheck e build passando.
 | 5 | Autenticação Supabase, propriedade de recurso, limite de taxa |
 | 6 | Frontend base: marca vetorizada, design system, shell responsivo, 20+ componentes |
 | 7 | Entrada e autenticação na interface: landing, entrar, criar conta, recuperar senha, sair |
+| 8 | Catálogo na interface: busca, filtros, sets, detalhe do set e da variante |
 
 **Banco de produção populado e conferido:** 2.785 cartas, 4.843 variantes, 60
 sets, 4.842 impressões — números idênticos ao local, estrutura conferida objeto
@@ -50,7 +51,7 @@ a objeto.
 
 ## As decisões que mais restringem o que vem depois
 
-As 32 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 35 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
@@ -70,6 +71,11 @@ As 32 estão em `decisions.md`. Estas mudam o que se pode fazer:
 - **024** — 131 produtos promocionais sem código viram um set único `PROMO`.
 - **025 + 031** — autenticação terceirizada, e o login acontece por Server
   Action. Não existe senha no nosso banco nem SDK de autenticação no navegador.
+- **033** — o estado da listagem do catálogo mora na URL: busca, filtros e
+  página são parâmetros da query string, e a página é renderizada no servidor já
+  filtrada. Toda listagem nova segue isso.
+- **034** — não existe "sets mais recentes": o modelo não guarda data de
+  lançamento, e ordenar códigos não é ordenar por data.
 - **007** — reduzir quantidade abaixo do alocado devolve **conflito com as
   alocações atuais** para o usuário resolver, não erro seco nem desalocação
   automática. Isso obriga a API a ter formato de conflito estruturado.
@@ -123,6 +129,16 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 13. **O Next mantém um `role="alert"` fora do `main`** (`__next-route-announcer__`).
     Toda busca por alerta em teste ponta a ponta precisa ser escopada ao `main`,
     ou encontra dois elementos.
+14. **Os códigos de set da fonte não são uniformes.** Convivem `OP01` e `OP-07`,
+    `ST13` e `ST-01`, além de `OP14-EB04`. Ordenar por texto puro coloca `OP-07`
+    antes de `OP01`. A ordenação natural está em
+    `src/server/domain/catalog/sets.ts`.
+15. **Vários nomes de set vêm cercados de hifens** — `-ROMANCE DAWN-`. A remoção
+    é simétrica de propósito: só quando começa **e** termina com hifen, senão
+    `BOOSTER PACK -X-` viraria um nome pela metade.
+16. **Seletor frouxo em teste ponta a ponta quebra sozinho.** `nav:visible`
+    funcionou até a paginação existir, que também é um `<nav>`. Localize pelo
+    nome acessível.
 
 ## Pendências
 
@@ -150,6 +166,22 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
   sozinhos, sem mudança de código (decisão 032). A Apple tem exigências de marca
   e de fluxo mais estritas, que valem conferir antes.
 
+### Perguntas em aberto
+
+- **Data de lançamento de set.** Sem ela não dá para dizer "mais recentes"
+  (decisão 034). Acrescentar `released_at` a `sets` seria alteração do modelo
+  aprovado, e depende de a fonte publicar a data de forma confiável — o que não
+  foi verificado.
+- **Progresso por set** aparece nas telas 10 e 11 e não foi construído: é
+  métrica de coleção (`business-rules.md` 2.2), e chega com as telas de coleção.
+  O componente `ProgressBar` já existe esperando o número.
+- **E-mail repetido entre provedores.** Se a mesma pessoa criar conta com senha
+  e depois entrar com Google no mesmo endereço, e o Supabase criar um usuário
+  separado em vez de vincular, o nosso `resolveUser` bate no índice único de
+  e-mail. Recusar com mensagem clara é a saída recomendada; vincular é a
+  alternativa, e é caminho de tomada de conta se algum provedor entregar e-mail
+  não verificado. **Aguarda decisão**, e o Google ainda não está habilitado.
+
 ### Pendências que não bloqueiam
 
 - `users.plan` pode ser derivável de `premium_until` — depende da política
@@ -166,21 +198,18 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 
 ## Próximo passo
 
-**Catálogo na interface** — telas 09 a 12: catálogo, lista de sets, detalhe do
-set e filtros. É a primeira tela com dado real, e o backend dela já existe:
-`searchCards` e `getCardVariant` respondem, e o catálogo está importado.
+**Coleção na interface** — telas 17 a 20: minha coleção, filtros, playsets e
+edição de quantidade. É onde o produto passa a guardar algo de quem usa, e onde
+entram os casos de uso que faltam:
 
-O que essa etapa precisa resolver e ainda não está resolvido:
+- **Adicionar e alterar quantidade**, com o lock de linha em `collection_items`
+  e o conflito estruturado da decisão 007 quando a redução fica abaixo do que já
+  está alocado.
+- **Contagem e progresso** (`business-rules.md` 2), que destrava as barras nas
+  telas de set e a Home, hoje vazias de propósito.
+- **Playsets**, com a regra por código e a exclusão de `Leader`.
 
-- **Imagem de carta na grade** aparece pela primeira vez, com a restrição da
-  decisão 026: referência à origem, sem otimizador.
-- **Capa de set** — as telas mostram arte de mangá, que a seção 19 proíbe. Vai
-  precisar de tratamento próprio, com forma e cor, não com arte de franquia.
-- **Virtualização** de lista longa: 2.785 cartas não cabem numa página.
-- **Filtros** combináveis, com o `FilterSheet` que já existe.
-
-Depois: carta e variantes (13 a 16), coleção (17 a 20), armazenamento (21 a 24),
-edição em massa (25 a 28) e trocas (29 a 35).
+Depois: armazenamento (21 a 24), edição em massa (25 a 28) e trocas (29 a 35).
 
 O protocolo continua: uma branch e um PR por checkpoint, o assistente merge
 quando estiver completo e sem pendência, e para antes de iniciar o próximo

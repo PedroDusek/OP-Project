@@ -67,6 +67,10 @@ Ambos usam variantes distintas, nunca contagem de cópias.
 A participação num set vem sempre de `variant_printings`. Nunca é derivada do
 prefixo do código da carta.
 
+Isso não é teórico: o catálogo importado tem `OP14-EB04` e `OP15-EB04`, cujos
+códigos não seguem o prefixo de um set só, e a contagem por set só fecha porque
+vem das impressões.
+
 Uma variante impressa em vários sets conta no numerador **e** no denominador de
 cada set em que aparece, de modo que todo set continua alcançando 100%. O
 progresso da coleção conta variantes distintas, então nada é contado em

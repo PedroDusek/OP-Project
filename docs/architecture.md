@@ -295,12 +295,17 @@ aparece como badge discreto sobre a imagem.
 
 - Paginação e filtro no servidor em toda listagem. O catálogo nunca é buscado
   inteiro.
+- **O estado da listagem mora na URL** (decisão 033): busca, filtros e página são
+  parâmetros da query string, e a página é um Server Component já filtrado. A
+  lista é compartilhável, volta igual pelo histórico, e voltar do detalhe de uma
+  carta devolve a lista onde ela estava.
 - **Imagem de carta não passa pelo otimizador do `next/image`** (decisão 026): o
   otimizador baixaria e serviria o arquivo do nosso domínio, e a decisão 020 nos
   obriga a apenas referenciar a origem. É `<img>` com `loading="lazy"` e a
   proporção 5/7 reservada por CSS, o que também evita salto de layout.
   `next/image` continua valendo para imagem própria, quando houver.
-- Grids virtualizados em listas longas.
+- Grids virtualizados em listas longas. Ainda não foi necessário: a paginação do
+  servidor mantém cada página em dezenas de itens, não milhares.
 - Busca com debounce; a busca exata por código vai direto ao índice único.
 - TanStack Query para cache e listas infinitas nas telas interativas; React
   Server Components na primeira renderização.

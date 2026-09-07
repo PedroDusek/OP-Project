@@ -131,7 +131,16 @@ describe('GET /api/catalog', () => {
   })
 
   it('rejeita numero malformado', async () => {
-    const response = await catalogSearch(new Request(url('?cost=muito')), undefined)
+    const response = await catalogSearch(new Request(url('?costMin=muito')), undefined)
+    expect(response.status).toBe(400)
+  })
+
+  /**
+   * Descarte silencioso e pior que rejeicao: `?custo=3`, em portugues ou com um
+   * typo, devolveria o catalogo inteiro e quem chamou acharia que filtrou.
+   */
+  it('rejeita parametro desconhecido em vez de ignorar', async () => {
+    const response = await catalogSearch(new Request(url('?custo=3')), undefined)
     expect(response.status).toBe(400)
   })
 })

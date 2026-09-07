@@ -24,6 +24,9 @@ import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/toast'
 import { Avatar } from '@/components/ui/avatar'
 import { CardGrid, CardTile } from '@/components/catalog/card-tile'
+import { SetHeader } from '@/components/catalog/set-header'
+import { SetList } from '@/components/catalog/set-list'
+import { Pagination } from '@/components/ui/pagination'
 import { StatTile } from '@/components/collection/stat-tile'
 import { StorageCard } from '@/components/storage/storage-card'
 import { TradeItem } from '@/components/trade/trade-item'
@@ -284,6 +287,33 @@ export function Guide() {
             <TradeItem code="OP01-001" name="Exemplo" imageUrl={null} variantLabel="Normal" quantity={2} marketValue="R$ 80" onRemove={() => {}} />
             <TradeItem code="OP03-013" name="Exemplo" imageUrl={null} variantLabel="Alt Art" quantity={1} marketValue="R$ 180" onRemove={() => {}} />
           </Panel>
+        </Section>
+
+        <Section title="Catálogo">
+          <SetHeader
+            set={{
+              code: 'OP01',
+              name: '-ROMANCE DAWN-',
+              displayName: 'ROMANCE DAWN',
+              variantCount: 154,
+            }}
+          />
+          <p className="text-xs text-text-muted">
+            O cabeçalho do set usa forma e cor próprias. A tela de referência abre com arte de
+            mangá, que a diretriz de propriedade intelectual não permite como decoração — e o
+            modelo de dados não guarda capa de set.
+          </p>
+
+          <SetList
+            sets={[
+              { code: 'OP01', name: '-ROMANCE DAWN-', displayName: 'ROMANCE DAWN', variantCount: 154 },
+              { code: 'OP-13', name: '-CARRYING ON HIS WILL-', displayName: 'CARRYING ON HIS WILL', variantCount: 175 },
+              { code: 'ST-01', name: '-Straw Hat Crew-', displayName: 'Straw Hat Crew', variantCount: 17 },
+              { code: 'PROMO', name: 'One Piece Promotion Cards', displayName: 'One Piece Promotion Cards', variantCount: 537 },
+            ]}
+          />
+
+          <Pagination page={3} totalPages={12} hrefFor={(page) => `#pagina-${page}`} />
         </Section>
 
         <Section title="Sobreposições">
