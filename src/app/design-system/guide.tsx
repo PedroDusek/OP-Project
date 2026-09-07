@@ -83,7 +83,7 @@ export function Guide() {
     )
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-6">
+    <div className="w-full max-w-4xl">
       <PageHeader
         title="Guia de estilo"
         description="Todos os componentes do design system em uma tela, para revisão nos dois temas."

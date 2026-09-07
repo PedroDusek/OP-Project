@@ -93,8 +93,40 @@ export const inputClassName = cn(
   'disabled:cursor-not-allowed disabled:opacity-45',
 )
 
-export function Input({ className, ...props }: React.ComponentPropsWithoutRef<'input'>) {
-  return <input className={cn(inputClassName, className)} {...props} />
+export interface InputProps extends React.ComponentPropsWithoutRef<'input'> {
+  /** Ícone à esquerda, dentro do campo. Decorativo: o rótulo já nomeia. */
+  icon?: React.ReactNode
+  /** Controle à direita, como o olho de mostrar senha. */
+  trailing?: React.ReactNode
+}
+
+export function Input({ icon, trailing, className, ...props }: InputProps) {
+  const input = (
+    <input
+      className={cn(
+        inputClassName,
+        icon && 'pl-10',
+        // Espaço para um alvo de 44 px à direita, sem o texto passar por baixo.
+        trailing && 'pr-11',
+        className,
+      )}
+      {...props}
+    />
+  )
+
+  if (!icon && !trailing) return input
+
+  return (
+    <div className="relative flex items-center">
+      {icon ? (
+        <span className="pointer-events-none absolute left-3 flex text-text-subtle" aria-hidden>
+          {icon}
+        </span>
+      ) : null}
+      {input}
+      {trailing ? <span className="absolute right-0 flex">{trailing}</span> : null}
+    </div>
+  )
 }
 
 export function Textarea({ className, ...props }: React.ComponentPropsWithoutRef<'textarea'>) {
