@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react'
 import { isAppError } from '@/server/domain/errors'
 import { getCardVariant } from '@/server/application/catalog'
 import { searchCollection } from '@/server/application/collection'
+import { listVariantAllocations } from '@/server/application/storage'
 import { currentViewer } from '@/server/http/viewer'
 import { VariantDetail } from '@/components/catalog/variant-detail'
 
@@ -34,6 +35,10 @@ export async function generateMetadata({
  * catálogo não leva a lugar nenhum: dá para navegar o jogo inteiro e não
  * registrar uma carta sequer.
  *
+ * Onde as cópias estão guardadas entra logo abaixo, e só para quem tem a carta:
+ * é daqui que se guarda pela primeira vez num binder, sem passar pelo
+ * armazenamento e procurar a carta de novo.
+ *
  * O que ainda não existe: want, disponível para troca e preço. São casos de uso
  * dos próximos checkpoints, e botões que não fazem nada seriam pior que a
  * ausência deles.
@@ -60,6 +65,8 @@ export default async function CartaPage({ params }: PageProps<'/catalogo/carta/[
       )?.quantity ?? 0
     : 0
 
+  const allocations = viewer && owned > 0 ? await listVariantAllocations(viewer, id) : undefined
+
   return (
     <>
       <Link
@@ -70,7 +77,7 @@ export default async function CartaPage({ params }: PageProps<'/catalogo/carta/[
         Catálogo
       </Link>
 
-      <VariantDetail variant={variant} ownedQuantity={owned} />
+      <VariantDetail variant={variant} ownedQuantity={owned} allocations={allocations} />
     </>
   )
 }

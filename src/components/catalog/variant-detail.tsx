@@ -2,8 +2,10 @@ import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { CardArt } from './card-art'
 import { AddToCollection } from '@/components/collection/add-to-collection'
+import { VariantAllocationsPanel } from '@/components/storage/variant-allocations'
 import { Panel } from '@/components/ui/surface'
 import type { getCardVariant } from '@/server/application/catalog/get-card-variant'
+import type { VariantAllocations } from '@/server/application/storage'
 import { displaySetCode, displaySetName } from '@/server/domain/catalog/sets'
 import { cn } from '@/lib/cn'
 
@@ -25,9 +27,12 @@ type Variant = Awaited<ReturnType<typeof getCardVariant>>
 export function VariantDetail({
   variant,
   ownedQuantity = 0,
+  allocations,
 }: {
   variant: Variant
   ownedQuantity?: number
+  /** Onde as copias estao guardadas. Ausente para quem nao tem sessao. */
+  allocations?: VariantAllocations
 }) {
   const { card } = variant
 
@@ -68,6 +73,16 @@ export function VariantDetail({
           labels={[variant.rarity, variant.variantType].filter((l): l is string => Boolean(l))}
           currentQuantity={ownedQuantity}
         />
+
+        {allocations ? (
+          <VariantAllocationsPanel
+            variantId={String(variant.variantId)}
+            code={card.code}
+            name={card.name}
+            imageUrl={variant.imageUrl}
+            allocations={allocations}
+          />
+        ) : null}
 
         <section className="flex flex-col gap-2">
           <h2 className="text-sm font-semibold text-text">Informações</h2>

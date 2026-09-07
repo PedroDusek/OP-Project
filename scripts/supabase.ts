@@ -1,5 +1,7 @@
 import 'dotenv/config'
 import { execFileSync } from 'node:child_process'
+import { createClient } from '@supabase/supabase-js'
+import { ACCEPTED_IMAGE_TYPES, MAX_IMAGE_BYTES } from '@/server/domain/storage/image'
 import { importCatalog } from '@/server/application/catalog/import-catalog'
 import { BandaiCatalogProvider } from '@/server/infrastructure/catalog/bandai-catalog-provider'
 import { FileCatalogProvider } from '@/server/infrastructure/catalog/file-catalog-provider'
@@ -13,6 +15,7 @@ import { createPrisma } from '@/server/infrastructure/prisma'
  *   npm run supabase import 569117      importa apenas as series informadas
  *   npm run supabase import --from=DIR  importa de um snapshot local
  *   npm run supabase status             mostra o que existe la hoje
+ *   npm run supabase storage            cria o bucket das imagens do usuario
  *
  * Prefira `--from` quando o snapshot ja existir: rebaixar o catalogo inteiro a
  * cada importacao e carga evitavel sobre a origem (decisao 020).
@@ -59,6 +62,14 @@ function target(): { url: string; host: string; database: string } {
 
 async function main(): Promise<void> {
   const [command, ...args] = process.argv.slice(2)
+
+  // O bucket nao mora no banco: este comando nao precisa de SUPABASE_DATABASE_URL
+  // e nao deve falhar por causa dela.
+  if (command === 'storage') {
+    await provisionBucket()
+    return
+  }
+
   const { url, host, database } = target()
 
   // Sempre diz em voz alta onde vai mexer, sem nunca imprimir a senha.
@@ -136,7 +147,59 @@ async function main(): Promise<void> {
     return
   }
 
-  throw new Error(`Comando desconhecido: ${command ?? '(nenhum)'}. Use migrate, import ou status.`)
+  throw new Error(
+    `Comando desconhecido: ${command ?? '(nenhum)'}. Use migrate, import, status ou storage.`,
+  )
+}
+
+/**
+ * Cria (ou ajusta) o bucket das imagens enviadas pelo usuario.
+ *
+ * Publico para leitura porque a foto vai num `<img>`: URL assinada expiraria no
+ * meio de uma pagina aberta, e renova-la a cada render trocaria uma foto de
+ * binder por um problema de cache.
+ *
+ * O limite de tamanho e a lista de tipos sao repetidos aqui **de proposito**.
+ * O servidor ja recusa antes de subir um byte; isto e a segunda tranca, do lado
+ * do Supabase, para o caso de alguem escrever por outro caminho. Os dois valores
+ * saem da mesma constante do dominio, entao nao ha como divergirem.
+ */
+async function provisionBucket(): Promise<void> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const secretKey = process.env.SUPABASE_SECRET_KEY
+  const bucket = process.env.SUPABASE_STORAGE_BUCKET || 'colexa-imagens'
+
+  if (!url || !secretKey) {
+    throw new Error(
+      'NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SECRET_KEY precisam estar definidas no .env.',
+    )
+  }
+
+  console.log(`[supabase] bucket: ${bucket} em ${new URL(url).hostname}`)
+
+  const storage = createClient(url, secretKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  }).storage
+
+  const options = {
+    public: true,
+    fileSizeLimit: MAX_IMAGE_BYTES,
+    allowedMimeTypes: [...ACCEPTED_IMAGE_TYPES],
+  }
+
+  const created = await storage.createBucket(bucket, options)
+  if (!created.error) {
+    console.log('[supabase] bucket criado.')
+    return
+  }
+
+  // Ja existir e o caso normal ao rodar de novo; qualquer outro erro e erro.
+  const existing = await storage.getBucket(bucket)
+  if (existing.error) throw new Error(created.error.message)
+
+  const updated = await storage.updateBucket(bucket, options)
+  if (updated.error) throw new Error(updated.error.message)
+  console.log('[supabase] bucket ja existia; limites conferidos.')
 }
 
 main().catch((error: unknown) => {

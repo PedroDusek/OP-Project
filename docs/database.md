@@ -194,12 +194,21 @@ Quantidade zero é representada pela ausência da linha, o que mantém "cartas
 | `id` | bigint | PK |
 | `user_id` | bigint | not null, FK users |
 | `name` | varchar(100) | not null |
+| `description` | varchar(500) | nulo permitido |
 | `image` | varchar(500) | nulo permitido |
 | `type` | varchar(20) | not null, check em (`BINDER`, `BOX`, `DECK`) |
 | `purpose` | varchar(20) | nulo permitido, check em (`COLLECTION`, `TRADE`) |
 | `public_token` | varchar(64) | nulo permitido, **único** |
 | `public_token_created_at` | timestamptz | nulo permitido |
 | `created_at` / `updated_at` | timestamptz | not null |
+
+`description` é a adição aprovada no Checkpoint 10: as telas 22 e 24 mostram o
+campo desde a especificação e a coluna não existia. Anulável de propósito —
+local sem descrição é o caso comum, e uma string vazia obrigatória daria dois
+jeitos de dizer "não tem".
+
+`image` guarda **URL**, e não bytes. O arquivo vive no Supabase Storage, num
+bucket público para leitura, sob um prefixo por usuário (decisão 042).
 
 `public_token` e `public_token_created_at` são a adição aprovada na decisão 008.
 Revogar define o token como `NULL`; regerar grava outro valor aleatório.

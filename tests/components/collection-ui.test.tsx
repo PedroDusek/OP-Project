@@ -224,3 +224,90 @@ describe('PlaysetList', () => {
     expect(listados()).toEqual(['OP01-001'])
   })
 })
+
+describe('resolucao da decisao 007', () => {
+  const CONFLITO = {
+    status: 'conflict',
+    message: 'Você tem 4 cópias guardadas.',
+    currentQuantity: 4,
+    requestedQuantity: 2,
+    allocations: [
+      { storageLocationId: '1', storageName: 'Binder Principal', quantity: 3 },
+      { storageLocationId: '2', storageName: 'Caixa Troca', quantity: 1 },
+    ],
+  }
+
+  /** Abre com 4, reduz para 2 e recebe o conflito do servidor. */
+  async function ateOConflito() {
+    setQuantityAction.mockResolvedValueOnce(CONFLITO as never)
+    withToast(<CollectionGrid items={[card({ quantity: 4, quantityForCard: 4 })]} />)
+
+    await userEvent.click(screen.getByRole('button', { name: /OP01-001/ }))
+    const dialog = await screen.findByRole('dialog')
+
+    const diminuir = within(dialog).getByRole('button', { name: 'Diminuir Quantidade' })
+    await userEvent.click(diminuir)
+    await userEvent.click(diminuir)
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Salvar' }))
+    await screen.findByRole('alert')
+
+    return dialog
+  }
+
+  /**
+   * Nenhuma retirada vem preenchida: escolher a ordem — tirar do maior, tirar
+   * do primeiro — seria presumir de onde as cartas sairam.
+   */
+  it('nao escolhe de onde as copias saem', async () => {
+    const dialog = await ateOConflito()
+
+    expect(within(dialog).getByRole('textbox', { name: 'Retirar de Binder Principal' })).toHaveValue(
+      '0',
+    )
+    expect(within(dialog).getByRole('textbox', { name: 'Retirar de Caixa Troca' })).toHaveValue('0')
+  })
+
+  it('diz quantas copias ainda faltam sair', async () => {
+    const dialog = await ateOConflito()
+
+    expect(within(dialog).getByText('Escolha de onde saem mais 2.')).toBeInTheDocument()
+  })
+
+  it('so libera o envio quando a conta fecha', async () => {
+    const dialog = await ateOConflito()
+    const enviar = within(dialog).getByRole('button', { name: 'Reduzir e retirar' })
+    expect(enviar).toBeDisabled()
+
+    const mais = within(dialog).getByRole('button', { name: 'Aumentar Retirar de Binder Principal' })
+    await userEvent.click(mais)
+    expect(enviar).toBeDisabled()
+
+    await userEvent.click(mais)
+    expect(enviar).toBeEnabled()
+  })
+
+  /** Retirada e nova quantidade vao juntas: sao uma operacao so. */
+  it('envia as retiradas junto com a nova quantidade', async () => {
+    const dialog = await ateOConflito()
+    const mais = within(dialog).getByRole('button', { name: 'Aumentar Retirar de Binder Principal' })
+
+    await userEvent.click(mais)
+    await userEvent.click(mais)
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Reduzir e retirar' }))
+
+    const enviado = setQuantityAction.mock.calls[1][1]
+    expect(enviado.get('quantity')).toBe('2')
+    expect(enviado.getAll('remocao')).toEqual(['1:2'])
+  })
+
+  /** O controle nao oferece retirar mais do que ha naquele local. */
+  it('nao deixa retirar mais do que o local tem', async () => {
+    const dialog = await ateOConflito()
+    const mais = within(dialog).getByRole('button', { name: 'Aumentar Retirar de Caixa Troca' })
+
+    await userEvent.click(mais)
+
+    expect(mais).toBeDisabled()
+    expect(within(dialog).getByRole('textbox', { name: 'Retirar de Caixa Troca' })).toHaveValue('1')
+  })
+})

@@ -7,6 +7,7 @@ import {
   type CollectionQuery,
 } from './read-collection'
 import { setCollectionQuantity as setCollectionQuantityWith } from './set-quantity'
+import type { Removal } from '@/server/domain/storage/allocation'
 
 /**
  * Ponto de composicao dos casos de uso de colecao.
@@ -34,11 +35,13 @@ export function setCollectionQuantity(
   user: AuthenticatedUser,
   cardVariantId: bigint,
   quantity: number,
+  removals: readonly Removal[] = [],
 ) {
-  return setCollectionQuantityWith(prisma, user, cardVariantId, quantity)
+  return setCollectionQuantityWith(prisma, user, cardVariantId, quantity, removals)
 }
 
 export type { CollectionQuery }
 export type { CollectionItemView, CollectionPage, CollectionSummary, PlaysetRow } from './read-collection'
 export type { AllocationSnapshot, SetQuantityResult } from './set-quantity'
-export { QUANTITY_BELOW_ALLOCATED } from './set-quantity'
+export { QUANTITY_BELOW_ALLOCATED, RESOLUTION_INVALID } from './set-quantity'
+export type { Removal }

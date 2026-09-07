@@ -8,8 +8,9 @@ import { cn } from '@/lib/cn'
  * botao que contem o avatar, e repeti-lo faria o leitor de tela dizer tudo
  * duas vezes.
  *
- * Imagem de perfil nao entra neste checkpoint: nao existe upload nem coluna
- * para guardar a URL, e inventar uma seria decidir modelo de dados.
+ * Imagem de perfil continua fora. O envio de imagem passou a existir no
+ * Checkpoint 10 (decisao 042) e serve aqui sem mudanca; o que falta e a coluna
+ * em `users` para guardar a URL, e acrescenta-la e alterar o modelo de dados.
  */
 
 export interface AvatarProps {

@@ -1857,3 +1857,157 @@ com banco e em teste de componente.
 ## Data
 
 2026-09-07
+
+---
+
+# Decisão: 042 — Imagens enviadas pelo usuário no Supabase Storage
+
+## Contexto
+
+As telas 21, 22 e 24 mostram uma foto por local de armazenamento, com o campo
+"Adicionar foto — PNG, JPG até 5MB". A coluna `storage_locations.image` existe
+desde o Checkpoint 2 e guarda URL; o projeto não tinha nenhuma infraestrutura de
+upload, e a foto de perfil estava parada pelo mesmo motivo.
+
+O dono do produto escolheu, entre não ter foto, aceitar uma URL colada e
+construir o envio de verdade, a terceira.
+
+## Decisão
+
+Supabase Storage, num bucket público para leitura, com o arquivo endereçado por
+`<id do usuário>/<uuid>.<ext>`.
+
+O bucket é criado por `npm run supabase storage`, e não pelo painel: os limites
+— 5 MB, PNG e JPEG — saem da **mesma constante do domínio** que o servidor usa
+para recusar, então não há como divergirem. Repetir a regra do lado do Supabase
+é a segunda tranca, para o caso de alguém escrever por outro caminho.
+
+## Por que a chave secreta, e não a sessão da pessoa
+
+O upload acontece numa Server Action, depois de a fronteira de sessão já ter
+dito quem é. Usar a sessão dela no Storage significaria repetir a autorização em
+políticas de RLS escritas em SQL — um segundo lugar capaz de divergir do
+primeiro.
+
+O caminho do arquivo é montado no servidor a partir do id da sessão, nunca de
+nada que a tela mande, e o escopo é filtrado para dígitos. É isso que impede
+gravar na pasta de outra pessoa, e não uma política.
+
+## Por que público para leitura
+
+A foto vai num `<img>`. URL assinada expiraria no meio de uma página aberta, e
+renová-la a cada render trocaria uma foto de binder por um problema de cache.
+
+O que fica público é uma foto de binder sob um nome sorteado, não um documento:
+não há listagem, e a URL não se adivinha a partir do id do usuário.
+
+## O que é conferido antes de subir um byte
+
+Os **bytes**, e não o `Content-Type`. O tipo declarado num upload é escolhido por
+quem envia, e a imagem volta servida para outros navegadores: aceitar a palavra
+do cliente é aceitar servir qualquer coisa com rótulo de imagem. PNG e JPEG têm
+assinatura fixa nos primeiros bytes, e é ela que decide.
+
+SVG fica de fora **de propósito**: é XML, pode carregar script, e não tem
+assinatura que o distinga de um XML qualquer.
+
+## A ordem entre o arquivo e a linha
+
+A imagem sobe antes da escrita no banco e é apagada se a escrita falhar. O
+contrário — gravar e depois subir — deixaria um local sem a foto que a pessoa
+acabou de escolher, e sem nada que diga isso a ela.
+
+Apagar a foto antiga acontece depois de a linha já apontar para a nova, e o erro
+ali é engolido: um arquivo órfão custa kilobytes, derrubar uma edição
+bem-sucedida custa o trabalho de quem a fez.
+
+## Ausente é diferente de quebrado
+
+Sem `SUPABASE_SECRET_KEY`, o provedor se declara indisponível e o campo de foto
+some da tela — o mesmo arranjo dos provedores sociais (decisão 032), pelo mesmo
+motivo: desenvolvimento local não precisa de bucket para o resto funcionar.
+
+## O que isto destrava
+
+A foto de perfil, hoje pendente por não haver upload nem coluna. A coluna
+continua faltando; o upload, não.
+
+## Data
+
+2026-09-07
+
+---
+
+# Decisão: 043 — As telas de armazenamento
+
+## Contexto
+
+Checkpoint 10, telas 21 a 24. Duas coisas nas telas de referência não existiam
+no modelo e uma terceira não existe no dado.
+
+## Decisão 1 — `storage_locations.description` foi acrescentada
+
+Aprovada pelo dono do produto. Coluna anulável, `VARCHAR(500)`, o mesmo teto de
+`image`. Ver `database.md` 2.4.
+
+## Decisão 2 — "12 playsets" no detalhe do local é playset **daquele local**
+
+A tela 22 mostra uma contagem de playsets dentro de um binder. Playset, na
+`business-rules.md` 2.1, é por carta e sobre **toda** a coleção — a definição da
+seção 2 não responde à pergunta que a tela faz.
+
+A leitura adotada é a física: quantas cartas estão inteiras neste local. Três
+cópias no binder e uma na caixa fecham playset na coleção e **não** fecham no
+binder. `Leader` continua fora, como em toda parte.
+
+Isto não altera a contagem da seção 2, que segue valendo na coleção e na Home. É
+uma métrica de exibição, com rótulo próprio na tela — "playsets aqui" — para as
+duas não se confundirem. Fica registrada como leitura, e não como regra nova:
+o dono do produto pode trocá-la sem que nada mais mude.
+
+## Decisão 3 — O valor estimado não entra
+
+A tela 22 mostra "R$ 3.420 valor estimado". `card_prices` existe desde o
+Checkpoint 2 e está **vazia**: não há fonte de preço definida nem importação
+escrita.
+
+Um número inventado num campo de dinheiro é pior que campo nenhum, e "R$ 0,00"
+seria mentira com aparência de verdade. O espaço volta quando o preço tiver
+origem — que é decisão comercial, não técnica.
+
+## Decisão 4 — Alocar se serializa com a quantidade possuída
+
+`setAllocation` trava a **mesma** linha de `collection_items` que
+`setCollectionQuantity`. Sendo a mesma, guardar a terceira cópia e reduzir a
+quantidade para 2 não podem acontecer ao mesmo tempo — que é o caso realmente
+traiçoeiro, porque cada uma está certa sozinha.
+
+Os três triggers do Checkpoint 2 continuam sendo a rede de segurança para quem
+escrever por outro caminho; a mensagem legível de quem usa a tela é montada na
+aplicação, com a conta exata do que ainda cabe.
+
+## Decisão 5 — Excluir um local não mexe na coleção
+
+As alocações vão junto por `ON DELETE CASCADE`: elas dizem "estas cópias estão
+neste binder", e o binder deixou de existir. As cartas continuam sendo da
+pessoa, agora sem lugar registrado — estado normal da seção 3.2.
+
+A confirmação diz isso em voz alta. Sem essa frase, "excluir o binder" parece
+que apaga as cartas, e ninguém toca no botão para descobrir.
+
+## A resolução da decisão 007, enfim
+
+O Checkpoint 9 deixou o conflito visível e a resolução para cá. Agora a pessoa
+escolhe quantas cópias saem de cada local, e a escolha volta **junto com** a
+nova quantidade, numa transação só (`business-rules.md` 3.3): desalocar e
+reduzir em duas idas deixaria uma janela com alocação órfã, e um erro no meio
+pararia exatamente ali.
+
+Nenhuma retirada vem preenchida. Escolher a ordem — tirar do maior, tirar do
+primeiro — seria presumir de onde as cartas saíram, que é o que a regra proíbe.
+Retirar **a mais** é permitido: desalocar por vontade própria enquanto resolve é
+escolha legítima, e a invariante continua de pé.
+
+## Data
+
+2026-09-07

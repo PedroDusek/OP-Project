@@ -1,5 +1,6 @@
 import type { PrismaClient } from '@prisma/client'
 import { ConflictError, NotFoundError } from '@/server/domain/errors'
+import { planReduction, type Allocation, type Removal } from '@/server/domain/storage/allocation'
 import type { AuthenticatedUser } from '@/server/application/auth'
 
 /**
@@ -15,6 +16,17 @@ import type { AuthenticatedUser } from '@/server/application/auth'
  * tela onde a pessoa escolhe de quais locais as copias saem.
  *
  * Nenhuma alocacao some sem alguem ver, e nenhuma ordem de remocao e presumida.
+ *
+ * ## A resolucao
+ *
+ * Quando a pessoa escolhe de quais locais as copias saem, essa escolha volta em
+ * `removals` e e aplicada **na mesma transacao** que a nova quantidade
+ * (`business-rules.md` 3.3). Duas chamadas — desalocar, depois reduzir —
+ * deixariam uma janela em que a coleção esta desalocada e a quantidade ainda
+ * nao caiu, e um erro no meio pararia exatamente ali.
+ *
+ * Retirar mais do que o conflito exige e permitido: desalocar por vontade
+ * propria enquanto resolve e escolha legitima, e a invariante continua de pe.
  *
  * ## O lock
  *
@@ -36,6 +48,22 @@ export interface AllocationSnapshot {
 
 export const QUANTITY_BELOW_ALLOCATED = 'QUANTIDADE_ABAIXO_DO_ALOCADO'
 
+/** A resolucao enviada nao fecha a conta. */
+export const RESOLUTION_INVALID = 'RESOLUCAO_INVALIDA'
+
+function resolutionMessage(reason: string, missing?: number): string {
+  switch (reason) {
+    case 'INSUFICIENTE':
+      return `Ainda faltam ${missing ?? 0} cópias para retirar.`
+    case 'ALEM_DO_ALOCADO':
+      return 'Um dos locais não tem tantas cópias assim. Recarregue e tente de novo.'
+    case 'LOCAL_DESCONHECIDO':
+      return 'Um dos locais não guarda mais esta carta. Recarregue e tente de novo.'
+    default:
+      return 'Escolha quantas cópias saem de cada local.'
+  }
+}
+
 export interface SetQuantityResult {
   quantity: number
   /** `true` quando a variante saiu da colecao. */
@@ -47,6 +75,8 @@ export async function setCollectionQuantity(
   user: AuthenticatedUser,
   cardVariantId: bigint,
   quantity: number,
+  /** De quais locais as copias saem, quando a reducao exige resolucao. */
+  removals: readonly Removal[] = [],
 ): Promise<SetQuantityResult> {
   if (!Number.isInteger(quantity) || quantity < 0) {
     throw new ConflictError('QUANTIDADE_INVALIDA', 'A quantidade precisa ser zero ou mais.')
@@ -70,7 +100,7 @@ export async function setCollectionQuantity(
     })
     if (!variant) throw new NotFoundError('Variante nao encontrada.')
 
-    if (quantity > 0) {
+    if (quantity > 0 && removals.length === 0) {
       // Cria a linha se ela ainda nao existe. Quem perder a corrida cai no
       // caminho de atualizacao abaixo e espera pelo lock do vencedor.
       const inserted = await tx.$executeRaw`
@@ -101,8 +131,41 @@ export async function setCollectionQuantity(
     })
 
     const totalAllocated = allocated.reduce((sum, row) => sum + row.quantity, 0)
+    const allocations: Allocation[] = allocated.map((row) => ({
+      storageLocationId: String(row.storageLocation.id),
+      quantity: row.quantity,
+    }))
 
-    if (quantity < totalAllocated) {
+    if (removals.length > 0) {
+      const plan = planReduction(quantity, allocations, removals)
+      if (!plan.ok) {
+        throw new ConflictError(
+          RESOLUTION_INVALID,
+          resolutionMessage(plan.reason, plan.missing),
+          { reason: plan.reason },
+        )
+      }
+
+      for (const removal of plan.removals) {
+        const row = allocated.find(
+          (candidate) => String(candidate.storageLocation.id) === removal.storageLocationId,
+        )
+        // `planReduction` ja recusou local desconhecido; isto e o estreitamento
+        // de tipo, nao uma segunda checagem.
+        if (!row) continue
+
+        const remaining = row.quantity - removal.quantity
+        const where = {
+          collectionItemId_storageLocationId: {
+            collectionItemId: item.id,
+            storageLocationId: row.storageLocation.id,
+          },
+        }
+
+        if (remaining === 0) await tx.collectionItemLocation.delete({ where })
+        else await tx.collectionItemLocation.update({ where, data: { quantity: remaining } })
+      }
+    } else if (quantity < totalAllocated) {
       throw new ConflictError(
         QUANTITY_BELOW_ALLOCATED,
         `Você tem ${totalAllocated} cópias guardadas em locais de armazenamento. ` +
