@@ -306,3 +306,65 @@ describe('ordem da listagem', () => {
     expect(resultado.total).toBeGreaterThan(0)
   })
 })
+
+describe('capa do set', () => {
+  const semPontuacao = (code: string) => code.toUpperCase().replace(/[^A-Z0-9]/g, '')
+
+  /**
+   * A capa vinha de outro set em 40 dos 60: "a primeira carta por codigo" trazia
+   * a mais antiga, e um set com reimpressao se apresentava com carta alheia.
+   */
+  it('vem de uma carta do proprio set', async () => {
+    const sets = await listSets(testPrisma())
+
+    for (const set of sets) {
+      if (!set.coverUrl) continue
+
+      const arquivo = set.coverUrl.split('/').pop()?.replace(/\.[a-z]+$/, '') ?? ''
+      const prefixo = semPontuacao(arquivo.split('-')[0] ?? '')
+
+      // PROMO e coletaneas avulsas nao tem carta de codigo proprio; ali o
+      // recuo para qualquer carta do set e o comportamento correto.
+      const temCodigoProprio = await testPrisma().cardVariant.count({
+        where: {
+          printings: { some: { set: { code: set.code } } },
+          card: { code: { startsWith: set.code.replace('-', '') } },
+        },
+      })
+      if (temCodigoProprio === 0) continue
+
+      expect(semPontuacao(set.code), `capa de ${set.code}`).toContain(prefixo)
+    }
+  })
+
+  /** O Leader e a face do set: e a carta que estampa o produto. */
+  it('prefere o Leader do set quando existe', async () => {
+    const sets = await listSets(testPrisma())
+
+    for (const set of sets) {
+      const leaders = await testPrisma().cardVariant.count({
+        where: {
+          printings: { some: { set: { code: set.code } } },
+          card: { type: 'Leader' },
+          imageUrl: { not: null },
+        },
+      })
+      if (leaders === 0 || !set.coverUrl) continue
+
+      const escolhida = await testPrisma().cardVariant.findFirst({
+        where: { imageUrl: set.coverUrl, printings: { some: { set: { code: set.code } } } },
+        select: { card: { select: { type: true } } },
+      })
+      expect(escolhida?.card.type, `capa de ${set.code}`).toBe('Leader')
+    }
+  })
+
+  it('expoe o codigo normalizado junto com o original', async () => {
+    const sets = await listSets(testPrisma())
+
+    for (const set of sets) {
+      expect(set.code).toBeTruthy()
+      expect(set.displayCode).not.toMatch(/^[A-Za-z]+-\d+$/)
+    }
+  })
+})

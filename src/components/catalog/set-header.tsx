@@ -68,7 +68,7 @@ export function SetHeader({ set }: { set: SetSummary }) {
           {SET_KIND_LABEL[set.kind]}
         </Link>
 
-        <p className="text-sm font-semibold text-white/80 tabular-nums">{set.code}</p>
+        <p className="text-sm font-semibold text-white/80 tabular-nums">{set.displayCode}</p>
         <h1 className="mt-0.5 text-2xl leading-tight font-bold tracking-tight text-white">
           {set.displayName}
         </h1>

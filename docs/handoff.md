@@ -183,6 +183,13 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 
 ### Perguntas em aberto
 
+- **Logo oficial do set.** A Bandai tem um, mas só nas páginas de produto dos
+  lançamentos recentes, com URL contendo hash aleatório
+  (`/onepiececg/bccard/en/products/2026/03/26/FQ6NL0F7vwkybKBR/logo.webp`) e não
+  derivável do código. `op01.html`, `st01.html` e `eb01.html` devolvem 404 — só
+  os produtos novos têm página. Cobrir os 60 sets exigiria hospedar as imagens
+  por conta própria, como a LigaOnePiece faz. Hoje a capa é o Leader do set.
+
 - **Uma variante sem set.** `ST14-010_r1` (Brook, Parallel) não tem nenhuma
   impressão em `variant_printings` — 4.842 das 4.843 têm. Ela aparece na busca
   mas não é alcançável por nenhum set. O sufixo `_r1` sugere que o parser não

@@ -214,6 +214,24 @@ function stripSeriesType(name: string): string {
 }
 
 /**
+ * Codigo do set para exibicao.
+ *
+ * A fonte grafa a mesma familia de dois jeitos: `OP01` ate `OP06` sem hifen e
+ * `OP-07` em diante com. Numa lista, isso parece defeito — e e.
+ *
+ * A normalizacao tira o hifen so quando ele separa as letras do numero:
+ * `ST-01` vira `ST01`, `OP-07` vira `OP07`. `OP14-EB04` fica intacto, porque ali
+ * o hifen junta duas identidades de set e nao e decoracao.
+ *
+ * O valor guardado continua sendo o que a fonte publicou; isto e apresentacao.
+ * As rotas tambem continuam usando o codigo real — trocar o que vai na URL
+ * quebraria todo link ja compartilhado.
+ */
+export function displaySetCode(code: string): string {
+  return code.trim().replace(/^([A-Za-z]+)-(\d+)$/, '$1$2')
+}
+
+/**
  * Quantas cartas o set tem, para exibir.
  *
  * Diz "cartas" e conta **variantes impressas**. A escolha e do dono do produto:

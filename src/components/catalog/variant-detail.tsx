@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { CardArt } from './card-art'
 import { Panel } from '@/components/ui/surface'
 import type { getCardVariant } from '@/server/application/catalog/get-card-variant'
-import { displaySetName } from '@/server/domain/catalog/sets'
+import { displaySetCode, displaySetName } from '@/server/domain/catalog/sets'
 import { cn } from '@/lib/cn'
 
 type Variant = Awaited<ReturnType<typeof getCardVariant>>
@@ -87,7 +87,9 @@ export function VariantDetail({ variant }: { variant: Variant }) {
                 href={`/catalogo/sets/${encodeURIComponent(set.code)}`}
                 className="inline-flex items-center gap-2 rounded-control border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-muted"
               >
-                <span className="font-semibold text-text tabular-nums">{set.code}</span>
+                <span className="font-semibold text-text tabular-nums">
+                  {displaySetCode(set.code)}
+                </span>
                 <span className="text-text-muted">{displaySetName(set.name)}</span>
               </Link>
             ))}

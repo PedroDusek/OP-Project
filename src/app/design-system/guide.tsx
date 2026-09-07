@@ -269,18 +269,18 @@ export function Guide() {
           <CardGrid>
             {[
               {
-                code: 'OP01-001',
+                code: 'OP01-001', displayCode: 'OP01-001',
                 name: 'Exemplo',
                 quantity: 4,
                 labels: ['SR'],
                 imageUrl:
                   'https://en.onepiece-cardgame.com/images/cardlist/card/OP01-001.png',
               },
-              { code: 'OP01-002', name: 'Exemplo', quantity: 1 },
-              { code: 'OP01-003', name: 'Exemplo', quantity: 0 },
-              { code: 'OP01-004', name: 'Exemplo', quantity: 2, labels: ['Alt Art'] },
-              { code: 'OP01-005', name: 'Exemplo', quantity: 3 },
-              { code: 'OP01-006', name: 'Exemplo', quantity: 4 },
+              { code: 'OP01-002', displayCode: 'OP01-002', name: 'Exemplo', quantity: 1 },
+              { code: 'OP01-003', displayCode: 'OP01-003', name: 'Exemplo', quantity: 0 },
+              { code: 'OP01-004', displayCode: 'OP01-004', name: 'Exemplo', quantity: 2, labels: ['Alt Art'] },
+              { code: 'OP01-005', displayCode: 'OP01-005', name: 'Exemplo', quantity: 3 },
+              { code: 'OP01-006', displayCode: 'OP01-006', name: 'Exemplo', quantity: 4 },
             ].map((card) => (
               <CardTile key={card.code} imageUrl={null} {...card} />
             ))}
@@ -299,7 +299,7 @@ export function Guide() {
         <Section title="Catálogo">
           <SetHeader
             set={{
-              code: 'OP01',
+              code: 'OP01', displayCode: 'OP01',
               name: '-ROMANCE DAWN-',
               displayName: 'ROMANCE DAWN',
               variantCount: 154,
@@ -316,10 +316,10 @@ export function Guide() {
 
           <SetList
             sets={[
-              { code: 'OP01', name: '-ROMANCE DAWN-', displayName: 'ROMANCE DAWN', variantCount: 154, kind: 'collection', coverUrl: null },
-              { code: 'OP-13', name: '-CARRYING ON HIS WILL-', displayName: 'CARRYING ON HIS WILL', variantCount: 175, kind: 'collection', coverUrl: null },
-              { code: 'ST-01', name: '-Straw Hat Crew-', displayName: 'Straw Hat Crew', variantCount: 17, kind: 'deck', coverUrl: null },
-              { code: 'PROMO', name: 'One Piece Promotion Cards', displayName: 'One Piece Promotion Cards', variantCount: 537, kind: 'promo', coverUrl: null },
+              { code: 'OP01', displayCode: 'OP01', name: '-ROMANCE DAWN-', displayName: 'ROMANCE DAWN', variantCount: 154, kind: 'collection', coverUrl: null },
+              { code: 'OP-13', displayCode: 'OP13', name: '-CARRYING ON HIS WILL-', displayName: 'CARRYING ON HIS WILL', variantCount: 175, kind: 'collection', coverUrl: null },
+              { code: 'ST-01', displayCode: 'ST01', name: '-Straw Hat Crew-', displayName: 'Straw Hat Crew', variantCount: 17, kind: 'deck', coverUrl: null },
+              { code: 'PROMO', displayCode: 'PROMO', name: 'One Piece Promotion Cards', displayName: 'One Piece Promotion Cards', variantCount: 537, kind: 'promo', coverUrl: null },
             ]}
           />
         </Section>
