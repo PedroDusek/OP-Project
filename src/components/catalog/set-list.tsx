@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { ChevronRight } from 'lucide-react'
 import Link from 'next/link'
-import { CardArt } from '@/components/catalog/card-art'
+import { SetBadge } from '@/components/catalog/set-badge'
 import { SearchBar } from '@/components/ui/search-bar'
 import { Segmented } from '@/components/ui/segmented'
 import { Panel } from '@/components/ui/surface'
@@ -86,13 +86,7 @@ export function SetList({ sets, initialKind = 'collection' }: { sets: SetSummary
                   href={`/catalogo/sets/${encodeURIComponent(set.code)}`}
                   className="flex items-center gap-3 p-3"
                 >
-                  <CardArt
-                    src={set.coverUrl}
-                    alt=""
-                    fallback={set.displayCode}
-                    sizes="44px"
-                    className="w-11 shrink-0 rounded-md"
-                  />
+                  <SetBadge code={set.displayCode} />
 
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="truncate text-sm font-semibold text-text">
