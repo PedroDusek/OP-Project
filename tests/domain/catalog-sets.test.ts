@@ -3,6 +3,7 @@ import {
   cardCountLabel,
   compareSetCodes,
   compareSetsByRelease,
+  compareSetsForCatalog,
   displaySetName,
   releasePosition,
   setKind,
@@ -211,5 +212,51 @@ describe('cardCountLabel', () => {
     expect(cardCountLabel(154)).toBe('154 cartas')
     expect(cardCountLabel(0)).toBe('0 cartas')
     expect(cardCountLabel(4843)).toMatch(/^4\.843 cartas$/)
+  })
+})
+
+describe('compareSetsForCatalog', () => {
+  /**
+   * A ordem de uma listagem de cartas sem filtro: colecoes por lancamento,
+   * depois starter decks, depois promocionais.
+   */
+  it('agrupa colecao, depois deck, depois promocional', () => {
+    const sets = ['PROMO', 'ST-01', 'OP-13', 'ST-36', 'OP01', 'PROMO']
+    expect([...sets].sort(compareSetsForCatalog)).toEqual([
+      'OP01',
+      'OP-13',
+      'ST-01',
+      'ST-36',
+      'PROMO',
+      'PROMO',
+    ])
+  })
+
+  it('dentro das colecoes, vale a ordem de lancamento', () => {
+    const sets = ['OP-07', 'EB-01', 'OP06']
+    expect([...sets].sort(compareSetsForCatalog)).toEqual(['OP06', 'EB-01', 'OP-07'])
+  })
+
+  /** Os numeros dos starter decks sao a ordem de lancamento deles. */
+  it('dentro dos decks, vale o numero', () => {
+    const sets = ['ST13', 'ST-02', 'ST-36', 'ST-01']
+    expect([...sets].sort(compareSetsForCatalog)).toEqual(['ST-01', 'ST-02', 'ST13', 'ST-36'])
+  })
+
+  /**
+   * O catalogo tem uma variante sem impressao nenhuma. Ela vai para o fim em
+   * vez de quebrar a ordenacao.
+   */
+  it('poe o que nao tem set no fim de tudo', () => {
+    const sets = [null, 'PROMO', 'OP01', null]
+    expect([...sets].sort(compareSetsForCatalog)).toEqual(['OP01', 'PROMO', null, null])
+  })
+
+  it('e simetrica e estavel', () => {
+    const sets = ['PROMO', 'ST-05', 'OP03', 'EB-02']
+    const frente = [...sets].sort(compareSetsForCatalog)
+    const tras = [...sets].reverse().sort(compareSetsForCatalog)
+    expect(frente).toEqual(tras)
+    expect(compareSetsForCatalog('OP01', 'OP01')).toBe(0)
   })
 })

@@ -1698,3 +1698,70 @@ não volta é a posição exata na rolagem.
 ## Data
 
 2026-09-07
+
+---
+
+# Decisão: 040 — Ordem padrão da listagem de cartas
+
+## Contexto
+
+Sem filtro, a listagem vinha por código de carta em ordem alfabética: `EB01-…`
+antes de `OP01-…`, e as promos espalhadas no meio, porque uma promo mantém o
+código da carta original.
+
+O dono do produto pediu a ordem de lançamento das coleções e dos starter decks,
+com promocionais no fim.
+
+## O que o dado permite
+
+Cada variante do catálogo pertence a **exatamente um** set — conferido: 4.842 de
+4.843 têm uma impressão, nenhuma tem duas, e nenhuma está no `PROMO` e em outro
+set ao mesmo tempo. Isso torna a ordenação por set bem definida, embora o modelo
+permita mais de um (decisão 006) e o código trate esse caso.
+
+## Decisão
+
+Três grupos, nesta ordem: coleções na ordem de lançamento informada (decisão
+036), starter decks por número, promocionais. Depois, código da carta e id.
+
+O desempate por id não é zelo: sem ele, duas artes da mesma carta poderiam
+trocar de lugar entre uma leva e a seguinte da rolagem infinita, e a mesma carta
+apareceria duas vezes ou nenhuma.
+
+## Onde a ordenação acontece, e por quê
+
+Em memória, na camada de aplicação, e não no banco.
+
+A ordem de lançamento não se deriva de nenhuma coluna — ela intercala extra
+boosters entre boosters e vive numa lista no domínio. O Prisma também não
+ordena por campo de relação muitos-para-muitos, e `variant_printings` é uma.
+
+As alternativas eram reescrever a busca inteira em SQL bruto, com dezessete
+filtros e cinco tabelas de junção, ou materializar a posição numa coluna, que
+passaria a envelhecer no dia em que a ordem mudasse.
+
+A primeira consulta traz `id` e set de **todos** os resultados do filtro, ordena
+e recorta a página; a segunda hidrata só essa página. **Não é uma consulta a
+mais**: o `count` que existia antes desapareceu, porque o total virou o tamanho
+da lista.
+
+Medido no catálogo completo: 46–69 ms sem filtro, 12 ms com filtro.
+
+**O limite disto está escrito**: se o catálogo crescer uma ordem de grandeza, o
+pior caso passa a trazer dezenas de milhares de pares por requisição, e a
+ordenação precisa migrar para o banco — provavelmente com a posição
+materializada em `sets`.
+
+## O que esta ordem não faz
+
+Não intercala starter decks com coleções por data. Saber que o ST-05 saiu entre
+o OP-02 e o OP-03 exigiria a data de cada um, que o modelo não guarda e que não
+foi informada.
+
+Não distingue "versão de campeonato" de outras promocionais: o catálogo importado
+não tem esse dado. Na prática o pedido é atendido, porque a fonte cataloga todas
+essas versões como *Promotion card*, e é o conjunto inteiro que vai para o fim.
+
+## Data
+
+2026-09-07

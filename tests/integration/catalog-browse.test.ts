@@ -232,3 +232,77 @@ describe('classificacao e capa', () => {
     }
   })
 })
+
+describe('ordem da listagem', () => {
+  /**
+   * As paginas nao podem repetir nem pular. O risco concreto: a pagina e
+   * hidratada com `IN (...)`, que **nao** preserva a ordem da lista de ids —
+   * sem reordenar depois, uma carta apareceria duas vezes e outra sumiria.
+   */
+  it('percorrer as paginas devolve cada variante uma vez', async () => {
+    const inteiro = await searchCatalog(testPrisma(), { pageSize: 100 })
+
+    const porPagina: string[] = []
+    // O total de paginas depende do tamanho pedido, e `inteiro` veio com 100.
+    const paginas = Math.ceil(inteiro.total / 2)
+    for (let page = 1; page <= paginas; page++) {
+      const pagina = await searchCatalog(testPrisma(), { pageSize: 2, page })
+      porPagina.push(...pagina.items.map((item) => String(item.variantId)))
+    }
+
+    const esperado = inteiro.items.map((item) => String(item.variantId))
+    expect(porPagina).toEqual(esperado)
+    expect(new Set(porPagina).size).toBe(porPagina.length)
+  })
+
+  it('a ordem nao muda entre consultas iguais', async () => {
+    const primeira = await searchCatalog(testPrisma(), { pageSize: 100 })
+    const segunda = await searchCatalog(testPrisma(), { pageSize: 100 })
+
+    expect(primeira.items.map((i) => String(i.variantId))).toEqual(
+      segunda.items.map((i) => String(i.variantId)),
+    )
+  })
+
+  /**
+   * As promos ficam por ultimo. Elas sao versoes alternativas de cartas que ja
+   * apareceram antes; espalhadas no meio, a mesma carta reaparece sem
+   * explicacao.
+   */
+  it('coloca as promocionais depois de tudo', async () => {
+    const todas = await searchCatalog(testPrisma(), { pageSize: 100 })
+
+    const setDe = new Map<string, string | null>()
+    for (const item of todas.items) {
+      const printing = await testPrisma().variantPrinting.findFirst({
+        where: { cardVariantId: BigInt(item.variantId) },
+        select: { set: { select: { code: true } } },
+      })
+      setDe.set(String(item.variantId), printing?.set.code ?? null)
+    }
+
+    const posicoes = todas.items.map((item) => setDe.get(String(item.variantId)))
+    const primeiraPromo = posicoes.findIndex((code) => code === 'PROMO')
+    if (primeiraPromo === -1) return
+
+    // Depois da primeira promo, so pode haver promo ou variante sem set.
+    for (const code of posicoes.slice(primeiraPromo)) {
+      expect(code === 'PROMO' || code === null).toBe(true)
+    }
+  })
+
+  it('o total conta o filtro inteiro, nao a pagina', async () => {
+    const pagina = await searchCatalog(testPrisma(), { pageSize: 2 })
+    const inteiro = await searchCatalog(testPrisma(), { pageSize: 100 })
+
+    expect(pagina.total).toBe(inteiro.total)
+    expect(pagina.items.length).toBeLessThanOrEqual(2)
+  })
+
+  it('pagina alem do fim devolve vazio, e nao erro', async () => {
+    const resultado = await searchCatalog(testPrisma(), { pageSize: 10, page: 999 })
+
+    expect(resultado.items).toEqual([])
+    expect(resultado.total).toBeGreaterThan(0)
+  })
+})
