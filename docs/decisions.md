@@ -1238,3 +1238,131 @@ apontam para rotas que ainda não existem.
 ## Data
 
 2026-09-07
+
+---
+
+# Decisão: 030 — Termos de Uso e Política de Privacidade são bloqueio de lançamento
+
+## Contexto
+
+A tela 03 exige aceitar os Termos de Uso e a Política de Privacidade para criar
+conta, com link para os dois documentos. Os textos não existem.
+
+Escrever cláusula que diz o que o produto pode fazer com o dado de outra pessoa
+não é decisão de desenvolvimento — é decisão do dono do produto, e no Brasil tem
+consequência sob a LGPD.
+
+## Opções
+
+1. Parar o checkpoint até os textos existirem.
+2. Gerar um texto genérico e marcar como provisório.
+3. Publicar as duas rotas com uma página honesta de "em preparação", registrar
+   como bloqueio de lançamento e seguir.
+
+## Decisão
+
+Opção 3. `/termos` e `/privacidade` existem e dizem que o texto está em
+preparação. O aceite continua obrigatório no cadastro, validado no servidor.
+
+**Isto é bloqueio de lançamento.** O produto não pode receber cadastro de
+pessoa real enquanto essas páginas estiverem assim.
+
+## Motivo
+
+A opção 1 pararia o checkpoint inteiro por um texto que não é código e que pode
+chegar a qualquer momento. A opção 2 é a pior das três: um texto jurídico
+plausível é indistinguível de um real para quem aceita, e o produto passaria a
+afirmar coisas sobre tratamento de dado pessoal que ninguém decidiu.
+
+A opção 3 mantém o fluxo completo e testável, e deixa a falta visível para
+quem abrir a página em vez de escondida num item de lista de pendências.
+
+## Data
+
+2026-09-07
+
+---
+
+# Decisão: 031 — Autenticação por Server Action, sem SDK no navegador
+
+## Contexto
+
+Entrar e cadastrar precisavam de um caminho. O Supabase oferece um cliente de
+navegador que faz login direto do JavaScript da página e escreve o cookie de
+sessão do lado do cliente.
+
+## Opções
+
+1. Cliente Supabase no navegador, chamando `signInWithPassword` do componente.
+2. Server Actions chamando o provedor no servidor.
+3. Route handlers próprios, com o formulário enviando por `fetch`.
+
+## Decisão
+
+Opção 2. Os formulários usam `<form action={serverAction}>`. Não existe cliente
+Supabase no pacote enviado ao navegador.
+
+## Motivo
+
+Toda regra deste projeto vive no servidor, e autenticação não deveria ser a
+exceção. Com a opção 1, a validação de entrada, o limite de tentativas e o
+mapeamento de erro precisariam existir de novo no cliente — ou não existiriam.
+
+Consequências concretas da escolha:
+
+- O limite de tentativas por endereço é aplicado antes de a senha chegar ao
+  provedor, e não pode ser contornado pulando a interface.
+- A checagem do `next` contra redirecionamento aberto acontece no caso de uso.
+- O formulário funciona sem JavaScript, porque é um `<form>` de verdade.
+
+Custo: o cookie de sessão passa a ser escrito em dois lugares — no middleware,
+que renova, e na ação, que cria e destrói. Não é a duplicidade que a decisão
+025 evita: renovar concorre consigo mesmo, criar e destruir não.
+
+## Nota
+
+`architecture.md` 3.4 dizia que o provedor "só lê cookie". Continua valendo para
+o provedor de **sessão**; o de **credencial** escreve, e a distinção está
+documentada em `src/server/http/auth-provider.ts`.
+
+## Data
+
+2026-09-07
+
+---
+
+# Decisão: 032 — Provedores sociais vêm do provedor, não de configuração nossa
+
+## Contexto
+
+As telas 03 e 04 mostram "Continuar com o Google" e "Continuar com a Apple".
+Nenhum dos dois está habilitado no projeto do Supabase, e habilitá-los é trabalho
+de painel, não de código.
+
+## Opções
+
+1. Botões sempre visíveis; quem clicar recebe o erro do Supabase.
+2. Botões atrás de uma variável de ambiente.
+3. Perguntar ao Supabase quais provedores estão habilitados e desenhar só esses.
+
+## Decisão
+
+Opção 3. `GET /auth/v1/settings` do próprio projeto diz quais provedores estão
+ligados. A resposta fica em cache por cinco minutos, e uma falha de rede resulta
+em nenhum botão social — nunca num botão quebrado.
+
+## Motivo
+
+A opção 1 oferece um caminho que termina em erro. A opção 2 cria uma segunda
+fonte de verdade que passa a divergir do painel na primeira vez que alguém mudar
+um sem mudar o outro.
+
+Com a opção 3 os botões aparecem sozinhos quando o dono do produto habilitar
+Google ou Apple no painel, sem mudança de código nem novo deploy.
+
+Antes de habilitar a Apple, vale conferir as exigências de marca e de fluxo do
+"Sign in with Apple", que são mais estritas que as do Google.
+
+## Data
+
+2026-09-07
