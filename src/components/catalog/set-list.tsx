@@ -4,79 +4,113 @@ import { useMemo, useState } from 'react'
 import { ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { SearchBar } from '@/components/ui/search-bar'
+import { Segmented } from '@/components/ui/segmented'
 import { Panel } from '@/components/ui/surface'
 import { EmptyState } from '@/components/ui/states'
+import { cardCountLabel, SET_KIND_LABEL, type SetKind } from '@/server/domain/catalog/sets'
 import type { SetSummary } from '@/server/application/catalog/list-sets'
 
 /**
- * Os 60 sets, com busca.
+ * Sets, separados por tipo, com busca.
+ *
+ * Coleções e decks convivem no mesmo catálogo e são coisas diferentes de
+ * procurar: quem quer saber o que falta de OP-13 não quer 36 decks iniciantes no
+ * meio do caminho. A separação foi pedida pelo dono do produto e a classificação
+ * está em `src/server/domain/catalog/sets.ts`.
+ *
+ * As coleções aparecem **em ordem de lançamento**, não alfabética nem por
+ * código: é a ordem em que a pessoa viveu o jogo, e é a única em que os extra
+ * boosters caem no lugar certo entre os boosters.
  *
  * A busca é local e não passa pela URL nem pelo servidor, ao contrário da busca
- * de cartas. São 60 itens que já vieram inteiros: filtrar em memória responde
- * na tecla, e uma ida ao servidor por letra digitada seria trabalho para chegar
+ * de cartas. São 60 itens que já vieram inteiros: filtrar em memória responde na
+ * tecla, e uma ida ao servidor por letra digitada seria trabalho para chegar
  * mais devagar ao mesmo lugar.
- *
- * Ela casa por código **e** por nome, porque quem procura "romance" e quem
- * procura "OP01" estão procurando a mesma coisa. E casa também no nome como a
- * fonte publicou, para que buscar pelos hifens decorativos ainda encontre.
  */
-export function SetList({ sets }: { sets: SetSummary[] }) {
+export function SetList({ sets, initialKind = 'collection' }: { sets: SetSummary[]; initialKind?: SetKind }) {
+  const [kind, setKind] = useState<SetKind>(initialKind)
   const [term, setTerm] = useState('')
+
+  const counts = useMemo(() => {
+    const tally: Record<SetKind, number> = { collection: 0, deck: 0, promo: 0 }
+    for (const set of sets) tally[set.kind] += 1
+    return tally
+  }, [sets])
 
   const matches = useMemo(() => {
     const needle = term.trim().toLowerCase()
-    if (!needle) return sets
-    return sets.filter(
-      (set) =>
+    return sets.filter((set) => {
+      if (set.kind !== kind) return false
+      if (!needle) return true
+      return (
         set.code.toLowerCase().includes(needle) ||
         set.displayName.toLowerCase().includes(needle) ||
-        set.name.toLowerCase().includes(needle),
-    )
-  }, [sets, term])
+        // Casa também com o nome como a fonte publicou, com hifens e tudo.
+        set.name.toLowerCase().includes(needle)
+      )
+    })
+  }, [sets, kind, term])
+
+  const options = (['collection', 'deck', 'promo'] as const)
+    .filter((value) => counts[value] > 0)
+    .map((value) => ({ value, label: SET_KIND_LABEL[value], count: counts[value] }))
 
   return (
     <div className="flex flex-col gap-4">
+      <Segmented
+        label="Tipo de set"
+        options={options}
+        value={kind}
+        onValueChange={(value) => setKind(value)}
+      />
+
       <SearchBar
         label="Buscar sets"
         value={term}
         onValueChange={setTerm}
-        placeholder="Buscar sets..."
+        placeholder="Buscar por código ou nome..."
       />
 
       {matches.length === 0 ? (
         <EmptyState
           title="Nenhum set encontrado"
-          description={`Nada corresponde a "${term}".`}
+          description={term ? `Nada corresponde a "${term}".` : 'Nada nesta categoria.'}
         />
       ) : (
         <ul className="grid gap-2 md:grid-cols-2">
           {matches.map((set) => (
             <li key={set.code}>
-              <Panel className="transition-colors hover:bg-surface-muted">
+              <Panel className="overflow-hidden transition-colors hover:bg-surface-muted">
                 <Link
                   href={`/catalogo/sets/${encodeURIComponent(set.code)}`}
                   className="flex items-center gap-3 p-3"
                 >
-                  {/*
-                    O código no lugar de uma capa: a seção 19 proíbe arte de
-                    franquia como decoração, e o modelo não guarda capa de set.
-                    O código é o que a pessoa reconhece de qualquer forma.
-                  */}
-                  <span
-                    aria-hidden
-                    className="flex size-12 shrink-0 items-center justify-center rounded-control bg-accent-soft px-1 text-center text-xs font-bold text-accent-ink"
-                  >
-                    {set.code}
+                  <span className="relative block aspect-[5/7] w-11 shrink-0 overflow-hidden rounded-md border border-border bg-surface-muted">
+                    {set.coverUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- decisão 026
+                      <img
+                        src={set.coverUrl}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      <span className="flex size-full items-center justify-center px-0.5 text-center text-[9px] font-bold text-text-subtle">
+                        {set.code}
+                      </span>
+                    )}
                   </span>
+
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="truncate text-sm font-semibold text-text">
                       {set.displayName}
                     </span>
                     <span className="text-xs text-text-muted tabular-nums">
-                      {set.code} ·{' '}
-                      {set.variantCount === 1 ? '1 variante' : `${set.variantCount} variantes`}
+                      {set.code} · {cardCountLabel(set.variantCount)}
                     </span>
                   </span>
+
                   <ChevronRight className="size-4 shrink-0 text-text-subtle" aria-hidden />
                 </Link>
               </Panel>

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Library } from 'lucide-react'
+import { Layers, Library } from 'lucide-react'
 import { PageHeader } from '@/components/layout/app-shell'
 import { CatalogFilters } from '@/components/catalog/catalog-filters'
 import { CatalogResults } from '@/components/catalog/catalog-results'
@@ -52,10 +52,16 @@ export default async function CatalogoPage({ searchParams }: PageProps<'/catalog
 
         <PanelList>
           <ListRow
-            href="/catalogo/sets"
+            href="/catalogo/sets?tipo=collection"
             leading={<Library className="size-5 text-text-muted" aria-hidden />}
             title="Sets"
-            description="Navegue por coletânea, com a contagem de variantes de cada uma."
+            description="Boosters e coletâneas, em ordem de lançamento."
+          />
+          <ListRow
+            href="/catalogo/sets?tipo=deck"
+            leading={<Layers className="size-5 text-text-muted" aria-hidden />}
+            title="Decks"
+            description="Starter e ultra decks, prontos para jogar."
           />
         </PanelList>
 

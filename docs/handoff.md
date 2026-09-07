@@ -30,7 +30,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 8 concluídos.** 357 testes de unidade, integração e
+**Checkpoints 0 a 8 concluídos.** 376 testes de unidade, integração e
 componente, mais 27 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -51,7 +51,7 @@ a objeto.
 
 ## As decisões que mais restringem o que vem depois
 
-As 35 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 37 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
@@ -74,8 +74,11 @@ As 35 estão em `decisions.md`. Estas mudam o que se pode fazer:
 - **033** — o estado da listagem do catálogo mora na URL: busca, filtros e
   página são parâmetros da query string, e a página é renderizada no servidor já
   filtrada. Toda listagem nova segue isso.
-- **034** — não existe "sets mais recentes": o modelo não guarda data de
-  lançamento, e ordenar códigos não é ordenar por data.
+- **036** — substitui a 034. A ordem de lançamento **foi informada** pelo dono
+  do produto e vive em `src/server/domain/catalog/sets.ts`; sets são separados
+  em coleção, deck e promocional; e a contagem é exibida como "cartas".
+- **037** — as imagens de carta **podem ser exibidas** (o dono do produto
+  verificou), e o banco continua guardando só a URL.
 - **007** — reduzir quantidade abaixo do alocado devolve **conflito com as
   alocações atuais** para o usuário resolver, não erro seco nem desalocação
   automática. Isso obriga a API a ter formato de conflito estruturado.
@@ -139,6 +142,9 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 16. **Seletor frouxo em teste ponta a ponta quebra sozinho.** `nav:visible`
     funcionou até a paginação existir, que também é um `<nav>`. Localize pelo
     nome acessível.
+17. **Texto branco sobre arte que não controlamos precisa de piso medido.** No
+    cabeçalho do set, os 25% de opacidade da arte são o que mantém o contraste
+    em 6.05:1 no pior caso. Aumentar a opacidade derruba esse piso.
 
 ## Pendências
 
@@ -168,10 +174,18 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 
 ### Perguntas em aberto
 
-- **Data de lançamento de set.** Sem ela não dá para dizer "mais recentes"
-  (decisão 034). Acrescentar `released_at` a `sets` seria alteração do modelo
-  aprovado, e depende de a fonte publicar a data de forma confiável — o que não
-  foi verificado.
+- **Rótulo da série em `sets`.** Hoje a classificação em coleção/deck/promo sai
+  do prefixo do código, que espelha fielmente o rótulo que a fonte publica
+  (conferido um a um). Guardar o rótulo removeria a suposição e corrigiria de
+  quebra os nomes inconsistentes: `OP-17` foi importado como
+  `BOOSTER PACK -...-` e `OP-01` como `-...-`, embora ambos sejam booster pack.
+  Hoje isso é resolvido na exibição. Seria alteração do modelo e reimportação.
+- **Nomes divergem entre a lista de lançamento e o catálogo.** Três sets têm
+  nome diferente do informado, porque o catálogo é o site em inglês:
+  `OP-09` é "EMPERORS IN THE NEW WORLD" e não "The New Emperor"; `OP-11` é
+  "A FIST OF DIVINE SPEED" e não "The Blackbeard Pirates"; `OP-12` é
+  "LEGACY OF THE MASTER" e não "The Revolutionary Army". A tela mostra o nome da
+  fonte. Trocar por nomes próprios seria manter uma segunda lista à mão.
 - **Progresso por set** aparece nas telas 10 e 11 e não foi construído: é
   métrica de coleção (`business-rules.md` 2.2), e chega com as telas de coleção.
   O componente `ProgressBar` já existe esperando o número.
