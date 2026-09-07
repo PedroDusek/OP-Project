@@ -167,6 +167,12 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     `optcg` não tem. Escreva o SQL da migration à mão (ou com `migrate diff`) e
     aplique com `migrate deploy` — o mesmo comando da CI. Ver `development.md`
     2.2.
+22. **`createClient` do `@supabase/supabase-js` não nasce no Node 20.** Ele monta
+    um cliente de Realtime junto, que exige `WebSocket` global; o construtor
+    lança antes de qualquer chamada. `@supabase/ssr` (autenticação) não passa por
+    isso; o Storage passava. Por isso o provedor de imagens fala REST com
+    `fetch`. Um dublê nos testes de caso de uso não pega isto — é preciso um
+    teste que **instancie** o provedor de verdade.
 
 ## Pendências
 
@@ -248,7 +254,9 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
   comercial, que a especificação reserva ao dono do produto.
 - Limite de taxa não escala horizontalmente: contador em memória de processo.
   Vale para as três cotas, inclusive a de tentativas de login.
-- Node 20 depreciado pelo SDK do Supabase.
+- Node 20 depreciado pelo SDK do Supabase — e não só depreciado: `createClient`
+  não funciona nele (armadilha 22). Subir para o Node 22 removeria a restrição,
+  mas o provedor de imagens não depende mais disso.
 - O `middleware.ts` está deprecado no Next 16, que agora prefere `proxy.ts`. O
   build avisa a cada execução. Migração mecânica, adiada por ser mudança na
   fronteira de sessão.

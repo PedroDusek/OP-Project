@@ -1882,6 +1882,25 @@ O bucket é criado por `npm run supabase storage`, e não pelo painel: os limite
 para recusar, então não há como divergirem. Repetir a regra do lado do Supabase
 é a segunda tranca, para o caso de alguém escrever por outro caminho.
 
+## Por que `fetch`, e não o `@supabase/supabase-js`
+
+Descoberto ao rodar o comando pela primeira vez, contra o projeto real:
+`createClient` monta um cliente de Realtime junto, e o Realtime exige um
+`WebSocket` global — que o Node 20 não tem. O construtor lança
+`"Node.js detected but native WebSocket not found"` **antes** de qualquer chamada
+de storage. O mesmo erro derrubaria o upload dentro da aplicação, não só o
+script.
+
+Dava para injetar uma implementação de WebSocket só para calar o construtor.
+Seria carregar uma dependência de tempo real para gravar um arquivo. A API de
+Storage é REST comum — três endpoints e dois cabeçalhos —, então é isso que o
+provedor usa.
+
+Nada disso apareceu em teste porque não havia teste que **instanciasse** o
+provedor: os testes de caso de uso usavam um dublê. Agora existe
+`tests/integration/supabase-image-storage.test.ts`, com `fetch` de mentira, que
+falha se o provedor voltar a precisar de rede ou de plataforma para nascer.
+
 ## Por que a chave secreta, e não a sessão da pessoa
 
 O upload acontece numa Server Action, depois de a fronteira de sessão já ter
