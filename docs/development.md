@@ -229,7 +229,7 @@ Três coisas do fluxo de conta **não** se resolvem em código:
 | O quê | Onde | Situação |
 |---|---|---|
 | Redirect URLs | *Authentication → URL Configuration* | precisa listar `<APP_URL>/auth/callback` de cada ambiente |
-| Google e Apple | *Authentication → Providers* | desligados hoje; ligar faz os botões aparecerem sozinhos (decisão 032) |
+| Google e Apple | *Authentication → Providers* | desligados hoje; ver 6.2 |
 | SMTP próprio | *Project Settings → Auth → SMTP* | não configurado |
 
 O serviço de e-mail embutido do Supabase serve para desenvolvimento e tem cota
@@ -241,7 +241,71 @@ Estado atual do projeto, conferido em 07/09/2026 pelo endpoint público
 `/auth/v1/settings`: e-mail e senha habilitados, cadastro aberto, confirmação de
 e-mail **obrigatória**, nenhum provedor social ligado.
 
-### 6.2 Se a conexão direta falhar
+### 6.2 Habilitar Google e Apple
+
+O código já está pronto: os botões aparecem sozinhos para os provedores que o
+Supabase reportar como habilitados (decisão 032). O que falta é configuração de
+painel, que exige credenciais e não pode ser feita por aqui.
+
+**A URL de retorno é sempre a do Supabase**, não a da aplicação:
+
+```
+https://zcyavtxrnpxinkvfnftf.supabase.co/auth/v1/callback
+```
+
+Quem redireciona para `/auth/callback` do ColeXa é o Supabase, depois.
+
+#### Google
+
+Sem custo. No [Google Cloud Console](https://console.cloud.google.com):
+
+1. Crie ou escolha um projeto.
+2. **APIs e serviços → Tela de permissão OAuth**: tipo *Externo*, nome do app
+   `ColeXa`, e-mail de suporte e de contato. Os escopos padrão bastam —
+   `openid`, `email` e `profile`.
+3. **Credenciais → Criar credenciais → ID do cliente OAuth**, tipo
+   *Aplicativo da Web*.
+4. Em *URIs de redirecionamento autorizados*, cole a URL do Supabase acima.
+5. Copie o **Client ID** e o **Client Secret**.
+6. No Supabase, **Authentication → Providers → Google**: habilite e cole os dois.
+
+Enquanto a tela de permissão estiver em modo *Teste*, só as contas listadas em
+*Usuários de teste* conseguem entrar. Publicar a tela remove esse limite;
+para escopos básicos não há verificação demorada.
+
+#### Apple
+
+**Exige o Apple Developer Program, US$ 99 por ano.** Não há caminho gratuito.
+Em [developer.apple.com](https://developer.apple.com/account/resources):
+
+1. **Identifiers → App ID**, com *Sign In with Apple* marcado.
+2. **Identifiers → Services ID** — este é o *client ID*. Configure o domínio
+   `zcyavtxrnpxinkvfnftf.supabase.co` e a URL de retorno acima.
+3. **Keys → nova chave** com *Sign In with Apple*. Baixe o `.p8`; ele só pode
+   ser baixado **uma vez**. Anote o *Key ID* e o *Team ID*.
+4. No Supabase, **Authentication → Providers → Apple**: habilite, informe o
+   Services ID, o Team ID, o Key ID e o conteúdo do `.p8`. O Supabase monta o
+   segredo, que a Apple exige que seja renovado a cada seis meses.
+
+Duas particularidades da Apple que afetam o que aparece no produto:
+
+- A pessoa pode **esconder o e-mail**, e aí o endereço é um
+  `@privaterelay.appleid.com`. É um endereço válido e entregável, mas não é o
+  e-mail real dela.
+- O **nome só vem na primeira autorização**, e nunca mais. Se ele não vier, a
+  conta nasce com o nome derivado do e-mail. Editar o nome depois depende da
+  tela de perfil, que ainda não existe.
+
+#### Depois de habilitar
+
+```
+node -e "require('dotenv').config();fetch(process.env.NEXT_PUBLIC_SUPABASE_URL+'/auth/v1/settings',{headers:{apikey:process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}}).then(r=>r.json()).then(s=>console.log(s.external))"
+```
+
+O que este comando reportar é exatamente o que a tela vai desenhar. O resultado
+fica em cache por cinco minutos no servidor da aplicação.
+
+### 6.3 Se a conexão direta falhar
 
 O Supabase serve a conexão direta por IPv6. Em rede sem IPv6, a conexão expira
 sem erro claro. Nesse caso use a string do **Session pooler**, que é compatível
