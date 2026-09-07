@@ -26,7 +26,6 @@ import { Avatar } from '@/components/ui/avatar'
 import { CardGrid, CardTile } from '@/components/catalog/card-tile'
 import { SetHeader } from '@/components/catalog/set-header'
 import { SetList } from '@/components/catalog/set-list'
-import { Pagination } from '@/components/ui/pagination'
 import { StatTile } from '@/components/collection/stat-tile'
 import { StorageCard } from '@/components/storage/storage-card'
 import { TradeItem } from '@/components/trade/trade-item'
@@ -269,19 +268,27 @@ export function Guide() {
         <Section title="Cartas">
           <CardGrid>
             {[
-              { code: 'OP01-001', name: 'Exemplo', quantity: 4, labels: ['SR'] },
+              {
+                code: 'OP01-001',
+                name: 'Exemplo',
+                quantity: 4,
+                labels: ['SR'],
+                imageUrl:
+                  'https://en.onepiece-cardgame.com/images/cardlist/card/OP01-001.png',
+              },
               { code: 'OP01-002', name: 'Exemplo', quantity: 1 },
               { code: 'OP01-003', name: 'Exemplo', quantity: 0 },
               { code: 'OP01-004', name: 'Exemplo', quantity: 2, labels: ['Alt Art'] },
               { code: 'OP01-005', name: 'Exemplo', quantity: 3 },
               { code: 'OP01-006', name: 'Exemplo', quantity: 4 },
             ].map((card) => (
-              <CardTile key={card.code} {...card} imageUrl={null} />
+              <CardTile key={card.code} imageUrl={null} {...card} />
             ))}
           </CardGrid>
           <p className="text-xs text-text-muted">
-            Sem imagem de carta neste guia, por causa da diretriz de propriedade intelectual. O
-            quadro cinza é o espaço reservado, na proporção 5/7 da carta física.
+            A primeira carta traz arte de verdade; as outras mostram o espaço reservado, na
+            proporção 5/7 da carta física. A arte passa pelo otimizador e é servida do nosso
+            domínio — o servidor da Bandai recusa exibi-la em qualquer outra origem.
           </p>
           <Panel className="px-3">
             <TradeItem code="OP01-001" name="Exemplo" imageUrl={null} variantLabel="Normal" quantity={2} marketValue="R$ 80" onRemove={() => {}} />
@@ -303,7 +310,8 @@ export function Guide() {
           <p className="text-xs text-text-muted">
             O cabeçalho do set usa a primeira carta do set como ambientação, desfocada sob uma
             camada do roxo da marca — o que garante contraste do texto sobre arte que não
-            controlamos. Aqui aparece sem arte, porque o guia não usa imagem de carta.
+            controlamos. A grade rola sem paginação: carrega mais ao chegar no fim, com um botão
+            alcançável por teclado no lugar do sentinela.
           </p>
 
           <SetList
@@ -314,8 +322,6 @@ export function Guide() {
               { code: 'PROMO', name: 'One Piece Promotion Cards', displayName: 'One Piece Promotion Cards', variantCount: 537, kind: 'promo', coverUrl: null },
             ]}
           />
-
-          <Pagination page={3} totalPages={12} hrefFor={(page) => `#pagina-${page}`} />
         </Section>
 
         <Section title="Sobreposições">

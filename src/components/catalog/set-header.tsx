@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { Symbol } from '@/components/brand/logo'
@@ -37,13 +38,14 @@ export function SetHeader({ set }: { set: SetSummary }) {
     <div className="-mx-4 mb-4 md:mx-0 md:overflow-hidden md:rounded-card">
       <div className="relative isolate overflow-hidden bg-accent px-4 py-6 md:px-6">
         {set.coverUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- decisão 026
-          <img
+          <Image
             src={set.coverUrl}
             alt=""
             aria-hidden
-            decoding="async"
-            className="absolute inset-0 -z-10 size-full scale-110 object-cover opacity-25 blur-md"
+            fill
+            // Desfocada e a 25%: a resolucao pedida pode ser pequena.
+            sizes="480px"
+            className="-z-10 scale-110 object-cover opacity-25 blur-md"
           />
         ) : null}
 

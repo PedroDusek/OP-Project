@@ -36,17 +36,11 @@ export default async function SetPage({ params, searchParams }: PageProps<'/cata
     throw error
   })
 
+  const catalogQuery = toCatalogQuery(query, { setCode, pageSize: 24 })
   const [result, vocabulary] = await Promise.all([
-    searchCatalog(toCatalogQuery(query, { setCode, pageSize: 60 })),
+    searchCatalog(catalogQuery),
     getCatalogVocabulary(),
   ])
-
-  const urlParams = new URLSearchParams(
-    Object.entries(query).flatMap(([key, value]) =>
-      value === undefined ? [] : [[key, Array.isArray(value) ? value[0] : value] as [string, string]],
-    ),
-  )
-  const pathname = `/catalogo/sets/${encodeURIComponent(setCode)}`
 
   return (
     <>
@@ -60,7 +54,7 @@ export default async function SetPage({ params, searchParams }: PageProps<'/cata
           <CatalogFilters vocabulary={vocabulary} activeCount={countActiveFilters(query)} />
         </div>
 
-        <CatalogResults result={result} pathname={pathname} searchParams={urlParams} />
+        <CatalogResults result={result} query={catalogQuery} />
       </div>
     </>
   )

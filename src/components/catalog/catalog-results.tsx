@@ -1,30 +1,25 @@
 import { SearchX } from 'lucide-react'
-import { CardGrid, CardTile } from '@/components/catalog/card-tile'
-import { Pagination } from '@/components/ui/pagination'
 import { EmptyState } from '@/components/ui/states'
-import type { CatalogResult } from '@/server/application/catalog/search-cards'
-import { cardCountLabel } from '@/server/domain/catalog/sets'
-import { buildCatalogHref, PARAM } from '@/lib/catalog-params'
+import { InfiniteCardGrid, type CatalogItemView } from './infinite-card-grid'
+import type { CatalogQuery, CatalogResult } from '@/server/application/catalog/search-cards'
+import { toApiQuery } from '@/lib/catalog-params'
 
 /**
- * A grade de resultados, com paginação.
+ * A grade de resultados.
  *
- * Server Component: a grade chega pronta do servidor, sem um segundo passo no
- * cliente. É a mesma peça no catálogo e no detalhe do set, porque é a mesma
- * lista — só muda o filtro que a produziu.
+ * Server Component: a primeira leva chega pronta do servidor, sem um segundo
+ * passo no cliente. As seguintes vêm por rolagem, em `InfiniteCardGrid`.
  *
- * Sem contagem de cópias: quantidade é informação de coleção, e a coleção
- * chega no próximo checkpoint. Mostrar "x0" em tudo agora seria dizer que a
- * pessoa não tem nada quando na verdade ainda não perguntamos.
+ * Sem contagem de cópias: quantidade é informação de coleção, e a coleção chega
+ * no próximo checkpoint. Mostrar "x0" em tudo agora seria dizer que a pessoa não
+ * tem nada quando na verdade ainda não perguntamos.
  */
 export function CatalogResults({
   result,
-  pathname,
-  searchParams,
+  query,
 }: {
   result: CatalogResult
-  pathname: string
-  searchParams: URLSearchParams
+  query: CatalogQuery
 }) {
   if (result.total === 0) {
     return (
@@ -36,55 +31,27 @@ export function CatalogResults({
     )
   }
 
-  const from = (result.page - 1) * result.pageSize + 1
-  const to = Math.min(result.page * result.pageSize, result.total)
-
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-sm text-text-muted tabular-nums" role="status">
-        {/*
-          Diz "cartas" e conta variantes. A palavra e escolha do dono do produto;
-          a distincao entre carta e variante continua valendo em todo o resto do
-          sistema. Ver `cardCountLabel`.
-        */}
-        {cardCountLabel(result.total)}
-        {result.totalPages > 1 ? ` · mostrando ${from}–${to}` : ''}
-      </p>
-
-      <CardGrid>
-        {result.items.map((item) => (
-          <CardTile
-            key={String(item.variantId)}
-            code={item.cardCode}
-            name={item.cardName}
-            imageUrl={item.imageUrl}
-            labels={labelsFor(item.rarity, item.variantType)}
-            href={`/catalogo/carta/${item.variantId}`}
-          />
-        ))}
-      </CardGrid>
-
-      <Pagination
-        page={result.page}
-        totalPages={result.totalPages}
-        hrefFor={(page) =>
-          buildCatalogHref(pathname, searchParams, { [PARAM.pagina]: page }, { resetPage: false })
-        }
-        className="pt-2"
-      />
-    </div>
+    <InfiniteCardGrid
+      // A chave amarra o estado da grade à consulta: mudar de filtro monta uma
+      // grade nova em vez de acrescentar os resultados novos aos antigos.
+      key={toApiQuery(query)}
+      initialItems={result.items.map(toView)}
+      total={result.total}
+      pageSize={result.pageSize}
+      apiQuery={toApiQuery(query)}
+    />
   )
 }
 
-/**
- * A etiqueta traz a raridade sempre, e a variante só quando ela não é Normal.
- *
- * "Normal" em toda carta é ruído: é o caso comum, e o que a pessoa procura na
- * grade é justamente o que **não** é comum.
- */
-function labelsFor(rarity: string | null, variantType: string): string[] {
-  const labels: string[] = []
-  if (rarity) labels.push(rarity)
-  if (variantType && variantType !== 'Normal') labels.push(variantType)
-  return labels
+/** `bigint` vira string na fronteira: JSON não serializa BigInt. */
+function toView(item: CatalogResult['items'][number]): CatalogItemView {
+  return {
+    variantId: String(item.variantId),
+    cardCode: item.cardCode,
+    cardName: item.cardName,
+    rarity: item.rarity,
+    variantType: item.variantType,
+    imageUrl: item.imageUrl,
+  }
 }

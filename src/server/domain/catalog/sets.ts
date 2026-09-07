@@ -51,9 +51,18 @@ export function compareSetCodes(a: string, b: string): number {
  */
 export type SetKind = 'collection' | 'deck' | 'promo'
 
+/**
+ * O rotulo de `deck` diz **Starter Decks**, e nao "Decks", a pedido do dono do
+ * produto: o produto tera decks *do usuario* em Armazenamento, e duas coisas
+ * chamadas "deck" na mesma interface confundiriam sem necessidade.
+ *
+ * A fonte rotula estes produtos como `STARTER DECK`, `STARTER DECK EX` e
+ * `ULTRA DECK`. "Starter Decks" cobre a maioria e distingue do que importa
+ * distinguir; a precisao dos tres nomes nao vale a ambiguidade que ela evita.
+ */
 export const SET_KIND_LABEL: Record<SetKind, string> = {
   collection: 'Coleções',
-  deck: 'Decks',
+  deck: 'Starter Decks',
   promo: 'Promocionais',
 }
 

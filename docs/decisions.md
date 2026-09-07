@@ -1583,3 +1583,118 @@ rearmazenar não, e que as duas coisas são diferentes.
 ## Data
 
 2026-09-07
+
+---
+
+# Decisão: 038 — A imagem de carta é servida pelo nosso domínio
+
+**Revoga a decisão 026** e altera uma das mitigações da decisão 020.
+
+## Contexto
+
+O dono do produto relatou que as imagens não apareciam. O diagnóstico:
+
+```
+$ curl -I https://en.onepiece-cardgame.com/images/cardlist/card/OP01-001.png
+cross-origin-resource-policy: same-site
+```
+
+Esse cabeçalho é uma instrução ao **navegador**: recuse desenhar este recurso em
+qualquer origem que não seja mesmo-site. Não há cabeçalho nosso que contorne, e
+vale igual para `localhost` e para `colexa.com.br`. O console mostrava
+`net::ERR_BLOCKED_BY_RESPONSE.NotSameSite`.
+
+As quatro origens da Bandai foram testadas — `en.`, `asia-en.`, `www.` e o
+domínio nu — todas com o mesmo cabeçalho.
+
+Ou seja: a decisão 026 mandava fazer a única coisa que **não funciona**. Ela foi
+tomada de boa-fé, protegendo a mitigação da decisão 020, mas sob a premissa
+falsa de que referenciar a origem exibiria a imagem.
+
+## Como outros resolvem
+
+A pedido do dono do produto, foi verificado como a LigaOnePiece exibe cartas:
+as imagens vêm de `repositorio.sbrauble.com/arquivos/up/...`, repositório
+próprio, atrás de Cloudflare, com `cache-control: max-age=31536000` e **sem**
+`cross-origin-resource-policy`. Eles hospedam; não referenciam a Bandai. Não
+teriam como, pelo mesmo motivo.
+
+## Opções
+
+1. Não exibir imagem.
+2. Repassar sem guardar: nosso servidor busca e devolve a cada requisição.
+3. Servir pelo nosso domínio com cache, via otimizador do `next/image`.
+
+## Decisão
+
+Opção 3. `next.config.ts` autoriza `en.onepiece-cardgame.com/images/cardlist/**`
+como origem remota, com cache mínimo de 30 dias. `card_variants.image_url`
+continua guardando apenas a URL canônica da fonte — nenhuma imagem entra no
+banco, como o dono do produto pediu.
+
+## Motivo
+
+A opção 1 tira a arte de uma ferramenta de coleção visual.
+
+A opção 2 cumpriria a letra de "nunca rearmazenar" e seria **pior para a
+fonte**: sem cache, cada visitante geraria uma requisição à Bandai por carta
+vista. A mitigação da decisão 020 existe para ser leve com a origem, e nesse
+ponto ela se voltaria contra o próprio objetivo.
+
+A opção 3 é a mais leve das três para a Bandai — uma requisição por imagem, no
+total — e a mais leve para quem usa: o otimizador entrega WebP no tamanho da
+tela, cerca de 20 KB por carta contra os 150 KB do PNG original. Numa grade de
+24 cartas no celular, 0,5 MB em vez de 3,6 MB.
+
+O que permanece da decisão 020: o catálogo nunca é reexposto como API pública, a
+cota por usuário continua valendo, a atribuição continua visível, e o banco não
+guarda imagem. O que muda é só o caminho pelo qual o byte chega ao navegador —
+porque não existe outro.
+
+A autorização legal para exibir é do dono do produto, registrada em 07/09/2026.
+
+## Data
+
+2026-09-07
+
+---
+
+# Decisão: 039 — Rolagem infinita no catálogo, pela API
+
+**Revoga a decisão 033** na parte da paginação. O restante dela continua
+valendo: busca e filtros seguem na URL.
+
+## Contexto
+
+A decisão 033 escolheu paginação por link, argumentando que "a página 7 de OP01"
+é um lugar ao qual se volta. O dono do produto pediu rolagem infinita.
+
+## Decisão
+
+A primeira leva é renderizada no servidor; as seguintes chegam por rolagem,
+pedidas a `/api/catalog`. O indicador "mostrando 1–24" saiu junto com as
+páginas; o total continua.
+
+O sentinela **é um botão** de "Carregar mais": o observador de intersecção
+dispara a mesma carga que o clique.
+
+## Motivo
+
+O botão-sentinela resolve de uma vez os três casos em que rolagem infinita pura
+deixa a pessoa presa: quem navega por teclado e nunca "rola até o fim", quem usa
+leitor de tela, e o momento em que uma carga falha e é preciso repetir. Também
+torna o comportamento testável sem simular rolagem.
+
+As páginas seguintes passam pela **API**, e não por uma Server Action, porque é
+a API que cobra a cota de leitura do catálogo. Essa cota é o que sustenta na
+prática o compromisso da decisão 020 de nunca reexpor o catálogo; uma Server
+Action escaparia dela, e a rolagem infinita viraria a forma mais cômoda de
+extrair o catálogo inteiro.
+
+O que se perde é o endereço da página — que era o argumento da decisão 033. Busca
+e filtros continuam na URL, então a lista filtrada segue compartilhável; o que
+não volta é a posição exata na rolagem.
+
+## Data
+
+2026-09-07

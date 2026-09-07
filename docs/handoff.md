@@ -58,9 +58,10 @@ As 37 estão em `decisions.md`. Estas mudam o que se pode fazer:
   produto, com mitigações **obrigatórias**: requisições serializadas com
   intervalo, apenas dados factuais, imagens referenciadas na origem e nunca
   copiadas, atribuição visível, e o catálogo nunca reexposto como API pública.
-- **026** — consequência direta da 020 no frontend: a imagem de carta **não**
-  passa pelo otimizador do `next/image`, que baixaria o arquivo e o serviria do
-  nosso domínio. É `<img>` com proporção reservada por CSS.
+- **038** — revoga a 026 e altera uma mitigação da 020. O servidor da Bandai
+  manda `cross-origin-resource-policy: same-site`, então o navegador **recusa**
+  desenhar a imagem vinda direto da origem. Ela passa pelo otimizador do
+  `next/image` e é servida do nosso domínio; o banco guarda só a URL.
 - **030** — Termos de Uso e Política de Privacidade **não existem**, e isso é
   bloqueio de lançamento. Ver abaixo.
 - **021** — `effects` fica vazia. Os nove efeitos da especificação não aparecem
@@ -71,9 +72,8 @@ As 37 estão em `decisions.md`. Estas mudam o que se pode fazer:
 - **024** — 131 produtos promocionais sem código viram um set único `PROMO`.
 - **025 + 031** — autenticação terceirizada, e o login acontece por Server
   Action. Não existe senha no nosso banco nem SDK de autenticação no navegador.
-- **033** — o estado da listagem do catálogo mora na URL: busca, filtros e
-  página são parâmetros da query string, e a página é renderizada no servidor já
-  filtrada. Toda listagem nova segue isso.
+- **033 + 039** — busca e filtros moram na URL; a listagem rola sem paginação, e
+  as levas seguintes passam pela API, que é onde a cota de leitura é cobrada.
 - **036** — substitui a 034. A ordem de lançamento **foi informada** pelo dono
   do produto e vive em `src/server/domain/catalog/sets.ts`; sets são separados
   em coleção, deck e promocional; e a contagem é exibida como "cartas".
@@ -145,6 +145,12 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 17. **Texto branco sobre arte que não controlamos precisa de piso medido.** No
     cabeçalho do set, os 25% de opacidade da arte são o que mantém o contraste
     em 6.05:1 no pior caso. Aumentar a opacidade derruba esse piso.
+18. **A imagem da Bandai não pode ser referenciada direto.** O servidor manda
+    `cross-origin-resource-policy: same-site` e o navegador recusa, com
+    `net::ERR_BLOCKED_BY_RESPONSE.NotSameSite` no console. O HTML fica correto,
+    o CSS fica correto, e a imagem simplesmente não desenha — foi assim que
+    passou despercebido por dois checkpoints. Toda imagem de carta passa por
+    `CardArt`.
 
 ## Pendências
 

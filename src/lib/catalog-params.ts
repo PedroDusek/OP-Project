@@ -114,3 +114,38 @@ export function buildCatalogHref(
   const query = next.toString()
   return query ? `${pathname}?${query}` : pathname
 }
+
+/**
+ * A mesma consulta, no vocabulário que `/api/catalog` aceita.
+ *
+ * A rolagem infinita pede as páginas seguintes pela API, e não por uma Server
+ * Action, porque é a API que cobra a cota de leitura do catálogo — a cota que
+ * sustenta na prática o compromisso da decisão 020 de nunca reexpô-lo.
+ *
+ * O schema da rota é `strict()`: chave desconhecida é 400. Por isso só entra o
+ * que está definido, e `page` fica de fora — quem pagina acrescenta a sua.
+ */
+export function toApiQuery(query: CatalogQuery): string {
+  const params = new URLSearchParams()
+
+  const put = (key: string, value: string | number | undefined) => {
+    if (value !== undefined && value !== '') params.set(key, String(value))
+  }
+
+  put('search', query.search)
+  put('setCode', query.setCode)
+  put('type', query.type)
+  put('color', query.color)
+  put('rarity', query.rarity)
+  put('variantType', query.variantType)
+  put('attribute', query.attribute)
+  put('mechanic', query.mechanic)
+  put('trait', query.trait)
+  put('costMin', query.costMin)
+  put('costMax', query.costMax)
+  put('powerMin', query.powerMin)
+  put('powerMax', query.powerMax)
+  put('pageSize', query.pageSize)
+
+  return params.toString()
+}

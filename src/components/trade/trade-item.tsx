@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { Badge } from '@/components/ui/badge'
+import { CardArt } from '@/components/catalog/card-art'
 
 /**
  * Uma carta dentro de uma troca.
@@ -40,18 +41,13 @@ export function TradeItem({
 }: TradeItemProps) {
   return (
     <div className={cn('flex items-center gap-3 py-2', className)}>
-      <span className="relative block aspect-[5/7] w-10 shrink-0 overflow-hidden rounded-md border border-border bg-surface-muted">
-        {imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- decisao 026
-          <img
-            src={imageUrl}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            className="size-full object-cover"
-          />
-        ) : null}
-      </span>
+      <CardArt
+        src={imageUrl}
+        alt=""
+        fallback={code}
+        sizes="40px"
+        className="w-10 shrink-0 rounded-md"
+      />
 
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="truncate text-sm font-medium text-text tabular-nums">{code}</span>

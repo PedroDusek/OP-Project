@@ -295,17 +295,22 @@ aparece como badge discreto sobre a imagem.
 
 - Paginação e filtro no servidor em toda listagem. O catálogo nunca é buscado
   inteiro.
-- **O estado da listagem mora na URL** (decisão 033): busca, filtros e página são
-  parâmetros da query string, e a página é um Server Component já filtrado. A
-  lista é compartilhável, volta igual pelo histórico, e voltar do detalhe de uma
-  carta devolve a lista onde ela estava.
-- **Imagem de carta não passa pelo otimizador do `next/image`** (decisão 026): o
-  otimizador baixaria e serviria o arquivo do nosso domínio, e a decisão 020 nos
-  obriga a apenas referenciar a origem. É `<img>` com `loading="lazy"` e a
-  proporção 5/7 reservada por CSS, o que também evita salto de layout.
-  `next/image` continua valendo para imagem própria, quando houver.
-- Grids virtualizados em listas longas. Ainda não foi necessário: a paginação do
-  servidor mantém cada página em dezenas de itens, não milhares.
+- **Busca e filtros moram na URL** (decisão 033): são parâmetros da query
+  string, e a página é um Server Component já filtrado. A lista filtrada é
+  compartilhável e volta igual pelo histórico.
+- **A listagem rola sem paginação** (decisão 039). A primeira leva vem do
+  servidor; as seguintes são pedidas a `/api/catalog`, que é onde a cota de
+  leitura é cobrada — uma Server Action escaparia dela.
+- **Imagem de carta passa pelo otimizador do `next/image`** (decisão 038). Não
+  é preferência: o servidor da Bandai responde com
+  `cross-origin-resource-policy: same-site`, e o navegador recusa desenhar a
+  imagem em qualquer outra origem. Referenciar direto — o que a decisão 026
+  previa — não exibe nada. O banco continua guardando só a URL.
+- O cache do otimizador é o que torna isso **mais leve** para a fonte do que a
+  alternativa de não guardar: sem ele, cada visitante geraria uma requisição à
+  Bandai por carta vista.
+- Grids virtualizados em listas longas. Ainda não foi necessário: cada leva da
+  rolagem traz dezenas de itens, e o DOM só cresce enquanto a pessoa rola.
 - Busca com debounce; a busca exata por código vai direto ao índice único.
 - TanStack Query para cache e listas infinitas nas telas interativas; React
   Server Components na primeira renderização.
