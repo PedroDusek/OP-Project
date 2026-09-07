@@ -84,3 +84,13 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # A responsividade e a unica coisa que os outros niveis nao conseguem
+      # verificar: jsdom nao avalia media query, entao um teste de componente
+      # passa com as duas navegacoes visiveis ao mesmo tempo. Roda contra o
+      # build acima, nao contra o servidor de desenvolvimento.
+      - name: Instalar navegador do Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Testes de responsividade
+        run: npm run test:e2e

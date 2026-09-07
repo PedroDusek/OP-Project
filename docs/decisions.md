@@ -1045,3 +1045,196 @@ mês, valor irrelevante para um produto com base de usuários que justifique iss
 ## Data
 
 2026-09-06
+
+---
+
+# Decisão: 026 — Imagem de carta sem o otimizador do `next/image`
+
+## Contexto
+
+A decisão 020 assumiu o risco de usar o site oficial da Bandai como fonte do
+catálogo, com mitigações **obrigatórias**. Uma delas é que as imagens são
+*referenciadas na origem*, nunca copiadas nem rearmazenadas.
+
+`architecture.md` seção 4.2 pedia `next/image` com tamanhos responsivos e
+carregamento tardio. Ao construir a grade de cartas, ficou claro que as duas
+coisas se contradizem: o otimizador do `next/image` **baixa** o arquivo remoto,
+converte, guarda em cache no nosso disco e serve de `/_next/image`. Isso é
+rehospedar a imagem da Bandai a partir do nosso domínio.
+
+A mitigação é jurídica, não de performance.
+
+## Opções
+
+1. `next/image` com `remotePatterns` para o host da fonte, com otimização.
+2. `next/image` com `unoptimized`, que na prática vira um `<img>` com mais
+   configuração e uma dependência a mais.
+3. `<img>` com `loading="lazy"` e `decoding="async"`, e a proporção reservada
+   por CSS.
+
+## Decisão
+
+Opção 3. As imagens de carta usam `<img>` nativo. O espaço é reservado por
+`aspect-[5/7]`, a proporção da carta física, e o carregamento é tardio por
+atributo.
+
+A regra do ESLint `@next/next/no-img-element` é desativada linha a linha, com o
+motivo escrito ao lado, nos dois lugares que exibem carta: `CardTile` e
+`TradeItem`.
+
+`architecture.md` seção 4.2 foi corrigida.
+
+## Motivo
+
+A opção 1 viola uma mitigação obrigatória da decisão 020. A opção 2 tem o mesmo
+resultado visual da 3 com mais configuração — `remotePatterns` continua sendo
+necessário — e sem ganho nenhum.
+
+O que se perdeu com a opção 3 é a conversão para WebP e o redimensionamento no
+servidor. O que motivava usar `next/image` além disso era evitar salto de
+layout, e isso a proporção fixa resolve sozinha.
+
+Consequência: se um dia o catálogo passar a ter imagens próprias, ou uma fonte
+que autorize rehospedagem, esta decisão precisa ser revisitada — e aí
+`next/image` volta a ser a escolha certa.
+
+## Data
+
+2026-09-07
+
+---
+
+# Decisão: 027 — Tokens semânticos com `light-dark()`, sem variante `dark:`
+
+## Contexto
+
+A paleta oficial tem seis cores: fundo, roxo de ênfase e texto, em tema claro e
+escuro. O roxo **muda** entre os temas — `#38287B` e `#504797` — e não é o mesmo
+tom clareado por filtro.
+
+Era preciso decidir como isso chega ao CSS sem que cada componente novo precise
+lembrar da regra.
+
+## Opções
+
+1. Cada componente escreve `bg-accent dark:bg-accent-dark`, com a variante
+   `dark:` do Tailwind.
+2. Tokens semânticos redefinidos em `@media (prefers-color-scheme: dark)` e de
+   novo em `[data-theme="dark"]`.
+3. Tokens semânticos declarados uma vez com `light-dark()`, com `color-scheme`
+   decidindo qual valor vale.
+
+## Decisão
+
+Opção 3. Os tokens são semânticos — `--colexa-accent`, `--colexa-surface` — e
+cada um é declarado uma vez, com os dois valores lado a lado. Um componente
+escreve `bg-accent` e está certo nos dois temas.
+
+Escolher tema é escrever `color-scheme`, o que acontece por `data-theme` no
+`<html>`. Três estados: ausente segue o sistema, `light` e `dark` são escolha
+explícita.
+
+## Motivo
+
+A opção 1 transforma "o roxo muda entre os temas" numa regra que depende de
+disciplina em cada arquivo novo, e o primeiro componente que esquecer fica
+errado num tema só — o tema que quem escreveu provavelmente não estava usando.
+
+A opção 2 exige três cópias da mesma lista de tokens, e nada impede que uma mude
+sem as outras. É o tipo de divergência que ninguém nota até a tela ficar errada.
+
+A opção 3 torna a divergência impossível: os dois valores estão na mesma linha.
+Custo: `light-dark()` exige navegador de 2024 em diante, o que é compatível com
+o alvo do projeto. `light-dark()` resolve cor e não a sombra inteira, então as
+sombras compõem a partir de uma variável de cor.
+
+Decisão técnica, sem impacto de produto: a paleta exibida é exatamente a
+aprovada, e isso é verificado por teste.
+
+## Data
+
+2026-09-07
+
+---
+
+# Decisão: 028 — Preferência de tema por dispositivo, e não por conta
+
+## Contexto
+
+A tela 36 prevê Preferências com tema. Não existe coluna de preferência em
+`users`, e criar uma seria alteração do modelo de dados aprovado.
+
+## Opções
+
+1. Guardar no `localStorage` do navegador.
+2. Criar `users.theme_preference` e guardar no banco.
+
+## Decisão
+
+Opção 1. A escolha vive no `localStorage`, sob a chave `colexa:theme`.
+
+## Motivo
+
+Tema é preferência **de dispositivo**, não de conta: a mesma pessoa pode querer
+escuro no celular, à noite, e claro no desktop, de dia. Sincronizar pela conta
+daria a resposta errada nesse caso, que é o caso comum de um app mobile-first
+que também abre no navegador.
+
+Some-se a isso que a alternativa exige alteração do modelo de dados, que precisa
+de aprovação, para resolver um problema que ninguém tem.
+
+Consequência: a escolha não acompanha a pessoa entre aparelhos, e é perdida ao
+limpar os dados do site. As duas coisas são aceitáveis para uma preferência
+visual, e nenhuma delas perde dado de coleção.
+
+## Data
+
+2026-09-07
+
+---
+
+# Decisão: 029 — As telas de entrada ficam em um checkpoint próprio
+
+## Contexto
+
+O Checkpoint 6 é "frontend base: layout, navegação, responsividade, componentes
+e design system". O documento oficial de marca inventaria 36 telas, das quais o
+Grupo 1 — splash, landing, criar conta e entrar — é a porta de entrada do
+produto.
+
+Era preciso decidir se essas quatro telas entram no Checkpoint 6.
+
+## Opções
+
+1. Só a base; o Grupo 1 em um checkpoint de autenticação na interface.
+2. Base mais splash e landing, que são apresentacionais.
+3. Base mais o Grupo 1 inteiro, com os formulários ligados ao Supabase.
+
+## Decisão
+
+Opção 1, escolhida pelo assistente a pedido do dono do produto.
+
+O Checkpoint 6 entrega o sistema: tokens, marca, shell, navegação, biblioteca de
+componentes e os cinco destinos navegáveis. As telas 01 a 04 vão para um
+checkpoint próprio de autenticação na interface.
+
+## Motivo
+
+É a divisão normal: o checkpoint base entrega o sistema com que as telas são
+construídas, e cada tela entrega na sua área. Misturar os dois faz o checkpoint
+base carregar a primeira tela de produto e ficar sem critério de pronto claro.
+
+Além disso, o Grupo 1 tem dois bloqueios que não são de código e que parariam o
+checkpoint no meio:
+
+- **Google e Apple como provedores** precisam ser configurados no painel do
+  Supabase, o que o assistente não faz.
+- **Termos de Uso e Política de Privacidade** são texto do dono do produto, e a
+  tela 03 exige o aceite dos dois.
+
+A opção 2 evitaria os bloqueios, mas entregaria uma landing cujos dois botões
+apontam para rotas que ainda não existem.
+
+## Data
+
+2026-09-07

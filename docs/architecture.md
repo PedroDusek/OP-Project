@@ -37,6 +37,11 @@ sistema em processos separados.
 src/
   app/                    Rotas do Next.js: páginas e route handlers. Finas.
   components/             Componentes de UI. Sem regra de negócio.
+    ui/                   primitivos sem domínio: botão, campo, chip, sheet
+    layout/               shell, navegação inferior e lateral
+    brand/                símbolo e logotipo
+    theme/                provedor e controle de tema
+    catalog/ collection/ storage/ trade/   componentes com vocabulário do domínio
   server/
     domain/               Funções e tipos puros. Sem I/O, sem Prisma, sem HTTP.
     application/          Casos de uso. Dono das transações e dos locks.
@@ -47,7 +52,8 @@ prisma/                   schema.prisma e migrations
 tests/
   domain/                 testes unitários puros, sem banco
   integration/            PostgreSQL real, transações reais
-  e2e/                    Playwright
+  components/             Testing Library em jsdom, sem banco
+  e2e/                    Playwright contra o build de produção
 ```
 
 ### 2.1 Regras de dependência
@@ -228,8 +234,15 @@ O design começa em 360px e se expande. Não é um layout de desktop reduzido.
 | Breakpoint | Alvo |
 |---|---|
 | base | celular, coluna única, navegação inferior |
-| `md` | tablet, duas colunas, filtros em painel lateral |
-| `lg` | desktop, grid mais largo, navegação persistente |
+| `md` | tablet, coluna lateral só com ícones, filtros em painel |
+| `lg` | desktop, grid mais largo, coluna lateral com rótulos |
+
+O shell está em `src/components/layout/app-shell.tsx`. As duas navegações são a
+**mesma** lista de destinos, em `layout/navigation.ts`: com duas listas, um
+destino novo entraria numa e sumiria da outra.
+
+O comportamento responsivo é verificado em navegador de verdade
+(`tests/e2e/responsive.spec.ts`), porque jsdom não avalia media query.
 
 Padrões: barra de navegação inferior, bottom sheets para filtros e edição de
 quantidade, drawers para navegação secundária, alvos de toque de no mínimo 44px,
@@ -243,13 +256,24 @@ aparece como badge discreto sobre a imagem.
 
 - Paginação e filtro no servidor em toda listagem. O catálogo nunca é buscado
   inteiro.
-- `next/image` com tamanhos responsivos e carregamento tardio para as imagens.
+- **Imagem de carta não passa pelo otimizador do `next/image`** (decisão 026): o
+  otimizador baixaria e serviria o arquivo do nosso domínio, e a decisão 020 nos
+  obriga a apenas referenciar a origem. É `<img>` com `loading="lazy"` e a
+  proporção 5/7 reservada por CSS, o que também evita salto de layout.
+  `next/image` continua valendo para imagem própria, quando houver.
 - Grids virtualizados em listas longas.
 - Busca com debounce; a busca exata por código vai direto ao índice único.
 - TanStack Query para cache e listas infinitas nas telas interativas; React
   Server Components na primeira renderização.
 
-### 4.3 Apresentação da carta
+### 4.3 Design system
+
+Tokens, tema claro e escuro, forma, tipografia, os treze componentes da
+especificação de marca e os oito estados obrigatórios estão em
+`docs/design-system.md`. As decisões 026, 027 e 028 registram o que foi
+escolhido e por quê.
+
+### 4.4 Apresentação da carta
 
 A interface é visual. A imagem é o elemento principal. Ao abrir uma carta,
 aparecem suas informações, a quantidade possuída, a gestão de quantidade, onde as
@@ -288,8 +312,17 @@ estão em `integrations.md`.
 | Unitário de domínio | Vitest | aritmética de playset, progresso, disponibilidade e matching. Sem banco. Os dez cenários obrigatórios vivem aqui. |
 | Integração | Vitest contra um PostgreSQL de teste real | constraints, triggers, transações, concorrência, propriedade, idempotência da importação |
 | API | Vitest | route handlers, validação, códigos de status, autorização |
-| Componente | Vitest com Testing Library | componentes interativos |
-| Ponta a ponta | Playwright | cadastro e login, adicionar à coleção, alocar em armazenamento, want list, compartilhar Trade Binder, um trade completo |
+| Componente | Vitest com Testing Library, em jsdom | comportamento e acessibilidade dos componentes; contraste dos tokens |
+| Ponta a ponta | Playwright | responsividade nas três larguras; depois: cadastro e login, adicionar à coleção, alocar em armazenamento, want list, compartilhar Trade Binder, um trade completo |
+
+São **dois projetos do Vitest**, com ambientes diferentes: `server` em Node, com
+o `globalSetup` que aplica as migrations, e `components` em jsdom, sem banco. A
+separação existe para que escrever interface não dependa de ter PostgreSQL de pé:
+`npm run test:ui` roda só os componentes.
+
+O contraste dos tokens é verificado lendo `globals.css` e calculando as razões
+(`tests/components/contrast.test.ts`). Lê o CSS em vez de repetir os valores em
+TypeScript, porque uma cópia divergiria no dia em que alguém ajustasse um tom.
 
 Os testes de integração rodam contra `TEST_DATABASE_URL`, que é recriado pelas
 migrations antes da suíte. Eles nunca tocam o banco de desenvolvimento.
@@ -299,8 +332,10 @@ no mesmo item da coleção não podem ultrapassar a quantidade possuída, e duas
 tentativas simultâneas de ativar um trade do mesmo usuário precisam deixar
 exatamente um ativo.
 
-O comportamento responsivo é verificado no Playwright em viewports de celular,
-tablet e desktop.
+O comportamento responsivo é verificado no Playwright em viewports de celular
+(360 px), tablet (768 px) e desktop (1280 px). É o único nível que consegue:
+jsdom não avalia media query, então um teste de componente passaria com as duas
+navegações visíveis ao mesmo tempo.
 
 ---
 
