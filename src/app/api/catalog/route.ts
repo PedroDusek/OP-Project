@@ -1,4 +1,5 @@
 import { searchCatalog } from '@/server/application/catalog'
+import { CATALOG_READ_LIMIT, consumeRateLimit } from '@/server/http/rate-limit'
 import { jsonResponse } from '@/server/http/response'
 import { route } from '@/server/http/route'
 import { catalogQuerySchema } from '@/server/http/schemas/catalog'
@@ -13,7 +14,9 @@ import { parseOrThrow, queryToObject } from '@/server/http/validation'
  * seria exatamente isso.
  */
 export const GET = route(async (request: Request) => {
-  await requireUser(request)
+  const user = await requireUser(request)
+  // Cota por usuario: limitar por rota deixaria um usuario derrubar todos.
+  consumeRateLimit(`catalog:${user.id}`, CATALOG_READ_LIMIT)
 
   const query = parseOrThrow(catalogQuerySchema, queryToObject(new URL(request.url)))
   const result = await searchCatalog(query)

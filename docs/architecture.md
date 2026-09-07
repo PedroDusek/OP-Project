@@ -153,15 +153,55 @@ vazia" é regra de negócio.
 
 Uma conta anonimizada não autentica, mesmo com sessão válida no provedor.
 
+**Validação local do token.** A sessão é resolvida por `getClaims()`, que
+confere a assinatura do JWT contra as chaves públicas do projeto sem sair da
+máquina. As alternativas são piores em pontos diferentes: `getSession()` não
+revalida o token e por isso não serve para decidir acesso, e `getUser()` custa
+uma ida à rede por requisição — e já medimos o que uma ida até São Paulo custa.
+
+**Renovação fica no middleware.** O token expira em cerca de uma hora, e quem
+consegue devolver `Set-Cookie` antes do handler é o middleware. O provedor usado
+pelas rotas só lê cookie, de propósito: escrever em dois lugares daria duas
+fontes de verdade para o mesmo cookie.
+
 ### 3.5 Autorização
 
 A propriedade do recurso é verificada dentro do caso de uso, contra o usuário da
-sessão, em toda leitura e toda escrita. Não existe caminho em que um recurso seja
-buscado por id e devolvido sem essa verificação.
+sessão, em toda leitura e toda escrita.
+
+**Escopar a consulta, e não verificar depois.** Existem duas formas de proteger
+um recurso alheio:
+
+| | Recurso alheio | Recurso inexistente |
+|---|---|---|
+| Buscar por id e comparar o dono | 403 | 404 |
+| Buscar por id **e** dono | 404 | 404 |
+
+A segunda é a adotada. A primeira parece mais informativa e é justamente por
+isso que vaza: a diferença entre 403 e 404 conta quantos binders o vizinho tem.
+`ownedBy(user)` monta o filtro; `assertOwnedBy` existe para o caso em que a linha
+já veio de outro lugar, e lança `NotFoundError`, não `AuthorizationError`.
+
+`assertPermitted` é o oposto e responde 403: a pessoa vê o recurso e o que se
+recusa é a operação. Esconder algo que ela comprovadamente enxerga seria mentir.
 
 A rota pública do Trade Binder é o único caminho de leitura não autenticado. Ela
 resolve um local de armazenamento pelo token, confirma que o propósito é `TRADE`
 e que o dono é Premium, e devolve apenas aquele binder.
+
+### 3.5.1 Limite de taxa
+
+Contador por janela fixa, chaveado por **usuário** e não por rota — limitar por
+rota deixaria uma pessoa derrubar a cota de todas as outras.
+
+A leitura de catálogo tem cota generosa para uso humano e apertada o bastante
+para que extrair o catálogo inteiro pela API não valha a pena. É o que sustenta
+na prática o compromisso da decisão 020 de nunca reexpô-lo.
+
+O contador vive na memória do processo. Com mais de uma instância, cada uma conta
+sozinha e o limite efetivo multiplica. Isso contém abuso acidental e script
+ingênuo, não alguém determinado; quando houver mais de uma instância, o contador
+precisa sair para um lugar compartilhado.
 
 ### 3.6 Segurança
 
