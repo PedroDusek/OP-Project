@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { isAppError } from '@/server/domain/errors'
 import { getCardVariant } from '@/server/application/catalog'
+import { searchCollection } from '@/server/application/collection'
+import { currentViewer } from '@/server/http/viewer'
 import { VariantDetail } from '@/components/catalog/variant-detail'
 
 function parseId(raw: string): bigint | null {
@@ -26,16 +28,15 @@ export async function generateMetadata({
 }
 
 /**
- * Detalhe da variante (telas 13 e 16), **em leitura**.
+ * Detalhe da variante (telas 13, 15 e 16).
  *
- * O que falta aqui em relação às telas de referência é tudo o que depende da
- * coleção: quantidade possuída, adicionar, want, disponível para troca, preço.
- * Nada disso existe ainda — são casos de uso de coleção e de preço, dos
- * próximos checkpoints. Botões que não fazem nada seriam pior que a ausência
- * deles.
+ * A quantidade possuída e o botão de adicionar entram aqui porque sem eles o
+ * catálogo não leva a lugar nenhum: dá para navegar o jogo inteiro e não
+ * registrar uma carta sequer.
  *
- * O que existe é o catálogo inteiro da carta: a arte, os dados do jogo, os sets
- * em que foi impressa, e as outras artes do mesmo código.
+ * O que ainda não existe: want, disponível para troca e preço. São casos de uso
+ * dos próximos checkpoints, e botões que não fazem nada seriam pior que a
+ * ausência deles.
  */
 export default async function CartaPage({ params }: PageProps<'/catalogo/carta/[variantId]'>) {
   const { variantId } = await params
@@ -47,6 +48,18 @@ export default async function CartaPage({ params }: PageProps<'/catalogo/carta/[
     throw error
   })
 
+  /*
+   * Quantas copias a pessoa tem desta variante. A consulta e escopada pela
+   * colecao dela; sem sessao, zero — a pagina continua legivel para quem so
+   * esta olhando o catalogo.
+   */
+  const viewer = await currentViewer()
+  const owned = viewer
+    ? (await searchCollection(viewer, { code: variant.card.code })).items.find(
+        (item) => String(item.variantId) === variantId,
+      )?.quantity ?? 0
+    : 0
+
   return (
     <>
       <Link
@@ -57,7 +70,7 @@ export default async function CartaPage({ params }: PageProps<'/catalogo/carta/[
         Catálogo
       </Link>
 
-      <VariantDetail variant={variant} />
+      <VariantDetail variant={variant} ownedQuantity={owned} />
     </>
   )
 }

@@ -1765,3 +1765,95 @@ essas versões como *Promotion card*, e é o conjunto inteiro que vai para o fim
 ## Data
 
 2026-09-07
+
+---
+
+# Decisão: 041 — A coleção: onde a contagem mora e como a escrita se protege
+
+## Contexto
+
+Checkpoint 9, telas 17 a 20. É a primeira vez que o produto grava algo de quem
+usa: até aqui tudo era leitura de um catálogo importado.
+
+Três coisas precisavam de posição definida: onde a aritmética da coleção é
+calculada, como duas edições simultâneas da mesma carta se comportam, e o que a
+tela faz com o conflito da decisão 007 enquanto o armazenamento não existe.
+
+## Decisão 1 — A contagem é do domínio, em memória
+
+`countCollection` recebe a lista de variantes possuídas e devolve os três
+números (`src/server/domain/collection/counting.ts`). Nada de SQL agregado.
+
+O motivo é a regra do playset: ela é **binária por carta** e exclui `Leader`
+(`business-rules.md` 2.1). Oito cópias continuam sendo um playset, e
+`floor(soma / 4)` — o erro óbvio — daria dois. Escrever isso em SQL é possível;
+escrever certo, e manter certo enquanto a lista de tipos sem playset cresce, é
+outra coisa. Em TypeScript puro os dez cenários obrigatórios da seção 7 rodam
+sem banco, em milissegundos.
+
+O custo é carregar as linhas: uma coleção grande são alguns milhares de linhas
+de três campos. **O limite fica escrito**: se um usuário passar da casa das
+dezenas de milhares de itens, a soma por carta precisa virar agregação no banco,
+e aí a regra do playset vai junto — provavelmente como coluna materializada, e
+não como expressão repetida em cada consulta.
+
+## Decisão 2 — Escrita serializada por lock de linha
+
+`setCollectionQuantity` roda inteira dentro de `prisma.$transaction`, e a linha
+de `collection_items` é travada com `SELECT ... FOR UPDATE` antes de qualquer
+decisão sobre ela.
+
+Sem isso, duas edições simultâneas leem o mesmo estado e a segunda escreve por
+cima da primeira. Pior: a validação contra o alocado leria um total obsoleto, e
+a soma das alocações poderia passar da quantidade possuída sem que nenhuma das
+duas escritas estivesse errada isoladamente.
+
+Não há linha para travar quando ela ainda não existe, então a inserção vem
+antes, como `INSERT ... ON CONFLICT DO NOTHING`. Quem ganha a corrida termina
+ali; quem perde encontra a linha do outro e espera pelo lock dela. Dois testes
+de concorrência em `tests/integration/collection.test.ts` disparam as duas
+escritas juntas e conferem o resultado.
+
+A coleção é buscada **pelo dono** (`where: { userId }`), e não pelo id que veio
+de fora — é o escopo da consulta que impede escrever na coleção alheia, não uma
+verificação posterior (`architecture.md` 3.5).
+
+## Decisão 3 — O conflito da 007 é mostrado, não resolvido
+
+Reduzir abaixo do que está guardado em armazenamento não desaloca sozinho e não
+devolve erro seco: a escrita é recusada inteira e o conflito volta carregando as
+alocações atuais.
+
+A tela onde a pessoa escolhe de qual local as cópias saem depende das telas de
+armazenamento, que são o Checkpoint 10. **Adiar a tela não é adiar a regra**: o
+servidor já recusa, e o painel de quantidade lista os locais e as somas, que é o
+suficiente para a pessoa saber o que fazer. O que não existe é o atalho para
+fazer dali.
+
+## Decisão 4 — Tocar numa carta da coleção edita, em vez de navegar
+
+Na grade da coleção o toque abre o painel de quantidade; no catálogo, leva ao
+detalhe. São perguntas diferentes: numa lista do que se tem, a seguinte é quase
+sempre "quantas". Passar pelo detalhe transformaria um ajuste de um toque em
+três.
+
+O mesmo painel serve para acrescentar e para corrigir — é a mesma escrita, e
+duas telas fariam a segunda parecer outra coisa. "Remover da coleção" é definir
+para zero, e não uma segunda ação capaz de divergir da primeira: o banco exige
+`quantity > 0`, então possuir zero é não ter a linha.
+
+A quantidade viaja no `name`/`value` do **botão que submete**, e não num campo
+escondido sincronizado por estado. Zerar no `onClick` e submeter em seguida é
+uma corrida: `setState` é assíncrono, e o formulário sairia com o valor anterior.
+
+## O que não foi coberto por teste ponta a ponta
+
+Nada da coleção, porque tudo nela exige sessão, e autenticar de verdade pediria
+uma conta real no Supabase com credenciais na CI — a mesma razão já registrada
+para a autenticação. O que o ponta a ponta cobre é que `/colecao` e
+`/colecao/playsets` pedem sessão. O comportamento está em teste de integração
+com banco e em teste de componente.
+
+## Data
+
+2026-09-07

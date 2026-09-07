@@ -97,11 +97,17 @@ export async function createVariant(cardId: bigint, variantType = 'Normal') {
   return db.cardVariant.create({ data: { cardId, variantType } })
 }
 
-/** Cria uma carta com uma variante Normal, o caso mais comum nos testes. */
+/**
+ * Cria uma carta com uma variante Normal, o caso mais comum nos testes.
+ *
+ * O codigo e opcional e serve aos testes que dependem de ordem ou de filtro por
+ * codigo; sem ele, cada carta ganha um sufixo unico.
+ */
 export async function createCardWithVariant(
   type: 'Leader' | 'Character' | 'Event' | 'Stage' = 'Character',
+  code?: string,
 ) {
-  const card = await createCard(type)
+  const card = await createCard(type, code)
   const variant = await createVariant(card.id)
   return { card, variant }
 }

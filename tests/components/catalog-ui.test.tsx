@@ -6,6 +6,7 @@ import { SetHeader } from '@/components/catalog/set-header'
 import { CatalogResults } from '@/components/catalog/catalog-results'
 import { InfiniteCardGrid, type CatalogItemView } from '@/components/catalog/infinite-card-grid'
 import { VariantDetail } from '@/components/catalog/variant-detail'
+import { ToastProvider } from '@/components/ui/toast'
 import type { SetSummary } from '@/server/application/catalog/list-sets'
 import type { CatalogResult } from '@/server/application/catalog/search-cards'
 
@@ -349,6 +350,18 @@ describe('InfiniteCardGrid', () => {
 })
 
 describe('VariantDetail', () => {
+  /*
+   * O detalhe passou a conter o botao de adicionar a colecao, que confirma o
+   * salvamento por toast. O provedor vive no layout raiz da aplicacao; aqui ele
+   * entra em volta do componente sob teste.
+   */
+  const renderDetail = (props: Parameters<typeof VariantDetail>[0]) =>
+    render(
+      <ToastProvider>
+        <VariantDetail {...props} />
+      </ToastProvider>,
+    )
+
   const variant = {
     variantId: 1n,
     variantType: 'Normal',
@@ -378,7 +391,7 @@ describe('VariantDetail', () => {
   }
 
   it('é o h1, com o código acima', () => {
-    render(<VariantDetail variant={variant} />)
+    renderDetail({ variant: variant })
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Roronoa Zoro')
     expect(screen.getByText('OP01-001')).toBeInTheDocument()
@@ -390,7 +403,7 @@ describe('VariantDetail', () => {
    * recusaria a imagem vinda direto de la. Ver a decisao 038.
    */
   it('serve a arte pelo otimizador, apontando para a origem', () => {
-    render(<VariantDetail variant={variant} />)
+    renderDetail({ variant: variant })
 
     const src = screen.getByRole('img', { name: 'OP01-001 — Roronoa Zoro' }).getAttribute('src')
     expect(src).toContain('/_next/image')
@@ -404,7 +417,7 @@ describe('VariantDetail', () => {
    * para cada ausência encheria a ficha de traços.
    */
   it('omite a linha do dado que a carta não tem', () => {
-    render(<VariantDetail variant={variant} />)
+    renderDetail({ variant: variant })
 
     expect(screen.getByText('Poder')).toBeInTheDocument()
     expect(screen.queryByText('Life')).not.toBeInTheDocument()
@@ -412,7 +425,7 @@ describe('VariantDetail', () => {
   })
 
   it('mostra o set sem os hifens decorativos e leva até ele', () => {
-    render(<VariantDetail variant={variant} />)
+    renderDetail({ variant: variant })
 
     const link = screen.getByRole('link', { name: /ROMANCE DAWN/ })
     expect(link).toHaveAttribute('href', '/catalogo/sets/OP01')
@@ -420,25 +433,53 @@ describe('VariantDetail', () => {
   })
 
   it('marca a arte atual entre as demais', () => {
-    render(<VariantDetail variant={variant} />)
+    renderDetail({ variant: variant })
 
     const atual = screen.getByRole('link', { current: 'page' })
     expect(atual).toHaveAttribute('href', '/catalogo/carta/1')
   })
 
-  it('não oferece ação de coleção, que ainda não existe', () => {
-    render(<VariantDetail variant={variant} />)
+  /**
+   * O detalhe passou a oferecer a acao de colecao. Sem ela o catalogo nao leva a
+   * lugar nenhum: da para navegar o jogo inteiro e nao registrar uma carta.
+   */
+  it('oferece adicionar a colecao para quem nao tem a carta', () => {
+    renderDetail({ variant, ownedQuantity: 0 })
 
-    expect(screen.queryByRole('button', { name: /adicionar/i })).not.toBeInTheDocument()
-    expect(screen.queryByText(/quantidade/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Adicionar à coleção/ })).toBeInTheDocument()
+  })
+
+  it('oferece editar, e mostra o que ja tem, para quem tem', () => {
+    renderDetail({ variant, ownedQuantity: 3 })
+
+    expect(screen.getByRole('button', { name: /Editar quantidade/ })).toBeInTheDocument()
+    expect(screen.getByText(/Na sua coleção/)).toHaveTextContent('3')
+  })
+
+  /** Preco, want e disponibilidade dependem de checkpoints seguintes. */
+  it('nao oferece o que ainda nao existe', () => {
+    renderDetail({ variant })
+
+    expect(screen.queryByRole('button', { name: /want/i })).not.toBeInTheDocument()
+    expect(screen.queryByText(/preço de mercado/i)).not.toBeInTheDocument()
   })
 
   it('esconde a seção de outras artes quando só há uma', () => {
-    render(<VariantDetail variant={{ ...variant, siblings: [variant.siblings[0]] }} />)
+    renderDetail({ variant: { ...variant, siblings: [variant.siblings[0]] } })
 
     expect(screen.queryByText(/Outras artes/)).not.toBeInTheDocument()
   })
 })
+
+/*
+ * A acao de servidor arrasta o Prisma no grafo de modulos. No Next ela vira uma
+ * referencia e nao chega ao navegador — o build confirma —, mas o jsdom importa
+ * de verdade e esbarra na falta de DATABASE_URL. Mockar aqui testa o componente,
+ * que e o que este arquivo quer.
+ */
+vi.mock('@/app/(app)/colecao/actions', () => ({
+  setQuantityAction: vi.fn(async () => ({ status: 'idle' })),
+}))
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
