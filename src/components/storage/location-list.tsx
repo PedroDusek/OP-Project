@@ -61,7 +61,7 @@ export function LocationList({ locations }: { locations: StorageLocationSummary[
           {shown.map((location) => (
             <ListRow
               key={location.id}
-              href={`/armazenamento/${location.id}`}
+              href={`/binders/${location.id}`}
               leading={<LocationArt image={location.image} type={location.type} />}
               title={location.name}
               description={location.subtitle}

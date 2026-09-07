@@ -7,7 +7,7 @@ import { CatalogResults } from '@/components/catalog/catalog-results'
 import { CatalogSearch } from '@/components/catalog/catalog-search'
 import { ListRow, PanelList } from '@/components/ui/surface'
 import { getCatalogVocabulary, searchCatalog } from '@/server/application/catalog'
-import { countActiveFilters, toCatalogQuery } from '@/lib/catalog-params'
+import { countActiveFilters, currentPath, toCatalogQuery } from '@/lib/catalog-params'
 
 export const metadata: Metadata = { title: 'Catálogo' }
 
@@ -59,7 +59,7 @@ export default async function CatalogoPage({ searchParams }: PageProps<'/catalog
           />
         </PanelList>
 
-        <CatalogResults result={result} query={query} />
+        <CatalogResults result={result} query={query} origin={currentPath('/catalogo', params)} />
       </div>
 
       <p className="mt-8 text-xs text-text-subtle">

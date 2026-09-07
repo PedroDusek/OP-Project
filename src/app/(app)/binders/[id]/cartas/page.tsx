@@ -17,9 +17,9 @@ export const metadata: Metadata = { title: 'Cartas no local' }
  */
 export default async function CartasNoLocalPage({
   params,
-}: PageProps<'/armazenamento/[id]/cartas'>) {
+}: PageProps<'/binders/[id]/cartas'>) {
   const { id } = await params
-  const viewer = await requireViewer(`/armazenamento/${id}/cartas`)
+  const viewer = await requireViewer(`/binders/${id}/cartas`)
 
   if (!/^\d+$/.test(id)) notFound()
 
@@ -33,7 +33,7 @@ export default async function CartasNoLocalPage({
     <>
       <div className="flex items-start gap-3 pb-4">
         <Link
-          href={`/armazenamento/${location.id}`}
+          href={`/binders/${location.id}`}
           aria-label={`Voltar para ${location.name}`}
           className="-ml-2 inline-flex size-11 shrink-0 items-center justify-center rounded-control text-text-muted transition-colors hover:bg-surface-muted"
         >

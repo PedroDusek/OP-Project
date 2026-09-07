@@ -44,8 +44,8 @@ export function LocationHeader({ location }: { location: StorageLocationDetail }
 
         <div className="flex items-start gap-3">
           <Link
-            href="/armazenamento"
-            aria-label="Voltar para Armazenamento"
+            href="/binders"
+            aria-label="Voltar para Binders"
             className="-ml-2 inline-flex size-11 shrink-0 items-center justify-center rounded-control text-white/90 transition-colors hover:bg-white/10"
           >
             <ArrowLeft className="size-5" aria-hidden />
@@ -61,7 +61,7 @@ export function LocationHeader({ location }: { location: StorageLocationDetail }
           </div>
 
           <Link
-            href={`/armazenamento/${location.id}/editar`}
+            href={`/binders/${location.id}/editar`}
             aria-label="Editar informações"
             className="inline-flex size-11 shrink-0 items-center justify-center rounded-control bg-white/15 text-white transition-colors hover:bg-white/25"
           >

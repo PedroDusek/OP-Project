@@ -16,7 +16,7 @@ import {
   type StorageType,
 } from '@/server/domain/storage/locations'
 import { ACCEPT_ATTRIBUTE, MAX_IMAGE_BYTES } from '@/server/domain/storage/image'
-import { LOCATION_IDLE, type LocationFormState } from '@/app/(app)/armazenamento/state'
+import { LOCATION_IDLE, type LocationFormState } from '@/app/(app)/binders/state'
 import { cn } from '@/lib/cn'
 
 /**

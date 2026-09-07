@@ -4,8 +4,8 @@ import { useActionState, useRef, useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { ListRow } from '@/components/ui/surface'
-import { deleteLocationAction } from '@/app/(app)/armazenamento/actions'
-import { LOCATION_IDLE } from '@/app/(app)/armazenamento/state'
+import { deleteLocationAction } from '@/app/(app)/binders/actions'
+import { LOCATION_IDLE } from '@/app/(app)/binders/state'
 
 /**
  * Excluir um local (tela 22).

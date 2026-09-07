@@ -136,3 +136,79 @@ describe('busca no catalogo', () => {
     expect(result.totalPages).toBe(1)
   })
 })
+
+/**
+ * Varios valores na mesma faceta.
+ *
+ * Dentro da faceta vale o **ou**; entre facetas, o **e**. Antes, cada faceta
+ * aceitava um valor so: escolher a segunda cor apagava a primeira, e nao havia
+ * como pedir "as pretas e as azuis" de uma vez.
+ */
+describe('filtros com varios valores', () => {
+  it('uma faceta com dois valores traz a uniao dos dois', async () => {
+    const db = testPrisma()
+    const types = await db.card.findMany({ select: { type: true }, distinct: ['type'] })
+    const [first, second] = types.map((t) => t.type)
+    // A amostra precisa de dois tipos para a pergunta fazer sentido.
+    expect(second).toBeDefined()
+
+    const [um, outro, juntos] = await Promise.all([
+      searchCatalog(db, { type: first as never }),
+      searchCatalog(db, { type: second as never }),
+      searchCatalog(db, { type: [first, second] as never }),
+    ])
+
+    expect(juntos.total).toBe(um.total + outro.total)
+  })
+
+  it('duas cores trazem as cartas de qualquer uma delas', async () => {
+    const db = testPrisma()
+    const colors = await db.color.findMany({ select: { name: true }, orderBy: { name: 'asc' } })
+    const names = colors.map((c) => c.name)
+    expect(names.length).toBeGreaterThan(0)
+
+    const juntas = await searchCatalog(db, { color: names })
+    const cada = await Promise.all(names.map((name) => searchCatalog(db, { color: name })))
+    const uniao = new Set(cada.flatMap((r) => r.items.map((i) => String(i.variantId))))
+
+    expect(new Set(juntas.items.map((i) => String(i.variantId)))).toEqual(uniao)
+  })
+
+  /** Um valor so continua valendo: a lista de um e o caso comum. */
+  it('lista de um valor filtra igual ao valor solto', async () => {
+    const db = testPrisma()
+    const [solto, lista] = await Promise.all([
+      searchCatalog(db, { type: 'Leader' }),
+      searchCatalog(db, { type: ['Leader'] }),
+    ])
+
+    expect(lista.total).toBe(solto.total)
+  })
+
+  /** Entre facetas o "e" continua: cor de uma, tipo de outra. */
+  it('facetas diferentes continuam se somando por e', async () => {
+    const db = testPrisma()
+    const color = await db.color.findFirst({ select: { name: true } })
+    expect(color).not.toBeNull()
+
+    const combinado = await searchCatalog(db, {
+      type: ['Leader', 'Character'],
+      color: [color!.name],
+    })
+
+    for (const item of combinado.items) {
+      expect(['Leader', 'Character']).toContain(item.type)
+    }
+  })
+
+  /** Lista vazia e "sem filtro", e nao "nada casa". */
+  it('lista vazia nao filtra nada', async () => {
+    const db = testPrisma()
+    const [tudo, comListaVazia] = await Promise.all([
+      searchCatalog(db),
+      searchCatalog(db, { color: [] }),
+    ])
+
+    expect(comListaVazia.total).toBe(tudo.total)
+  })
+})

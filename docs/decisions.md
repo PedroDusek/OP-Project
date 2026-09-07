@@ -2030,3 +2030,85 @@ escolha legítima, e a invariante continua de pé.
 ## Data
 
 2026-09-07
+
+---
+
+# Decisão: 044 — Filtros que somam, e Binders como seção
+
+## Contexto
+
+Três correções pedidas pelo dono do produto depois de usar as telas prontas.
+Todas de navegação e de interação; nenhuma muda regra de negócio nem modelo.
+
+## Decisão 1 — Cada seção de filtro aceita vários valores
+
+Dentro de uma seção os valores se somam por **ou**: marcar Preto e Azul pede
+"preta ou azul". Entre seções vale o **e**: Azul com raridade SR pede as duas
+coisas.
+
+Antes, cada seção aceitava um valor só — escolher a segunda cor apagava a
+primeira, e não havia como pedir "as pretas e as azuis" de uma vez.
+
+O "ou" dentro da seção é a leitura que nunca esvazia o resultado sozinha:
+acrescentar uma cor só pode aumentar o que aparece. O "e" — cartas que sejam
+pretas **e** azuis ao mesmo tempo — é outra pergunta, legítima e mais rara, e
+entraria como opção da seção se alguém pedir. Está escrito na tela para não
+depender de adivinhação: *"Dentro de uma seção, vale qualquer um dos escolhidos.
+Entre seções, valem todos."*
+
+Custo e poder ficam de fora: são faixas, e duas faixas ao mesmo tempo seriam
+duas perguntas na mesma pergunta.
+
+O parâmetro repetido é a forma na URL (`?cor=Black&cor=Blue`) porque é o que o
+navegador manda naturalmente e o que mantém a busca compartilhável. `IN` no
+banco, com teto de vinte valores por filtro: cada valor é um item do `IN`, e uma
+URL com mil cores seria uma consulta cara feita de graça.
+
+**`queryToObject` mudou junto**, e essa era uma falha silenciosa: parâmetro
+repetido ficava com o último valor, então `?color=Black&color=Blue` filtrava só
+por azul, sem erro. Descarte silencioso é pior que rejeição — e aqui não havia
+nem rejeição.
+
+## Decisão 2 — O detalhe da carta volta para a lista de onde veio
+
+O link de uma carta carrega o caminho da lista, com os filtros, num parâmetro
+`de`. Voltar devolve a lista igual.
+
+Sem isso, quem filtrava por azul para registrar cinco cartas azuis refazia o
+filtro cinco vezes — uma por carta. Os filtros já viviam na URL justamente para
+sobreviver ao histórico; o que faltava era a rota do detalhe saber de onde a
+pessoa veio.
+
+Só caminho relativo é aceito, e `//outro.site` é recusado junto com o absoluto:
+é o mesmo cuidado do `next` da tela de entrar, porque é o mesmo risco de virar
+desvio para fora do site.
+
+## Decisão 3 — Binders é seção, e Trocas espera dentro de "Mais"
+
+Binder, caixa e deck se criam e se editam **numa seção própria**, na barra de
+navegação. Estava dentro de "Mais", que é gaveta de configuração — e criar coisa
+não é configurar. Uma seção em que se cria conteúdo o dia inteiro pertence à
+barra.
+
+A rota virou `/binders` e o rótulo, "Binders". A palavra cobre também caixa e
+deck: é sinédoque, e é o termo que quem joga usa. As três continuam com nome
+próprio dentro da seção, nos tipos e nas abas.
+
+**A barra continua com cinco.** Seis alvos a 360 px dariam 60 px cada, abaixo do
+confortável para o polegar. Escolha do dono do produto entre as três saídas:
+Trocas fica dentro de "Mais" até o checkpoint que a constrói, e volta para a
+barra quando existir de verdade. Ela continua sendo uma seção reconhecida por
+`activeDestination` — sem isso, quem abre `/trocas` não veria nada marcado em
+lugar nenhum.
+
+De onde se **usa** um binder não mudou: da coleção e do detalhe de uma carta
+continua dando para dizer em qual local a carta está, e uma carta nasce com zero
+locais. O que passou a ter um lugar só é criar e editar o local.
+
+O painel de quantidade ganhou um link para a carta. Da coleção, tocar numa carta
+abria só aquele painel, e ver em qual binder ela está exigia procurá-la de novo
+pelo catálogo.
+
+## Data
+
+2026-09-07

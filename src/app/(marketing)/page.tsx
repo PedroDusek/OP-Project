@@ -31,7 +31,7 @@ const FEATURES = [
   },
   {
     icon: Package,
-    title: 'Armazenamento',
+    title: 'Binders',
     description: 'Binders, caixas e decks. Tudo no seu lugar.',
   },
   {

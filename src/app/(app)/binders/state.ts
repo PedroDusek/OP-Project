@@ -1,7 +1,7 @@
 import type { FormError } from '@/server/http/form-state'
 
 /**
- * O estado dos formulários de armazenamento.
+ * O estado dos formulários de binder, caixa e deck.
  *
  * Vive fora de `actions.ts` porque um arquivo `'use server'` só pode exportar
  * função assíncrona: exportar uma constante de lá **passa no build** e quebra no

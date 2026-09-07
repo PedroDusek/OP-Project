@@ -39,6 +39,22 @@ const first = (value: string | string[] | undefined): string | undefined => {
   return trimmed ? trimmed : undefined
 }
 
+/**
+ * Todos os valores de um filtro que aceita mais de um.
+ *
+ * Dentro de uma faceta os valores se somam por **ou**: marcar Preto e Azul pede
+ * "preta ou azul". Entre facetas vale o **e**.
+ *
+ * `undefined` quando nao ha nada, e nunca lista vazia: quem recebe nao deveria
+ * ter de distinguir "sem filtro" de "filtro que nao casa com nada".
+ */
+const list = (value: string | string[] | undefined): string[] | undefined => {
+  const values = (Array.isArray(value) ? value : [value])
+    .map((item) => item?.trim())
+    .filter((item): item is string => Boolean(item))
+  return values.length > 0 ? values : undefined
+}
+
 const number = (value: string | string[] | undefined): number | undefined => {
   const raw = first(value)
   if (raw === undefined) return undefined
@@ -55,13 +71,13 @@ export function toCatalogQuery(
 ): CatalogQuery {
   return {
     search: first(params[PARAM.busca]),
-    type: first(params[PARAM.tipo]) as CatalogQuery['type'],
-    color: first(params[PARAM.cor]),
-    rarity: first(params[PARAM.raridade]),
-    variantType: first(params[PARAM.variante]),
-    attribute: first(params[PARAM.atributo]),
-    mechanic: first(params[PARAM.mecanica]),
-    trait: first(params[PARAM.trait]),
+    type: list(params[PARAM.tipo]) as CatalogQuery['type'],
+    color: list(params[PARAM.cor]),
+    rarity: list(params[PARAM.raridade]),
+    variantType: list(params[PARAM.variante]),
+    attribute: list(params[PARAM.atributo]),
+    mechanic: list(params[PARAM.mecanica]),
+    trait: list(params[PARAM.trait]),
     costMin: number(params[PARAM.custoMin]),
     costMax: number(params[PARAM.custoMax]),
     powerMin: number(params[PARAM.poderMin]),
@@ -71,9 +87,15 @@ export function toCatalogQuery(
   }
 }
 
-/** Quantos filtros estão ativos, sem contar a busca nem a paginação. */
+/**
+ * Quantos filtros estão ativos, sem contar a busca nem a paginação.
+ *
+ * Conta **valores**, e não facetas: com Preto e Azul marcados o distintivo diz
+ * 2, que é o número de escolhas que a pessoa fez e o número de coisas que ela
+ * precisa desfazer para voltar ao catálogo inteiro.
+ */
 export function countActiveFilters(params: CatalogSearchParams): number {
-  const filterKeys = [
+  const multiKeys = [
     PARAM.tipo,
     PARAM.cor,
     PARAM.raridade,
@@ -81,12 +103,12 @@ export function countActiveFilters(params: CatalogSearchParams): number {
     PARAM.atributo,
     PARAM.mecanica,
     PARAM.trait,
-    PARAM.custoMin,
-    PARAM.custoMax,
-    PARAM.poderMin,
-    PARAM.poderMax,
   ]
-  return filterKeys.filter((key) => first(params[key]) !== undefined).length
+  const singleKeys = [PARAM.custoMin, PARAM.custoMax, PARAM.poderMin, PARAM.poderMax]
+
+  const many = multiKeys.reduce((total, key) => total + (list(params[key])?.length ?? 0), 0)
+  const single = singleKeys.filter((key) => first(params[key]) !== undefined).length
+  return many + single
 }
 
 /**
@@ -99,14 +121,22 @@ export function countActiveFilters(params: CatalogSearchParams): number {
 export function buildCatalogHref(
   pathname: string,
   current: URLSearchParams,
-  changes: Record<string, string | number | undefined>,
+  changes: Record<string, string | number | string[] | undefined>,
   { resetPage = true } = {},
 ): string {
   const next = new URLSearchParams(current)
 
   for (const [key, value] of Object.entries(changes)) {
-    if (value === undefined || value === '') next.delete(key)
-    else next.set(key, String(value))
+    // Lista sempre substitui a anterior inteira: apagar antes de acrescentar é
+    // o que impede um valor desmarcado sobreviver na URL.
+    next.delete(key)
+
+    if (value === undefined || value === '') continue
+    if (Array.isArray(value)) {
+      for (const item of value) if (item !== '') next.append(key, item)
+    } else {
+      next.set(key, String(value))
+    }
   }
 
   if (resetPage && !(PARAM.pagina in changes)) next.delete(PARAM.pagina)
@@ -128,8 +158,12 @@ export function buildCatalogHref(
 export function toApiQuery(query: CatalogQuery): string {
   const params = new URLSearchParams()
 
-  const put = (key: string, value: string | number | undefined) => {
-    if (value !== undefined && value !== '') params.set(key, String(value))
+  const put = (key: string, value: string | number | readonly string[] | undefined) => {
+    if (value === undefined || value === '') return
+    // Multivalorado vira parâmetro repetido, que é o que o schema da rota
+    // aceita — e o que o navegador manda naturalmente.
+    if (Array.isArray(value)) for (const item of value) params.append(key, item)
+    else params.set(key, String(value as string | number))
   }
 
   put('search', query.search)
@@ -148,4 +182,54 @@ export function toApiQuery(query: CatalogQuery): string {
   put('pageSize', query.pageSize)
 
   return params.toString()
+}
+
+/**
+ * Para onde o detalhe de uma carta volta.
+ *
+ * A lista filtrada vive na URL, mas o detalhe é outra rota: sem carregar a
+ * origem, "voltar ao catálogo" devolvia o catálogo **inteiro**, e quem tinha
+ * filtrado por azul para registrar cinco cartas azuis refazia o filtro cinco
+ * vezes.
+ *
+ * O caminho de origem viaja num parâmetro só, codificado. É o mesmo arranjo do
+ * `next` da tela de entrar — e tem o mesmo cuidado: só caminho relativo entra.
+ */
+export const RETURN_PARAM = 'de'
+
+export function cardHref(variantId: string, origin?: string): string {
+  const base = `/catalogo/carta/${variantId}`
+  if (!origin) return base
+  return `${base}?${RETURN_PARAM}=${encodeURIComponent(origin)}`
+}
+
+/**
+ * O caminho de volta, ou o padrão.
+ *
+ * Recusa qualquer coisa que não comece com uma barra, e também `//`, que o
+ * navegador lê como outro domínio. Sem isso, um link montado por terceiro
+ * transformaria o botão "voltar" num desvio para fora do site.
+ */
+export function safeReturnTo(
+  value: string | string[] | undefined,
+  fallback: string,
+): string {
+  const raw = first(value)
+  if (!raw) return fallback
+  if (!raw.startsWith('/') || raw.startsWith('//')) return fallback
+  return raw
+}
+
+/** O caminho atual com a query, do jeito que `cardHref` espera receber. */
+export function currentPath(pathname: string, params: CatalogSearchParams): string {
+  const query = new URLSearchParams()
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined) continue
+    if (Array.isArray(value)) for (const item of value) query.append(key, item)
+    else query.set(key, value)
+  }
+
+  const search = query.toString()
+  return search ? `${pathname}?${search}` : pathname
 }

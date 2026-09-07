@@ -213,6 +213,28 @@ describe('CatalogResults', () => {
     expect(screen.getAllByRole('link')[0]).toHaveAttribute('href', '/catalogo/carta/1')
   })
 
+  /**
+   * A lista filtrada vive na URL, mas o detalhe e outra rota. Sem carregar a
+   * origem, voltar devolvia o catalogo inteiro — e quem filtrou por azul para
+   * registrar cinco cartas azuis refazia o filtro cinco vezes.
+   */
+  it('carrega a lista de origem no link de cada carta', () => {
+    render(
+      <CatalogResults result={result()} query={query} origin="/catalogo?cor=Blue&cor=Black" />,
+    )
+
+    expect(screen.getAllByRole('link')[0]).toHaveAttribute(
+      'href',
+      `/catalogo/carta/1?de=${encodeURIComponent('/catalogo?cor=Blue&cor=Black')}`,
+    )
+  })
+
+  it('sem origem, o link continua limpo', () => {
+    render(<CatalogResults result={result()} query={query} />)
+
+    expect(screen.getAllByRole('link')[0]).toHaveAttribute('href', '/catalogo/carta/1')
+  })
+
   /** "Normal" em toda carta é ruído: o que se procura na grade é o que não é. */
   it('etiqueta a variante só quando ela não é Normal', () => {
     render(<CatalogResults result={result()} query={query} />)

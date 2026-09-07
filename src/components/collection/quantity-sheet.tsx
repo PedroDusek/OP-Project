@@ -1,7 +1,8 @@
 'use client'
 
 import { useActionState, useEffect, useState } from 'react'
-import { Package, TriangleAlert } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowRight, Package, TriangleAlert } from 'lucide-react'
 import { setQuantityAction } from '@/app/(app)/colecao/actions'
 import { QUANTITY_IDLE } from '@/app/(app)/colecao/state'
 import { Badge } from '@/components/ui/badge'
@@ -35,6 +36,12 @@ import { useToast } from '@/components/ui/toast'
  * Nenhuma retirada vem preenchida. Escolher a ordem por ela — tirar do maior,
  * tirar do primeiro — seria presumir de onde as cartas saíram, que é
  * exatamente o que a regra proíbe.
+ *
+ * ## O link para a carta
+ *
+ * Da coleção, tocar numa carta abre este painel — e só ele. Sem esta saída, ver
+ * em qual binder a carta está exigia procurá-la de novo pelo catálogo. O painel
+ * responde "quantas eu tenho"; o link leva a "onde ela está".
  */
 
 export interface QuantitySheetProps {
@@ -134,6 +141,16 @@ export function QuantitySheet({
             <p className="text-xs text-text-muted tabular-nums">Você tem {currentQuantity} hoje.</p>
           ) : null}
         </div>
+
+        {currentQuantity > 0 ? (
+          <Link
+            href={`/catalogo/carta/${variantId}`}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-accent-ink hover:underline"
+          >
+            Ver a carta e onde ela está guardada
+            <ArrowRight className="size-4" aria-hidden />
+          </Link>
+        ) : null}
 
         {state.status === 'error' ? (
           <p role="alert" className="text-sm text-danger">

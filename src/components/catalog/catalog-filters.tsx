@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { SlidersHorizontal } from 'lucide-react'
+import { SlidersHorizontal, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Chip } from '@/components/ui/chip'
 import { FilterSection, FilterSheet } from '@/components/ui/filter-sheet'
@@ -25,6 +25,19 @@ import { cn } from '@/lib/cn'
  * Não existem no nosso modelo, e a instrução é usar as telas para estética e
  * layout, não para função.
  *
+ * ## Vários valores por seção
+ *
+ * Dentro de uma seção os valores se somam por **ou**: marcar Preto e Azul pede
+ * "preta ou azul". Entre seções vale o **e**: Azul com raridade SR pede as duas
+ * coisas.
+ *
+ * É a combinação que responde à pergunta que se faz montando deck. Com um valor
+ * por seção, escolher a segunda cor apagava a primeira — e não havia como
+ * pedir "as pretas e as azuis" de uma vez.
+ *
+ * Custo e poder ficam de fora disso: são faixas, e duas faixas ao mesmo tempo
+ * seriam duas perguntas na mesma pergunta.
+ *
  * ## Rascunho local, aplicação explícita
  *
  * Mexer num chip **não** consulta o servidor. A pessoa monta a combinação
@@ -32,7 +45,22 @@ import { cn } from '@/lib/cn'
  * dedada e faria a lista pular sob o dedo enquanto ela ainda escolhe.
  */
 
-type Draft = Record<string, string | undefined>
+/** As seções que aceitam vários valores. */
+const MULTI_KEYS = [
+  PARAM.tipo,
+  PARAM.cor,
+  PARAM.raridade,
+  PARAM.variante,
+  PARAM.atributo,
+  PARAM.mecanica,
+  PARAM.trait,
+] as const
+
+/** As que aceitam um só: os limites das faixas. */
+const RANGE_KEYS = [PARAM.custoMin, PARAM.custoMax, PARAM.poderMin, PARAM.poderMax] as const
+
+type MultiDraft = Record<string, string[]>
+type RangeDraft = Record<string, string | undefined>
 
 export interface CatalogFiltersProps {
   vocabulary: CatalogVocabulary
@@ -47,32 +75,54 @@ export function CatalogFilters({ vocabulary, activeCount }: CatalogFiltersProps)
   const [, startTransition] = useTransition()
 
   const [open, setOpen] = useState(false)
-  const [draft, setDraft] = useState<Draft>({})
+  const [multi, setMulti] = useState<MultiDraft>({})
+  const [ranges, setRanges] = useState<RangeDraft>({})
   const [traitTerm, setTraitTerm] = useState('')
 
   /** Ao abrir, o rascunho parte do que está na URL. */
   const openSheet = () => {
-    const current: Draft = {}
-    for (const key of FILTER_KEYS) {
-      const value = params.get(key)
-      if (value) current[key] = value
+    const nextMulti: MultiDraft = {}
+    for (const key of MULTI_KEYS) {
+      const values = params.getAll(key).filter(Boolean)
+      if (values.length > 0) nextMulti[key] = values
     }
-    setDraft(current)
-    setTraitTerm(current[PARAM.trait] ?? '')
+
+    const nextRanges: RangeDraft = {}
+    for (const key of RANGE_KEYS) {
+      const value = params.get(key)
+      if (value) nextRanges[key] = value
+    }
+
+    setMulti(nextMulti)
+    setRanges(nextRanges)
+    setTraitTerm('')
     setOpen(true)
   }
 
-  const set = (key: string, value: string | undefined) =>
-    setDraft((current) => ({ ...current, [key]: value }))
+  const selected = (key: string): string[] => multi[key] ?? []
 
-  /** Chip que alterna: tocar no que já está escolhido desmarca. */
+  /** Tocar no que já está escolhido desmarca; nos outros, acrescenta. */
   const toggle = (key: string, value: string) =>
-    set(key, draft[key] === value ? undefined : value)
+    setMulti((current) => {
+      const values = current[key] ?? []
+      const next = values.includes(value)
+        ? values.filter((item) => item !== value)
+        : [...values, value]
+
+      // Seção sem nenhum valor sai do rascunho, para não virar parâmetro vazio
+      // na URL nem contar como filtro ativo.
+      const rest = { ...current }
+      delete rest[key]
+      return next.length > 0 ? { ...rest, [key]: next } : rest
+    })
+
+  const setRange = (key: string, value: string | undefined) =>
+    setRanges((current) => ({ ...current, [key]: value }))
 
   const apply = () => {
-    const changes: Record<string, string | undefined> = {}
-    for (const key of FILTER_KEYS) changes[key] = draft[key]
-    changes[PARAM.trait] = traitTerm || undefined
+    const changes: Record<string, string | string[] | undefined> = {}
+    for (const key of MULTI_KEYS) changes[key] = multi[key]
+    for (const key of RANGE_KEYS) changes[key] = ranges[key]
 
     setOpen(false)
     startTransition(() => {
@@ -81,12 +131,21 @@ export function CatalogFilters({ vocabulary, activeCount }: CatalogFiltersProps)
   }
 
   const clear = () => {
-    setDraft({})
+    setMulti({})
+    setRanges({})
     setTraitTerm('')
   }
 
+  const draftCount =
+    Object.values(multi).reduce((total, values) => total + values.length, 0) +
+    Object.values(ranges).filter(Boolean).length
+
+  const chosenTraits = selected(PARAM.trait)
   const traitMatches = traitTerm
-    ? vocabulary.traits.filter((t) => t.toLowerCase().includes(traitTerm.toLowerCase())).slice(0, 12)
+    ? vocabulary.traits
+        .filter((t) => t.toLowerCase().includes(traitTerm.toLowerCase()))
+        .filter((t) => !chosenTraits.includes(t))
+        .slice(0, 12)
     : []
 
   return (
@@ -94,9 +153,7 @@ export function CatalogFilters({ vocabulary, activeCount }: CatalogFiltersProps)
       <Button
         variant="secondary"
         onClick={openSheet}
-        aria-label={
-          activeCount > 0 ? `Filtros, ${activeCount} ativos` : 'Filtros'
-        }
+        aria-label={activeCount > 0 ? `Filtros, ${activeCount} ativos` : 'Filtros'}
         className="shrink-0"
       >
         <SlidersHorizontal className="size-4" aria-hidden />
@@ -114,28 +171,26 @@ export function CatalogFilters({ vocabulary, activeCount }: CatalogFiltersProps)
         title="Filtros do catálogo"
         onApply={apply}
         onClear={clear}
-        activeCount={Object.values(draft).filter(Boolean).length}
+        activeCount={draftCount}
       >
-        <FilterSection title="Tipo">
-          <ChipRow>
-            {vocabulary.types.map((value) => (
-              <Chip
-                key={value}
-                selected={draft[PARAM.tipo] === value}
-                onClick={() => toggle(PARAM.tipo, value)}
-              >
-                {value}
-              </Chip>
-            ))}
-          </ChipRow>
-        </FilterSection>
+        <p className="text-xs text-text-muted">
+          Dentro de uma seção, vale qualquer um dos escolhidos. Entre seções, valem todos.
+        </p>
+
+        <ChipSection
+          title="Tipo"
+          param={PARAM.tipo}
+          values={vocabulary.types}
+          selected={selected(PARAM.tipo)}
+          onToggle={toggle}
+        />
 
         <FilterSection title="Cor">
           <ChipRow>
             {vocabulary.colors.map((value) => (
               <Chip
                 key={value}
-                selected={draft[PARAM.cor] === value}
+                selected={selected(PARAM.cor).includes(value)}
                 onClick={() => toggle(PARAM.cor, value)}
               >
                 {/*
@@ -153,63 +208,53 @@ export function CatalogFilters({ vocabulary, activeCount }: CatalogFiltersProps)
           </ChipRow>
         </FilterSection>
 
-        <FilterSection title="Raridade">
-          <ChipRow>
-            {vocabulary.rarities.map((value) => (
-              <Chip
-                key={value}
-                selected={draft[PARAM.raridade] === value}
-                onClick={() => toggle(PARAM.raridade, value)}
-              >
-                {value}
-              </Chip>
-            ))}
-          </ChipRow>
-        </FilterSection>
-
-        <FilterSection title="Variante">
-          <ChipRow>
-            {vocabulary.variantTypes.map((value) => (
-              <Chip
-                key={value}
-                selected={draft[PARAM.variante] === value}
-                onClick={() => toggle(PARAM.variante, value)}
-              >
-                {value}
-              </Chip>
-            ))}
-          </ChipRow>
-        </FilterSection>
-
-        <FilterSection title="Atributo">
-          <ChipRow>
-            {vocabulary.attributes.map((value) => (
-              <Chip
-                key={value}
-                selected={draft[PARAM.atributo] === value}
-                onClick={() => toggle(PARAM.atributo, value)}
-              >
-                {value}
-              </Chip>
-            ))}
-          </ChipRow>
-        </FilterSection>
-
-        <FilterSection title="Mecânica">
-          <ChipRow>
-            {vocabulary.mechanics.map((value) => (
-              <Chip
-                key={value}
-                selected={draft[PARAM.mecanica] === value}
-                onClick={() => toggle(PARAM.mecanica, value)}
-              >
-                {value}
-              </Chip>
-            ))}
-          </ChipRow>
-        </FilterSection>
+        <ChipSection
+          title="Raridade"
+          param={PARAM.raridade}
+          values={vocabulary.rarities}
+          selected={selected(PARAM.raridade)}
+          onToggle={toggle}
+        />
+        <ChipSection
+          title="Variante"
+          param={PARAM.variante}
+          values={vocabulary.variantTypes}
+          selected={selected(PARAM.variante)}
+          onToggle={toggle}
+        />
+        <ChipSection
+          title="Atributo"
+          param={PARAM.atributo}
+          values={vocabulary.attributes}
+          selected={selected(PARAM.atributo)}
+          onToggle={toggle}
+        />
+        <ChipSection
+          title="Mecânica"
+          param={PARAM.mecanica}
+          values={vocabulary.mechanics}
+          selected={selected(PARAM.mecanica)}
+          onToggle={toggle}
+        />
 
         <FilterSection title="Trait">
+          {/*
+            Os traits são milhares, então a lista não cabe na tela como as
+            outras seções. O que já foi escolhido fica visível em cima — sem
+            isso, uma escolha some assim que a busca muda, e a pessoa não tem
+            como saber o que está filtrando.
+          */}
+          {chosenTraits.length > 0 ? (
+            <ChipRow>
+              {chosenTraits.map((value) => (
+                <Chip key={value} selected onClick={() => toggle(PARAM.trait, value)}>
+                  {value}
+                  <X className="size-3" aria-hidden />
+                </Chip>
+              ))}
+            </ChipRow>
+          ) : null}
+
           <SearchBar
             label="Buscar trait"
             value={traitTerm}
@@ -219,7 +264,7 @@ export function CatalogFilters({ vocabulary, activeCount }: CatalogFiltersProps)
           {traitMatches.length > 0 ? (
             <ChipRow className="mt-1">
               {traitMatches.map((value) => (
-                <Chip key={value} selected={traitTerm === value} onClick={() => setTraitTerm(value)}>
+                <Chip key={value} onClick={() => toggle(PARAM.trait, value)}>
                   {value}
                 </Chip>
               ))}
@@ -233,8 +278,8 @@ export function CatalogFilters({ vocabulary, activeCount }: CatalogFiltersProps)
         {vocabulary.costRange ? (
           <FilterSection title="Custo">
             <RangeInputs
-              draft={draft}
-              set={set}
+              draft={ranges}
+              set={setRange}
               minKey={PARAM.custoMin}
               maxKey={PARAM.custoMax}
               range={vocabulary.costRange}
@@ -246,8 +291,8 @@ export function CatalogFilters({ vocabulary, activeCount }: CatalogFiltersProps)
         {vocabulary.powerRange ? (
           <FilterSection title="Poder">
             <RangeInputs
-              draft={draft}
-              set={set}
+              draft={ranges}
+              set={setRange}
               minKey={PARAM.poderMin}
               maxKey={PARAM.poderMax}
               range={vocabulary.powerRange}
@@ -261,19 +306,36 @@ export function CatalogFilters({ vocabulary, activeCount }: CatalogFiltersProps)
   )
 }
 
-const FILTER_KEYS = [
-  PARAM.tipo,
-  PARAM.cor,
-  PARAM.raridade,
-  PARAM.variante,
-  PARAM.atributo,
-  PARAM.mecanica,
-  PARAM.trait,
-  PARAM.custoMin,
-  PARAM.custoMax,
-  PARAM.poderMin,
-  PARAM.poderMax,
-]
+/** Uma seção de chips que aceita vários valores. */
+function ChipSection({
+  title,
+  param,
+  values,
+  selected,
+  onToggle,
+}: {
+  title: string
+  param: string
+  values: string[]
+  selected: string[]
+  onToggle: (key: string, value: string) => void
+}) {
+  return (
+    <FilterSection title={title}>
+      <ChipRow>
+        {values.map((value) => (
+          <Chip
+            key={value}
+            selected={selected.includes(value)}
+            onClick={() => onToggle(param, value)}
+          >
+            {value}
+          </Chip>
+        ))}
+      </ChipRow>
+    </FilterSection>
+  )
+}
 
 /** As seis cores do jogo. Não são tokens do design system: são dado do jogo. */
 const COLOR_DOT: Record<string, string> = {
@@ -298,7 +360,7 @@ function RangeInputs({
   label,
   step = 1,
 }: {
-  draft: Draft
+  draft: RangeDraft
   set: (key: string, value: string | undefined) => void
   minKey: string
   maxKey: string

@@ -13,6 +13,19 @@ import { compareSetsForCatalog } from '@/server/domain/catalog/sets'
  * de variante sao filtros.
  */
 
+/**
+ * Um filtro que aceita mais de um valor.
+ *
+ * Dentro de uma faceta os valores se somam por **ou**: marcar Preto e Azul pede
+ * "preta ou azul", nao "preta e azul ao mesmo tempo". Entre facetas vale o
+ * **e**: cor azul com raridade SR pede as duas coisas.
+ *
+ * E a combinacao que responde a pergunta que se faz montando deck, e a unica em
+ * que acrescentar um valor nunca reduz o resultado a zero sozinho — que era o
+ * que acontecia quando cada faceta so aceitava um.
+ */
+export type Many<T extends string = string> = T | T[]
+
 export interface CatalogFilters {
   /**
    * A caixa de busca unica da interface: casa por trecho do **codigo ou** do
@@ -29,14 +42,14 @@ export interface CatalogFilters {
   /** Busca por trecho do nome, sem diferenciar maiusculas. Usa o indice GIN. */
   name?: string
   setCode?: string
-  type?: CardType
-  color?: string
-  trait?: string
-  attribute?: string
-  mechanic?: string
-  effect?: string
-  rarity?: string
-  variantType?: string
+  type?: Many<CardType>
+  color?: Many<string>
+  trait?: Many<string>
+  attribute?: Many<string>
+  mechanic?: Many<string>
+  effect?: Many<string>
+  rarity?: Many<string>
+  variantType?: Many<string>
   /**
    * Custo e poder entram como faixa, e nao como valor exato.
    *
@@ -94,6 +107,19 @@ const MAX_PAGE_SIZE = 100
  * pedido, e a tela mostra o estado vazio em vez de resultados que a pessoa nao
  * pediu.
  */
+/**
+ * Normaliza um filtro para lista, descartando vazio.
+ *
+ * Devolve `undefined` quando nao ha nada a filtrar, para o chamador nao
+ * precisar distinguir "sem filtro" de "lista vazia" — uma lista vazia num `in`
+ * do Prisma nao devolve nada, que e o oposto do que "sem filtro" significa.
+ */
+function many<T extends string>(value?: Many<T>): T[] | undefined {
+  if (value === undefined) return undefined
+  const list = (Array.isArray(value) ? value : [value]).filter((item) => item !== '')
+  return list.length > 0 ? list : undefined
+}
+
 function range(min?: number, max?: number): { gte?: number; lte?: number } | null {
   if (min === undefined && max === undefined) return null
   return {
@@ -113,7 +139,8 @@ export function buildCatalogWhere(filters: CatalogFilters): Prisma.CardVariantWh
       { name: { contains: filters.search, mode: 'insensitive' } },
     ]
   }
-  if (filters.type) card.type = filters.type
+  const types = many(filters.type)
+  if (types) card.type = { in: types }
   if (filters.counter !== undefined) card.counter = filters.counter
 
   const cost = range(filters.costMin, filters.costMax)
@@ -122,16 +149,29 @@ export function buildCatalogWhere(filters: CatalogFilters): Prisma.CardVariantWh
   if (power) card.power = power
   if (filters.hasTrigger !== undefined) card.hasTrigger = filters.hasTrigger
   if (filters.blockIcon) card.blockIcon = filters.blockIcon
-  if (filters.color) card.colors = { some: { color: { name: filters.color } } }
-  if (filters.trait) card.traits = { some: { trait: { name: filters.trait } } }
-  if (filters.attribute) card.attributes = { some: { attribute: { name: filters.attribute } } }
-  if (filters.mechanic) card.mechanics = { some: { mechanic: { name: filters.mechanic } } }
-  if (filters.effect) card.effects = { some: { effect: { name: filters.effect } } }
+  /*
+   * `some` com `in` e o "ou" dentro da faceta: a carta entra se **alguma** das
+   * cores dela estiver entre as escolhidas. Um `AND` de varios `some` seria o
+   * "e", que pediria a carta a ter todas — outra pergunta, e nao a que a tela
+   * faz.
+   */
+  const colors = many(filters.color)
+  if (colors) card.colors = { some: { color: { name: { in: colors } } } }
+  const traits = many(filters.trait)
+  if (traits) card.traits = { some: { trait: { name: { in: traits } } } }
+  const attributes = many(filters.attribute)
+  if (attributes) card.attributes = { some: { attribute: { name: { in: attributes } } } }
+  const mechanics = many(filters.mechanic)
+  if (mechanics) card.mechanics = { some: { mechanic: { name: { in: mechanics } } } }
+  const effects = many(filters.effect)
+  if (effects) card.effects = { some: { effect: { name: { in: effects } } } }
 
   const where: Prisma.CardVariantWhereInput = {}
   if (Object.keys(card).length > 0) where.card = card
-  if (filters.rarity) where.rarity = filters.rarity
-  if (filters.variantType) where.variantType = filters.variantType
+  const rarities = many(filters.rarity)
+  if (rarities) where.rarity = { in: rarities }
+  const variantTypes = many(filters.variantType)
+  if (variantTypes) where.variantType = { in: variantTypes }
   // O set vem sempre de variant_printings, nunca do prefixo do codigo.
   if (filters.setCode) where.printings = { some: { set: { code: filters.setCode } } }
 

@@ -190,3 +190,46 @@ describe('GET /api/catalog/[variantId]', () => {
     expect(response.status).toBe(400)
   })
 })
+
+/**
+ * Parametro repetido na rota.
+ *
+ * Antes, `queryToObject` ficava com o ultimo valor: `?color=Black&color=Blue`
+ * filtrava so por azul, em silencio. Descarte silencioso e pior que rejeicao —
+ * e aqui nao havia nem rejeicao.
+ */
+describe('filtros repetidos na API', () => {
+  it('aceita o mesmo filtro duas vezes e soma os dois', async () => {
+    const types = await testPrisma().card.findMany({ select: { type: true }, distinct: ['type'] })
+    const [first, second] = types.map((t) => t.type)
+    expect(second).toBeDefined()
+
+    const juntos = await body(
+      await catalogSearch(new Request(url(`?type=${first}&type=${second}`)), undefined),
+    )
+    const um = await body(await catalogSearch(new Request(url(`?type=${first}`)), undefined))
+    const outro = await body(
+      await catalogSearch(new Request(url(`?type=${second}`)), undefined),
+    )
+
+    expect(Number(juntos.total)).toBe(Number(um.total) + Number(outro.total))
+  })
+
+  it('um valor so continua funcionando', async () => {
+    const response = await catalogSearch(new Request(url('?type=Leader')), undefined)
+    expect(response.status).toBe(200)
+  })
+
+  /** Valor invalido dentro da lista e 400, e nao filtro parcial em silencio. */
+  it('recusa a lista com um valor invalido', async () => {
+    const response = await catalogSearch(new Request(url('?type=Leader&type=Navio')), undefined)
+    expect(response.status).toBe(400)
+  })
+
+  /** Cada valor vira item de `IN`; uma URL com mil deles seria consulta cara de graca. */
+  it('recusa lista longa demais', async () => {
+    const many = Array.from({ length: 21 }, (_, i) => `color=Cor${i}`).join('&')
+    const response = await catalogSearch(new Request(url(`?${many}`)), undefined)
+    expect(response.status).toBe(400)
+  })
+})

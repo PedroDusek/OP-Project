@@ -6,6 +6,7 @@ import { isAppError } from '@/server/domain/errors'
 import { getCardVariant } from '@/server/application/catalog'
 import { searchCollection } from '@/server/application/collection'
 import { listVariantAllocations } from '@/server/application/storage'
+import { safeReturnTo } from '@/lib/catalog-params'
 import { currentViewer } from '@/server/http/viewer'
 import { VariantDetail } from '@/components/catalog/variant-detail'
 
@@ -35,6 +36,10 @@ export async function generateMetadata({
  * catálogo não leva a lugar nenhum: dá para navegar o jogo inteiro e não
  * registrar uma carta sequer.
  *
+ * O link de volta carrega a lista de onde a pessoa veio, com os filtros. Sem
+ * isso, quem filtrou por azul para registrar cinco cartas azuis refazia o filtro
+ * cinco vezes — uma vez por carta.
+ *
  * Onde as cópias estão guardadas entra logo abaixo, e só para quem tem a carta:
  * é daqui que se guarda pela primeira vez num binder, sem passar pelo
  * armazenamento e procurar a carta de novo.
@@ -43,10 +48,17 @@ export async function generateMetadata({
  * dos próximos checkpoints, e botões que não fazem nada seriam pior que a
  * ausência deles.
  */
-export default async function CartaPage({ params }: PageProps<'/catalogo/carta/[variantId]'>) {
+export default async function CartaPage({
+  params,
+  searchParams,
+}: PageProps<'/catalogo/carta/[variantId]'>) {
   const { variantId } = await params
   const id = parseId(variantId)
   if (!id) notFound()
+
+  // Só caminho relativo entra: um valor absoluto transformaria "voltar" num
+  // desvio para fora do site.
+  const backHref = safeReturnTo((await searchParams).de, '/catalogo')
 
   const variant = await getCardVariant(id).catch((error) => {
     if (isAppError(error) && error.kind === 'NOT_FOUND') notFound()
@@ -70,7 +82,7 @@ export default async function CartaPage({ params }: PageProps<'/catalogo/carta/[
   return (
     <>
       <Link
-        href="/catalogo"
+        href={backHref}
         className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-text-muted transition-colors hover:text-text"
       >
         <ArrowLeft className="size-4" aria-hidden />
