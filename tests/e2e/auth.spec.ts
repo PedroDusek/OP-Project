@@ -197,3 +197,22 @@ test.describe('retorno do provedor', () => {
     await expect(page).toHaveURL(/\/entrar\?next=/)
   })
 })
+
+test.describe('catálogo protegido', () => {
+  /**
+   * O catálogo exige sessão, e isso não é zelo excessivo: a decisão 020 assume
+   * o compromisso de nunca reexpor o catálogo, e páginas abertas de busca e de
+   * set seriam exatamente isso.
+   */
+  test('as rotas de catálogo pedem sessão', async ({ page }) => {
+    for (const path of [
+      '/catalogo',
+      '/catalogo/sets',
+      '/catalogo/sets/OP01',
+      '/catalogo/carta/1',
+    ]) {
+      await page.goto(path)
+      await expect(page).toHaveURL(`/entrar?next=${encodeURIComponent(path)}`)
+    }
+  })
+})

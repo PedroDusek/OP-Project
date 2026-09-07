@@ -1,6 +1,8 @@
 import { prisma } from '@/server/infrastructure/prisma'
 import { getCardVariant as getCardVariantWith } from './get-card-variant'
 import { searchCatalog as searchCatalogWith, type CatalogQuery } from './search-cards'
+import { listSets as listSetsWith, getSet as getSetWith } from './list-sets'
+import { getCatalogVocabulary as getCatalogVocabularyWith } from './vocabulary'
 
 /**
  * Ponto de composicao dos casos de uso do catalogo.
@@ -19,4 +21,16 @@ export function searchCatalog(query: CatalogQuery = {}) {
 
 export function getCardVariant(variantId: bigint) {
   return getCardVariantWith(prisma, variantId)
+}
+
+export function listSets() {
+  return listSetsWith(prisma)
+}
+
+export function getSet(code: string) {
+  return getSetWith(prisma, code)
+}
+
+export function getCatalogVocabulary() {
+  return getCatalogVocabularyWith(prisma)
 }

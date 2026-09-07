@@ -1366,3 +1366,125 @@ Antes de habilitar a Apple, vale conferir as exigências de marca e de fluxo do
 ## Data
 
 2026-09-07
+
+---
+
+# Decisão: 033 — Filtro e paginação do catálogo vivem na URL
+
+## Contexto
+
+O catálogo tem 4.843 variantes e onze filtros combináveis. Era preciso decidir
+onde esse estado mora: em estado de componente, com rolagem infinita, ou na
+query string, com páginas.
+
+As telas de referência mostram uma grade que rola. A instrução do dono do
+produto é usá-las como referência de estética e layout, não de função.
+
+## Opções
+
+1. Estado no cliente, rolagem infinita com TanStack Query.
+2. Filtros e página na URL, renderizados no servidor.
+
+## Decisão
+
+Opção 2. Busca, filtros e página são parâmetros da URL, em português, e a
+página é um React Server Component já filtrado. A tradução entre a query string
+e o caso de uso acontece em `src/lib/catalog-params.ts`.
+
+Mexer em qualquer filtro volta para a página 1.
+
+## Motivo
+
+Três coisas decorrem de o estado estar no endereço, e nenhuma se recupera
+depois:
+
+- a busca filtrada é compartilhável e volta igual pelo histórico;
+- voltar do detalhe de uma carta devolve a lista onde ela estava;
+- a página chega renderizada, sem um segundo passo no cliente.
+
+Numa ferramenta de coleção, "a página 7 de OP01" é um lugar ao qual se volta.
+Rolagem infinita não tem endereço.
+
+O custo é a ausência de rolagem contínua. Se ela se mostrar necessária, entra
+por cima disto sem desfazer nada: os parâmetros continuam na URL.
+
+Voltar à primeira página ao mudar filtro parece detalhe e não é: refinar a busca
+na página 7 levaria a uma página 7 que pode não existir mais, e a tela ficaria
+vazia sem explicação.
+
+## Data
+
+2026-09-07
+
+---
+
+# Decisão: 034 — Sem "sets mais recentes", porque não sabemos quais são
+
+## Contexto
+
+A tela 09 mostra uma seção "Sets mais recentes". O modelo de dados aprovado não
+guarda data de lançamento de set: `sets` tem `code` e `name`, e nada mais.
+
+Ordenar códigos não é ordenar por data. `OP-17` vem depois de `OP13` no
+alfabeto, mas os prefixos convivem — `EB`, `GC`, `OP`, `PRB`, `PROMO`, `ST` — e
+nada no dado diz qual coletânea saiu antes.
+
+## Opções
+
+1. Chamar de "mais recentes" a ordem decrescente de código.
+2. Acrescentar `released_at` a `sets` e preencher na importação.
+3. Não oferecer a seção; ordenar por código, dizendo que é por código.
+
+## Decisão
+
+Opção 3. A lista de sets é ordenada pela sequência natural do código, e a tela
+não afirma recência em lugar nenhum.
+
+A ordenação natural existe porque a fonte não é uniforme: `OP01` e `OP-07`
+convivem, e ordenar por texto puro colocaria `OP-07` antes de `OP01`. A regra
+está em `src/server/domain/catalog/sets.ts`, com teste.
+
+## Motivo
+
+A opção 1 é afirmar o que não sabemos, com uma cara de certeza — o mesmo erro
+que a decisão 022 evitou ao recusar inferir mecânicas de padrões.
+
+A opção 2 é possível e talvez desejável, mas é alteração do modelo de dados
+aprovado, precisa de aprovação, e depende de a fonte publicar a data de forma
+confiável, o que não foi verificado. Fica registrada como pergunta em aberto no
+handoff.
+
+## Data
+
+2026-09-07
+
+---
+
+# Decisão: 035 — Parâmetro desconhecido na API de catálogo é erro
+
+## Contexto
+
+O schema de query do catálogo aceitava chaves desconhecidas e as descartava, que
+é o comportamento padrão do Zod. Ao renomear `cost` para `costMin`/`costMax`,
+um teste passou a receber 200 onde esperava 400 — e foi assim que isso apareceu.
+
+## Decisão
+
+O schema passa a ser `strict()`. Parâmetro que não existe devolve 400.
+
+## Motivo
+
+É o mesmo modo de falha que já custou caro neste projeto. A armadilha 5 do
+handoff registra 538 variantes perdidas porque o parser ignorava em silêncio o
+que não reconhecia.
+
+Aqui a forma seria mais discreta e não menos ruim: `?custo=3`, em português ou
+com um typo, devolveria o catálogo inteiro, e quem chamou acharia que filtrou.
+Rejeitar avisa; descartar, não.
+
+Decisão técnica, sem impacto de produto: a interface não chama esta rota — as
+páginas falam com o caso de uso diretamente.
+
+## Data
+
+2026-09-07

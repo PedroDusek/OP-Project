@@ -13,6 +13,16 @@ import type { CardType } from '@/server/domain/catalog/types'
  */
 
 export interface CatalogFilters {
+  /**
+   * A caixa de busca unica da interface: casa por trecho do **codigo ou** do
+   * nome.
+   *
+   * Existe separado de `code` e `name` porque quem digita "OP01" nao esta
+   * pedindo um codigo exato nem um nome — esta pedindo "me mostre o que casa".
+   * Obrigar a escolher o campo antes de buscar e o tipo de exigencia que faz
+   * sentido para quem escreveu o banco e para mais ninguem.
+   */
+  search?: string
   /** Busca exata por codigo. Vai direto ao indice unico. */
   code?: string
   /** Busca por trecho do nome, sem diferenciar maiusculas. Usa o indice GIN. */
@@ -26,8 +36,18 @@ export interface CatalogFilters {
   effect?: string
   rarity?: string
   variantType?: string
-  cost?: number
-  power?: number
+  /**
+   * Custo e poder entram como faixa, e nao como valor exato.
+   *
+   * "Character de custo 3" e uma pergunta rara; "o que cabe ate 3 de custo" e a
+   * pergunta que se faz montando deck, e e a que as telas de referencia
+   * mostram. Valor exato continua possivel: e a faixa com minimo igual ao
+   * maximo.
+   */
+  costMin?: number
+  costMax?: number
+  powerMin?: number
+  powerMax?: number
   counter?: number
   hasTrigger?: boolean
   blockIcon?: string
@@ -64,15 +84,41 @@ export interface CatalogResult {
 const DEFAULT_PAGE_SIZE = 24
 const MAX_PAGE_SIZE = 100
 
+/**
+ * Faixa numerica para o Prisma, ou `null` quando nao ha filtro.
+ *
+ * Um limite so ja filtra: informar apenas o maximo responde "ate 3 de custo".
+ * Faixa invertida (minimo maior que o maximo) nao vira erro nem e corrigida em
+ * silencio — ela filtra para o conjunto vazio, que e literalmente o que foi
+ * pedido, e a tela mostra o estado vazio em vez de resultados que a pessoa nao
+ * pediu.
+ */
+function range(min?: number, max?: number): { gte?: number; lte?: number } | null {
+  if (min === undefined && max === undefined) return null
+  return {
+    ...(min !== undefined ? { gte: min } : {}),
+    ...(max !== undefined ? { lte: max } : {}),
+  }
+}
+
 export function buildCatalogWhere(filters: CatalogFilters): Prisma.CardVariantWhereInput {
   const card: Prisma.CardWhereInput = {}
 
   if (filters.code) card.code = filters.code
   if (filters.name) card.name = { contains: filters.name, mode: 'insensitive' }
+  if (filters.search) {
+    card.OR = [
+      { code: { contains: filters.search, mode: 'insensitive' } },
+      { name: { contains: filters.search, mode: 'insensitive' } },
+    ]
+  }
   if (filters.type) card.type = filters.type
-  if (filters.cost !== undefined) card.cost = filters.cost
-  if (filters.power !== undefined) card.power = filters.power
   if (filters.counter !== undefined) card.counter = filters.counter
+
+  const cost = range(filters.costMin, filters.costMax)
+  if (cost) card.cost = cost
+  const power = range(filters.powerMin, filters.powerMax)
+  if (power) card.power = power
   if (filters.hasTrigger !== undefined) card.hasTrigger = filters.hasTrigger
   if (filters.blockIcon) card.blockIcon = filters.blockIcon
   if (filters.color) card.colors = { some: { color: { name: filters.color } } }
