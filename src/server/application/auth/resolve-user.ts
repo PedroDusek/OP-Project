@@ -15,6 +15,8 @@ export interface AuthenticatedUser {
   email: string
   name: string
   plan: string
+  /** Ate quando o acesso Premium vale. Nulo significa sem prazo. */
+  premiumUntil: Date | null
 }
 
 export async function resolveUser(
@@ -23,7 +25,7 @@ export async function resolveUser(
 ): Promise<AuthenticatedUser | null> {
   const existing = await prisma.user.findUnique({
     where: { authUserId: identity.authUserId },
-    select: { id: true, email: true, name: true, plan: true, deletedAt: true },
+    select: { id: true, email: true, name: true, plan: true, premiumUntil: true, deletedAt: true },
   })
 
   if (existing) {
@@ -34,6 +36,7 @@ export async function resolveUser(
       email: existing.email,
       name: existing.name,
       plan: existing.plan,
+      premiumUntil: existing.premiumUntil,
     }
   }
 
@@ -46,6 +49,6 @@ export async function resolveUser(
       name: identity.name?.trim() || identity.email.split('@')[0],
       collection: { create: { name: 'Minha Colecao' } },
     },
-    select: { id: true, email: true, name: true, plan: true },
+    select: { id: true, email: true, name: true, plan: true, premiumUntil: true },
   })
 }

@@ -1,42 +1,25 @@
-import { resolveUser, type AuthenticatedUser } from '@/server/application/auth/resolve-user'
+import { userFromRequest, type AuthenticatedUser } from '@/server/application/auth'
 import { AuthenticationError } from '@/server/domain/errors'
-import { prisma } from '@/server/infrastructure/prisma'
-import type { SessionProvider } from './session-provider'
 
 /**
- * Resolucao de sessao na fronteira HTTP.
+ * Sessao na fronteira HTTP.
  *
  * A regra que isto existe para garantir: o `user_id` usado por qualquer caso de
- * uso vem daqui, nunca do corpo ou da query da requisicao.
+ * uso vem daqui, nunca do corpo nem da query da requisicao. Nenhuma rota deve
+ * ter outro caminho para descobrir quem esta chamando.
  */
 
-let provider: SessionProvider | null = null
-
-export function setSessionProvider(next: SessionProvider | null): void {
-  provider = next
-}
-
-export function getSessionProvider(): SessionProvider {
-  if (!provider) {
-    throw new Error(
-      'Nenhum SessionProvider configurado. Chame setSessionProvider na inicializacao.',
-    )
-  }
-  return provider
-}
-
 export async function currentUser(request: Request): Promise<AuthenticatedUser | null> {
-  const identity = await getSessionProvider().identify(request)
-  if (!identity) return null
-  return resolveUser(prisma, identity)
+  return userFromRequest(request)
 }
 
-/** Igual a `currentUser`, mas falha quando nao ha sessao. */
+/** Igual a `currentUser`, mas falha quando nao ha sessao valida. */
 export async function requireUser(request: Request): Promise<AuthenticatedUser> {
   const user = await currentUser(request)
   if (!user) throw new AuthenticationError()
   return user
 }
 
+export { setSessionProvider } from '@/server/application/auth'
 export type { AuthenticatedUser }
 export type { ProviderIdentity, SessionProvider } from './session-provider'

@@ -6,11 +6,9 @@ import { GET as catalogSearch } from '@/app/api/catalog/route'
 import { importCatalog } from '@/server/application/catalog/import-catalog'
 import { parseCardList } from '@/server/domain/catalog/parse-card-list'
 import type { CatalogProvider } from '@/server/domain/catalog/types'
-import {
-  setSessionProvider,
-  type ProviderIdentity,
-  type SessionProvider,
-} from '@/server/http/session'
+import { setSessionProvider } from '@/server/application/auth'
+import type { ProviderIdentity, SessionProvider } from '@/server/http/session-provider'
+import { resetRateLimits } from '@/server/http/rate-limit'
 import { disconnect, resetDatabase, resetUserData, testPrisma } from '../helpers'
 
 const html = readFileSync(
@@ -46,6 +44,7 @@ beforeAll(async () => {
 })
 
 beforeEach(async () => {
+  resetRateLimits()
   identity = { authUserId: 'auth-1', email: 'Pessoa@Example.Test', name: 'Pessoa' }
   // O catalogo e importado uma vez; os dados de usuario nascem limpos a cada
   // teste, para que um teste nao dependa nem estrague o estado de outro.
