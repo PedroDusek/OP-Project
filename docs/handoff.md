@@ -74,6 +74,9 @@ As 37 estão em `decisions.md`. Estas mudam o que se pode fazer:
   Action. Não existe senha no nosso banco nem SDK de autenticação no navegador.
 - **033 + 039** — busca e filtros moram na URL; a listagem rola sem paginação, e
   as levas seguintes passam pela API, que é onde a cota de leitura é cobrada.
+- **040** — a listagem de cartas sai na ordem de lançamento, com promocionais no
+  fim. A ordenação acontece em memória, e o limite dessa escolha está escrito na
+  decisão: com um catálogo dez vezes maior, ela precisa migrar para o banco.
 - **036** — substitui a 034. A ordem de lançamento **foi informada** pelo dono
   do produto e vive em `src/server/domain/catalog/sets.ts`; sets são separados
   em coleção, deck e promocional; e a contagem é exibida como "cartas".
@@ -179,6 +182,15 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
   e de fluxo mais estritas, que valem conferir antes.
 
 ### Perguntas em aberto
+
+- **Uma variante sem set.** `ST14-010_r1` (Brook, Parallel) não tem nenhuma
+  impressão em `variant_printings` — 4.842 das 4.843 têm. Ela aparece na busca
+  mas não é alcançável por nenhum set. O sufixo `_r1` sugere que o parser não
+  reconhece esse formato, diferente dos `_pN`. É pouco, mas é da mesma família da
+  armadilha 5: algo que a importação deixou passar em silêncio.
+- **Data de lançamento dos starter decks.** A ordem informada cobre as coleções;
+  os decks saem por número, que é a ordem deles entre si. Intercalá-los com as
+  coleções exigiria as datas.
 
 - **Rótulo da série em `sets`.** Hoje a classificação em coleção/deck/promo sai
   do prefixo do código, que espelha fielmente o rótulo que a fonte publica

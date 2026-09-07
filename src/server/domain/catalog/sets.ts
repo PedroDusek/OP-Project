@@ -227,3 +227,39 @@ function stripSeriesType(name: string): string {
 export function cardCountLabel(count: number): string {
   return count === 1 ? '1 carta' : `${count.toLocaleString('pt-BR')} cartas`
 }
+
+/**
+ * Ordem em que os sets aparecem numa listagem de **cartas** sem filtro.
+ *
+ * Tres grupos, nesta ordem:
+ *
+ *   1. colecoes, na ordem de lancamento informada;
+ *   2. starter decks, por numero — que e a ordem de lancamento deles, conferida
+ *      contra os identificadores de serie da fonte, atribuidos em sequencia;
+ *   3. promocionais.
+ *
+ * As promos vao para o fim porque e o que o dono do produto pediu, e porque elas
+ * sao versoes alternativas de cartas que ja apareceram antes: encontra-las
+ * espalhadas no meio da lista faz a mesma carta reaparecer sem explicacao.
+ *
+ * ## O que esta ordem **nao** faz
+ *
+ * Nao intercala starter decks com colecoes por data. Saber que o ST-05 saiu
+ * entre o OP-02 e o OP-03 exigiria a data de cada um, que o modelo nao guarda e
+ * que nao foi informada. Ordenar por numero dentro de cada grupo e o mais longe
+ * que o dado alcanca sem inventar.
+ *
+ * Set sem printing — existe um no catalogo — vai para o fim de tudo.
+ */
+const KIND_RANK: Record<SetKind, number> = { collection: 0, deck: 1, promo: 2 }
+
+export function compareSetsForCatalog(a: string | null, b: string | null): number {
+  if (a === b) return 0
+  if (a === null) return 1
+  if (b === null) return -1
+
+  const kindDelta = KIND_RANK[setKind(a)] - KIND_RANK[setKind(b)]
+  if (kindDelta !== 0) return kindDelta
+
+  return compareSetsByRelease(a, b)
+}

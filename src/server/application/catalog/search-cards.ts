@@ -1,5 +1,6 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
 import type { CardType } from '@/server/domain/catalog/types'
+import { compareSetsForCatalog } from '@/server/domain/catalog/sets'
 
 /**
  * Busca no catalogo.
@@ -137,6 +138,30 @@ export function buildCatalogWhere(filters: CatalogFilters): Prisma.CardVariantWh
   return where
 }
 
+/**
+ * Ordena e pagina.
+ *
+ * ## Por que a ordenacao nao acontece no banco
+ *
+ * A ordem pedida e a de **lancamento**, que nao se deriva de nenhuma coluna: ela
+ * intercala extra boosters entre boosters e vive numa lista no dominio. O
+ * Prisma tambem nao sabe ordenar por campo de relacao muitos-para-muitos, e
+ * `variant_printings` e uma.
+ *
+ * As alternativas eram reescrever a busca inteira em SQL bruto — com dezessete
+ * filtros, cinco deles por tabela de junção — ou guardar a posicao numa coluna,
+ * que passaria a envelhecer no dia em que a ordem mudasse.
+ *
+ * Em vez disso, a primeira consulta traz `id` e set de **todos** os resultados
+ * do filtro, ordena em memoria e recorta a pagina; a segunda hidrata so essa
+ * pagina. Nao e uma consulta a mais: o `count` que existia antes some, porque o
+ * total passa a ser o tamanho da lista.
+ *
+ * O que isso custa: com 4.843 variantes, o pior caso traz 4.843 pares
+ * (id, codigo do set) por requisicao. Sao dezenas de kilobytes e uma varredura
+ * de indice. Se o catalogo crescer uma ordem de grandeza, isto precisa virar
+ * ordenacao no banco — provavelmente com a posicao materializada em `sets`.
+ */
 export async function searchCatalog(
   prisma: PrismaClient,
   query: CatalogQuery = {},
@@ -145,15 +170,24 @@ export async function searchCatalog(
   const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, Math.trunc(query.pageSize ?? DEFAULT_PAGE_SIZE)))
   const where = buildCatalogWhere(query)
 
-  const [total, rows] = await Promise.all([
-    prisma.cardVariant.count({ where }),
-    prisma.cardVariant.findMany({
-      where,
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      // Ordem deterministica: sem o desempate por id, duas artes da mesma carta
-      // poderiam trocar de lugar entre paginas.
-      orderBy: [{ card: { code: 'asc' } }, { id: 'asc' }],
+  const matches = await prisma.cardVariant.findMany({
+    where,
+    select: {
+      id: true,
+      card: { select: { code: true } },
+      printings: { select: { set: { select: { code: true } } }, take: 1 },
+    },
+  })
+
+  matches.sort(byRelease)
+
+  const total = matches.length
+  const pageIds = matches.slice((page - 1) * pageSize, page * pageSize).map((row) => row.id)
+
+  const rows = pageIds.length === 0
+    ? []
+    : await prisma.cardVariant.findMany({
+      where: { id: { in: pageIds } },
       select: {
         id: true,
         sourceId: true,
@@ -172,8 +206,14 @@ export async function searchCatalog(
           },
         },
       },
-    }),
-  ])
+    })
+
+  /*
+   * A pagina volta do banco em ordem qualquer: `IN (...)` nao preserva a ordem
+   * da lista. Reordenar pelos ids ja ordenados e o que mantem a sequencia.
+   */
+  const position = new Map(pageIds.map((id, index) => [id, index]))
+  rows.sort((a, b) => (position.get(a.id) ?? 0) - (position.get(b.id) ?? 0))
 
   return {
     items: rows.map((row) => ({
@@ -195,4 +235,32 @@ export async function searchCatalog(
     total,
     totalPages: Math.max(1, Math.ceil(total / pageSize)),
   }
+}
+
+interface Sortable {
+  id: bigint
+  card: { code: string }
+  printings: { set: { code: string } }[]
+}
+
+/**
+ * Ordem de exibicao: set por lancamento, depois codigo da carta, depois id.
+ *
+ * O desempate por id nao e zelo: sem ele, duas artes da mesma carta poderiam
+ * trocar de lugar entre uma leva e a seguinte da rolagem, e a mesma carta
+ * apareceria duas vezes ou nenhuma.
+ *
+ * Toda variante do catalogo tem exatamente uma impressao — foi conferido —, mas
+ * o modelo permite mais de uma (decisao 006), entao a primeira e usada e a
+ * ausencia e tratada em vez de presumida.
+ */
+function byRelease(a: Sortable, b: Sortable): number {
+  const setDelta = compareSetsForCatalog(
+    a.printings[0]?.set.code ?? null,
+    b.printings[0]?.set.code ?? null,
+  )
+  if (setDelta !== 0) return setDelta
+
+  if (a.card.code !== b.card.code) return a.card.code < b.card.code ? -1 : 1
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
 }
