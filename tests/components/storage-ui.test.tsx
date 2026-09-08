@@ -7,11 +7,13 @@ import { StoredCards } from '@/components/storage/stored-cards'
 import { VariantAllocationsPanel } from '@/components/storage/variant-allocations'
 import { PlaceCards } from '@/components/storage/place-cards'
 import { UnallocatedNotice } from '@/components/storage/unallocated-notice'
+import { LocationHeader } from '@/components/storage/location-header'
 import { BulkAdd } from '@/components/storage/bulk-add'
 import type { CatalogVocabulary } from '@/server/application/catalog/vocabulary'
 import { ToastProvider } from '@/components/ui/toast'
 import { formError } from '@/server/http/form-state'
 import type {
+  StorageLocationDetail,
   StorageLocationSummary,
   StoredCardView,
   UnallocatedCard,
@@ -864,5 +866,62 @@ describe('BulkAdd', () => {
 
     expect(await screen.findByLabelText('0 cópias de OP01-001')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Revisar' })).not.toBeInTheDocument()
+  })
+})
+
+describe('LocationHeader', () => {
+  const detalhe = (overrides: Partial<StorageLocationDetail> = {}): StorageLocationDetail => ({
+    id: '9',
+    name: 'Binder Principal',
+    type: 'BINDER',
+    purpose: 'COLLECTION',
+    image: null,
+    subtitle: 'Binder • Coleção',
+    cardCount: 48,
+    description: null,
+    createdAt: new Date('2026-01-01T12:00:00Z'),
+    updatedAt: new Date('2026-01-02T12:00:00Z'),
+    uniqueVariants: 20,
+    closedPlaysetsHere: 3,
+    ...overrides,
+  })
+
+  it('mostra nome, tipo e contagem', () => {
+    render(<LocationHeader location={detalhe()} />)
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Binder Principal')
+    expect(screen.getByText(/Binder • Coleção · 48 cartas/)).toBeInTheDocument()
+  })
+
+  /**
+   * A foto ja foi fundo: cortada na largura toda, desfocada e a 25%. Garantia
+   * contraste e destruia a imagem — uma foto 4:3 numa faixa larga e baixa vira
+   * um borrao que nao se reconhece. Agora ela e um quadro contido.
+   */
+  it('mostra a foto contida, e nao esticada no fundo', () => {
+    render(<LocationHeader location={detalhe({ image: 'https://exemplo.test/binder.jpg' })} />)
+
+    const foto = document.querySelector('img')
+    expect(foto).not.toBeNull()
+
+    const quadro = foto!.closest('span')!
+    expect(quadro.className).toContain('size-16')
+    expect(quadro.className).not.toContain('inset-0')
+    expect(foto!.className).not.toContain('blur')
+  })
+
+  it('sem foto, nao inventa imagem nenhuma', () => {
+    render(<LocationHeader location={detalhe()} />)
+
+    expect(document.querySelector('img')).toBeNull()
+  })
+
+  it('volta para a lista de binders', () => {
+    render(<LocationHeader location={detalhe()} />)
+
+    expect(screen.getByRole('link', { name: 'Voltar para Binders' })).toHaveAttribute(
+      'href',
+      '/binders',
+    )
   })
 })
