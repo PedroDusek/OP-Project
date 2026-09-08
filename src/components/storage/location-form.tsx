@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useId, useState } from 'react'
+import { useActionState, useId, useRef, useState } from 'react'
 import { BookOpen, Box, ImagePlus, Layers } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Field, Input, Textarea } from '@/components/ui/field'
@@ -16,6 +16,7 @@ import {
   type StorageType,
 } from '@/server/domain/storage/locations'
 import { ACCEPT_ATTRIBUTE, MAX_IMAGE_BYTES } from '@/server/domain/storage/image'
+import { prepareImage } from '@/lib/prepare-image'
 import { LOCATION_IDLE, type LocationFormState } from '@/app/(app)/binders/state'
 import { cn } from '@/lib/cn'
 
@@ -30,6 +31,21 @@ import { cn } from '@/lib/cn'
  * O React reinicia o `<form action={...}>` quando a ação termina, **inclusive
  * em erro**. Com campos não controlados, um nome recusado por ser longo demais
  * some junto com a mensagem que explica por quê.
+ *
+ * ## A foto aparece antes de salvar
+ *
+ * Escolher a foto e não ver nada acontecer é indistinguível de a escolha não
+ * ter funcionado — foi o primeiro relato de quem usou. O quadro aparece assim
+ * que o arquivo é escolhido, com o mesmo recorte que o local vai ter.
+ *
+ * A foto também é encolhida aqui, no aparelho, antes de sair. Uma foto de
+ * celular tem 3 a 5 MB e estourava o corpo da Server Action; e o iPhone entrega
+ * HEIC em algumas situações, que o servidor recusa pelos bytes. Passar pelo
+ * canvas resolve os dois. Ver `lib/prepare-image.ts`.
+ *
+ * O arquivo preparado volta para o próprio `<input type="file">`, e não para um
+ * campo paralelo: assim o formulário continua sendo enviado pelo navegador, do
+ * jeito de sempre, e nada precisa saber que houve conversão.
  *
  * ## A finalidade e o tipo andam juntos
  *
@@ -73,7 +89,52 @@ export function LocationForm({
   const [type, setType] = useState<StorageType>(initial?.type ?? 'BINDER')
   const [purpose, setPurpose] = useState<StoragePurpose>(initial?.purpose ?? 'COLLECTION')
   const [removeImage, setRemoveImage] = useState(false)
+  const [preview, setPreview] = useState<string | null>(null)
+  const [preparing, setPreparing] = useState(false)
   const fileId = useId()
+  const fileInput = useRef<HTMLInputElement>(null)
+
+  /**
+   * Prepara o arquivo escolhido e o devolve ao próprio campo.
+   *
+   * `DataTransfer` é o jeito de trocar o conteúdo de um `<input type="file">`:
+   * sem isso, o formulário enviaria o original de 5 MB que acabou de ser
+   * descartado.
+   */
+  const chooseFile = async (input: HTMLInputElement) => {
+    const chosen = input.files?.[0]
+    if (!chosen) return
+
+    setPreparing(true)
+    try {
+      const prepared = await prepareImage(chosen)
+
+      try {
+        const transfer = new DataTransfer()
+        transfer.items.add(prepared)
+        input.files = transfer.files
+      } catch {
+        // Navegador que nao deixa trocar o conteudo do campo: segue o original,
+        // e quem decide se ele serve continua sendo o servidor.
+      }
+
+      setPreview((current) => {
+        if (current) URL.revokeObjectURL(current)
+        return URL.createObjectURL(prepared)
+      })
+      setRemoveImage(false)
+    } finally {
+      setPreparing(false)
+    }
+  }
+
+  const clearFile = () => {
+    if (fileInput.current) fileInput.current.value = ''
+    setPreview((current) => {
+      if (current) URL.revokeObjectURL(current)
+      return null
+    })
+  }
 
   const fields = state.status === 'error' ? state.fields : {}
   const withPurpose = requiresPurpose(type)
@@ -174,7 +235,26 @@ export function LocationForm({
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium text-text">Foto (opcional)</p>
 
-          {initial?.image && !removeImage ? (
+          {preview ? (
+            <Panel className="flex items-center gap-3 p-3">
+              {/*
+                A foto escolhida, no mesmo recorte que o local vai ter. Não passa
+                por `next/image`: é um arquivo local que ainda não subiu.
+              */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={preview}
+                alt=""
+                className="size-14 shrink-0 rounded-control border border-border object-cover"
+              />
+              <p className="min-w-0 flex-1 text-sm text-text-muted">
+                Foto escolhida. Ela entra quando você salvar.
+              </p>
+              <Button type="button" variant="ghost" onClick={clearFile}>
+                Trocar
+              </Button>
+            </Panel>
+          ) : initial?.image && !removeImage ? (
             <Panel className="flex items-center gap-3 p-3">
               <LocationArt image={initial.image} type={type} className="w-14" />
               <p className="min-w-0 flex-1 text-sm text-text-muted">Foto atual</p>
@@ -195,17 +275,20 @@ export function LocationForm({
             )}
           >
             <ImagePlus className="size-5 text-text-muted" aria-hidden />
-            <span className="text-sm font-medium text-text">Adicionar foto</span>
+            <span className="text-sm font-medium text-text">
+              {preparing ? 'Preparando a foto...' : preview ? 'Escolher outra foto' : 'Adicionar foto'}
+            </span>
             <span className="text-xs text-text-subtle">
               PNG ou JPG, até {Math.round(MAX_IMAGE_BYTES / (1024 * 1024))} MB
             </span>
             <input
+              ref={fileInput}
               id={fileId}
               type="file"
               name="image"
               accept={ACCEPT_ATTRIBUTE}
               className="sr-only"
-              onChange={() => setRemoveImage(false)}
+              onChange={(event) => void chooseFile(event.currentTarget)}
             />
           </label>
 
@@ -236,7 +319,7 @@ export function LocationForm({
         </p>
       ) : null}
 
-      <Button type="submit" size="lg" block loading={pending}>
+      <Button type="submit" size="lg" block loading={pending} disabled={preparing}>
         {submitLabel}
       </Button>
     </form>

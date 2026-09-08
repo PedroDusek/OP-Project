@@ -1,5 +1,6 @@
 import { networkInterfaces } from 'node:os'
 import type { NextConfig } from 'next'
+import { MAX_IMAGE_BYTES } from './src/server/domain/storage/image'
 
 /**
  * Os enderecos por onde o servidor de desenvolvimento aceita ser aberto.
@@ -59,6 +60,23 @@ function supabaseImageHost() {
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: localAddresses(),
+
+  experimental: {
+    /**
+     * O corpo de uma Server Action, que precisa caber a foto.
+     *
+     * O padrao do Next e **1 MB**, e foto de celular tem de 2 a 5. Salvar um
+     * binder com foto morria com "Body exceeded 1 MB limit" — erro do
+     * framework, longe da tela, sem nada que a pessoa pudesse fazer.
+     *
+     * O valor sai da mesma constante que o dominio usa para recusar
+     * (`MAX_IMAGE_BYTES`), com folga para o resto do formulario: nome,
+     * descricao e as fronteiras do multipart. Amarrado assim, subir o limite
+     * da imagem nao deixa para tras um limite de transporte menor que ele.
+     */
+    serverActions: { bodySizeLimit: MAX_IMAGE_BYTES + 512 * 1024 },
+  },
+
   images: {
     /**
      * A imagem de carta passa pelo nosso servidor porque **nao ha alternativa**.
