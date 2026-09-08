@@ -17,9 +17,14 @@ import { TopBar, type Viewer } from './top-bar'
  * partida, e as duas navegacoes sao a **mesma** lista de destinos, nunca duas
  * arvores diferentes.
  *
- * O `pb-20` no celular reserva a altura da barra inferior fixa. Sem ele, o
- * ultimo item de qualquer lista fica coberto — e essa e a linha que mais falta
- * quando alguem monta uma tela nova por fora do shell.
+ * O espaco reservado embaixo no celular precisa cobrir a barra inferior fixa,
+ * e ela **nao tem altura fixa**: sao 56 px mais `env(safe-area-inset-bottom)`,
+ * que num aparelho com barra de gestos passa de 30 px. Reservar 80 px fixos
+ * dava conta no navegador de mesa, onde a area segura e zero, e deixava o
+ * ultimo elemento da pagina debaixo da barra no celular de verdade — foi assim
+ * que o botao de carregar mais ficou dificil de acertar.
+ *
+ * Por isso a reserva soma a mesma area segura que a barra usa, mais folga.
  */
 
 export interface AppShellProps {
@@ -48,7 +53,11 @@ export function AppShell({ viewer, hasUnread, children, className }: AppShellPro
         <TopBar viewer={viewer} hasUnread={hasUnread} />
         <main
           id="conteudo"
-          className={cn('mx-auto w-full max-w-6xl px-4 pt-4 pb-20 md:pb-8', className)}
+          className={cn(
+            'mx-auto w-full max-w-6xl px-4 pt-4',
+            'pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-8',
+            className,
+          )}
         >
           {children}
         </main>

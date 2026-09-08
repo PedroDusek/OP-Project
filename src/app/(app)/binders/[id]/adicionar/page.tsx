@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { BulkAdd } from '@/components/storage/bulk-add'
-import { getCatalogVocabulary } from '@/server/application/catalog'
+import { getCatalogVocabulary, searchCatalog } from '@/server/application/catalog'
 import { getStorageLocation } from '@/server/application/storage'
 import { requireViewer } from '@/server/http/viewer'
 
@@ -14,6 +14,10 @@ export const metadata: Metadata = { title: 'Adicionar cartas' }
  *
  * Entra-se por um binder, e não pela coleção: a operação tem um destino, e o
  * destino é este local. Foi onde o dono do produto pediu que ela morasse.
+ *
+ * A primeira leva de cartas é renderizada aqui, e não buscada ao montar: sem
+ * isso a tela abre vazia e depende do JavaScript para mostrar qualquer coisa —
+ * e quando ele não sobe, fica girando para sempre.
  */
 export default async function AdicionarPage({ params }: PageProps<'/binders/[id]/adicionar'>) {
   const { id } = await params
@@ -21,9 +25,10 @@ export default async function AdicionarPage({ params }: PageProps<'/binders/[id]
 
   if (!/^\d+$/.test(id)) notFound()
 
-  const [location, vocabulary] = await Promise.all([
+  const [location, vocabulary, primeira] = await Promise.all([
     getStorageLocation(viewer, BigInt(id)),
     getCatalogVocabulary(),
+    searchCatalog({ pageSize: 24 }),
   ])
   if (!location) notFound()
 
@@ -49,6 +54,16 @@ export default async function AdicionarPage({ params }: PageProps<'/binders/[id]
         storageLocationId={location.id}
         locationName={location.name}
         vocabulary={vocabulary}
+        initialTotal={primeira.total}
+        initialCards={primeira.items.map((item) => ({
+          // `bigint` vira string na fronteira: JSON não serializa BigInt.
+          variantId: String(item.variantId),
+          cardCode: item.cardCode,
+          cardName: item.cardName,
+          rarity: item.rarity,
+          variantType: item.variantType,
+          imageUrl: item.imageUrl,
+        }))}
       />
     </>
   )
