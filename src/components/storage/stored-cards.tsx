@@ -7,7 +7,7 @@ import { SearchBar } from '@/components/ui/search-bar'
 import { Segmented } from '@/components/ui/segmented'
 import { EmptyState } from '@/components/ui/states'
 import { ListRow, PanelList } from '@/components/ui/surface'
-import type { StoredCardView } from '@/server/application/storage'
+import type { StorageLocationSummary, StoredCardView } from '@/server/application/storage'
 import { AllocationSheet } from './allocation-sheet'
 
 /**
@@ -23,6 +23,10 @@ import { AllocationSheet } from './allocation-sheet'
  * Grid e lista existem porque servem a coisas diferentes: a grade reconhece pela
  * arte, a lista lê códigos em sequência, que é o que se faz ao conferir um
  * binder carta a carta.
+ *
+ * Os outros locais vêm junto para o painel poder transferir: dentro de um
+ * binder, "mudei esta carta para o outro" é um gesto tão comum quanto corrigir
+ * a quantidade, e sem isso exigia retirar aqui e guardar lá em duas visitas.
  */
 
 type Layout = 'grid' | 'list'
@@ -31,9 +35,16 @@ export interface StoredCardsProps {
   cards: StoredCardView[]
   storageLocationId: string
   locationName: string
+  /** Todos os locais do dono, para a transferência. */
+  locations?: StorageLocationSummary[]
 }
 
-export function StoredCards({ cards, storageLocationId, locationName }: StoredCardsProps) {
+export function StoredCards({
+  cards,
+  storageLocationId,
+  locationName,
+  locations,
+}: StoredCardsProps) {
   const [layout, setLayout] = useState<Layout>('grid')
   const [term, setTerm] = useState('')
   const [editing, setEditing] = useState<StoredCardView | null>(null)
@@ -72,12 +83,12 @@ export function StoredCards({ cards, storageLocationId, locationName }: StoredCa
           title={cards.length === 0 ? 'Nada guardado aqui' : 'Nada nesta busca'}
           description={
             cards.length === 0
-              ? 'Comece pelas cópias que ainda não têm lugar registrado.'
+              ? 'Adicione cartas em massa, ou comece pelas cópias que ainda não têm lugar.'
               : 'Tente outro código ou nome.'
           }
           action={
             cards.length === 0
-              ? { label: 'Ver cartas sem lugar', href: '/binders/sem-lugar' }
+              ? { label: 'Adicionar cartas', href: `/binders/${storageLocationId}/adicionar` }
               : undefined
           }
         />
@@ -144,6 +155,7 @@ export function StoredCards({ cards, storageLocationId, locationName }: StoredCa
           locationName={locationName}
           currentQuantity={editing.quantity}
           max={editing.ownedQuantity}
+          locations={locations}
         />
       ) : null}
     </div>

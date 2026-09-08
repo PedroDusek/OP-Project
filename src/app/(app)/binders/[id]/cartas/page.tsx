@@ -1,9 +1,13 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, ListPlus } from 'lucide-react'
 import { StoredCards } from '@/components/storage/stored-cards'
-import { getStorageLocation, listCardsInLocation } from '@/server/application/storage'
+import {
+  getStorageLocation,
+  listCardsInLocation,
+  listStorageLocations,
+} from '@/server/application/storage'
 import { cardCountLabel } from '@/server/domain/catalog/sets'
 import { requireViewer } from '@/server/http/viewer'
 
@@ -23,9 +27,10 @@ export default async function CartasNoLocalPage({
 
   if (!/^\d+$/.test(id)) notFound()
 
-  const [location, cards] = await Promise.all([
+  const [location, cards, locations] = await Promise.all([
     getStorageLocation(viewer, BigInt(id)),
     listCardsInLocation(viewer, BigInt(id)),
+    listStorageLocations(viewer),
   ])
   if (!location) notFound()
 
@@ -43,9 +48,21 @@ export default async function CartasNoLocalPage({
           <h1 className="truncate text-2xl font-bold tracking-tight text-text">{location.name}</h1>
           <p className="mt-1 text-sm text-text-muted">{cardCountLabel(location.cardCount)}</p>
         </div>
+        <Link
+          href={`/binders/${location.id}/adicionar`}
+          aria-label="Adicionar cartas"
+          className="inline-flex size-11 shrink-0 items-center justify-center rounded-control bg-accent-soft text-accent-ink transition-colors hover:brightness-95"
+        >
+          <ListPlus className="size-5" aria-hidden />
+        </Link>
       </div>
 
-      <StoredCards cards={cards} storageLocationId={location.id} locationName={location.name} />
+      <StoredCards
+        cards={cards}
+        storageLocationId={location.id}
+        locationName={location.name}
+        locations={locations}
+      />
     </>
   )
 }

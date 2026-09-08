@@ -30,7 +30,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 10 concluídos.** 600 testes de unidade, integração e
+**Checkpoints 0 a 11 concluídos.** 631 testes de unidade, integração e
 componente, mais 28 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -47,6 +47,7 @@ componente, mais 28 ponta a ponta. Lint, typecheck e build passando.
 | 9 | Coleção na interface: grade, filtros, playsets, quantidade, progresso real |
 | 10 | Binders: locais, alocação, upload de imagem, resolução da decisão 007 |
 | — | Binders ganhou a direção inversa: organizar as cópias sem lugar (decisão 045) |
+| 11 | Edição em massa: adicionar uma leva a um local, e transferir entre locais |
 
 **Banco de produção populado e conferido:** 2.785 cartas, 4.843 variantes, 60
 sets, 4.842 impressões — números idênticos ao local, estrutura conferida objeto
@@ -54,7 +55,7 @@ a objeto.
 
 ## As decisões que mais restringem o que vem depois
 
-As 45 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 46 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
@@ -242,10 +243,11 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 - **Trocas fora da barra.** Sai de `SECONDARY_DESTINATIONS` e volta para
   `DESTINATIONS` quando a seção existir — e aí a barra passa a ter seis, ou algo
   sai. Decisão do dono do produto na hora.
-- **Edição em massa dentro de um binder.** O dono do produto definiu o lugar: a
-  aba Binders, com um local escolhido. É por onde o Checkpoint 11 começa, e
-  `/binders/sem-lugar` já é o esqueleto: lista, busca e uma operação por carta.
-  Falta a seleção múltipla.
+- **Reduzir em massa não existe.** A tela 27 da especificação mostra
+  "Atual: 3 → 4", com decremento. Ficou de fora porque reduzir pode disparar o
+  conflito da decisão 007 — "de qual local as cópias saem?" —, e isso não cabe
+  numa leva de cinquenta cartas. Se o dono do produto quiser, o caminho é
+  resolver a leva inteira numa tela de resolução própria.
 - **A rota do detalhe da carta diz `/catalogo/`** e a tela é usada também a
   partir da coleção e dos binders. Não confunde na prática — o link de voltar
   leva de onde a pessoa veio (decisão 044) —, mas uma rota neutra
@@ -287,21 +289,20 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 
 ## Próximo passo
 
-**Edição em massa** — telas 25 a 28: selecionar várias cartas e aplicar a mesma
-operação. O dono do produto já definiu onde ela mora: **dentro da aba Binders,
-com um local escolhido** — a operação em massa é sobre o conteúdo daquele
-binder, não sobre a coleção solta.
+**Trocas** — telas 29 a 35: want list, Trade Binder, matches e negociação. É a
+seção que está fora da barra de navegação esperando existir (decisão 044), e a
+maior parte do que falta do produto.
 
-É a primeira vez que uma ação escreve em muitas linhas de uma vez, e as duas
-perguntas a responder são o alcance da transação e o que acontece quando parte
-da seleção falha — a decisão 007 vale para cada carta, e cinquenta conflitos ao
-mesmo tempo não cabem no painel de resolução de uma.
+O que já existe e será usado: `want_items`, `trades`, `trade_participants` e
+`trade_items` no banco desde o Checkpoint 2; `holdsTradeStock` no domínio, que
+diz quais locais abastecem o Trade Binder; e os quatro estados de trade em
+`business-rules.md` 4.1.
 
-O que já existe e será usado: `CardTile` tem modo de seleção desde o Checkpoint
-6; a alocação e a quantidade já são transacionais por carta, com o lock na linha
-de `collection_items`.
+O que precisa de decisão antes: o preço. O valor de um trade sai de
+`card_prices`, que está vazia e não tem fonte definida — a mesma pendência que
+tirou o valor estimado do detalhe do local.
 
-Depois: trocas (29 a 35), Trade Binder público e preço.
+Depois: Trade Binder público (Premium), preço e pagamento.
 
 O protocolo continua: uma branch e um PR por checkpoint, o assistente merge
 quando estiver completo e sem pendência, e para antes de iniciar o próximo

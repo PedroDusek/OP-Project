@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { Layers, SquarePen, Star } from 'lucide-react'
+import { Layers, ListPlus, SquarePen, Star } from 'lucide-react'
 import { DeleteLocation } from '@/components/storage/delete-location'
 import { LocationHeader } from '@/components/storage/location-header'
 import { StatTile } from '@/components/collection/stat-tile'
@@ -76,6 +76,12 @@ export default async function LocalPage({ params }: PageProps<'/binders/[id]'>) 
                 ? 'Nenhuma carta guardada aqui ainda.'
                 : `${location.uniqueVariants} variantes guardadas.`
             }
+          />
+          <ListRow
+            href={`/binders/${location.id}/adicionar`}
+            leading={<ListPlus className="size-5 text-text-muted" aria-hidden />}
+            title="Adicionar cartas"
+            description="Várias de uma vez, com filtros do catálogo."
           />
           <ListRow
             href={`/binders/${location.id}/editar`}

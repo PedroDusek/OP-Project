@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { LocationForm } from '@/components/storage/location-form'
@@ -7,6 +7,8 @@ import { StoredCards } from '@/components/storage/stored-cards'
 import { VariantAllocationsPanel } from '@/components/storage/variant-allocations'
 import { PlaceCards } from '@/components/storage/place-cards'
 import { UnallocatedNotice } from '@/components/storage/unallocated-notice'
+import { BulkAdd } from '@/components/storage/bulk-add'
+import type { CatalogVocabulary } from '@/server/application/catalog/vocabulary'
 import { ToastProvider } from '@/components/ui/toast'
 import { formError } from '@/server/http/form-state'
 import type {
@@ -36,9 +38,39 @@ const placeCopiesAction = vi.hoisted(() =>
   })),
 )
 
+const moveCopiesAction = vi.hoisted(() =>
+  vi.fn(async (_previous: unknown, data: FormData) => ({
+    status: 'moved' as const,
+    copies: Number(data.get('copies')),
+    toStorageLocationId: String(data.get('toStorageLocationId')),
+  })),
+)
+
+const bulkAddAction = vi.hoisted(() =>
+  vi.fn(async (_previous: unknown, data: FormData) => ({
+    status: 'added' as const,
+    cards: data.getAll('carta').length,
+    copies: data
+      .getAll('carta')
+      .reduce((sum, entry) => sum + Number(String(entry).split(':')[1]), 0),
+  })),
+)
+
+/*
+ * `CatalogFilters` — reusado pela adicao em massa — fala com o roteador. Aqui
+ * ele nao navega (recebe `onApply`), mas os ganchos precisam existir.
+ */
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  usePathname: () => '/binders/9/adicionar',
+  useSearchParams: () => new URLSearchParams(),
+}))
+
 vi.mock('@/app/(app)/binders/actions', () => ({
   setAllocationAction,
   placeCopiesAction,
+  moveCopiesAction,
+  bulkAddAction,
   deleteLocationAction: vi.fn(),
   createLocationAction: vi.fn(),
   updateLocationAction: vi.fn(),
@@ -47,6 +79,8 @@ vi.mock('@/app/(app)/binders/actions', () => ({
 afterEach(() => {
   setAllocationAction.mockClear()
   placeCopiesAction.mockClear()
+  moveCopiesAction.mockClear()
+  bulkAddAction.mockClear()
 })
 
 const withToast = (ui: React.ReactNode) => render(<ToastProvider>{ui}</ToastProvider>)
@@ -272,13 +306,13 @@ describe('StoredCards', () => {
    * O vazio nao manda mais a pessoa embora: antes dizia "abra uma carta da sua
    * colecao", que era a unica forma de guardar algo — e ficava fora de Binders.
    */
-  it('o vazio leva a guardar as copias soltas', () => {
+  it('o vazio leva a adicionar cartas neste local', () => {
     render_([])
 
     expect(screen.getByText('Nada guardado aqui')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Ver cartas sem lugar' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Adicionar cartas' })).toHaveAttribute(
       'href',
-      '/binders/sem-lugar',
+      '/binders/9/adicionar',
     )
   })
 })
@@ -498,5 +532,262 @@ describe('PlaceCards', () => {
     withToast(<PlaceCards cards={[]} locations={locais} />)
 
     expect(screen.getByText('Tudo tem lugar')).toBeInTheDocument()
+  })
+})
+
+describe('transferir entre locais', () => {
+  const card: StoredCardView = {
+    variantId: '1',
+    cardCode: 'OP01-001',
+    cardName: 'Roronoa Zoro',
+    rarity: 'SR',
+    variantType: 'Normal',
+    imageUrl: null,
+    quantity: 3,
+    ownedQuantity: 4,
+    playsetHere: false,
+  }
+
+  const locais: StorageLocationSummary[] = [
+    {
+      id: '9',
+      name: 'Binder Principal',
+      type: 'BINDER',
+      purpose: 'COLLECTION',
+      image: null,
+      subtitle: 'Binder • Coleção',
+      cardCount: 48,
+    },
+    {
+      id: '10',
+      name: 'Caixa Troca',
+      type: 'BOX',
+      purpose: 'TRADE',
+      image: null,
+      subtitle: 'Caixa • Troca',
+      cardCount: 12,
+    },
+  ]
+
+  async function abrirTransferencia(locations = locais) {
+    withToast(
+      <StoredCards
+        cards={[card]}
+        storageLocationId="9"
+        locationName="Binder Principal"
+        locations={locations}
+      />,
+    )
+    await userEvent.click(screen.getByRole('button', { name: /OP01-001/ }))
+    const painel = await screen.findByRole('dialog')
+    await userEvent.click(within(painel).getByRole('button', { name: 'Mover para outro local' }))
+    return painel
+  }
+
+  /**
+   * "Cópias neste local" e "quantas mover" são números diferentes que parecem o
+   * mesmo. Lado a lado se confundiriam, então o painel troca de vista.
+   */
+  it('troca de vista em vez de somar mais um seletor', async () => {
+    const painel = await abrirTransferencia()
+
+    expect(within(painel).getByRole('textbox', { name: 'Quantas mover' })).toBeInTheDocument()
+    expect(
+      within(painel).queryByRole('textbox', { name: 'Cópias neste local' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('não oferece o próprio local como destino', async () => {
+    const painel = await abrirTransferencia()
+
+    expect(within(painel).getByText('Caixa Troca')).toBeInTheDocument()
+    expect(within(painel).queryByText('Binder Principal')).not.toBeInTheDocument()
+  })
+
+  it('já vem com todas as cópias daqui escolhidas', async () => {
+    const painel = await abrirTransferencia()
+
+    expect(within(painel).getByRole('textbox', { name: 'Quantas mover' })).toHaveValue('3')
+  })
+
+  it('não deixa mover mais do que há aqui', async () => {
+    const painel = await abrirTransferencia()
+
+    await userEvent.click(within(painel).getByRole('button', { name: 'Aumentar Quantas mover' }))
+
+    expect(within(painel).getByRole('textbox', { name: 'Quantas mover' })).toHaveValue('3')
+  })
+
+  /** Escolher o destino já é confirmar: um toque. */
+  it('tocar no destino manda origem, destino e quantidade', async () => {
+    const painel = await abrirTransferencia()
+
+    await userEvent.click(within(painel).getByRole('button', { name: 'Diminuir Quantas mover' }))
+    const linha = within(painel).getByText('Caixa Troca').closest('div')!
+    await userEvent.click(within(linha).getByRole('button', { name: 'Mover' }))
+
+    const enviado = moveCopiesAction.mock.calls[0][1]
+    expect(enviado.get('variantId')).toBe('1')
+    expect(enviado.get('fromStorageLocationId')).toBe('9')
+    expect(enviado.get('toStorageLocationId')).toBe('10')
+    expect(enviado.get('copies')).toBe('2')
+  })
+
+  it('dá para voltar ao ajuste sem fechar o painel', async () => {
+    const painel = await abrirTransferencia()
+
+    await userEvent.click(within(painel).getByRole('button', { name: 'Voltar' }))
+
+    expect(within(painel).getByRole('textbox', { name: 'Cópias neste local' })).toBeInTheDocument()
+  })
+
+  /** Sem outro local, transferir não é oferecido. */
+  it('não oferece transferência com um local só', async () => {
+    withToast(
+      <StoredCards
+        cards={[card]}
+        storageLocationId="9"
+        locationName="Binder Principal"
+        locations={[locais[0]]}
+      />,
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: /OP01-001/ }))
+    const painel = await screen.findByRole('dialog')
+
+    expect(
+      within(painel).queryByRole('button', { name: 'Mover para outro local' }),
+    ).not.toBeInTheDocument()
+  })
+})
+
+describe('BulkAdd', () => {
+  const VOCABULARY: CatalogVocabulary = {
+    types: ['Leader', 'Character'],
+    rarities: ['C', 'SR'],
+    variantTypes: ['Normal', 'Parallel'],
+    colors: ['Red', 'Blue'],
+    attributes: ['Slash'],
+    mechanics: ['Rush'],
+    traits: ['Straw Hat Crew'],
+    costRange: { min: 0, max: 10 },
+    powerRange: { min: 0, max: 12000 },
+  }
+
+  const CARDS = [
+    {
+      variantId: '1',
+      cardCode: 'OP01-001',
+      cardName: 'Roronoa Zoro',
+      rarity: 'SR',
+      variantType: 'Normal',
+      imageUrl: null,
+    },
+    {
+      variantId: '2',
+      cardCode: 'OP01-002',
+      cardName: 'Nami',
+      rarity: 'C',
+      variantType: 'Normal',
+      imageUrl: null,
+    },
+  ]
+
+  beforeEach(() => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ items: CARDS, total: 2, pageSize: 24 }))),
+    )
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  const montar = async () => {
+    withToast(
+      <BulkAdd storageLocationId="9" locationName="Binder Principal" vocabulary={VOCABULARY} />,
+    )
+    // O codigo aparece duas vezes no DOM — texto e lugar da arte —, entao a
+    // espera e por algo que existe uma vez so.
+    await screen.findByRole('button', { name: 'Acrescentar uma cópia de OP01-001' })
+  }
+
+  it('lista o catálogo com um contador por carta', async () => {
+    await montar()
+
+    expect(
+      screen.getByRole('button', { name: 'Acrescentar uma cópia de OP01-001' }),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText('0 cópias de OP01-001')).toBeInTheDocument()
+  })
+
+  /** Nada escolhido, nada a revisar: a barra não ocupa espaço à toa. */
+  it('a barra de resumo só aparece com alguma escolha', async () => {
+    await montar()
+    expect(screen.queryByRole('button', { name: 'Revisar' })).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Acrescentar uma cópia de OP01-001' }))
+
+    expect(screen.getByRole('button', { name: 'Revisar' })).toBeInTheDocument()
+  })
+
+  it('soma as cópias e conta as cartas', async () => {
+    await montar()
+
+    const zoro = screen.getByRole('button', { name: 'Acrescentar uma cópia de OP01-001' })
+    await userEvent.click(zoro)
+    await userEvent.click(zoro)
+    await userEvent.click(screen.getByRole('button', { name: 'Acrescentar uma cópia de OP01-002' }))
+
+    expect(screen.getByText('3 cópias')).toBeInTheDocument()
+    expect(screen.getByText(/2 cartas · Binder Principal/)).toBeInTheDocument()
+  })
+
+  it('o contador não passa de zero para baixo', async () => {
+    await montar()
+
+    expect(screen.getByRole('button', { name: 'Tirar uma cópia de OP01-001' })).toBeDisabled()
+  })
+
+  /** A confirmação diz quantas, onde, e que a coleção também muda. */
+  it('confirma dizendo o número e o local', async () => {
+    await montar()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Acrescentar uma cópia de OP01-001' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Acrescentar uma cópia de OP01-001' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Revisar' }))
+
+    const dialogo = await screen.findByRole('alertdialog')
+    expect(dialogo).toHaveTextContent('Adicionar 2 cópias a Binder Principal?')
+    expect(dialogo).toHaveTextContent('entram na sua coleção')
+  })
+
+  it('envia as escolhas e o local ao confirmar', async () => {
+    await montar()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Acrescentar uma cópia de OP01-001' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Acrescentar uma cópia de OP01-002' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Revisar' }))
+    await userEvent.click(
+      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Confirmar' }),
+    )
+
+    const enviado = bulkAddAction.mock.calls[0][1]
+    expect(enviado.get('storageLocationId')).toBe('9')
+    expect(enviado.getAll('carta')).toEqual(['1:1', '2:1'])
+  })
+
+  it('limpa as escolhas depois de adicionar', async () => {
+    await montar()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Acrescentar uma cópia de OP01-001' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Revisar' }))
+    await userEvent.click(
+      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Confirmar' }),
+    )
+
+    expect(await screen.findByLabelText('0 cópias de OP01-001')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Revisar' })).not.toBeInTheDocument()
   })
 })
