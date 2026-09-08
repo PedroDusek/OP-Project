@@ -412,6 +412,46 @@ describe('VariantDetail', () => {
     ],
   }
 
+  /**
+   * O preco ainda nao existe no produto, e a Liga e onde quem joga no Brasil
+   * consulta o dele. Sai em aba nova: quem foi ver preco volta para registrar a
+   * carta, e perder a pagina onde estava seria perder o motivo de ter ido.
+   */
+  it('leva à carta na Liga, em aba nova', () => {
+    renderDetail({ variant: variant })
+
+    const link = screen.getByRole('link', { name: /Veja na Liga/ })
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+    expect(link).toHaveAttribute(
+      'href',
+      'https://www.ligaonepiece.com.br/?view=cards/card' +
+        '&card=Roronoa%20Zoro%20(OP01-001)&ed=OP-01&num=OP01-001',
+    )
+  })
+
+  /**
+   * Com varias artes paralelas nao da para saber qual e qual, entao o link vai
+   * para a busca — e o rotulo avisa, em vez de prometer a carta e entregar uma
+   * lista.
+   */
+  it('avisa quando só dá para buscar', () => {
+    renderDetail({
+      variant: {
+        ...variant,
+        variantType: 'Parallel',
+        siblings: [
+          { variantId: 1n, variantType: 'Normal', rarity: 'SR', imageUrl: null, current: false },
+          { variantId: 2n, variantType: 'Parallel', rarity: 'SR', imageUrl: null, current: true },
+          { variantId: 3n, variantType: 'Parallel', rarity: 'SR', imageUrl: null, current: false },
+        ],
+      },
+    })
+
+    const link = screen.getByRole('link', { name: /Buscar na Liga/ })
+    expect(link).toHaveAttribute('href', expect.stringContaining('view=cards/search'))
+  })
+
   it('é o h1, com o código acima', () => {
     renderDetail({ variant: variant })
 

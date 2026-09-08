@@ -30,7 +30,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 11 concluídos.** 642 testes de unidade, integração e
+**Checkpoints 0 a 11 concluídos.** 657 testes de unidade, integração e
 componente, mais 28 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -55,7 +55,7 @@ a objeto.
 
 ## As decisões que mais restringem o que vem depois
 
-As 46 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 47 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
@@ -225,6 +225,14 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
   e de fluxo mais estritas, que valem conferir antes.
 
 ### Perguntas em aberto
+
+- **Credencial do TCGplayer.** O preço virá de lá (decisão 047), mas a API é de
+  programa de parceiros: sem aprovação e chaves não há coleta a construir. É o
+  único bloqueio da valoração — armazenamento e cadência já estão medidos e não
+  são problema.
+- **Moeda.** TCGplayer é em dólar. Converter exige dizer na tela que é
+  referência internacional convertida; não converter mostra dólar a quem negocia
+  em real. Decisão do dono do produto.
 
 - **Logo oficial do set.** A Bandai tem um, mas só nas páginas de produto dos
   lançamentos recentes, com URL contendo hash aleatório

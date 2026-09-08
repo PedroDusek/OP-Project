@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { CardArt } from './card-art'
 import { AddToCollection } from '@/components/collection/add-to-collection'
 import { VariantAllocationsPanel } from '@/components/storage/variant-allocations'
+import { LigaLink } from './liga-link'
 import { Panel } from '@/components/ui/surface'
 import type { getCardVariant } from '@/server/application/catalog/get-card-variant'
 import type { VariantAllocations } from '@/server/application/storage'
@@ -72,6 +73,18 @@ export function VariantDetail({
           imageUrl={variant.imageUrl}
           labels={[variant.rarity, variant.variantType].filter((l): l is string => Boolean(l))}
           currentQuantity={ownedQuantity}
+        />
+
+        {/*
+          O preco ainda nao existe no produto, e a Liga e onde quem joga no
+          Brasil consulta o dele. O link e so trafego chegando: ler preco de la
+          exigiria contornar a protecao anti-bot do site.
+        */}
+        <LigaLink
+          cardCode={card.code}
+          cardName={card.name}
+          variantType={variant.variantType}
+          parallelCount={variant.siblings.filter((s) => s.variantType === 'Parallel').length}
         />
 
         {allocations ? (
