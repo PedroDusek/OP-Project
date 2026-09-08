@@ -272,28 +272,63 @@ apenas não retorna nada enquanto a tabela estiver vazia. Decisão pendente.
 
 ## 3. Preços
 
-O objetivo é preço de mercado para o Brasil. A LigaOnePiece é a fonte
-preferencial quando existir integração real, tecnicamente disponível e
-permitida.
+Apurado e resolvido. A fonte é o **tcgcsv.com**, espelho diário do catálogo e
+dos preços do TCGplayer, lido sem chave (decisões 047 e 050).
 
-Nada disso está estabelecido. Nenhuma API é presumida como existente e nenhuma
-raspagem é presumida como permitida. Isso é verificado antes do Checkpoint 11, e
-alternativas são apresentadas caso a fonte preferencial não possa ser usada.
+**A LigaOnePiece está fechada como fonte de dados.** Duas requisições
+programáticas voltaram `403` e um navegador de verdade recebe página de
+verificação anti-bot. Não há API pública, e ler preço de lá exigiria contornar
+essa proteção. Dela vem só o link de saída, que é tráfego chegando e não dado
+saindo.
+
+**A API do TCGplayer também está fechada**: programa de parceiros, depreciado em
+2023, sem emissão de credencial nova.
 
 ### 3.1 Interface
 
 ```ts
 interface PriceProvider {
   readonly name: string
-  readonly currency: string
-  fetchPrices(refs: VariantRef[]): Promise<PriceDTO[]>
+  fetchCommonArtPrices(knownNames: KnownCardNames): Promise<SourcePrice[]>
 }
 ```
+
+Em lote, e não por carta: são 4.843 variantes, e uma requisição por carta daria
+mais de duas horas por dia contra servidor de terceiro. A fonte lê 87 arquivos.
+
+`knownNames` é o nome que o **nosso** catálogo dá a cada código. A fonte precisa
+dele para desempatar cartas cujo nome tem parênteses de verdade —
+`Mr.1(Daz.Bonez)` — e a comparação é igualdade, não semelhança. Quem chama é
+dono do catálogo; a fonte só compara.
+
+A moeda não é parâmetro: `SourcePrice.currency` é `'USD'` porque é o que a fonte
+cota, e a tela diz isso em voz alta.
 
 A abstração existe para que a fonte possa mudar sem tocar na lógica de valoração.
 Preços são gravados em `card_prices` como novas linhas com `captured_at`; linhas
 existentes nunca são atualizadas, porque o valor histórico dos trades é resolvido
 a partir desse histórico.
+
+### 3.1.1 Só arte comum
+
+O código identifica a carta, não a arte, e o nosso catálogo só separa Normal de
+Parallel (decisão 023). Entra preço na variante **Normal**; paralela fica sem, e
+a tela explica por quê.
+
+Cobertura medida: **2.692 das 2.785 cartas (96,7%)**. Para reabrir a conta:
+`npx tsx scripts/cobertura-precos.ts`.
+
+### 3.1.2 Grava só o que mudou
+
+Toda captura diária de todas as variantes daria 1,77 milhão de linhas por ano.
+Gravar só quando o valor muda derruba isso para uma fração — e custa precisão:
+a data de uma linha é a da última **mudança**, não da última verificação. Por
+isso a tela escreve "desde", e nunca "atualizado em".
+
+### 3.1.3 Execução
+
+`npm run supabase prices`, à mão. O agendamento diário escreveria em produção e
+espera decisão do dono do produto.
 
 ### 3.2 Um provedor por vez
 

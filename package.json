@@ -19,6 +19,7 @@
     "db:studio": "prisma studio",
     "prisma:generate": "prisma generate",
     "catalog:import": "tsx scripts/import-catalog.ts",
+    "prices:import": "tsx scripts/import-prices.ts",
     "supabase": "tsx scripts/supabase.ts"
   },
   "dependencies": {

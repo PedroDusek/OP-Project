@@ -2486,3 +2486,148 @@ com dois locais — e o caminho novo ganhou os seus.
 ## Data
 
 2026-09-08
+
+---
+
+# Decisão: 050 — Preço de arte comum pelo espelho do tcgcsv
+
+## Contexto
+
+A decisão 047 escolheu o TCGplayer como fonte e parou onde ela travava: a API
+deles é de programa de parceiros, foi depreciada em 2023, e não emitem
+credencial nova. Sem credencial não havia o que coletar.
+
+O caminho que restou é o **tcgcsv.com**, que publica o catálogo e os preços do
+TCGplayer em arquivo, uma vez por dia, sem chave. O dono do produto aceitou a
+dependência e mandou começar pelas artes comuns, com as paralelas a serem
+mapeadas à mão depois, coleção a coleção.
+
+## Decisão 1 — A fonte é o espelho, e ele é lido em lote
+
+87 arquivos por passada, um por grupo, com o mesmo intervalo de cortesia da
+importação do catálogo (decisão 020). A alternativa — uma requisição por carta —
+seriam 4.843 requisições, mais de duas horas por dia contra servidor de terceiro.
+
+Duas coisas que custaram tempo e ficam registradas:
+
+- **O `User-Agent` não é enfeite.** O `fetch` do Node não manda nenhum, e o host
+  responde `401` a quem chega sem se identificar.
+- **A SDK do Supabase não entra aqui** — nem em nada que rode em script. Ela
+  constrói um cliente de Realtime na criação e quebra no Node 20 com
+  *"native WebSocket not found"*.
+
+## Decisão 2 — Qual produto é a carta: a regra falha fechado
+
+A fonte identifica produto por id dela; o código Bandai está num campo `Number`.
+Só que **uma carta tem vários produtos**: a arte comum, a paralela, a
+alternativa, o box topper, a versão de evento. Casar pelo número daria o preço
+de qualquer uma delas.
+
+O que distingue é o nome, e o nome não é uniforme: `Trafalgar Law (069)`,
+`Franky`, `Loki (OP17-119)`. O tratamento, quando existe, vem sempre entre
+parênteses. Então: **tira-se o número do nome, e a arte comum é o produto que
+não sobra com nenhum parêntese.**
+
+Sobre 5.231 números da fonte: 4.096 identificados, 1.135 sem candidato e **zero
+ambíguos**. É essa a propriedade que importa — a regra nunca escolhe entre dois.
+
+Uma hipótese anterior ("a arte comum termina com `(NNN)`") casava 489 de 5.231.
+Foi descartada por medição, não por opinião.
+
+## Decisão 3 — O desempate vem do nosso próprio catálogo
+
+A regra dos parênteses errava num caso previsível: cartas cujo nome de verdade
+tem parênteses — `Mr.1(Daz.Bonez)`, `Miss Doublefinger(Zala)`, `Zephyr(Navy)`.
+Nenhum candidato sobrava, e 44 cartas ficavam sem preço.
+
+O desempate não é palpite: **o nosso catálogo sabe o nome da carta**. Quando a
+regra dos parênteses não decide, vale o produto cujo nome, tirado o número, é o
+nosso nome — comparado sem espaço e sem caixa, porque a fonte escreve
+`Mr.2.Bon.Kurei (Bentham)` e `Mr.2.Bon.Kurei(Bentham)` na mesma categoria.
+
+Igualdade contra dado nosso, e não semelhança: `Mr.3(Galdino) (Full Art)` não é
+igual a `Mr.3(Galdino)`, então tratamento continua de fora.
+
+Isso mudou a forma do contrato: a fonte recebe o catálogo de nomes de quem a
+chama. Ela compara; o dono do catálogo é a aplicação.
+
+## Decisão 4 — `Normal`/`Foil` é acabamento, não arte
+
+O erro mais caro da primeira versão. O campo `subTypeName` da fonte separa o
+**acabamento** do mesmo produto, e não artes diferentes. Filtrar por `Normal` —
+por analogia com o nosso `variantType` — descartava a cotação de 870 cartas cuja
+impressão base é foil: líder, SR, SEC.
+
+Corrigido, a cobertura foi de **64% para 96,7%**.
+
+Quando o mesmo produto tem cotação nos dois acabamentos, não há preço: são dois
+valores reais de duas impressões reais, e o nosso modelo guarda uma variante só.
+O `ST01-001 Monkey.D.Luffy` cota 18,52 e 9,93 — a diferença não é
+arredondamento. São 5 cartas.
+
+## O que fica sem preço, e por quê
+
+Medido sobre as 2.785 cartas do catálogo:
+
+| | cartas | |
+|---|---:|---|
+| com preço | 2.692 | 96,7% |
+| arte comum com dois acabamentos | 5 | 0,2% |
+| sem arte comum na fonte | 88 | 3,2% |
+| fora da fonte | 0 | 0% |
+
+As 88 são quase todas promos `P-xxx` cujos únicos produtos na fonte são
+tratamentos: o `P-084 Buggy` só existe lá como `(SP)`, `(Promo Reprint)` e as
+duas versões de evento. Não há arte comum à venda para casar.
+
+Para reabrir a conta a qualquer momento: `npx tsx scripts/cobertura-precos.ts`.
+
+## Decisão 5 — Paralela não recebe o preço da comum
+
+O código identifica a carta, não a arte. O nosso catálogo só separa Normal de
+Parallel (decisão 023), então não há como dizer qual paralela é qual. A tela diz
+isso em voz alta, em vez de sumir com a seção: ausência sem explicação vira
+dúvida sobre o produto.
+
+O mapeamento manual das paralelas, coleção a coleção, é trabalho combinado com o
+dono do produto. O vocabulário de tratamentos da fonte — `Alternate Art`,
+`Parallel`, `Box Topper`, `SP`, `Manga`, `Full Art` — parece alinhar com os
+sufixos da Liga (`-PAR`, `-BT`), o que dá um ponto de partida.
+
+## Decisão 6 — Em dólar, dito em voz alta
+
+A cotação é de mercado americano. Converter para real exigiria uma taxa de
+câmbio — outra fonte, outra data — e o número resultante pareceria o preço
+brasileiro sem ser: o mercado daqui tem imposto, frete e escassez próprios.
+
+Mostra-se o valor como ele é, com a frase *"Referência internacional, em dólar,
+do TCGplayer. Não é o preço no Brasil"*, e o link da Liga logo abaixo continua
+sendo o caminho para o preço em real.
+
+Formatado em `en-US`: `US$ 12,34` com vírgula decimal mistura duas convenções e
+faz o valor parecer convertido.
+
+## Decisão 7 — "Desde", e não "atualizado em"
+
+A série histórica só ganha linha quando o valor muda (`business-rules.md` 5).
+Isso derruba o custo de 1,77 milhão de linhas/ano para uma fração — mas tem um
+preço em precisão: **não dá para distinguir "não mudou" de "não foi
+verificado"**.
+
+A data que existe é a da última mudança. Escrever "atualizado em 12/08" numa
+carta conferida hoje de manhã seria falso; "desde 12/08" é o que a linha diz.
+
+Medido na segunda passada do mesmo dia: 2.692 casadas, **0 gravadas**, 1.755 sem
+mudança. A comparação é feita em centavos porque a coluna é `numeric(12,2)` e o
+valor volta como ponto flutuante — comparar direto faria 12,34 diferir de si
+mesmo e regravaria tudo a cada importação.
+
+## O que ficou de fora, e espera decisão
+
+A execução **diária** ainda é manual: `npm run supabase prices`. Automatizá-la
+significa agendar algo que escreve em produção com a credencial dela, e produção
+nunca é alvo por padrão neste projeto. Fica para o dono do produto decidir.
+
+## Data
+
+2026-09-08

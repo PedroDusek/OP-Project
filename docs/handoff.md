@@ -1,4 +1,4 @@
-# Handoff — estado em 07/09/2026
+# Handoff — estado em 08/09/2026
 
 Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
 
@@ -30,7 +30,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 11 concluídos**, e o 12 começou pela want list. 727 testes
+**Checkpoints 0 a 11 concluídos**, e o 12 começou pela want list. 762 testes
 de unidade, integração e componente, mais 30 ponta a ponta. Lint, typecheck e
 build passando.
 
@@ -50,6 +50,7 @@ build passando.
 | — | Binders ganhou a direção inversa: organizar as cópias sem lugar (decisão 045) |
 | 11 | Edição em massa: adicionar uma leva a um local, e transferir entre locais |
 | 12 | Want list (telas 29 e 30), como aba da Coleção. Trade Binder e matches faltam |
+| — | Preço de mercado das artes comuns, 96,7% do catálogo, pelo tcgcsv (decisão 050) |
 
 **Banco de produção populado e conferido:** 2.785 cartas, 4.843 variantes, 60
 sets, 4.842 impressões — números idênticos ao local, estrutura conferida objeto
@@ -57,7 +58,7 @@ a objeto.
 
 ## As decisões que mais restringem o que vem depois
 
-As 49 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 50 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
@@ -233,6 +234,17 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     abaixo do confortável. Destino novo entra tirando outro; hoje Trocas está
     fora, dentro de "Mais" (decisão 044). `SECONDARY_DESTINATIONS` existe para
     esses, e `activeDestination` olha os dois conjuntos.
+35. **`subTypeName` na fonte de preço é acabamento, não arte.** `Normal` e
+    `Foil` são o mesmo produto impresso de dois jeitos. Filtrar por `Normal`,
+    por analogia com o nosso `variantType`, descartava a cotação de 870 cartas
+    cuja impressão base é foil — líder, SR, SEC. A cobertura ficou em 64% até
+    isso ser medido.
+36. **O tcgcsv responde `401` a quem chega sem `User-Agent`**, e o `fetch` do
+    Node não manda nenhum.
+37. **Heredoc do Bash no Windows come barra invertida dupla.** Um script com
+    regex escrito por `cat <<'EOF'` chegou ao disco com as barras duplas
+    reduzidas a uma e não compilou. Para arquivo com escape, use a ferramenta
+    de escrita em vez do heredoc.
 
 ## Pendências
 
@@ -355,12 +367,22 @@ abastecem o Trade Binder; `matchQuantity`, já testado, que é a regra 4.3
 inteira; e `trades`, `trade_participants` e `trade_items` no banco desde o
 Checkpoint 2.
 
-Nenhum dos dois depende de preço — o Trade Binder é a soma das alocações em
-local com finalidade de troca, e o match é `MIN(disponível, desejado)`. **A
-negociação (telas 33 a 35) depende**: o valor de um trade sai de `card_prices`,
-que está vazia esperando a credencial do TCGplayer (decisão 047).
+Nenhum dos dois depende de preço, e a negociação (telas 33 a 35) deixou de
+depender: `card_prices` está populada (decisão 050). O valor de um trade sai de
+lá, e sai em dólar — a conversão para real é decisão em aberto.
 
-Depois: negociação, Trade Binder público (Premium), preço e pagamento.
+Depois: negociação, Trade Binder público (Premium) e pagamento.
+
+## Duas decisões esperando o dono do produto
+
+- **Agendar a importação diária de preços.** O comando existe
+  (`npm run supabase prices`) e roda em minutos. Automatizar significa agendar
+  algo que escreve em produção com a credencial dela — e produção nunca é alvo
+  por padrão neste projeto.
+- **Mapear as paralelas, coleção a coleção.** O vocabulário de tratamentos da
+  fonte (`Alternate Art`, `Parallel`, `Box Topper`, `SP`, `Manga`, `Full Art`)
+  parece alinhar com os sufixos da Liga (`-PAR`, `-BT`). Enquanto não existir o
+  mapa, paralela não tem preço nem link exato.
 
 O protocolo continua: uma branch e um PR por checkpoint, o assistente merge
 quando estiver completo e sem pendência, e para antes de iniciar o próximo

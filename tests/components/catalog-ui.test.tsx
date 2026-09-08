@@ -537,12 +537,22 @@ describe('VariantDetail', () => {
     ).toHaveTextContent('Quero esta carta')
   })
 
-  /** Preco e disponibilidade para troca dependem de checkpoints seguintes. */
+  /** Disponibilidade para troca depende de checkpoints seguintes. */
   it('nao oferece o que ainda nao existe', () => {
     renderDetail({ variant })
 
-    expect(screen.queryByText(/preço de mercado/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/disponível para troca/i)).not.toBeInTheDocument()
+  })
+
+  /**
+   * O preco passou a existir (decisao 050). Sem cotacao a secao continua na
+   * tela dizendo por que esta vazia: sumir faria a ausencia virar duvida sobre
+   * o produto.
+   */
+  it('mostra a secao de preco mesmo sem cotacao', () => {
+    renderDetail({ variant })
+
+    expect(screen.getByRole('heading', { name: 'Preço de mercado' })).toBeInTheDocument()
   })
 
   it('esconde a seção de outras artes quando só há uma', () => {

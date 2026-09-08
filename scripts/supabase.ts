@@ -15,6 +15,7 @@ import { createPrisma } from '@/server/infrastructure/prisma'
  *   npm run supabase import --from=DIR  importa de um snapshot local
  *   npm run supabase status             mostra o que existe la hoje
  *   npm run supabase storage            cria o bucket das imagens do usuario
+ *   npm run supabase prices             importa os precos de arte comum
  *
  * Prefira `--from` quando o snapshot ja existir: rebaixar o catalogo inteiro a
  * cada importacao e carga evitavel sobre a origem (decisao 020).
@@ -107,6 +108,24 @@ async function main(): Promise<void> {
     return
   }
 
+  if (command === 'prices') {
+    const prisma = createPrisma(url)
+    try {
+      const { importPrices } = await import('@/server/application/prices/import-prices')
+      const { TcgCsvPriceProvider } = await import(
+        '@/server/infrastructure/prices/tcgcsv-price-provider'
+      )
+      const result = await importPrices(prisma, new TcgCsvPriceProvider())
+      console.log(
+        `[supabase] precos: fonte ${result.fetched} | casados ${result.matched} | ` +
+          `gravados ${result.written} | sem mudanca ${result.unchanged}`,
+      )
+    } finally {
+      await prisma.$disconnect()
+    }
+    return
+  }
+
   if (command === 'status') {
     const prisma = createPrisma(url)
     try {
@@ -147,7 +166,8 @@ async function main(): Promise<void> {
   }
 
   throw new Error(
-    `Comando desconhecido: ${command ?? '(nenhum)'}. Use migrate, import, status ou storage.`,
+    `Comando desconhecido: ${command ?? '(nenhum)'}. ` +
+      'Use migrate, import, prices, status ou storage.',
   )
 }
 
