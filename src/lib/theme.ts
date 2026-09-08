@@ -65,3 +65,23 @@ export function storeTheme(theme: Theme): void {
 export const THEME_INIT_SCRIPT = `try{var t=localStorage.getItem(${JSON.stringify(
   THEME_STORAGE_KEY,
 )});if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}`
+
+/**
+ * Registrador de erros de script, para diagnostico. **Temporario.**
+ *
+ * Existe por causa de um relato que so acontece no aparelho de quem relata: no
+ * celular, tudo que e `<a>` funciona e tudo que e `<button>` nao. Isso e o HTML
+ * do servidor aparecendo sem o pacote do cliente subir — e a causa disso e um
+ * erro que ninguem consegue ler sem console.
+ *
+ * Fica no `<head>`, e nao numa pagina, por dois motivos. Roda antes de tudo,
+ * entao pega ate erro de analise do pacote, que acontece antes de qualquer
+ * codigo nosso. E script dentro de componente React nao e reconciliado no
+ * cliente: ele causa divergencia de hidratacao — a primeira versao desta sonda
+ * acusava exatamente o erro que ela mesma criava.
+ *
+ * Guarda no maximo dez, para uma pagina que falha em laco nao virar vazamento.
+ * Sai quando o diagnostico terminar.
+ */
+export const ERROR_RECORDER_SCRIPT = `(function(){var e=[];window.__colexaErros=e;function a(m){if(e.length<10){e.push(String(m).slice(0,300))}}window.addEventListener("error",function(v){a((v&&v.message)||"erro sem mensagem")},true);window.addEventListener("unhandledrejection",function(v){a("promessa recusada: "+((v&&v.reason)||""))})})();`
+

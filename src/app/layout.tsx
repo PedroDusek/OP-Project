@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Geist } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme/theme-provider'
 import { ToastProvider } from '@/components/ui/toast'
-import { THEME_INIT_SCRIPT } from '@/lib/theme'
+import { ERROR_RECORDER_SCRIPT, THEME_INIT_SCRIPT } from '@/lib/theme'
 import './globals.css'
 
 /**
@@ -50,6 +50,11 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
           hidratar. Ver `src/lib/theme.ts`.
         */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        {/*
+          Temporario: guarda erro de script para a pagina `/diagnostico` mostrar
+          no aparelho de quem nao consegue abrir um console. Ver `theme.ts`.
+        */}
+        <script dangerouslySetInnerHTML={{ __html: ERROR_RECORDER_SCRIPT }} />
       </head>
       <body className="min-h-full font-sans">
         <ThemeProvider>

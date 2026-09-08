@@ -185,3 +185,57 @@ test.describe('acessibilidade do shell', () => {
     }
   })
 })
+
+/**
+ * Hidratacao sem divergencia.
+ *
+ * Divergencia de hidratacao nao e aviso: o React joga fora o HTML do servidor e
+ * refaz a arvore no cliente. Recupera, mas paga o preco inteiro de renderizar
+ * de novo — e num aparelho lento isso aparece.
+ *
+ * O caso guardado aqui e o do tema, que e o candidato natural: o valor vem do
+ * `localStorage`, que so existe no cliente. Hoje ele esta correto — quem
+ * resolve e o `getServerSnapshot` do `useSyncExternalStore`, que o React usa
+ * durante a hidratacao —, e o teste existe para continuar assim.
+ *
+ * Isso nao aparece em teste de componente: o jsdom nao renderiza no servidor,
+ * entao nao ha o que divergir. So um navegador de verdade, com SSR de verdade,
+ * pega.
+ */
+test.describe('hidratacao', () => {
+  const erros = (page: import('@playwright/test').Page) => {
+    const encontrados: string[] = []
+    page.on('console', (message) => {
+      if (message.type() === 'error') encontrados.push(message.text())
+    })
+    page.on('pageerror', (error) => encontrados.push(error.message))
+    return encontrados
+  }
+
+  test('nao diverge com o tema padrao', async ({ page }) => {
+    const encontrados = erros(page)
+
+    await page.goto(SHELL)
+    await expect(page.getByRole('radio', { name: 'Sistema' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    )
+
+    expect(encontrados.filter((e) => /hydrat/i.test(e))).toEqual([])
+  })
+
+  /** O caso que quebrava: tema guardado antes de a pagina carregar. */
+  test('nao diverge com um tema ja escolhido', async ({ page }) => {
+    await page.goto(SHELL)
+    await page.evaluate(() => window.localStorage.setItem('colexa:theme', 'dark'))
+
+    const encontrados = erros(page)
+    await page.reload()
+
+    await expect(page.getByRole('radio', { name: 'Escuro' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    )
+    expect(encontrados.filter((e) => /hydrat/i.test(e))).toEqual([])
+  })
+})
