@@ -30,7 +30,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 11 concluídos.** 658 testes de unidade, integração e
+**Checkpoints 0 a 11 concluídos.** 662 testes de unidade, integração e
 componente, mais 28 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -207,15 +207,23 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     versão de `/diagnostico` mostrava "nenhum erro" exatamente quando nada
     funcionava, porque quem renderizava a linha era o componente que não tinha
     hidratado.
-29. **O `IntersectionObserver` é um stub vazio em `setup-dom.ts`.** Necessário
+29. **Server Action tem corpo de 1 MB por padrão.** Foto de celular tem de 3 a
+    5 MB, então salvar com foto morria com "Body exceeded 1 MB limit" — erro do
+    framework, longe da tela. `serverActions.bodySizeLimit` no `next.config.ts`,
+    amarrado à mesma constante que o domínio usa para recusar.
+30. **O iPhone pode entregar HEIC**, que o servidor recusa pelos bytes. Toda
+    foto escolhida passa por `lib/prepare-image.ts`, que encolhe e converte
+    para JPEG no próprio aparelho — resolve o formato, o tamanho e o corpo da
+    ação de uma vez.
+31. **O `IntersectionObserver` é um stub vazio em `setup-dom.ts`.** Necessário
     para o jsdom não quebrar, mas deixa a rolagem infinita sem cobertura: um
     `ref` que não chegasse ao botão passaria batido. Quem mexer nela usa o
     observador controlável de `catalog-ui.test.tsx`.
-30. **Arquivo de teste de componente que renderiza tela com Server Action
+32. **Arquivo de teste de componente que renderiza tela com Server Action
     precisa mocká-la.** Sem isso o Prisma entra no grafo e o arquivo só passa
     quando outro projeto do Vitest já carregou o `.env` no mesmo processo —
     verde na suíte inteira, vermelho sozinho.
-31. **A barra inferior tem cinco lugares.** Seis alvos a 360 px dão 60 px cada,
+33. **A barra inferior tem cinco lugares.** Seis alvos a 360 px dão 60 px cada,
     abaixo do confortável. Destino novo entra tirando outro; hoje Trocas está
     fora, dentro de "Mais" (decisão 044). `SECONDARY_DESTINATIONS` existe para
     esses, e `activeDestination` olha os dois conjuntos.
