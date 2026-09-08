@@ -8,7 +8,7 @@ import { Chip } from '@/components/ui/chip'
 import { FilterSection, FilterSheet } from '@/components/ui/filter-sheet'
 import { Field, Input } from '@/components/ui/field'
 import { SearchBar } from '@/components/ui/search-bar'
-import { buildCatalogHref, PARAM } from '@/lib/catalog-params'
+import { buildCatalogHref, PARAM, type CatalogSearchParams } from '@/lib/catalog-params'
 import type { CatalogVocabulary } from '@/server/application/catalog/vocabulary'
 import { cn } from '@/lib/cn'
 
@@ -38,6 +38,15 @@ import { cn } from '@/lib/cn'
  * Custo e poder ficam de fora disso: são faixas, e duas faixas ao mesmo tempo
  * seriam duas perguntas na mesma pergunta.
  *
+ * ## Dois destinos para o resultado
+ *
+ * Por padrão a escolha vai para a **URL**, que é onde os filtros do catálogo
+ * moram — a busca fica compartilhável e volta igual pelo histórico.
+ *
+ * Com `onApply`, ela volta para quem chamou. É o que a tela de adicionar em
+ * massa precisa: lá os filtros são passo de uma tarefa, não um endereço, e
+ * navegar a cada mudança apagaria as cartas já escolhidas.
+ *
  * ## Rascunho local, aplicação explícita
  *
  * Mexer num chip **não** consulta o servidor. A pessoa monta a combinação
@@ -66,9 +75,18 @@ export interface CatalogFiltersProps {
   vocabulary: CatalogVocabulary
   /** Quantos filtros estão ativos agora, para o rótulo do botão. */
   activeCount: number
+  /** Recebe a escolha em vez de navegar. Exige `values`. */
+  onApply?: (changes: CatalogSearchParams) => void
+  /** Os filtros atuais, quando não vêm da URL. */
+  values?: CatalogSearchParams
 }
 
-export function CatalogFilters({ vocabulary, activeCount }: CatalogFiltersProps) {
+export function CatalogFilters({
+  vocabulary,
+  activeCount,
+  onApply,
+  values,
+}: CatalogFiltersProps) {
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
@@ -79,17 +97,25 @@ export function CatalogFilters({ vocabulary, activeCount }: CatalogFiltersProps)
   const [ranges, setRanges] = useState<RangeDraft>({})
   const [traitTerm, setTraitTerm] = useState('')
 
-  /** Ao abrir, o rascunho parte do que está na URL. */
+  /** Os valores atuais: da URL, ou de quem chamou quando ela não é o destino. */
+  const currentValues = (key: string): string[] => {
+    if (!values) return params.getAll(key).filter(Boolean)
+    const value = values[key]
+    if (value === undefined) return []
+    return (Array.isArray(value) ? value : [value]).filter(Boolean)
+  }
+
+  /** Ao abrir, o rascunho parte do que já está aplicado. */
   const openSheet = () => {
     const nextMulti: MultiDraft = {}
     for (const key of MULTI_KEYS) {
-      const values = params.getAll(key).filter(Boolean)
-      if (values.length > 0) nextMulti[key] = values
+      const chosen = currentValues(key)
+      if (chosen.length > 0) nextMulti[key] = chosen
     }
 
     const nextRanges: RangeDraft = {}
     for (const key of RANGE_KEYS) {
-      const value = params.get(key)
+      const [value] = currentValues(key)
       if (value) nextRanges[key] = value
     }
 
@@ -125,6 +151,12 @@ export function CatalogFilters({ vocabulary, activeCount }: CatalogFiltersProps)
     for (const key of RANGE_KEYS) changes[key] = ranges[key]
 
     setOpen(false)
+
+    if (onApply) {
+      onApply(changes)
+      return
+    }
+
     startTransition(() => {
       router.push(buildCatalogHref(pathname, params, changes), { scroll: false })
     })

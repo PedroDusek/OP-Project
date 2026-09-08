@@ -22,6 +22,8 @@ import {
   countUnallocated as countUnallocatedWith,
   listUnallocated as listUnallocatedWith,
 } from './unallocated'
+import { moveAllocation as moveAllocationWith } from './move'
+import { bulkAddToLocation as bulkAddToLocationWith, type BulkEntry } from './bulk'
 
 /**
  * Ponto de composicao dos casos de uso de armazenamento.
@@ -97,7 +99,37 @@ export function listUnallocated(user: AuthenticatedUser) {
   return listUnallocatedWith(prisma, user)
 }
 
+export function moveAllocation(
+  user: AuthenticatedUser,
+  cardVariantId: bigint,
+  fromStorageLocationId: bigint,
+  toStorageLocationId: bigint,
+  copies: number,
+) {
+  return moveAllocationWith(
+    prisma,
+    user,
+    cardVariantId,
+    fromStorageLocationId,
+    toStorageLocationId,
+    copies,
+  )
+}
+
+export function bulkAddToLocation(
+  user: AuthenticatedUser,
+  storageLocationId: bigint,
+  entries: readonly BulkEntry[],
+) {
+  return bulkAddToLocationWith(prisma, user, storageLocationId, entries)
+}
+
+export type { BulkEntry }
 export type { LocationInput, StoredCardsQuery }
+export type { BulkAddResult } from './bulk'
+export type { MoveResult } from './move'
+export { MAX_BULK_ENTRIES } from './bulk'
+export { NOT_ENOUGH_HERE } from './move'
 export type { UnallocatedCard, UnallocatedSummary } from './unallocated'
 export type {
   StorageLocationDetail,

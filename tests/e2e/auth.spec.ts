@@ -239,6 +239,7 @@ test.describe('binders protegidos', () => {
       '/binders/1',
       '/binders/1/cartas',
       '/binders/1/editar',
+      '/binders/1/adicionar',
     ]) {
       await page.goto(path)
       await expect(page).toHaveURL(`/entrar?next=${encodeURIComponent(path)}`)

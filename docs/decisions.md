@@ -2193,3 +2193,90 @@ e conferido por ninguém. O id é o que é conferido contra o dono.
 ## Data
 
 2026-09-07
+
+---
+
+# Decisão: 046 — Transferir entre locais, e a leva do Checkpoint 11
+
+## Contexto
+
+Dois pedidos do dono do produto: mover uma carta de um binder para outro, e a
+edição em massa — "a janela tradicional de catálogo se torna uma mais prática,
+com filtros mas abaixo de cada carta fica um `- 0 +`", terminando numa
+confirmação "deseja mesmo adicionar X cartas ao local Y?".
+
+## Decisão 1 — Mover é uma operação, não duas
+
+Retirar de um local e guardar em outro acontecem na **mesma** transação. Em duas
+chamadas existiria um instante em que as cópias não estão em lugar nenhum, e um
+erro no meio pararia exatamente ali — a carta sumida do binder de origem e
+ausente do destino.
+
+**A ordem dentro da transação importa e não é intuitiva: tira primeiro, põe
+depois.** O trigger `collection_item_locations_within_owned_quantity` roda por
+linha, depois de gravar; acrescentar antes de retirar faria a soma passar do
+possuído por um instante, e o banco recusaria uma movimentação que no fim não
+muda soma nenhuma.
+
+O painel troca de vista em vez de mostrar os dois controles juntos: "cópias
+neste local" e "quantas mover" são números diferentes que parecem o mesmo, e
+lado a lado se confundiriam. Cada vista tem um número só.
+
+## Decisão 2 — Adicionar em massa mexe na coleção **e** no local
+
+A tela 28 da especificação decide isto: mostra "Local de armazenamento: Binder
+Principal" junto do aviso "esta operação será aplicada na sua coleção".
+
+Faz sentido porque é o gesto que ela atende — abrir pacotes e pôr as cartas no
+binder. Só alocar não funcionaria: alocar exige possuir, e quem acabou de abrir
+o pacote ainda não registrou nada.
+
+Guardar cópias que a pessoa **já tem** continua sendo outra tela,
+`/binders/sem-lugar` (decisão 045), que não mexe na quantidade. São dois gestos
+diferentes e cada um tem a sua porta.
+
+A confirmação diz as três coisas: quantas cópias, em qual local, e que a coleção
+muda junto.
+
+## Decisão 3 — Tudo ou nada
+
+A confirmação promete "adicionar 12 cópias". Aplicar oito e falhar em quatro
+seria pior que falhar inteiro: a pessoa não saberia quais entraram sem conferir
+uma a uma. Uma transação cobre a leva.
+
+O teto é de 200 cartas diferentes por leva — acima disso a transação fica longa
+demais para uma tela esperar.
+
+A soma acontece no próprio `UPDATE` (`quantity + N`), e não a partir de um total
+lido antes: é o que faz duas levas simultâneas somarem em vez de uma gravar por
+cima da outra. Testado com as duas disparadas juntas.
+
+## Decisão 4 — O contador começa em zero, e só acrescenta
+
+A tela 27 da especificação mostra "Atual: 3 → 4", com incremento e decremento
+sobre a quantidade existente. A tela pedida é outra: um `- 0 +` por carta, onde
+o número é **quantas entram**.
+
+Reduzir em massa ficou de fora de propósito. Reduzir a quantidade possuída pode
+disparar o conflito da decisão 007 — "de qual local as cópias saem?" —, e essa
+pergunta não cabe numa leva de cinquenta cartas: seriam cinquenta resoluções na
+mesma tela. Continua carta a carta, onde há espaço para respondê-la.
+
+## Decisão 5 — Nesta tela os filtros não vão para a URL
+
+No catálogo eles vão, porque lá a lista filtrada é um endereço compartilhável.
+Aqui são passo de uma tarefa: navegar a cada filtro remontaria a grade e
+**apagaria as cartas já escolhidas**.
+
+Então `CatalogFilters` ganhou um modo que devolve a escolha a quem chamou em vez
+de navegar. É o mesmo painel — dois painéis divergiriam no dia em que um filtro
+novo entrasse em um só.
+
+A busca vai pela API, que é quem cobra a cota de leitura do catálogo
+(decisão 020). Uma requisição em voo é cancelada logicamente quando outra
+começa: trocar de filtro duas vezes depressa deixaria a mais lenta chegar por
+último e pintar a grade com o filtro anterior.
+
+## Data
+
+2026-09-07

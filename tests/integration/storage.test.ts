@@ -19,6 +19,8 @@ import {
   countUnallocated,
   listUnallocated,
 } from '@/server/application/storage/unallocated'
+import { NOT_ENOUGH_HERE, moveAllocation } from '@/server/application/storage/move'
+import { MAX_BULK_ENTRIES, bulkAddToLocation } from '@/server/application/storage/bulk'
 import {
   QUANTITY_BELOW_ALLOCATED,
   RESOLUTION_INVALID,
@@ -752,5 +754,266 @@ describe('acrescentar copias a um local', () => {
 
     const estado = await listVariantAllocations(testPrisma(), user, variant.id)
     expect(estado.allocated).toBe(4)
+  })
+})
+
+/**
+ * Mover copias entre locais.
+ *
+ * A soma alocada nao muda, mas o trigger roda **por linha**: acrescentar antes
+ * de retirar faria a soma passar do possuido por um instante, e o banco
+ * recusaria uma movimentacao que no fim e valida. Por isso tira primeiro.
+ */
+describe('mover entre locais', () => {
+  async function comDuasCaixas() {
+    const { user, collectionId } = await owner()
+    const { variant } = await createCardWithVariant()
+    const item = await own(collectionId, variant.id, 4)
+    const origem = await createStorage(user.id, 'BINDER', 'COLLECTION', 'Origem')
+    const destino = await createStorage(user.id, 'BOX', 'COLLECTION', 'Destino')
+    await allocate(item.id, origem.id, 4)
+    return { user, variant, origem, destino, item }
+  }
+
+  it('tira da origem e poe no destino', async () => {
+    const { user, variant, origem, destino } = await comDuasCaixas()
+
+    const resultado = await moveAllocation(testPrisma(), user, variant.id, origem.id, destino.id, 3)
+
+    expect(resultado).toEqual({ copies: 3, emptiedOrigin: false })
+    const estado = await listVariantAllocations(testPrisma(), user, variant.id)
+    const porLocal = new Map(estado.locations.map((l) => [l.name, l.quantity]))
+    expect(porLocal.get('Origem')).toBe(1)
+    expect(porLocal.get('Destino')).toBe(3)
+  })
+
+  /** Mover tudo apaga a linha da origem: quantidade zero e ausencia de linha. */
+  it('mover tudo esvazia a origem', async () => {
+    const { user, variant, origem, destino } = await comDuasCaixas()
+
+    const resultado = await moveAllocation(testPrisma(), user, variant.id, origem.id, destino.id, 4)
+
+    expect(resultado.emptiedOrigin).toBe(true)
+    const restantes = await testPrisma().collectionItemLocation.findMany()
+    expect(restantes).toHaveLength(1)
+    expect(restantes[0].storageLocationId).toBe(destino.id)
+  })
+
+  it('soma ao que ja existia no destino', async () => {
+    const { user, collectionId } = await owner()
+    const { variant } = await createCardWithVariant()
+    const item = await own(collectionId, variant.id, 4)
+    const origem = await createStorage(user.id, 'BINDER', 'COLLECTION', 'Origem')
+    const destino = await createStorage(user.id, 'BOX', 'COLLECTION', 'Destino')
+    await allocate(item.id, origem.id, 2)
+    await allocate(item.id, destino.id, 2)
+
+    await moveAllocation(testPrisma(), user, variant.id, origem.id, destino.id, 2)
+
+    const estado = await listVariantAllocations(testPrisma(), user, variant.id)
+    expect(estado.locations.find((l) => l.name === 'Destino')?.quantity).toBe(4)
+    expect(estado.allocated).toBe(4)
+  })
+
+  /** A soma alocada nao muda ao mover: e a mesma carta trocando de lugar. */
+  it('nao altera o total alocado nem o possuido', async () => {
+    const { user, variant, origem, destino, item } = await comDuasCaixas()
+
+    await moveAllocation(testPrisma(), user, variant.id, origem.id, destino.id, 2)
+
+    const [estado, depois] = await Promise.all([
+      listVariantAllocations(testPrisma(), user, variant.id),
+      testPrisma().collectionItem.findUnique({ where: { id: item.id } }),
+    ])
+    expect(estado.allocated).toBe(4)
+    expect(depois!.quantity).toBe(4)
+  })
+
+  it('recusa mover mais do que ha na origem', async () => {
+    const { user, variant, origem, destino } = await comDuasCaixas()
+
+    const erro = await moveAllocation(
+      testPrisma(),
+      user,
+      variant.id,
+      origem.id,
+      destino.id,
+      5,
+    ).catch((e: unknown) => e)
+
+    expect(erro).toBeInstanceOf(ConflictError)
+    expect((erro as ConflictError).code).toBe(NOT_ENOUGH_HERE)
+  })
+
+  it('recusa mover para o mesmo local', async () => {
+    const { user, variant, origem } = await comDuasCaixas()
+
+    await expect(
+      moveAllocation(testPrisma(), user, variant.id, origem.id, origem.id, 1),
+    ).rejects.toBeInstanceOf(ConflictError)
+  })
+
+  it('recusa destino de outra pessoa', async () => {
+    const { user, variant, origem } = await comDuasCaixas()
+    const outro = await owner('Outro')
+    const alheio = await createStorage(outro.user.id, 'BINDER', 'COLLECTION')
+
+    await expect(
+      moveAllocation(testPrisma(), user, variant.id, origem.id, alheio.id, 1),
+    ).rejects.toBeInstanceOf(NotFoundError)
+  })
+
+  it('recusa mover zero', async () => {
+    const { user, variant, origem, destino } = await comDuasCaixas()
+
+    await expect(
+      moveAllocation(testPrisma(), user, variant.id, origem.id, destino.id, 0),
+    ).rejects.toBeInstanceOf(ConflictError)
+  })
+})
+
+/**
+ * Adicionar uma leva a um local.
+ *
+ * Aumenta a quantidade possuida **e** guarda as copias, numa transacao so — e o
+ * que a tela 28 descreve. Possuir vem antes de guardar porque o trigger de
+ * alocacao roda por linha, depois de gravar.
+ */
+describe('adicionar em massa', () => {
+  it('cria a carta na colecao e guarda no local', async () => {
+    const { user } = await owner()
+    const primeira = await createCardWithVariant('Character', 'OP01-001')
+    const segunda = await createCardWithVariant('Character', 'OP01-002')
+    const binder = await createStorage(user.id, 'BINDER', 'COLLECTION')
+
+    const resultado = await bulkAddToLocation(testPrisma(), user, binder.id, [
+      { cardVariantId: primeira.variant.id, copies: 4 },
+      { cardVariantId: segunda.variant.id, copies: 2 },
+    ])
+
+    expect(resultado).toEqual({ cards: 2, copies: 6 })
+    const detail = await getStorageLocation(testPrisma(), user, binder.id)
+    expect(detail).toMatchObject({ cardCount: 6, uniqueVariants: 2 })
+  })
+
+  it('soma ao que a pessoa ja tinha, sem sobrescrever', async () => {
+    const { user, collectionId } = await owner()
+    const { variant } = await createCardWithVariant()
+    const item = await own(collectionId, variant.id, 2)
+    const binder = await createStorage(user.id, 'BINDER', 'COLLECTION')
+    await allocate(item.id, binder.id, 1)
+
+    await bulkAddToLocation(testPrisma(), user, binder.id, [
+      { cardVariantId: variant.id, copies: 3 },
+    ])
+
+    const depois = await testPrisma().collectionItem.findUnique({ where: { id: item.id } })
+    expect(depois!.quantity).toBe(5)
+    const estado = await listVariantAllocations(testPrisma(), user, variant.id)
+    expect(estado.allocated).toBe(4)
+    expect(estado.unallocated).toBe(1)
+  })
+
+  /** A mesma carta duas vezes na leva soma, em vez de virar erro. */
+  it('junta linhas repetidas da mesma carta', async () => {
+    const { user } = await owner()
+    const { variant } = await createCardWithVariant()
+    const binder = await createStorage(user.id, 'BINDER', 'COLLECTION')
+
+    const resultado = await bulkAddToLocation(testPrisma(), user, binder.id, [
+      { cardVariantId: variant.id, copies: 2 },
+      { cardVariantId: variant.id, copies: 1 },
+    ])
+
+    expect(resultado).toEqual({ cards: 1, copies: 3 })
+    const estado = await listVariantAllocations(testPrisma(), user, variant.id)
+    expect(estado.ownedQuantity).toBe(3)
+  })
+
+  /**
+   * Tudo ou nada: aplicar metade seria pior que falhar inteiro, porque a pessoa
+   * nao saberia quais cartas entraram sem conferir uma a uma.
+   */
+  it('nao grava nada quando uma carta da leva nao existe', async () => {
+    const { user } = await owner()
+    const { variant } = await createCardWithVariant()
+    const binder = await createStorage(user.id, 'BINDER', 'COLLECTION')
+
+    await expect(
+      bulkAddToLocation(testPrisma(), user, binder.id, [
+        { cardVariantId: variant.id, copies: 2 },
+        { cardVariantId: 999999n, copies: 1 },
+      ]),
+    ).rejects.toBeInstanceOf(NotFoundError)
+
+    expect(await testPrisma().collectionItem.count()).toBe(0)
+    expect(await testPrisma().collectionItemLocation.count()).toBe(0)
+  })
+
+  it('recusa local de outra pessoa', async () => {
+    const dono = await owner('Dono')
+    const outro = await owner('Outro')
+    const { variant } = await createCardWithVariant()
+    const local = await createStorage(dono.user.id, 'BINDER', 'COLLECTION')
+
+    await expect(
+      bulkAddToLocation(testPrisma(), outro.user, local.id, [
+        { cardVariantId: variant.id, copies: 1 },
+      ]),
+    ).rejects.toBeInstanceOf(NotFoundError)
+  })
+
+  it('recusa leva vazia', async () => {
+    const { user } = await owner()
+    const binder = await createStorage(user.id, 'BINDER', 'COLLECTION')
+
+    await expect(bulkAddToLocation(testPrisma(), user, binder.id, [])).rejects.toBeInstanceOf(
+      ValidationError,
+    )
+  })
+
+  it('recusa copia zero ou negativa', async () => {
+    const { user } = await owner()
+    const { variant } = await createCardWithVariant()
+    const binder = await createStorage(user.id, 'BINDER', 'COLLECTION')
+
+    await expect(
+      bulkAddToLocation(testPrisma(), user, binder.id, [{ cardVariantId: variant.id, copies: 0 }]),
+    ).rejects.toBeInstanceOf(ValidationError)
+  })
+
+  /** O teto existe para a transacao nao ficar longa demais para uma tela. */
+  it('recusa leva acima do teto', async () => {
+    const { user } = await owner()
+    const { variant } = await createCardWithVariant()
+    const binder = await createStorage(user.id, 'BINDER', 'COLLECTION')
+
+    const grande = Array.from({ length: MAX_BULK_ENTRIES + 1 }, (_, i) => ({
+      cardVariantId: variant.id + BigInt(i),
+      copies: 1,
+    }))
+
+    await expect(bulkAddToLocation(testPrisma(), user, binder.id, grande)).rejects.toBeInstanceOf(
+      ValidationError,
+    )
+  })
+
+  /**
+   * Duas levas ao mesmo tempo somam: a soma acontece no proprio `UPDATE`, e nao
+   * a partir de um total lido antes.
+   */
+  it('duas levas simultaneas somam', async () => {
+    const { user } = await owner()
+    const { variant } = await createCardWithVariant()
+    const binder = await createStorage(user.id, 'BINDER', 'COLLECTION')
+
+    await Promise.all([
+      bulkAddToLocation(testPrisma(), user, binder.id, [{ cardVariantId: variant.id, copies: 2 }]),
+      bulkAddToLocation(testPrisma(), user, binder.id, [{ cardVariantId: variant.id, copies: 3 }]),
+    ])
+
+    const estado = await listVariantAllocations(testPrisma(), user, variant.id)
+    expect(estado.ownedQuantity).toBe(5)
+    expect(estado.allocated).toBe(5)
   })
 })

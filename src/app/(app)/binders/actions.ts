@@ -4,14 +4,17 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import {
   addAllocation,
+  bulkAddToLocation,
   createStorageLocation,
   deleteStorageLocation,
+  moveAllocation,
   setAllocation,
   updateStorageLocation,
 } from '@/server/application/storage'
+import type { BulkEntry } from '@/server/application/storage'
 import { formError, formErrorFrom } from '@/server/http/form-state'
 import { currentViewer } from '@/server/http/viewer'
-import type { AllocationState, LocationFormState } from './state'
+import type { AllocationState, BulkAddState, LocationFormState, MoveState } from './state'
 
 /**
  * Criar, editar e excluir locais; guardar cópias num local.
@@ -171,6 +174,101 @@ export async function placeCopiesAction(
     revalidatePath(`/catalogo/carta/${variantId}`)
 
     return { status: 'saved', quantity: result.quantity, storageLocationId }
+  } catch (error) {
+    return { status: 'error', message: formErrorFrom(error).message }
+  }
+}
+
+/**
+ * Mover cópias de um local para outro.
+ *
+ * Uma chamada só, porque retirar e guardar precisam acontecer juntas: em duas
+ * idas existiria um instante em que as cópias não estão em lugar nenhum.
+ */
+export async function moveCopiesAction(
+  _previous: MoveState,
+  data: FormData,
+): Promise<MoveState> {
+  const viewer = await currentViewer()
+  if (!viewer) return { status: 'error', message: SESSION_EXPIRED }
+
+  const variantId = String(data.get('variantId') ?? '')
+  const fromId = String(data.get('fromStorageLocationId') ?? '')
+  const toId = String(data.get('toStorageLocationId') ?? '')
+  const copies = Number(data.get('copies'))
+
+  if (
+    !/^\d+$/.test(variantId) ||
+    !/^\d+$/.test(fromId) ||
+    !/^\d+$/.test(toId) ||
+    !Number.isInteger(copies) ||
+    copies <= 0
+  ) {
+    return { status: 'error', message: 'Movimentação inválida.' }
+  }
+
+  try {
+    const result = await moveAllocation(
+      viewer,
+      BigInt(variantId),
+      BigInt(fromId),
+      BigInt(toId),
+      copies,
+    )
+
+    revalidatePath('/binders')
+    revalidatePath(`/binders/${fromId}`)
+    revalidatePath(`/binders/${fromId}/cartas`)
+    revalidatePath(`/binders/${toId}`)
+    revalidatePath(`/binders/${toId}/cartas`)
+    revalidatePath(`/catalogo/carta/${variantId}`)
+
+    return { status: 'moved', copies: result.copies, toStorageLocationId: toId }
+  } catch (error) {
+    return { status: 'error', message: formErrorFrom(error).message }
+  }
+}
+
+/**
+ * Acrescentar uma leva de cartas a um local (telas 25 a 28).
+ *
+ * As escolhas chegam em campos `carta` repetidos, no formato
+ * `<idDaVariante>:<copias>` — o mesmo arranjo das retiradas da decisão 007, e
+ * pelo mesmo motivo: o formulário já sabe mandar valores repetidos, e um JSON
+ * exigiria confiar na forma de um texto do cliente antes de olhar para ele.
+ */
+export async function bulkAddAction(
+  _previous: BulkAddState,
+  data: FormData,
+): Promise<BulkAddState> {
+  const viewer = await currentViewer()
+  if (!viewer) return { status: 'error', message: SESSION_EXPIRED }
+
+  const storageLocationId = String(data.get('storageLocationId') ?? '')
+  if (!/^\d+$/.test(storageLocationId)) {
+    return { status: 'error', message: 'Local inválido.' }
+  }
+
+  const entries: BulkEntry[] = []
+  for (const raw of data.getAll('carta')) {
+    const match = /^(\d+):(\d+)$/.exec(String(raw))
+    if (!match) return { status: 'error', message: 'Escolha inválida.' }
+    entries.push({ cardVariantId: BigInt(match[1]), copies: Number(match[2]) })
+  }
+
+  try {
+    const result = await bulkAddToLocation(viewer, BigInt(storageLocationId), entries)
+
+    // A leva mexe na coleção inteira: quantidade, playsets e progresso.
+    revalidatePath('/binders')
+    revalidatePath('/binders/sem-lugar')
+    revalidatePath(`/binders/${storageLocationId}`)
+    revalidatePath(`/binders/${storageLocationId}/cartas`)
+    revalidatePath('/colecao')
+    revalidatePath('/colecao/playsets')
+    revalidatePath('/inicio')
+
+    return { status: 'added', cards: result.cards, copies: result.copies }
   } catch (error) {
     return { status: 'error', message: formErrorFrom(error).message }
   }

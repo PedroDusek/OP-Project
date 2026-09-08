@@ -24,3 +24,17 @@ export type AllocationState =
   | { status: 'error'; message: string }
 
 export const ALLOCATION_IDLE: AllocationState = { status: 'idle' }
+
+export type MoveState =
+  | { status: 'idle' }
+  | { status: 'moved'; copies: number; toStorageLocationId: string }
+  | { status: 'error'; message: string }
+
+export const MOVE_IDLE: MoveState = { status: 'idle' }
+
+export type BulkAddState =
+  | { status: 'idle' }
+  | { status: 'added'; cards: number; copies: number }
+  | { status: 'error'; message: string }
+
+export const BULK_ADD_IDLE: BulkAddState = { status: 'idle' }
