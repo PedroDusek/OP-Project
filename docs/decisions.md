@@ -2280,3 +2280,76 @@ começa: trocar de filtro duas vezes depressa deixaria a mais lenta chegar por
 ## Data
 
 2026-09-07
+
+---
+
+# Decisão: 047 — Preço vem do TCGplayer; da Liga vem só o link
+
+## Contexto
+
+O mercado brasileiro é volátil, e a cadência semanal cogitada não serve. A
+pergunta virou: de onde tirar preço, e com que frequência.
+
+A LigaOnePiece é onde quem joga no Brasil consulta preço. O dono do produto
+apurou que o app que ele tinha em mente usa valores do **TCGplayer**, e decidiu
+seguir o mesmo caminho — mantendo um botão que abre a carta na Liga.
+
+## O que foi apurado sobre a Liga
+
+Ela **não é acessível por programa**. Duas requisições programáticas voltaram
+`403`, e um navegador de verdade recebe uma página de verificação:
+*"Este site utiliza um serviço de segurança para proteção contra bots
+maliciosos."*
+
+Não existe API pública, e ler preço de lá exigiria contornar essa proteção — que
+é exatamente o que ela existe para impedir. Além do risco de bloqueio, o risco
+jurídico é maior que o da decisão 020: lá o dado era a lista factual de cartas
+da Bandai; preço de marketplace é o produto comercial da casa.
+
+**Fica registrado como caminho fechado**, para não ser reaberto por engano.
+
+## Decisão 1 — O link existe, e é só link
+
+Trafego chegando não é dado saindo: linkar para a Liga não passa por proteção
+nenhuma e não copia nada. O endereço é montado do que já temos:
+
+    ?view=cards/card&card=<Nome> (<num>)&ed=<EE-NN>&num=<num>
+
+`num` é o código da carta com sufixo por arte — nada para a normal, `-PAR` para
+a paralela. `ed` sai do **código da carta**, e não do código do set: `OP14-EB04`
+reúne cartas `OP14-…` e `EB04-…`, e o código de cada uma diz a qual edição ela
+pertence lá.
+
+Dois endereços reais, conferidos pelo dono do produto, viraram teste. Se a
+montagem mudar de forma, eles quebram antes de alguém descobrir pelo link torto.
+
+## Decisão 2 — Quando não dá para ter certeza, o link vai para a busca
+
+Duas situações quebram a derivação, e as duas são comuns no catálogo:
+
+- **501 cartas têm mais de uma arte paralela**, até dez. `-PAR` sozinho não diz
+  qual delas, e o catálogo importado não guarda o que as distingue (decisão 023:
+  a fonte só separa Normal de Parallel). Chutar levaria à arte errada.
+- **106 promos têm código `P-NNN`**, sem número de edição.
+
+Nesses casos o link vai para a busca da Liga pelo código, e o rótulo muda para
+"Buscar na Liga". Cai numa lista em vez da carta — mas nunca numa carta errada
+nem numa página que não existe, e a pessoa sabe disso antes de tocar.
+
+## Decisão 3 — O preço virá do TCGplayer
+
+Escolha do dono do produto. O que isso implica, e que ainda não está resolvido:
+
+- O TCGplayer não tem acesso aberto: a API é de **programa de parceiros**, com
+  aprovação e credenciais. Sem elas não há o que construir do lado da coleta.
+- Os valores são em **dólar**. Para um produto brasileiro, ou se converte — e aí
+  a tela precisa dizer que é referência internacional convertida, senão o número
+  mente — ou se mostra em dólar mesmo.
+
+A cadência deixa de ser o problema: com gravação apenas quando o valor muda, a
+captura diária custa ~23 MB/ano, contra os 16,7 MB que o banco inteiro tem hoje.
+O que falta é a credencial.
+
+## Data
+
+2026-09-08
