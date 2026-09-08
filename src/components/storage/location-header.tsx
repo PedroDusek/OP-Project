@@ -12,26 +12,25 @@ import type { StorageLocationDetail } from '@/server/application/storage'
  * na tela — um objeto com foto, um nome e uma contagem —, e duas aparências
  * diferentes fariam o produto parecer dois.
  *
- * A foto entra desfocada, a 25% de opacidade, sob uma camada do roxo da marca.
- * Isso não é estética: é a foto que a pessoa enviou, de qualquer cor, e o texto
- * branco por cima precisa de piso de contraste medido. Aumentar a opacidade
- * derruba esse piso. Sem foto, fica o roxo com a marca esmaecida.
+ * ## A foto é um quadro, e não o fundo
+ *
+ * Ela já foi fundo: cortada na largura toda, desfocada e a 25% de opacidade. O
+ * arranjo garantia contraste para o texto branco, e destruía a foto — uma foto
+ * de binder é 4:3, a faixa é larga e baixa, e o que sobrava era um borrão
+ * colorido que não se reconhecia. Quem enviou a foto não a via em lugar nenhum.
+ *
+ * Agora ela aparece contida, num quadrado ao lado do nome — o mesmo quadro da
+ * lista, para o binder ter a mesma cara nos dois lugares. Cortar um 4:3 em
+ * quadrado tira as laterais e mantém o assunto; é bem menos do que a faixa
+ * tirava.
+ *
+ * O contraste, de quebra, ficou mais fácil: o texto branco passa a estar sobre
+ * o roxo da marca puro, e não sobre uma imagem que não controlamos.
  */
 export function LocationHeader({ location }: { location: StorageLocationDetail }) {
   return (
     <div className="-mx-4 mb-4 md:mx-0 md:overflow-hidden md:rounded-card">
       <div className="relative isolate overflow-hidden bg-accent px-4 py-6 md:px-6">
-        {location.image ? (
-          <Image
-            src={location.image}
-            alt=""
-            aria-hidden
-            fill
-            sizes="480px"
-            className="-z-10 scale-110 object-cover opacity-25 blur-md"
-          />
-        ) : null}
-
         <div
           aria-hidden
           className="absolute inset-0 -z-10 bg-linear-to-r from-accent via-accent/85 to-accent/60"
@@ -50,6 +49,20 @@ export function LocationHeader({ location }: { location: StorageLocationDetail }
           >
             <ArrowLeft className="size-5" aria-hidden />
           </Link>
+
+          {location.image ? (
+            <span className="relative block size-16 shrink-0 overflow-hidden rounded-card border border-white/30 bg-white/10 shadow-card md:size-20">
+              <Image
+                src={location.image}
+                alt=""
+                aria-hidden
+                fill
+                sizes="(max-width: 767px) 64px, 80px"
+                priority
+                className="object-cover"
+              />
+            </span>
+          ) : null}
 
           <div className="min-w-0 flex-1 pt-2">
             <h1 className="truncate text-2xl font-bold tracking-tight text-white">
