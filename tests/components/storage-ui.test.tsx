@@ -610,6 +610,62 @@ describe('transferir entre locais', () => {
     expect(within(painel).getByRole('textbox', { name: 'Quantas mover' })).toHaveValue('3')
   })
 
+  /**
+   * Quem baixa o contador para 2 e toca em "mover" quis mover 2.
+   *
+   * Antes, a segunda vista recomecava do total e transferia as tres — foi o
+   * que aconteceu no primeiro uso real. As duas vistas continuam com numeros
+   * de significado diferente; o que atravessa e a intencao.
+   */
+  it('leva para a transferência o número que estava na tela', async () => {
+    withToast(
+      <StoredCards
+        cards={[card]}
+        storageLocationId="9"
+        locationName="Binder Principal"
+        locations={locais}
+      />,
+    )
+    await userEvent.click(screen.getByRole('button', { name: /OP01-001/ }))
+    const painel = await screen.findByRole('dialog')
+
+    await userEvent.click(within(painel).getByRole('button', { name: 'Diminuir Cópias neste local' }))
+    await userEvent.click(within(painel).getByRole('button', { name: 'Mover para outro local' }))
+
+    expect(within(painel).getByRole('textbox', { name: 'Quantas mover' })).toHaveValue('2')
+  })
+
+  /** O botão diz o número, para a ação se explicar antes de ser tocada. */
+  it('o botão do destino repete quantas vão', async () => {
+    const painel = await abrirTransferencia()
+
+    await userEvent.click(within(painel).getByRole('button', { name: 'Diminuir Quantas mover' }))
+
+    expect(within(painel).getByRole('button', { name: 'Mover 2' })).toBeInTheDocument()
+  })
+
+  /** Zerar em "cópias neste local" é remover, não mover: a transferência parte de 1. */
+  it('nunca leva zero para a transferência', async () => {
+    withToast(
+      <StoredCards
+        cards={[card]}
+        storageLocationId="9"
+        locationName="Binder Principal"
+        locations={locais}
+      />,
+    )
+    await userEvent.click(screen.getByRole('button', { name: /OP01-001/ }))
+    const painel = await screen.findByRole('dialog')
+
+    const menos = within(painel).getByRole('button', { name: 'Diminuir Cópias neste local' })
+    await userEvent.click(menos)
+    await userEvent.click(menos)
+    await userEvent.click(menos)
+    await userEvent.click(within(painel).getByRole('button', { name: 'Mover para outro local' }))
+
+    expect(within(painel).getByRole('textbox', { name: 'Quantas mover' })).toHaveValue('1')
+  })
+
   it('não deixa mover mais do que há aqui', async () => {
     const painel = await abrirTransferencia()
 
@@ -624,7 +680,7 @@ describe('transferir entre locais', () => {
 
     await userEvent.click(within(painel).getByRole('button', { name: 'Diminuir Quantas mover' }))
     const linha = within(painel).getByText('Caixa Troca').closest('div')!
-    await userEvent.click(within(linha).getByRole('button', { name: 'Mover' }))
+    await userEvent.click(within(linha).getByRole('button', { name: /^Mover/ }))
 
     const enviado = moveCopiesAction.mock.calls[0][1]
     expect(enviado.get('variantId')).toBe('1')

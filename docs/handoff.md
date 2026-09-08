@@ -30,7 +30,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 11 concluídos.** 631 testes de unidade, integração e
+**Checkpoints 0 a 11 concluídos.** 642 testes de unidade, integração e
 componente, mais 28 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -179,7 +179,21 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     último valor, sem erro: `?cor=Black&cor=Blue` filtrava só por azul. Use
     `getAll` quando o filtro puder ter mais de um valor — e desconfie de
     qualquer lugar que converta query string em objeto simples.
-24. **A barra inferior tem cinco lugares.** Seis alvos a 360 px dão 60 px cada,
+24. **Um elemento fixo com espaçamento engole toque mesmo vazio.** O
+    `Toast.Viewport` era `fixed inset-x-0 bottom-0` com ~112 px de padding: uma
+    faixa invisível sobre a barra de navegação, o "Carregar mais" e os
+    controles de tema. No celular, nada ali embaixo respondia. Todo overlay
+    fixo precisa de `pointer-events-none`, com `pointer-events-auto` só no
+    conteúdo visível.
+25. **O `IntersectionObserver` é um stub vazio em `setup-dom.ts`.** Necessário
+    para o jsdom não quebrar, mas deixa a rolagem infinita sem cobertura: um
+    `ref` que não chegasse ao botão passaria batido. Quem mexer nela usa o
+    observador controlável de `catalog-ui.test.tsx`.
+26. **Arquivo de teste de componente que renderiza tela com Server Action
+    precisa mocká-la.** Sem isso o Prisma entra no grafo e o arquivo só passa
+    quando outro projeto do Vitest já carregou o `.env` no mesmo processo —
+    verde na suíte inteira, vermelho sozinho.
+27. **A barra inferior tem cinco lugares.** Seis alvos a 360 px dão 60 px cada,
     abaixo do confortável. Destino novo entra tirando outro; hoje Trocas está
     fora, dentro de "Mais" (decisão 044). `SECONDARY_DESTINATIONS` existe para
     esses, e `activeDestination` olha os dois conjuntos.
