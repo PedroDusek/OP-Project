@@ -2,11 +2,12 @@
 
 import { revalidatePath } from 'next/cache'
 import { setCollectionQuantity, QUANTITY_BELOW_ALLOCATED } from '@/server/application/collection'
+import { setWantQuantity } from '@/server/application/wants'
 import { ConflictError, isAppError } from '@/server/domain/errors'
 import { formErrorFrom } from '@/server/http/form-state'
 import { currentViewer } from '@/server/http/viewer'
 import type { AllocationSnapshot, Removal } from '@/server/application/collection'
-import type { QuantityState } from './state'
+import type { QuantityState, WantState } from './state'
 
 /**
  * Definir quantas copias a pessoa possui.
@@ -63,6 +64,42 @@ export async function setQuantityAction(
       }
     }
 
+    return { status: 'error', message: formErrorFrom(error).message }
+  }
+}
+
+/**
+ * Definir quantas copias a pessoa quer.
+ *
+ * Camada: `app`. Le a sessao, chama **um** caso de uso e traduz o resultado.
+ * O `user_id` vem da sessao e nunca do formulario (`architecture.md` 3.1).
+ *
+ * Querer zero e sair da lista: o banco exige `quantity > 0`, entao nao existe
+ * uma segunda acao capaz de divergir desta.
+ */
+export async function setWantAction(
+  _previous: WantState,
+  data: FormData,
+): Promise<WantState> {
+  const viewer = await currentViewer()
+  if (!viewer) return { status: 'error', message: 'Sua sessão expirou. Entre de novo.' }
+
+  const variantId = String(data.get('variantId') ?? '')
+  const quantity = Number(data.get('quantity'))
+
+  if (!/^\d+$/.test(variantId) || !Number.isInteger(quantity) || quantity < 0) {
+    return { status: 'error', message: 'Quantidade inválida.' }
+  }
+
+  try {
+    const result = await setWantQuantity(viewer, BigInt(variantId), quantity)
+
+    revalidatePath('/colecao')
+    revalidatePath('/colecao/quero')
+    revalidatePath(`/catalogo/carta/${variantId}`)
+
+    return { status: 'saved', quantity: result.quantity, removed: result.removed }
+  } catch (error) {
     return { status: 'error', message: formErrorFrom(error).message }
   }
 }

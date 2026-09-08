@@ -6,10 +6,12 @@ import { CatalogFilters } from '@/components/catalog/catalog-filters'
 import { CatalogSearch } from '@/components/catalog/catalog-search'
 import { CollectionGrid } from '@/components/collection/collection-grid'
 import { CollectionScope } from '@/components/collection/collection-scope'
+import { CollectionTabs } from '@/components/collection/collection-tabs'
 import { ListRow, PanelList } from '@/components/ui/surface'
 import { EmptyState } from '@/components/ui/states'
 import { getCatalogVocabulary } from '@/server/application/catalog'
 import { getCollectionSummary, searchCollection } from '@/server/application/collection'
+import { getWantSummary } from '@/server/application/wants'
 import { cardCountLabel } from '@/server/domain/catalog/sets'
 import { countActiveFilters, toCatalogQuery } from '@/lib/catalog-params'
 import { requireViewer } from '@/server/http/viewer'
@@ -38,8 +40,9 @@ export default async function ColecaoPage({ searchParams }: PageProps<'/colecao'
 
   const filters = toCatalogQuery(params, { pageSize: 100 })
 
-  const [summary, vocabulary, todas, playsets, faltam] = await Promise.all([
+  const [summary, wants, vocabulary, todas, playsets, faltam] = await Promise.all([
     getCollectionSummary(viewer),
+    getWantSummary(viewer),
     getCatalogVocabulary(),
     searchCollection(viewer, { ...filters, scope: 'all' }),
     searchCollection(viewer, { ...filters, scope: 'playsets' }),
@@ -52,6 +55,11 @@ export default async function ColecaoPage({ searchParams }: PageProps<'/colecao'
     return (
       <>
         <PageHeader title="Minha Coleção" description="Suas cartas, com busca, filtros e playsets." />
+        {/*
+          As abas ficam no vazio tambem: sem elas, quem ainda nao tem carta
+          nenhuma nao teria como alcancar a want list.
+        */}
+        <CollectionTabs counts={{ '/colecao': 0, '/colecao/quero': wants.variants }} />
         <EmptyState
           icon={<Layers className="size-10" aria-hidden />}
           title="Nenhuma carta ainda"
@@ -70,6 +78,10 @@ export default async function ColecaoPage({ searchParams }: PageProps<'/colecao'
       />
 
       <div className="flex flex-col gap-4">
+        <CollectionTabs
+          counts={{ '/colecao': summary.uniqueVariants, '/colecao/quero': wants.variants }}
+        />
+
         <div className="flex gap-2">
           <div className="min-w-0 flex-1">
             <CatalogSearch placeholder="Buscar na minha coleção..." />

@@ -2353,3 +2353,75 @@ O que falta é a credencial.
 ## Data
 
 2026-09-08
+
+---
+
+# Decisão: 048 — A want list mora na Coleção, e é só variante e quantidade
+
+## Contexto
+
+Começo do Checkpoint 12. O dono do produto pediu a want list e disse que ela
+fica **separada do trade**.
+
+As telas de referência a agrupam com Trade — "GRUPO 8 — WANTS + TRADE", telas 29
+a 32 — e a `business-rules.md` a coloca na seção 4, dentro de Trocas. A
+separação é uma mudança consciente de estrutura.
+
+## Decisão 1 — Ela é uma aba da Coleção, e não uma seção nova
+
+"Tenho" e "Quero" são as duas faces da mesma coisa: a want list é a coleção pelo
+avesso — o que falta. Quem a abre está pensando na própria coleção, não em
+negociar.
+
+Isso também não custa vaga na barra de navegação, que já está cheia com cinco e
+já deixou Trocas em "Mais" (decisão 044). Uma seção nova exigiria tirar outra.
+
+São **links**, e não abas de estado: cada face é uma rota própria,
+compartilhável, e que funciona antes de o JavaScript subir — o que, depois do
+episódio do `allowedDevOrigins`, deixou de ser hipótese.
+
+## Decisão 2 — Sem anotação e sem prioridade
+
+A tela 30 mostra um campo "Minhas anotações", com o exemplo "Prioridade alta,
+achar em eventos". A `business-rules.md` 4.4 diz o contrário, em voz alta: *"Não
+existe prioridade nem campo de observação nesta versão."*
+
+A regra venceu, com o dono do produto de acordo. Um want é **variante e
+quantidade**, e nenhuma migration foi feita.
+
+O campo volta quando houver um uso concreto — e aí provavelmente junto de
+prioridade, que é a mesma conversa e a mesma tela.
+
+## Decisão 3 — Wants não travam linha
+
+A quantidade possuída precisa de `SELECT ... FOR UPDATE` porque é a ponta de uma
+invariante entre linhas: a soma das alocações não pode passar dela. **Um want
+não sustenta invariante nenhuma** — ninguém aloca contra ele, e o match não é
+persistido (`business-rules.md` 4.3).
+
+Então a escrita é um `upsert` sobre a chave única (usuário, variante), e o banco
+resolve a corrida: duas telas gravando ao mesmo tempo terminam com o último
+valor, que é o comportamento esperado de uma preferência.
+
+## Decisão 4 — Três estados, e não dois
+
+`missing`, `partial`, `satisfied`. "Tenho" e "não tenho" perderiam o caso mais
+comum de quem monta playset: querer quatro e ter duas. É o `partial` que faz a
+lista dizer o **tamanho** do que falta, e é o que falta que faz alguém sair de
+casa atrás da carta.
+
+Um want satisfeito continua na lista até ser tirado — quem quis quatro e tem
+quatro pode querer uma quinta para trocar. O recorte "ainda faltam" esconde sem
+apagar.
+
+## Por que esta parte veio antes do resto de Trocas
+
+Ela é a que **não** está bloqueada. A valoração de trade depende de
+`card_prices`, que está vazia esperando a credencial do TCGplayer (decisão 047);
+want e matching não usam preço — `MIN(disponível, desejado)`, e só.
+
+`matchQuantity` já está no domínio, testada, esperando a tela de matches.
+
+## Data
+
+2026-09-08

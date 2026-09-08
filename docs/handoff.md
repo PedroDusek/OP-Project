@@ -30,8 +30,9 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 11 concluídos.** 662 testes de unidade, integração e
-componente, mais 28 ponta a ponta. Lint, typecheck e build passando.
+**Checkpoints 0 a 11 concluídos**, e o 12 começou pela want list. 706 testes
+de unidade, integração e componente, mais 30 ponta a ponta. Lint, typecheck e
+build passando.
 
 | # | Entregue |
 |---|---|
@@ -48,6 +49,7 @@ componente, mais 28 ponta a ponta. Lint, typecheck e build passando.
 | 10 | Binders: locais, alocação, upload de imagem, resolução da decisão 007 |
 | — | Binders ganhou a direção inversa: organizar as cópias sem lugar (decisão 045) |
 | 11 | Edição em massa: adicionar uma leva a um local, e transferir entre locais |
+| 12 | Want list (telas 29 e 30), como aba da Coleção. Trade Binder e matches faltam |
 
 **Banco de produção populado e conferido:** 2.785 cartas, 4.843 variantes, 60
 sets, 4.842 impressões — números idênticos ao local, estrutura conferida objeto
@@ -55,7 +57,7 @@ a objeto.
 
 ## As decisões que mais restringem o que vem depois
 
-As 47 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 48 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
@@ -341,20 +343,20 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 
 ## Próximo passo
 
-**Trocas** — telas 29 a 35: want list, Trade Binder, matches e negociação. É a
-seção que está fora da barra de navegação esperando existir (decisão 044), e a
-maior parte do que falta do produto.
+**Trade Binder e matches** — telas 31 e 32, o resto do Checkpoint 12. A want
+list (29 e 30) já está de pé, como aba da Coleção (decisão 048).
 
-O que já existe e será usado: `want_items`, `trades`, `trade_participants` e
-`trade_items` no banco desde o Checkpoint 2; `holdsTradeStock` no domínio, que
-diz quais locais abastecem o Trade Binder; e os quatro estados de trade em
-`business-rules.md` 4.1.
+O que já existe e será usado: `holdsTradeStock` no domínio, que diz quais locais
+abastecem o Trade Binder; `matchQuantity`, já testado, que é a regra 4.3
+inteira; e `trades`, `trade_participants` e `trade_items` no banco desde o
+Checkpoint 2.
 
-O que precisa de decisão antes: o preço. O valor de um trade sai de
-`card_prices`, que está vazia e não tem fonte definida — a mesma pendência que
-tirou o valor estimado do detalhe do local.
+Nenhum dos dois depende de preço — o Trade Binder é a soma das alocações em
+local com finalidade de troca, e o match é `MIN(disponível, desejado)`. **A
+negociação (telas 33 a 35) depende**: o valor de um trade sai de `card_prices`,
+que está vazia esperando a credencial do TCGplayer (decisão 047).
 
-Depois: Trade Binder público (Premium), preço e pagamento.
+Depois: negociação, Trade Binder público (Premium), preço e pagamento.
 
 O protocolo continua: uma branch e um PR por checkpoint, o assistente merge
 quando estiver completo e sem pendência, e para antes de iniciar o próximo
