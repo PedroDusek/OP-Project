@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { CardArt } from './card-art'
 import { AddToCollection } from '@/components/collection/add-to-collection'
 import { VariantAllocationsPanel } from '@/components/storage/variant-allocations'
+import { WantButton } from '@/components/wants/want-sheet'
 import { LigaLink } from './liga-link'
 import { Panel } from '@/components/ui/surface'
 import type { getCardVariant } from '@/server/application/catalog/get-card-variant'
@@ -28,10 +29,13 @@ type Variant = Awaited<ReturnType<typeof getCardVariant>>
 export function VariantDetail({
   variant,
   ownedQuantity = 0,
+  wantedQuantity = 0,
   allocations,
 }: {
   variant: Variant
   ownedQuantity?: number
+  /** Quantas a pessoa quer. Zero significa fora da want list. */
+  wantedQuantity?: number
   /** Onde as copias estao guardadas. Ausente para quem nao tem sessao. */
   allocations?: VariantAllocations
 }) {
@@ -73,6 +77,20 @@ export function VariantDetail({
           imageUrl={variant.imageUrl}
           labels={[variant.rarity, variant.variantType].filter((l): l is string => Boolean(l))}
           currentQuantity={ownedQuantity}
+        />
+
+        {/*
+          Querer e ter sao coisas diferentes, e a tela mostra as duas: da para
+          querer quatro tendo duas, que e o caso de quem monta playset.
+        */}
+        <WantButton
+          variantId={String(variant.variantId)}
+          code={card.code}
+          name={card.name}
+          imageUrl={variant.imageUrl}
+          labels={[variant.rarity, variant.variantType].filter((l): l is string => Boolean(l))}
+          currentQuantity={wantedQuantity}
+          owned={ownedQuantity}
         />
 
         {/*

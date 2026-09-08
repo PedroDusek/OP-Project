@@ -6,6 +6,7 @@ import { isAppError } from '@/server/domain/errors'
 import { getCardVariant } from '@/server/application/catalog'
 import { searchCollection } from '@/server/application/collection'
 import { listVariantAllocations } from '@/server/application/storage'
+import { getWantQuantity } from '@/server/application/wants'
 import { safeReturnTo } from '@/lib/catalog-params'
 import { currentViewer } from '@/server/http/viewer'
 import { VariantDetail } from '@/components/catalog/variant-detail'
@@ -77,7 +78,10 @@ export default async function CartaPage({
       )?.quantity ?? 0
     : 0
 
-  const allocations = viewer && owned > 0 ? await listVariantAllocations(viewer, id) : undefined
+  const [allocations, wanted] = await Promise.all([
+    viewer && owned > 0 ? listVariantAllocations(viewer, id) : undefined,
+    viewer ? getWantQuantity(viewer, id) : 0,
+  ])
 
   return (
     <>
@@ -89,7 +93,12 @@ export default async function CartaPage({
         Catálogo
       </Link>
 
-      <VariantDetail variant={variant} ownedQuantity={owned} allocations={allocations} />
+      <VariantDetail
+        variant={variant}
+        ownedQuantity={owned}
+        wantedQuantity={wanted}
+        allocations={allocations}
+      />
     </>
   )
 }

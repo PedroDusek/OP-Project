@@ -60,6 +60,7 @@ test.describe('rota protegida', () => {
     for (const path of [
       '/inicio',
       '/colecao',
+      '/colecao/quero',
       '/catalogo',
       '/trocas',
       '/mais',

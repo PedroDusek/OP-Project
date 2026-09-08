@@ -518,12 +518,31 @@ describe('VariantDetail', () => {
     expect(screen.getByText(/Na sua coleção/)).toHaveTextContent('3')
   })
 
-  /** Preco, want e disponibilidade dependem de checkpoints seguintes. */
+  /**
+   * Querer e ter sao coisas diferentes, e a tela mostra as duas: da para querer
+   * quatro tendo duas, que e o caso de quem monta playset.
+   */
+  it('oferece a want list junto da colecao', () => {
+    renderDetail({ variant, ownedQuantity: 2, wantedQuantity: 4 })
+
+    expect(screen.getByRole('button', { name: /Editar quantidade/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Quero 4/ })).toBeInTheDocument()
+  })
+
+  it('convida a querer a carta que ainda nao esta na lista', () => {
+    renderDetail({ variant })
+
+    expect(
+      screen.getByRole('button', { name: 'Adicionar à want list' }),
+    ).toHaveTextContent('Quero esta carta')
+  })
+
+  /** Preco e disponibilidade para troca dependem de checkpoints seguintes. */
   it('nao oferece o que ainda nao existe', () => {
     renderDetail({ variant })
 
-    expect(screen.queryByRole('button', { name: /want/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/preço de mercado/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/disponível para troca/i)).not.toBeInTheDocument()
   })
 
   it('esconde a seção de outras artes quando só há uma', () => {
@@ -541,6 +560,7 @@ describe('VariantDetail', () => {
  */
 vi.mock('@/app/(app)/colecao/actions', () => ({
   setQuantityAction: vi.fn(async () => ({ status: 'idle' })),
+  setWantAction: vi.fn(async () => ({ status: 'idle' })),
 }))
 
 /*

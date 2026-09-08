@@ -162,6 +162,17 @@ Um match é sugestão. Não cria obrigação e não é persistido.
 Wants são por variante. As versões Normal e Manga da mesma carta são dois wants
 independentes. Não existe prioridade nem campo de observação nesta versão.
 
+A tela 30 da especificação visual mostra um campo "Minhas anotações". Ele **não
+existe**: a regra acima vence, e o dono do produto confirmou (decisão 048). O
+campo volta quando houver um uso concreto, provavelmente junto de prioridade.
+
+Um want tem três estados, derivados do que a pessoa possui da mesma variante:
+não possuo, tenho algumas, já consegui. Um want satisfeito continua na lista até
+ser tirado — quem quis quatro e tem quatro pode querer uma quinta para trocar.
+
+Na interface a want list é uma aba da Coleção, e não de Trocas: ela é a coleção
+pelo avesso, e quem a abre está pensando na própria coleção.
+
 ### 4.5 Ciclo de vida do trade
 
 ```

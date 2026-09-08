@@ -25,3 +25,17 @@ export type QuantityState =
     }
 
 export const QUANTITY_IDLE: QuantityState = { status: 'idle' }
+
+/**
+ * O estado do formulario de want.
+ *
+ * Mais simples que o da quantidade possuida, e de proposito: um want nao
+ * sustenta invariante nenhuma, entao nao ha conflito a resolver — so o que foi
+ * gravado.
+ */
+export type WantState =
+  | { status: 'idle' }
+  | { status: 'saved'; quantity: number; removed: boolean }
+  | { status: 'error'; message: string }
+
+export const WANT_IDLE: WantState = { status: 'idle' }
