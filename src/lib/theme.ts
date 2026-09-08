@@ -70,18 +70,40 @@ export const THEME_INIT_SCRIPT = `try{var t=localStorage.getItem(${JSON.stringif
  * Registrador de erros de script, para diagnostico. **Temporario.**
  *
  * Existe por causa de um relato que so acontece no aparelho de quem relata: no
- * celular, tudo que e `<a>` funciona e tudo que e `<button>` nao. Isso e o HTML
- * do servidor aparecendo sem o pacote do cliente subir — e a causa disso e um
- * erro que ninguem consegue ler sem console.
+ * celular, tudo que e `<a>` funcionava e tudo que e `<button>` nao. Isso e o
+ * HTML do servidor aparecendo sem o pacote do cliente subir.
  *
- * Fica no `<head>`, e nao numa pagina, por dois motivos. Roda antes de tudo,
- * entao pega ate erro de analise do pacote, que acontece antes de qualquer
- * codigo nosso. E script dentro de componente React nao e reconciliado no
- * cliente: ele causa divergencia de hidratacao — a primeira versao desta sonda
- * acusava exatamente o erro que ela mesma criava.
+ * ## Ele escreve sozinho, fora da arvore do React
  *
- * Guarda no maximo dez, para uma pagina que falha em laco nao virar vazamento.
- * Sai quando o diagnostico terminar.
+ * A primeira versao mostrava o resultado por um componente. Nao serve: se o
+ * pacote nao sobe, quem deveria contar isso tambem nao roda, e a pagina jura
+ * que esta tudo bem. Por isso este script cria o proprio painel e o pendura no
+ * `<body>`, **fora** da raiz do React — que so reconcilia o que e dela.
+ *
+ * Fica no `<head>` para rodar antes de tudo, inclusive antes de um erro de
+ * analise do pacote. Guarda no maximo dez erros, para uma pagina que falha em
+ * laco nao virar vazamento. Sai quando o diagnostico terminar.
  */
-export const ERROR_RECORDER_SCRIPT = `(function(){var e=[];window.__colexaErros=e;function a(m){if(e.length<10){e.push(String(m).slice(0,300))}}window.addEventListener("error",function(v){a((v&&v.message)||"erro sem mensagem")},true);window.addEventListener("unhandledrejection",function(v){a("promessa recusada: "+((v&&v.reason)||""))})})();`
-
+export const ERROR_RECORDER_SCRIPT = [
+  '(function(){',
+  'var e=[];window.__colexaErros=e;',
+  'function a(m){if(e.length<10){e.push(String(m).slice(0,300));p()}}',
+  'window.addEventListener("error",function(v){a((v&&v.message)||"falha ao carregar um script")},true);',
+  'window.addEventListener("unhandledrejection",function(v){a("promessa recusada: "+((v&&v.reason)||""))});',
+  'function p(){',
+  'var host=document.getElementById("colexa-sonda");',
+  'if(!host){',
+  'if(!document.body){return}',
+  'host=document.createElement("div");',
+  'host.id="colexa-sonda";',
+  'host.setAttribute("style","margin:16px;padding:12px;border:1px solid #ccc;border-radius:12px;font:12px system-ui;white-space:pre-wrap;word-break:break-word");',
+  'document.body.appendChild(host)',
+  '}',
+  // Sem quebra de linha: um `\n` de verdade dentro de uma string do script
+  // gerado e erro de sintaxe, e o registrador quebrado nao consegue nem
+  // denunciar a si mesmo. Separador visivel resolve e nao escapa nada.
+  'host.textContent="JavaScript basico: rodou"+(e.length?(" | erros ("+e.length+"): "+e.join(" | ")):" | nenhum erro capturado")',
+  '}',
+  'if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",p)}else{p()}',
+  '})();',
+].join('')

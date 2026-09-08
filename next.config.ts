@@ -1,4 +1,36 @@
+import { networkInterfaces } from 'node:os'
 import type { NextConfig } from 'next'
+
+/**
+ * Os enderecos por onde o servidor de desenvolvimento aceita ser aberto.
+ *
+ * O `next dev` recusa com **403** qualquer pedido aos arquivos internos
+ * (`/_next/static/...`) vindo de uma origem que ele nao conhece. A pagina em si
+ * responde 200, entao o HTML aparece e todo link funciona — e nenhum
+ * JavaScript carrega.
+ *
+ * O sintoma disso e traicoeiro e custou uma investigacao inteira: no celular,
+ * tudo que e `<a>` funcionava e tudo que e `<button>` nao. Sem erro no console,
+ * porque nao ha erro: o navegador pede o script, recebe 403 e segue a vida.
+ *
+ * A lista sai das interfaces desta maquina, e nao de um endereco escrito a mao:
+ * o IP da rede local muda quando o roteador reinicia, e um valor fixo
+ * quebraria de novo no dia seguinte sem ninguem entender por que.
+ *
+ * So vale em desenvolvimento — em producao nao existe `allowedDevOrigins`.
+ */
+function localAddresses(): string[] {
+  const found = new Set<string>()
+
+  for (const addresses of Object.values(networkInterfaces())) {
+    for (const address of addresses ?? []) {
+      if (address.family === 'IPv4' && !address.internal) found.add(address.address)
+    }
+  }
+
+  // `*.local` cobre o nome mDNS que o proprio aparelho resolve sozinho.
+  return [...found, '*.local']
+}
 
 /**
  * A origem do Supabase Storage, quando ela existe neste ambiente.
@@ -26,6 +58,7 @@ function supabaseImageHost() {
 }
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: localAddresses(),
   images: {
     /**
      * A imagem de carta passa pelo nosso servidor porque **nao ha alternativa**.
