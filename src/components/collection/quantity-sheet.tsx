@@ -37,6 +37,15 @@ import { useToast } from '@/components/ui/toast'
  * tirar do primeiro — seria presumir de onde as cartas saíram, que é
  * exatamente o que a regra proíbe.
  *
+ * O conflito só chega quando há escolha real: sair da coleção inteira e local
+ * único são deduzidos no servidor e nem viram pergunta.
+ *
+ * **A resolução vale para a quantidade que foi pedida**, e não para a que está
+ * no seletor. Os dois números podiam divergir: "Remover da coleção" envia zero
+ * pelo valor do botão sem mexer no seletor, então a resolução seguinte era
+ * enviada com o número antigo — e a carta não saía. Ao chegar o conflito, o
+ * seletor passa a mostrar o que de fato foi pedido.
+ *
  * ## O link para a carta
  *
  * Da coleção, tocar numa carta abre este painel — e só ele. Sem esta saída, ver
@@ -92,6 +101,19 @@ export function QuantitySheet({
     })
     onOpenChange(false)
   }, [state, code, name, toast, onOpenChange])
+
+  /*
+   * Ajustado durante a renderização, comparando com o resultado anterior: em
+   * efeito, `setState` dispara renderização em cascata e o lint do React recusa.
+   */
+  const [lastResult, setLastResult] = useState(state)
+  if (state !== lastResult) {
+    setLastResult(state)
+    if (state.status === 'conflict') {
+      setQuantity(state.requestedQuantity)
+      setRemovals({})
+    }
+  }
 
   const conflict = state.status === 'conflict' ? state : null
   const chosen = conflict

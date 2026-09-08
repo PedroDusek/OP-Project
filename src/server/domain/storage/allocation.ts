@@ -120,3 +120,45 @@ function sum(values: Iterable<number>): number {
   for (const value of values) total += value
   return total
 }
+
+/**
+ * A retirada que nao precisa ser perguntada, ou `null` quando ha escolha real.
+ *
+ * A regra 3.3 existe para nao **presumir** de onde as copias saem. Mas presumir
+ * so faz sentido quando ha mais de uma resposta possivel — e em dois casos nao
+ * ha:
+ *
+ *   - **Sair da colecao inteira.** Se nao sobra nenhuma copia, todas as
+ *     alocacoes vao junto. Nao existe outra leitura, e perguntar seria pedir
+ *     para a pessoa confirmar a unica saida possivel. Foi o que aconteceu no
+ *     primeiro uso real: pedir para remover e receber uma pergunta.
+ *   - **Um local so.** Se todas as copias guardadas estao no mesmo lugar, e de
+ *     la que elas saem.
+ *
+ * Com dois ou mais locais e uma reducao parcial, a escolha e real — tirar duas
+ * do binder ou uma de cada sao resultados diferentes — e ai a pergunta volta.
+ */
+export function deducibleReduction(
+  targetQuantity: number,
+  allocations: readonly Allocation[],
+): Removal[] | null {
+  const allocated = totalAllocated(allocations)
+  const excess = allocated - Math.max(0, targetQuantity)
+
+  // Nada a retirar: o que esta guardado ja cabe no que vai sobrar.
+  if (excess <= 0) return []
+
+  // Sai tudo: a unica leitura possivel.
+  if (targetQuantity <= 0) {
+    return allocations
+      .filter((allocation) => allocation.quantity > 0)
+      .map((allocation) => ({ ...allocation }))
+  }
+
+  const holding = allocations.filter((allocation) => allocation.quantity > 0)
+  if (holding.length === 1) {
+    return [{ storageLocationId: holding[0].storageLocationId, quantity: excess }]
+  }
+
+  return null
+}

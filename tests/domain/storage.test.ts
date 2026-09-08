@@ -9,6 +9,7 @@ import {
   STORAGE_TYPE_LABEL,
 } from '@/server/domain/storage/locations'
 import {
+  deducibleReduction,
   planReduction,
   roomFor,
   totalAllocated,
@@ -242,3 +243,58 @@ function bytes(signature: number[], extra: number): Uint8Array {
   buffer.set(signature)
   return buffer
 }
+
+/**
+ * O que nao precisa ser perguntado.
+ *
+ * A regra 3.3 existe para nao presumir de onde as copias saem — e presumir so
+ * faz sentido quando ha mais de uma resposta. Em dois casos nao ha.
+ */
+describe('reducao deduzivel', () => {
+  const doisLocais: Allocation[] = [
+    { storageLocationId: 'binder', quantity: 3 },
+    { storageLocationId: 'caixa', quantity: 1 },
+  ]
+
+  /**
+   * Foi o defeito relatado: pedir para remover da colecao e receber uma
+   * pergunta sobre de onde tirar, sendo que sai tudo.
+   */
+  it('sair da colecao leva todas as alocacoes', () => {
+    expect(deducibleReduction(0, doisLocais)).toEqual([
+      { storageLocationId: 'binder', quantity: 3 },
+      { storageLocationId: 'caixa', quantity: 1 },
+    ])
+  })
+
+  it('com um local so, a retirada sai dele', () => {
+    expect(deducibleReduction(2, [{ storageLocationId: 'binder', quantity: 4 }])).toEqual([
+      { storageLocationId: 'binder', quantity: 2 },
+    ])
+  })
+
+  /** Tirar duas do binder ou uma de cada sao resultados diferentes. */
+  it('com dois locais e reducao parcial, ha escolha real', () => {
+    expect(deducibleReduction(2, doisLocais)).toBeNull()
+  })
+
+  it('nada a retirar quando o guardado ja cabe', () => {
+    expect(deducibleReduction(4, doisLocais)).toEqual([])
+    expect(deducibleReduction(5, doisLocais)).toEqual([])
+  })
+
+  it('local vazio nao conta como segundo local', () => {
+    const comVazio: Allocation[] = [
+      { storageLocationId: 'binder', quantity: 4 },
+      { storageLocationId: 'caixa', quantity: 0 },
+    ]
+
+    expect(deducibleReduction(1, comVazio)).toEqual([
+      { storageLocationId: 'binder', quantity: 3 },
+    ])
+  })
+
+  it('sem alocacao nenhuma, nao ha o que retirar', () => {
+    expect(deducibleReduction(0, [])).toEqual([])
+  })
+})
