@@ -19,6 +19,17 @@ import { cardHref } from '@/lib/catalog-params'
  *
  * Tambem e o que torna o comportamento testavel sem simular rolagem.
  *
+ * ## O observador e montado uma vez
+ *
+ * A funcao de carregar muda de identidade a cada `loading` e a cada `page`. Se
+ * o efeito dependesse dela, o observador seria desligado e religado a cada
+ * mudanca de estado — e religar dispara uma nova avaliacao imediata, que
+ * encadeia carga sobre carga enquanto o botao continuar visivel.
+ *
+ * Por isso o efeito depende so de `done`, e le a versao mais recente por
+ * referencia. Assim o observador dispara quando a intersecao **muda**, que e o
+ * que rolar significa.
+ *
  * ## Por que passa pela API, e nao por uma Server Action
  *
  * `/api/catalog` cobra a cota de leitura do catalogo por usuario. Essa cota e o
@@ -82,8 +93,16 @@ export function InfiniteCardGrid({
 
   const done = items.length >= total
 
+  /*
+   * A trava e uma referencia, e nao o estado: o estado so muda na proxima
+   * renderizacao, e duas chamadas no mesmo quadro — o toque e o observador
+   * juntos — passariam as duas pela guarda.
+   */
+  const busy = useRef(false)
+
   const loadMore = useCallback(async () => {
-    if (loading || done) return
+    if (busy.current || loading || done) return
+    busy.current = true
 
     setLoading(true)
     setError(null)
@@ -104,9 +123,16 @@ export function InfiniteCardGrid({
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível carregar mais cartas.')
     } finally {
+      busy.current = false
       setLoading(false)
     }
   }, [apiQuery, done, loading, page])
+
+  /** A versao mais recente, para o observador nao precisar ser remontado. */
+  const latest = useRef(loadMore)
+  useEffect(() => {
+    latest.current = loadMore
+  }, [loadMore])
 
   useEffect(() => {
     const node = sentinel.current
@@ -114,7 +140,7 @@ export function InfiniteCardGrid({
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting) void loadMore()
+        if (entries[0]?.isIntersecting) void latest.current()
       },
       // Comeca a buscar antes de a pessoa chegar no fim, para a proxima leva
       // ja estar la quando ela chegar.
@@ -123,7 +149,7 @@ export function InfiniteCardGrid({
 
     observer.observe(node)
     return () => observer.disconnect()
-  }, [loadMore, done])
+  }, [done])
 
   return (
     <div className="flex flex-col gap-4">

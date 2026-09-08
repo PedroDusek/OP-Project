@@ -28,6 +28,12 @@ import { LocationArt } from './location-art'
  * "cópias neste local" e "quantas mover" são números distintos que parecem o
  * mesmo. Então o painel troca de vista, e cada vista tem um número só.
  *
+ * **O número atravessa a troca de vista.** Quem baixa o contador para 2 e toca
+ * em "mover" quis mover 2 — foi o que aconteceu no primeiro uso real, e o
+ * painel movia as quatro porque a segunda vista recomeçava do total. Levar o
+ * número junto é o que a pessoa espera; e o botão de destino repete o número,
+ * para a ação dizer o que faz antes de ser tocada.
+ *
  * O teto vem do servidor: `max` é quanto ainda cabe, já descontado o que está
  * nos outros locais. Ele existe para o controle não oferecer um número que a
  * escrita vai recusar — a recusa continua sendo do servidor, que é quem trava a
@@ -54,12 +60,17 @@ export interface AllocationSheetProps {
 export function AllocationSheet(props: AllocationSheetProps) {
   const { open, onOpenChange, code, name, currentQuantity, locations, storageLocationId } = props
   const [moving, setMoving] = useState(false)
+  /** O número que estava na tela quando a pessoa pediu para mover. */
+  const [intended, setIntended] = useState(currentQuantity)
 
   // Reabrir sempre começa pelo ajuste, e não pela vista onde ficou da última vez.
   const [lastOpen, setLastOpen] = useState(open)
   if (open !== lastOpen) {
     setLastOpen(open)
-    if (open) setMoving(false)
+    if (open) {
+      setMoving(false)
+      setIntended(currentQuantity)
+    }
   }
 
   const elsewhere = (locations ?? []).filter((location) => location.id !== storageLocationId)
@@ -73,9 +84,24 @@ export function AllocationSheet(props: AllocationSheetProps) {
       description={`${code} — ${name}`}
     >
       {moving ? (
-        <MoveView {...props} locations={elsewhere} onBack={() => setMoving(false)} />
+        <MoveView
+          {...props}
+          locations={elsewhere}
+          intended={intended}
+          onBack={() => setMoving(false)}
+        />
       ) : (
-        <QuantityView {...props} onMove={canMove ? () => setMoving(true) : undefined} />
+        <QuantityView
+          {...props}
+          onMove={
+            canMove
+              ? (quantity) => {
+                  setIntended(quantity)
+                  setMoving(true)
+                }
+              : undefined
+          }
+        />
       )}
     </Sheet>
   )
@@ -120,7 +146,7 @@ function QuantityView({
   currentQuantity,
   max,
   onMove,
-}: AllocationSheetProps & { onMove?: () => void }) {
+}: AllocationSheetProps & { onMove?: (quantity: number) => void }) {
   const [state, action, pending] = useActionState(setAllocationAction, ALLOCATION_IDLE)
   const [quantity, setQuantity] = useState(currentQuantity)
   const { toast } = useToast()
@@ -183,7 +209,13 @@ function QuantityView({
         </Button>
 
         {onMove ? (
-          <Button type="button" variant="secondary" block onClick={onMove} disabled={pending}>
+          <Button
+            type="button"
+            variant="secondary"
+            block
+            onClick={() => onMove(quantity)}
+            disabled={pending}
+          >
             <ArrowRightLeft className="size-4" aria-hidden />
             Mover para outro local
           </Button>
@@ -216,10 +248,17 @@ function MoveView({
   locationName,
   currentQuantity,
   locations,
+  intended,
   onBack,
-}: AllocationSheetProps & { locations: StorageLocationSummary[]; onBack: () => void }) {
+}: AllocationSheetProps & {
+  locations: StorageLocationSummary[]
+  /** O número que estava na tela ao pedir para mover. */
+  intended: number
+  onBack: () => void
+}) {
   const [state, action, pending] = useActionState(moveCopiesAction, MOVE_IDLE)
-  const [copies, setCopies] = useState(currentQuantity)
+  // Nunca mais do que existe aqui, nem menos de uma.
+  const [copies, setCopies] = useState(Math.min(Math.max(intended, 1), currentQuantity))
   const { toast } = useToast()
 
   useEffect(() => {
@@ -281,7 +320,7 @@ function MoveView({
                   variant="secondary"
                   disabled={pending}
                 >
-                  Mover
+                  Mover {copies}
                 </Button>
               }
               hideChevron

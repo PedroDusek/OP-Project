@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SetList } from '@/components/catalog/set-list'
@@ -503,8 +503,173 @@ vi.mock('@/app/(app)/colecao/actions', () => ({
   setQuantityAction: vi.fn(async () => ({ status: 'idle' })),
 }))
 
+/*
+ * O detalhe da variante mostra onde a carta esta guardada, e esse painel puxa
+ * as acoes de binder — que arrastam o Prisma no grafo de modulos. Sem este
+ * mock o arquivo nao roda sozinho: passava so porque outro projeto do Vitest
+ * carregava o `.env` no mesmo processo antes dele.
+ */
+vi.mock('@/app/(app)/binders/actions', () => ({
+  setAllocationAction: vi.fn(async () => ({ status: 'idle' })),
+  moveCopiesAction: vi.fn(async () => ({ status: 'idle' })),
+  placeCopiesAction: vi.fn(async () => ({ status: 'idle' })),
+  bulkAddAction: vi.fn(async () => ({ status: 'idle' })),
+  deleteLocationAction: vi.fn(),
+  createLocationAction: vi.fn(),
+  updateLocationAction: vi.fn(),
+}))
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   usePathname: () => '/catalogo',
   useSearchParams: () => new URLSearchParams(),
 }))
+
+/**
+ * O observador da rolagem infinita, com um `IntersectionObserver` de verdade.
+ *
+ * O `setup-dom.ts` instala um observador que nao faz nada — necessario para o
+ * componente nao quebrar no jsdom, mas isso deixa **este caminho sem teste
+ * nenhum**. Um `ref` que nao chegasse ao botao, ou um efeito que religasse o
+ * observador a cada estado, passariam batido. Aqui ele e controlavel.
+ */
+describe('rolagem infinita, pelo observador', () => {
+  interface Observado {
+    node: Element
+    fire: (intersecting: boolean) => void
+  }
+
+  let observados: Observado[] = []
+  let criados = 0
+
+  class ObservadorControlavel {
+    constructor(private readonly callback: IntersectionObserverCallback) {
+      criados += 1
+    }
+    observe(node: Element) {
+      observados.push({
+        node,
+        fire: (intersecting) =>
+          this.callback(
+            [{ isIntersecting: intersecting, target: node } as IntersectionObserverEntry],
+            this as unknown as IntersectionObserver,
+          ),
+      })
+    }
+    unobserve() {}
+    disconnect() {
+      observados = observados.filter((o) => !this.observando(o))
+    }
+    private observando(o: Observado) {
+      return observados.includes(o)
+    }
+    takeRecords() {
+      return []
+    }
+    root = null
+    rootMargin = ''
+    thresholds = []
+  }
+
+  const pagina = (from: number, count: number) => ({
+    items: Array.from({ length: count }, (_, i) => ({
+      variantId: String(from + i),
+      cardCode: `OP02-${String(from + i).padStart(3, '0')}`,
+      cardName: 'Vindo da rolagem',
+      rarity: 'C',
+      variantType: 'Normal',
+      imageUrl: null,
+    })),
+  })
+
+  const primeiros = (count: number): CatalogItemView[] =>
+    Array.from({ length: count }, (_, i) => ({
+      variantId: String(i + 1),
+      cardCode: `OP01-${String(i + 1).padStart(3, '0')}`,
+      cardName: 'Exemplo',
+      rarity: 'C',
+      variantType: 'Normal',
+      imageUrl: null,
+    }))
+
+  let buscas: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    observados = []
+    criados = 0
+    buscas = vi.fn(async () => new Response(JSON.stringify(pagina(100, 3))))
+    vi.stubGlobal('IntersectionObserver', ObservadorControlavel)
+    vi.stubGlobal('fetch', buscas)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  const montar = () =>
+    render(
+      <InfiniteCardGrid
+        initialItems={primeiros(3)}
+        total={10}
+        pageSize={3}
+        apiQuery="pageSize=3"
+      />,
+    )
+
+  /** O `ref` precisa chegar ao botao, senao nada e observado e a rolagem morre. */
+  it('observa o botao de carregar mais', () => {
+    montar()
+
+    expect(observados).toHaveLength(1)
+    expect(observados[0].node).toBe(screen.getByRole('button', { name: 'Carregar mais' }))
+  })
+
+  it('carrega a leva seguinte quando o sentinela aparece', async () => {
+    montar()
+
+    observados[0].fire(true)
+
+    expect(await screen.findByRole('link', { name: /OP02-100/ })).toBeInTheDocument()
+    expect(buscas).toHaveBeenCalledTimes(1)
+    expect(String(buscas.mock.calls[0][0])).toContain('page=2')
+  })
+
+  /** Sair de vista nao carrega nada: so a entrada conta. */
+  it('nao carrega quando o sentinela sai de vista', () => {
+    montar()
+
+    observados[0].fire(false)
+
+    expect(buscas).not.toHaveBeenCalled()
+  })
+
+  /**
+   * Dois disparos no mesmo quadro — o toque e o observador juntos — passariam
+   * os dois pela guarda de estado, que so muda na renderizacao seguinte. A
+   * trava e uma referencia justamente por isso.
+   */
+  it('dois disparos seguidos carregam uma pagina so', async () => {
+    montar()
+
+    observados[0].fire(true)
+    observados[0].fire(true)
+
+    expect(await screen.findByRole('link', { name: /OP02-100/ })).toBeInTheDocument()
+    expect(buscas).toHaveBeenCalledTimes(1)
+  })
+
+  /**
+   * O observador nao pode ser religado a cada mudanca de estado: religar
+   * dispara nova avaliacao imediata, e a carga se encadearia sozinha ate o fim
+   * da lista enquanto o botao continuasse visivel.
+   */
+  it('nao remonta o observador a cada carga', async () => {
+    montar()
+    const antes = criados
+
+    observados[0].fire(true)
+    await screen.findByRole('link', { name: /OP02-100/ })
+
+    expect(criados).toBe(antes)
+  })
+})

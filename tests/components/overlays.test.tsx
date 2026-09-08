@@ -124,3 +124,58 @@ describe('Toast', () => {
     vi.restoreAllMocks()
   })
 })
+
+/**
+ * O viewport do toast nao pode engolir toque.
+ *
+ * Ele e um elemento fixo com espacamento proprio: sem nenhum toast dentro,
+ * continuava sendo um retangulo invisivel sobre a faixa inferior da tela. No
+ * celular isso cobria a barra de navegacao, o botao de carregar mais e os
+ * controles de tema — os toques nao chegavam a nada ali embaixo.
+ */
+describe('Toast, a faixa invisivel', () => {
+  const viewport = () => document.querySelector('ol')
+
+  it('o viewport nao recebe toque', () => {
+    render(
+      <ToastProvider>
+        <ToastHarness />
+      </ToastProvider>,
+    )
+
+    const alvo = viewport()
+    expect(alvo).not.toBeNull()
+    expect(alvo!.className).toContain('pointer-events-none')
+  })
+
+  it('o cartao recebe toque, para dar para dispensar', async () => {
+    render(
+      <ToastProvider>
+        <ToastHarness />
+      </ToastProvider>,
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+
+    const cartao = (await screen.findByText('Coleção atualizada')).closest('li')
+    expect(cartao).not.toBeNull()
+    expect(cartao!.className).toContain('pointer-events-auto')
+  })
+
+  /**
+   * No celular o rodape e onde ficam o polegar, a navegacao e a acao principal
+   * de quase toda tela. Mesmo sem capturar toque, um cartao ali tapa o que a
+   * pessoa acabou de usar.
+   */
+  it('fica no topo, e nao sobre a barra de navegacao', () => {
+    render(
+      <ToastProvider>
+        <ToastHarness />
+      </ToastProvider>,
+    )
+
+    const alvo = viewport()!
+    expect(alvo.className).toContain('top-0')
+    expect(alvo.className).not.toContain('bottom-0')
+  })
+})

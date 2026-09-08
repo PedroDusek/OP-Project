@@ -13,9 +13,26 @@ import { cn } from '@/lib/cn'
  * acao pertence ao formulario ou ao `ErrorState`; o toast confirma o que ja
  * aconteceu.
  *
- * No celular ele sobe do rodape, acima da barra de navegacao. `Toast.Viewport`
- * do Radix cuida do resto: `role="status"` para nao interromper leitura,
- * pausa ao passar o ponteiro, e o atalho F8 para alcancar a fila pelo teclado.
+ * `Toast.Viewport` do Radix cuida do resto: `role="status"` para nao
+ * interromper leitura, pausa ao passar o ponteiro, e o atalho F8 para alcancar
+ * a fila pelo teclado.
+ *
+ * ## O viewport nao pode capturar toque
+ *
+ * `Toast.Viewport` e um elemento fixo com tamanho proprio: com espacamento e
+ * sem nenhum toast, ele continua sendo um retangulo invisivel por cima da
+ * pagina. No celular isso cobria a faixa inferior inteira — a barra de
+ * navegacao, o botao de carregar mais, os controles de tema — e os toques
+ * simplesmente nao chegavam ao que estava embaixo.
+ *
+ * `pointer-events-none` no viewport e `pointer-events-auto` em cada toast
+ * resolve: so o cartao visivel recebe toque, o vazio ao redor nao.
+ *
+ * ## No celular ele desce do topo
+ *
+ * O rodape e onde ficam o polegar, a barra de navegacao e a acao principal de
+ * quase toda tela. Mesmo sem capturar toque, um cartao ali tapa exatamente o
+ * que a pessoa acabou de usar. No topo ele avisa sem entrar na frente.
  */
 
 type ToastTone = 'success' | 'error' | 'info'
@@ -61,7 +78,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ToastContext.Provider value={value}>
-      <Toast.Provider swipeDirection="right" duration={5000}>
+      <Toast.Provider swipeDirection="up" duration={4000}>
         {children}
 
         {messages.map((message) => {
@@ -75,7 +92,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               className={cn(
                 'flex items-start gap-3 rounded-card border border-border bg-surface p-3',
                 'shadow-raised outline-none',
-                'data-[swipe=end]:translate-x-full data-[swipe=move]:translate-x-(--radix-toast-swipe-move-x)',
+                // O viewport nao recebe toque; o cartao, sim.
+                'pointer-events-auto',
+                'data-[swipe=end]:-translate-y-full data-[swipe=move]:translate-y-(--radix-toast-swipe-move-y)',
               )}
             >
               <Icon className={cn('mt-0.5 size-5 shrink-0', TONES[message.tone])} aria-hidden />
@@ -100,10 +119,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         <Toast.Viewport
           className={cn(
             'fixed z-60 flex w-full max-w-sm flex-col gap-2 outline-none',
-            // Acima da barra de navegacao no celular; canto inferior direito a
-            // partir do `md`, onde a barra ja virou coluna lateral.
-            'inset-x-0 bottom-0 mx-auto p-4 pb-[calc(env(safe-area-inset-bottom,0px)+5rem)]',
-            'md:right-0 md:left-auto md:mx-0 md:pb-4',
+            // Sem isto, o retangulo do viewport engole os toques da faixa que
+            // ocupa, com ou sem toast dentro.
+            'pointer-events-none',
+            // Abaixo da barra superior no celular; canto superior direito a
+            // partir do `md`.
+            'inset-x-0 top-0 mx-auto p-4 pt-[calc(env(safe-area-inset-top,0px)+4rem)]',
+            'md:right-0 md:left-auto md:mx-0 md:pt-4',
           )}
         />
       </Toast.Provider>
