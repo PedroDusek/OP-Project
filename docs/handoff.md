@@ -191,15 +191,31 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     a área segura é zero, e deixava o último elemento da página debaixo da barra
     no celular de verdade. Toda reserva de espaço para a barra soma a mesma
     `env()` que ela usa.
-26. **O `IntersectionObserver` é um stub vazio em `setup-dom.ts`.** Necessário
+26. **O `next dev` recusa com 403 os arquivos de `/_next/` pedidos de uma
+    origem que ele não conhece.** A página responde 200, o HTML aparece, todo
+    link funciona — e **nenhum JavaScript carrega**. Sem erro no console,
+    porque não há erro: o navegador pede o script, recebe 403 e segue. Foi
+    assim que abrir pelo IP da rede deixou o app inteiro sem botão funcionando
+    no celular. `allowedDevOrigins` no `next.config.ts` resolve, e lá a lista
+    sai das interfaces da máquina — endereço fixo quebraria na próxima troca
+    de IP.
+27. **Script dentro de componente React não é reconciliado no cliente.** Ele
+    causa divergência de hidratação, e o React descarta o HTML do servidor para
+    refazer a árvore. Script pertence ao `<head>`; para escrever na tela sem o
+    React desfazer, pendure o elemento fora da raiz dele.
+28. **Diagnóstico que depende do React não diagnostica React.** A primeira
+    versão de `/diagnostico` mostrava "nenhum erro" exatamente quando nada
+    funcionava, porque quem renderizava a linha era o componente que não tinha
+    hidratado.
+29. **O `IntersectionObserver` é um stub vazio em `setup-dom.ts`.** Necessário
     para o jsdom não quebrar, mas deixa a rolagem infinita sem cobertura: um
     `ref` que não chegasse ao botão passaria batido. Quem mexer nela usa o
     observador controlável de `catalog-ui.test.tsx`.
-27. **Arquivo de teste de componente que renderiza tela com Server Action
+30. **Arquivo de teste de componente que renderiza tela com Server Action
     precisa mocká-la.** Sem isso o Prisma entra no grafo e o arquivo só passa
     quando outro projeto do Vitest já carregou o `.env` no mesmo processo —
     verde na suíte inteira, vermelho sozinho.
-28. **A barra inferior tem cinco lugares.** Seis alvos a 360 px dão 60 px cada,
+31. **A barra inferior tem cinco lugares.** Seis alvos a 360 px dão 60 px cada,
     abaixo do confortável. Destino novo entra tirando outro; hoje Trocas está
     fora, dentro de "Mais" (decisão 044). `SECONDARY_DESTINATIONS` existe para
     esses, e `activeDestination` olha os dois conjuntos.

@@ -18,6 +18,14 @@ export const metadata: Metadata = { title: 'Diagnóstico', robots: { index: fals
  * É pública de propósito: uma tela de diagnóstico atrás de login não serve para
  * diagnosticar quem não consegue usar a tela de login.
  *
+ * ## O painel cinza vem de fora do React
+ *
+ * A linha "React hidratou" e renderizada no servidor e so vira "sim" se o
+ * pacote do cliente subir — ela e confiavel nos dois sentidos. Ja "erros" era
+ * renderizado pelo React, entao jurava que estava tudo bem justamente quando
+ * nada estava. Quem conta isso agora e o script do `<head>`, que pendura o
+ * proprio painel no fim da pagina.
+ *
  * ## Sem `<script>` aqui dentro
  *
  * A primeira versão trazia a sonda num `<script>` no meio da página. Script
