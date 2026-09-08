@@ -749,11 +749,13 @@ describe('BulkAdd', () => {
     },
   ]
 
+  let buscas: ReturnType<typeof vi.fn>
+
   beforeEach(() => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => new Response(JSON.stringify({ items: CARDS, total: 2, pageSize: 24 }))),
+    buscas = vi.fn(
+      async () => new Response(JSON.stringify({ items: CARDS, total: 2, pageSize: 24 })),
     )
+    vi.stubGlobal('fetch', buscas)
   })
 
   afterEach(() => {
@@ -762,12 +764,29 @@ describe('BulkAdd', () => {
 
   const montar = async () => {
     withToast(
-      <BulkAdd storageLocationId="9" locationName="Binder Principal" vocabulary={VOCABULARY} />,
+      <BulkAdd
+        storageLocationId="9"
+        locationName="Binder Principal"
+        vocabulary={VOCABULARY}
+        initialCards={CARDS}
+        initialTotal={CARDS.length}
+      />,
     )
     // O codigo aparece duas vezes no DOM — texto e lugar da arte —, entao a
     // espera e por algo que existe uma vez so.
     await screen.findByRole('button', { name: 'Acrescentar uma cópia de OP01-001' })
   }
+
+  /**
+   * A tela abria vazia e buscava ao montar: sem JavaScript ela girava para
+   * sempre, sem nada na tela e sem dizer por que.
+   */
+  it('pinta a primeira leva sem buscar nada', async () => {
+    await montar()
+
+    expect(buscas).not.toHaveBeenCalled()
+    expect(screen.getByRole('status')).toHaveTextContent('2 cartas')
+  })
 
   it('lista o catálogo com um contador por carta', async () => {
     await montar()

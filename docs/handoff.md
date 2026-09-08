@@ -30,7 +30,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 11 concluídos.** 657 testes de unidade, integração e
+**Checkpoints 0 a 11 concluídos.** 658 testes de unidade, integração e
 componente, mais 28 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -185,15 +185,21 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     controles de tema. No celular, nada ali embaixo respondia. Todo overlay
     fixo precisa de `pointer-events-none`, com `pointer-events-auto` só no
     conteúdo visível.
-25. **O `IntersectionObserver` é um stub vazio em `setup-dom.ts`.** Necessário
+25. **A barra inferior não tem altura fixa.** São 56 px mais
+    `env(safe-area-inset-bottom)`, que num aparelho com barra de gestos passa de
+    30 px. Reservar 80 px fixos no `main` dava conta no navegador de mesa, onde
+    a área segura é zero, e deixava o último elemento da página debaixo da barra
+    no celular de verdade. Toda reserva de espaço para a barra soma a mesma
+    `env()` que ela usa.
+26. **O `IntersectionObserver` é um stub vazio em `setup-dom.ts`.** Necessário
     para o jsdom não quebrar, mas deixa a rolagem infinita sem cobertura: um
     `ref` que não chegasse ao botão passaria batido. Quem mexer nela usa o
     observador controlável de `catalog-ui.test.tsx`.
-26. **Arquivo de teste de componente que renderiza tela com Server Action
+27. **Arquivo de teste de componente que renderiza tela com Server Action
     precisa mocká-la.** Sem isso o Prisma entra no grafo e o arquivo só passa
     quando outro projeto do Vitest já carregou o `.env` no mesmo processo —
     verde na suíte inteira, vermelho sozinho.
-27. **A barra inferior tem cinco lugares.** Seis alvos a 360 px dão 60 px cada,
+28. **A barra inferior tem cinco lugares.** Seis alvos a 360 px dão 60 px cada,
     abaixo do confortável. Destino novo entra tirando outro; hoje Trocas está
     fora, dentro de "Mais" (decisão 044). `SECONDARY_DESTINATIONS` existe para
     esses, e `activeDestination` olha os dois conjuntos.

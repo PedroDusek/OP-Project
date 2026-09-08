@@ -34,6 +34,13 @@ import { cn } from '@/lib/cn'
  * Guardar cópias que a pessoa **já tem** é outra tela, `/binders/sem-lugar`,
  * que não mexe na quantidade.
  *
+ * ## A primeira leva vem do servidor
+ *
+ * A tela abria vazia e buscava ao montar. Se o JavaScript não subisse — e num
+ * navegador antigo ele pode não subir —, ela ficava girando para sempre, sem
+ * nada na tela e sem dizer por quê. Agora a primeira leva chega pronta do
+ * servidor, como no catálogo, e o cliente só busca quando o filtro muda.
+ *
  * ## Por que os filtros não vão para a URL
  *
  * No catálogo eles vão, porque lá a lista filtrada é um endereço. Aqui são
@@ -77,17 +84,22 @@ export function BulkAdd({
   storageLocationId,
   locationName,
   vocabulary,
+  initialCards,
+  initialTotal,
 }: {
   storageLocationId: string
   locationName: string
   vocabulary: CatalogVocabulary
+  /** A primeira leva, renderizada no servidor. */
+  initialCards: Card[]
+  initialTotal: number
 }) {
   const [filters, setFilters] = useState<CatalogSearchParams>({})
   const [term, setTerm] = useState('')
-  const [cards, setCards] = useState<Card[]>([])
-  const [total, setTotal] = useState(0)
+  const [cards, setCards] = useState<Card[]>(initialCards)
+  const [total, setTotal] = useState(initialTotal)
   const [page, setPage] = useState(1)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [picks, setPicks] = useState<Record<string, number>>({})
   const [confirming, setConfirming] = useState(false)
@@ -115,13 +127,25 @@ export function BulkAdd({
   }
 
   /**
-   * A primeira leva de cada consulta.
+   * A consulta que já está pintada na tela.
+   *
+   * Começa sendo a do servidor, então a montagem não refaz a busca que acabou
+   * de chegar pronta. Guardar numa referência — e não em estado — é o que faz
+   * as duas montagens do modo estrito do React caírem no mesmo caminho.
+   */
+  const served = useRef(query)
+
+  /**
+   * A primeira leva de cada consulta nova.
    *
    * `cancelled` não é zelo: trocar de filtro duas vezes depressa deixa duas
    * buscas no ar, e sem isso a mais lenta chegaria por último e pintaria a
    * grade com o filtro anterior.
    */
   useEffect(() => {
+    if (query === served.current) return
+    served.current = query
+
     let cancelled = false
 
     void (async () => {
@@ -223,7 +247,22 @@ export function BulkAdd({
         />
       </div>
 
-      {cards.length === 0 && !loading ? (
+      {/*
+        A falha aparece **fora** do ramo da grade. Antes ela morava dentro dele,
+        então uma busca que falhasse com zero cartas mostrava "nenhuma carta
+        encontrada — tente outro termo": a tela culpava o filtro por um erro de
+        rede.
+      */}
+      {error ? (
+        <div role="alert" className="flex flex-col items-center gap-2 py-2 text-center">
+          <p className="text-sm text-danger">{error}</p>
+          <Button variant="secondary" onClick={() => void loadMore()}>
+            Tentar de novo
+          </Button>
+        </div>
+      ) : null}
+
+      {cards.length === 0 && !loading && !error ? (
         <EmptyState
           icon={<SearchX className="size-10" aria-hidden />}
           title="Nenhuma carta encontrada"
@@ -246,15 +285,6 @@ export function BulkAdd({
               />
             ))}
           </div>
-
-          {error ? (
-            <div role="alert" className="flex flex-col items-center gap-2 py-2 text-center">
-              <p className="text-sm text-danger">{error}</p>
-              <Button variant="secondary" onClick={() => void loadMore()}>
-                Tentar de novo
-              </Button>
-            </div>
-          ) : null}
 
           {cards.length < total ? (
             <Button
