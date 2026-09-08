@@ -1,4 +1,11 @@
 import type { PrismaClient } from '@prisma/client'
+import {
+  compareSetsForCatalog,
+  displaySetCode,
+  displaySetName,
+  setKind,
+  type SetKind,
+} from '@/server/domain/catalog/sets'
 
 /**
  * O vocabulario que o painel de filtros oferece.
@@ -15,7 +22,24 @@ import type { PrismaClient } from '@prisma/client'
  * tabela esta vazia de proposito (decisao 021).
  */
 
+export interface SetOption {
+  /** O codigo como esta no banco, que e o que o filtro manda. */
+  code: string
+  /** `OP01`, sem o hifen inconsistente da fonte. */
+  displayCode: string
+  displayName: string
+  kind: SetKind
+}
+
 export interface CatalogVocabulary {
+  /**
+   * Os sessenta sets, para o filtro por colecao ou starter deck.
+   *
+   * Vem sem capa e sem contagem: quem monta a lista suspensa precisa de codigo
+   * e nome, e trazer a capa aqui seria pagar a consulta pesada de
+   * `listSets` num painel que so mostra texto.
+   */
+  sets: SetOption[]
   types: string[]
   rarities: string[]
   variantTypes: string[]
@@ -50,7 +74,7 @@ function byKnownOrder(order: string[]) {
 }
 
 export async function getCatalogVocabulary(prisma: PrismaClient): Promise<CatalogVocabulary> {
-  const [types, rarities, variantTypes, colors, attributes, mechanics, traits, ranges] =
+  const [types, rarities, variantTypes, colors, attributes, mechanics, traits, ranges, sets] =
     await Promise.all([
       prisma.card.findMany({ distinct: ['type'], select: { type: true }, orderBy: { type: 'asc' } }),
       prisma.cardVariant.findMany({
@@ -71,9 +95,19 @@ export async function getCatalogVocabulary(prisma: PrismaClient): Promise<Catalo
         _min: { cost: true, power: true },
         _max: { cost: true, power: true },
       }),
+      prisma.set.findMany({ select: { code: true, name: true } }),
     ])
 
   return {
+    sets: sets
+      .map((row) => ({
+        code: row.code,
+        displayCode: displaySetCode(row.code),
+        displayName: displaySetName(row.name),
+        kind: setKind(row.code),
+      }))
+      // A mesma ordem do resto do produto: lancamento, promos no fim.
+      .sort((a, b) => compareSetsForCatalog(a.code, b.code)),
     types: types.map((row) => row.type),
     rarities: rarities
       .map((row) => row.rarity)

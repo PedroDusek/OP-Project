@@ -723,6 +723,10 @@ describe('transferir entre locais', () => {
 
 describe('BulkAdd', () => {
   const VOCABULARY: CatalogVocabulary = {
+    sets: [
+      { code: 'OP01', displayCode: 'OP01', displayName: 'ROMANCE DAWN', kind: 'collection' as const },
+      { code: 'ST-01', displayCode: 'ST01', displayName: 'Straw Hat Crew', kind: 'deck' as const },
+    ],
     types: ['Leader', 'Character'],
     rarities: ['C', 'SR'],
     variantTypes: ['Normal', 'Parallel'],

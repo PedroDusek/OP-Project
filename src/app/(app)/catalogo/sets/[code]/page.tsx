@@ -51,7 +51,15 @@ export default async function SetPage({ params, searchParams }: PageProps<'/cata
           <div className="min-w-0 flex-1">
             <CatalogSearch placeholder="Buscar neste set..." />
           </div>
-          <CatalogFilters vocabulary={vocabulary} activeCount={countActiveFilters(query)} />
+          {/*
+            Sem o filtro de set: a rota ja diz qual e, e ela vence o parametro
+            da URL. O campo ali seria um controle que nao muda nada.
+          */}
+          <CatalogFilters
+            vocabulary={vocabulary}
+            activeCount={countActiveFilters(query)}
+            hideSetFilter
+          />
         </div>
 
         <CatalogResults
