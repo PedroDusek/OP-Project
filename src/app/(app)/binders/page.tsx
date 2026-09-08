@@ -3,9 +3,10 @@ import Link from 'next/link'
 import { BookOpen, Plus } from 'lucide-react'
 import { PageHeader } from '@/components/layout/app-shell'
 import { LocationList } from '@/components/storage/location-list'
+import { UnallocatedNotice } from '@/components/storage/unallocated-notice'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/states'
-import { listStorageLocations } from '@/server/application/storage'
+import { countUnallocated, listStorageLocations } from '@/server/application/storage'
 import { requireViewer } from '@/server/http/viewer'
 
 export const metadata: Metadata = { title: 'Binders' }
@@ -23,7 +24,10 @@ export const metadata: Metadata = { title: 'Binders' }
  */
 export default async function BindersPage() {
   const viewer = await requireViewer('/binders')
-  const locations = await listStorageLocations(viewer)
+  const [locations, unallocated] = await Promise.all([
+    listStorageLocations(viewer),
+    countUnallocated(viewer),
+  ])
 
   if (locations.length === 0) {
     return (
@@ -50,6 +54,13 @@ export default async function BindersPage() {
       />
 
       <div className="flex flex-col gap-4">
+        {/*
+          Só depois de existir um local: sem nenhum, tudo está sem lugar, o
+          número seria o tamanho da coleção e o convite não teria para onde
+          levar.
+        */}
+        <UnallocatedNotice summary={unallocated} />
+
         <LocationList locations={locations} />
 
         <Button asChild size="lg" block>

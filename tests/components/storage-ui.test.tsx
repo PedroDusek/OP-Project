@@ -5,9 +5,15 @@ import { LocationForm } from '@/components/storage/location-form'
 import { LocationList } from '@/components/storage/location-list'
 import { StoredCards } from '@/components/storage/stored-cards'
 import { VariantAllocationsPanel } from '@/components/storage/variant-allocations'
+import { PlaceCards } from '@/components/storage/place-cards'
+import { UnallocatedNotice } from '@/components/storage/unallocated-notice'
 import { ToastProvider } from '@/components/ui/toast'
 import { formError } from '@/server/http/form-state'
-import type { StorageLocationSummary, StoredCardView } from '@/server/application/storage'
+import type {
+  StorageLocationSummary,
+  StoredCardView,
+  UnallocatedCard,
+} from '@/server/application/storage'
 
 /*
  * As acoes de servidor arrastam o Prisma no grafo de modulos. No Next elas
@@ -19,12 +25,20 @@ const setAllocationAction = vi.hoisted(() =>
     status: 'saved' as const,
     quantity: Number(data.get('quantity')),
     storageLocationId: String(data.get('storageLocationId')),
-    locationName: String(data.get('locationName')),
+  })),
+)
+
+const placeCopiesAction = vi.hoisted(() =>
+  vi.fn(async (_previous: unknown, data: FormData) => ({
+    status: 'saved' as const,
+    quantity: Number(data.get('copies')),
+    storageLocationId: String(data.get('storageLocationId')),
   })),
 )
 
 vi.mock('@/app/(app)/binders/actions', () => ({
   setAllocationAction,
+  placeCopiesAction,
   deleteLocationAction: vi.fn(),
   createLocationAction: vi.fn(),
   updateLocationAction: vi.fn(),
@@ -32,6 +46,7 @@ vi.mock('@/app/(app)/binders/actions', () => ({
 
 afterEach(() => {
   setAllocationAction.mockClear()
+  placeCopiesAction.mockClear()
 })
 
 const withToast = (ui: React.ReactNode) => render(<ToastProvider>{ui}</ToastProvider>)
@@ -253,11 +268,18 @@ describe('StoredCards', () => {
     expect(enviado.get('quantity')).toBe('2')
   })
 
-  it('o vazio explica como guardar a primeira carta', () => {
+  /**
+   * O vazio nao manda mais a pessoa embora: antes dizia "abra uma carta da sua
+   * colecao", que era a unica forma de guardar algo — e ficava fora de Binders.
+   */
+  it('o vazio leva a guardar as copias soltas', () => {
     render_([])
 
     expect(screen.getByText('Nada guardado aqui')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Abrir a coleção' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Ver cartas sem lugar' })).toHaveAttribute(
+      'href',
+      '/binders/sem-lugar',
+    )
   })
 })
 
@@ -332,5 +354,149 @@ describe('VariantAllocationsPanel', () => {
     })
 
     expect(screen.queryByText('Onde está guardada')).not.toBeInTheDocument()
+  })
+})
+
+describe('UnallocatedNotice', () => {
+  /**
+   * Cópia sem lugar é estado normal, não defeito. Um alerta vermelho diria que
+   * há algo quebrado, e uma tela que grita quando nada está errado ensina a
+   * ignorá-la.
+   */
+  it('convida sem alarmar', () => {
+    render(<UnallocatedNotice summary={{ copies: 12, cards: 5 }} />)
+
+    const convite = screen.getByRole('link', { name: /sem lugar/ })
+    expect(convite).toHaveAttribute('href', '/binders/sem-lugar')
+    expect(convite).toHaveTextContent('12 cópias sem lugar')
+    expect(convite).toHaveTextContent('5 cartas')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('some quando a conta fecha', () => {
+    const { container } = render(<UnallocatedNotice summary={{ copies: 0, cards: 0 }} />)
+
+    expect(container).toBeEmptyDOMElement()
+  })
+
+  it('concorda no singular', () => {
+    render(<UnallocatedNotice summary={{ copies: 1, cards: 1 }} />)
+
+    expect(screen.getByRole('link')).toHaveTextContent('1 cópia sem lugar')
+    expect(screen.getByRole('link')).toHaveTextContent('1 carta')
+  })
+})
+
+describe('PlaceCards', () => {
+  const solta = (overrides: Partial<UnallocatedCard> = {}): UnallocatedCard => ({
+    variantId: '1',
+    cardCode: 'OP01-001',
+    cardName: 'Roronoa Zoro',
+    rarity: 'SR',
+    variantType: 'Normal',
+    imageUrl: null,
+    owned: 4,
+    allocated: 1,
+    loose: 3,
+    ...overrides,
+  })
+
+  const locais: StorageLocationSummary[] = [
+    {
+      id: '9',
+      name: 'Binder Principal',
+      type: 'BINDER',
+      purpose: 'COLLECTION',
+      image: null,
+      subtitle: 'Binder • Coleção',
+      cardCount: 48,
+    },
+    {
+      id: '10',
+      name: 'Deck Sabo',
+      type: 'DECK',
+      purpose: null,
+      image: null,
+      subtitle: 'Deck',
+      cardCount: 50,
+    },
+  ]
+
+  const abrir = async (cards = [solta()]) => {
+    withToast(<PlaceCards cards={cards} locations={locais} />)
+    await userEvent.click(screen.getByRole('button', { name: /OP01-001/ }))
+    return screen.findByRole('dialog')
+  }
+
+  it('mostra quantas estão soltas sobre quantas se tem', () => {
+    withToast(<PlaceCards cards={[solta()]} locations={locais} />)
+
+    expect(screen.getByText('3')).toBeInTheDocument()
+    expect(screen.getByText('/4')).toBeInTheDocument()
+  })
+
+  /** Guardar tudo junto é o caso comum: quem abriu um pacote põe as quatro no mesmo binder. */
+  it('já vem com todas as soltas escolhidas', async () => {
+    const painel = await abrir()
+
+    expect(within(painel).getByRole('textbox', { name: 'Quantas cópias' })).toHaveValue('3')
+  })
+
+  it('não deixa guardar mais do que está solto', async () => {
+    const painel = await abrir()
+
+    await userEvent.click(within(painel).getByRole('button', { name: 'Aumentar Quantas cópias' }))
+
+    expect(within(painel).getByRole('textbox', { name: 'Quantas cópias' })).toHaveValue('3')
+  })
+
+  /** Escolher o local já é confirmar: um toque por carta. */
+  it('tocar num local guarda ali', async () => {
+    const painel = await abrir()
+
+    const linha = within(painel).getByText('Deck Sabo').closest('div')!
+    await userEvent.click(within(linha).getByRole('button', { name: 'Guardar' }))
+
+    const enviado = placeCopiesAction.mock.calls[0][1]
+    expect(enviado.get('variantId')).toBe('1')
+    expect(enviado.get('storageLocationId')).toBe('10')
+    expect(enviado.get('copies')).toBe('3')
+  })
+
+  it('manda só as cópias escolhidas', async () => {
+    const painel = await abrir()
+
+    await userEvent.click(within(painel).getByRole('button', { name: 'Diminuir Quantas cópias' }))
+    const linha = within(painel).getByText('Binder Principal').closest('div')!
+    await userEvent.click(within(linha).getByRole('button', { name: 'Guardar' }))
+
+    expect(placeCopiesAction.mock.calls[0][1].get('copies')).toBe('2')
+  })
+
+  it('busca por código e por nome', async () => {
+    withToast(
+      <PlaceCards
+        cards={[
+          solta({ variantId: '1', cardCode: 'OP01-001', cardName: 'Zoro' }),
+          solta({ variantId: '2', cardCode: 'OP01-002', cardName: 'Nami' }),
+        ]}
+        locations={locais}
+      />,
+    )
+
+    await userEvent.type(
+      screen.getByRole('searchbox', { name: 'Buscar entre as cartas sem lugar' }),
+      'nami',
+    )
+
+    const linhas = screen.getAllByRole('button').filter((b) => b.textContent?.includes('OP01-'))
+    expect(linhas).toHaveLength(1)
+    expect(linhas[0]).toHaveTextContent('OP01-002')
+  })
+
+  it('celebra quando não sobra nada', () => {
+    withToast(<PlaceCards cards={[]} locations={locais} />)
+
+    expect(screen.getByText('Tudo tem lugar')).toBeInTheDocument()
   })
 })

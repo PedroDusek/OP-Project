@@ -67,14 +67,12 @@ export function AllocationSheet({
 
     toast({
       title:
-        state.quantity === 0
-          ? `Retirada de ${state.locationName}`
-          : `${state.quantity} em ${state.locationName}`,
+        state.quantity === 0 ? `Retirada de ${locationName}` : `${state.quantity} em ${locationName}`,
       description: `${code} — ${name}`,
       tone: 'success',
     })
     onOpenChange(false)
-  }, [state, code, name, toast, onOpenChange])
+  }, [state, code, name, locationName, toast, onOpenChange])
 
   return (
     <Sheet
@@ -86,7 +84,6 @@ export function AllocationSheet({
       <form action={action} className="flex flex-col gap-5">
         <input type="hidden" name="variantId" value={variantId} />
         <input type="hidden" name="storageLocationId" value={storageLocationId} />
-        <input type="hidden" name="locationName" value={locationName} />
 
         <div className="flex items-center gap-3">
           <CardArt src={imageUrl} alt="" fallback={code} sizes="72px" className="w-18 shrink-0" />

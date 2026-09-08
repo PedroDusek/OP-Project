@@ -235,6 +235,7 @@ test.describe('binders protegidos', () => {
     for (const path of [
       '/binders',
       '/binders/novo',
+      '/binders/sem-lugar',
       '/binders/1',
       '/binders/1/cartas',
       '/binders/1/editar',

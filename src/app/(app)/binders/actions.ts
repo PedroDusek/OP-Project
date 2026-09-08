@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import {
+  addAllocation,
   createStorageLocation,
   deleteStorageLocation,
   setAllocation,
@@ -96,7 +97,6 @@ export async function setAllocationAction(
 
   const variantId = String(data.get('variantId') ?? '')
   const storageLocationId = String(data.get('storageLocationId') ?? '')
-  const locationName = String(data.get('locationName') ?? '')
   const quantity = Number(data.get('quantity'))
 
   if (
@@ -117,16 +117,60 @@ export async function setAllocationAction(
     )
 
     revalidatePath('/binders')
+    revalidatePath('/binders/sem-lugar')
     revalidatePath(`/binders/${storageLocationId}`)
     revalidatePath(`/binders/${storageLocationId}/cartas`)
     revalidatePath(`/catalogo/carta/${variantId}`)
 
-    return {
-      status: 'saved',
-      quantity: result.quantity,
-      storageLocationId,
-      locationName,
-    }
+    return { status: 'saved', quantity: result.quantity, storageLocationId }
+  } catch (error) {
+    return { status: 'error', message: formErrorFrom(error).message }
+  }
+}
+
+/**
+ * Guardar cópias soltas num local (tela de organizar).
+ *
+ * Manda **quantas acrescentar**, e não o total do local: quem organiza sabe
+ * "guardar estas 3 aqui" e não deveria precisar saber quantas já estavam ali.
+ * O total é calculado no servidor, dentro do lock — calcular no cliente seria
+ * calcular a partir de uma leitura que o lock existe justamente para invalidar.
+ */
+export async function placeCopiesAction(
+  _previous: AllocationState,
+  data: FormData,
+): Promise<AllocationState> {
+  const viewer = await currentViewer()
+  if (!viewer) return { status: 'error', message: SESSION_EXPIRED }
+
+  const variantId = String(data.get('variantId') ?? '')
+  const storageLocationId = String(data.get('storageLocationId') ?? '')
+  const copies = Number(data.get('copies'))
+
+  if (
+    !/^\d+$/.test(variantId) ||
+    !/^\d+$/.test(storageLocationId) ||
+    !Number.isInteger(copies) ||
+    copies <= 0
+  ) {
+    return { status: 'error', message: 'Quantidade inválida.' }
+  }
+
+  try {
+    const result = await addAllocation(
+      viewer,
+      BigInt(variantId),
+      BigInt(storageLocationId),
+      copies,
+    )
+
+    revalidatePath('/binders')
+    revalidatePath('/binders/sem-lugar')
+    revalidatePath(`/binders/${storageLocationId}`)
+    revalidatePath(`/binders/${storageLocationId}/cartas`)
+    revalidatePath(`/catalogo/carta/${variantId}`)
+
+    return { status: 'saved', quantity: result.quantity, storageLocationId }
   } catch (error) {
     return { status: 'error', message: formErrorFrom(error).message }
   }

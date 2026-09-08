@@ -12,9 +12,15 @@ export type LocationFormState = { status: 'idle' } | FormError
 
 export const LOCATION_IDLE: LocationFormState = { status: 'idle' }
 
+/**
+ * O nome do local nao volta do servidor: quem abriu o painel ja o tem em maos, e
+ * devolver o nome obrigaria o formulario a manda-lo — um campo de texto que o
+ * cliente escolhe e que nada confere. O id basta, e e ele que e conferido
+ * contra o dono.
+ */
 export type AllocationState =
   | { status: 'idle' }
-  | { status: 'saved'; quantity: number; storageLocationId: string; locationName: string }
+  | { status: 'saved'; quantity: number; storageLocationId: string }
   | { status: 'error'; message: string }
 
 export const ALLOCATION_IDLE: AllocationState = { status: 'idle' }

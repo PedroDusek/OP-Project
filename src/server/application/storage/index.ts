@@ -14,9 +14,14 @@ import {
   type LocationInput,
 } from './write-locations'
 import {
+  addAllocation as addAllocationWith,
   listVariantAllocations as listVariantAllocationsWith,
   setAllocation as setAllocationWith,
 } from './allocate'
+import {
+  countUnallocated as countUnallocatedWith,
+  listUnallocated as listUnallocatedWith,
+} from './unallocated'
 
 /**
  * Ponto de composicao dos casos de uso de armazenamento.
@@ -75,7 +80,25 @@ export function setAllocation(
   return setAllocationWith(prisma, user, cardVariantId, storageLocationId, quantity)
 }
 
+export function addAllocation(
+  user: AuthenticatedUser,
+  cardVariantId: bigint,
+  storageLocationId: bigint,
+  copies: number,
+) {
+  return addAllocationWith(prisma, user, cardVariantId, storageLocationId, copies)
+}
+
+export function countUnallocated(user: AuthenticatedUser) {
+  return countUnallocatedWith(prisma, user)
+}
+
+export function listUnallocated(user: AuthenticatedUser) {
+  return listUnallocatedWith(prisma, user)
+}
+
 export type { LocationInput, StoredCardsQuery }
+export type { UnallocatedCard, UnallocatedSummary } from './unallocated'
 export type {
   StorageLocationDetail,
   StorageLocationSummary,

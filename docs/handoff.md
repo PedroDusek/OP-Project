@@ -30,7 +30,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 10 concluídos.** 580 testes de unidade, integração e
+**Checkpoints 0 a 10 concluídos.** 600 testes de unidade, integração e
 componente, mais 28 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -46,6 +46,7 @@ componente, mais 28 ponta a ponta. Lint, typecheck e build passando.
 | 8 | Catálogo na interface: busca, filtros, sets, detalhe do set e da variante |
 | 9 | Coleção na interface: grade, filtros, playsets, quantidade, progresso real |
 | 10 | Binders: locais, alocação, upload de imagem, resolução da decisão 007 |
+| — | Binders ganhou a direção inversa: organizar as cópias sem lugar (decisão 045) |
 
 **Banco de produção populado e conferido:** 2.785 cartas, 4.843 variantes, 60
 sets, 4.842 impressões — números idênticos ao local, estrutura conferida objeto
@@ -53,7 +54,7 @@ a objeto.
 
 ## As decisões que mais restringem o que vem depois
 
-As 44 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 45 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
@@ -242,7 +243,14 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
   `DESTINATIONS` quando a seção existir — e aí a barra passa a ter seis, ou algo
   sai. Decisão do dono do produto na hora.
 - **Edição em massa dentro de um binder.** O dono do produto definiu o lugar: a
-  aba Binders, com um local escolhido. É por onde o Checkpoint 11 começa.
+  aba Binders, com um local escolhido. É por onde o Checkpoint 11 começa, e
+  `/binders/sem-lugar` já é o esqueleto: lista, busca e uma operação por carta.
+  Falta a seleção múltipla.
+- **A rota do detalhe da carta diz `/catalogo/`** e a tela é usada também a
+  partir da coleção e dos binders. Não confunde na prática — o link de voltar
+  leva de onde a pessoa veio (decisão 044) —, mas uma rota neutra
+  (`/carta/[id]`) descreveria melhor o que ela é. Mudança mecânica, adiada por
+  não resolver nenhum problema real hoje.
 - **"Playsets aqui" no detalhe do local.** A tela 22 mostra uma contagem de
   playsets dentro de um binder, e a definição da `business-rules.md` 2.1 é sobre
   a coleção inteira. A leitura adotada é a física — cartas inteiras naquele
