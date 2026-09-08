@@ -5,9 +5,11 @@ import { AddToCollection } from '@/components/collection/add-to-collection'
 import { VariantAllocationsPanel } from '@/components/storage/variant-allocations'
 import { WantButton } from '@/components/wants/want-sheet'
 import { LigaLink } from './liga-link'
+import { MarketPricePanel } from './market-price'
 import { Panel } from '@/components/ui/surface'
 import type { getCardVariant } from '@/server/application/catalog/get-card-variant'
 import type { VariantAllocations } from '@/server/application/storage'
+import type { MarketPrice } from '@/server/application/prices'
 import { displaySetCode, displaySetName } from '@/server/domain/catalog/sets'
 import { cn } from '@/lib/cn'
 
@@ -31,6 +33,7 @@ export function VariantDetail({
   ownedQuantity = 0,
   wantedQuantity = 0,
   allocations,
+  price = null,
 }: {
   variant: Variant
   ownedQuantity?: number
@@ -38,6 +41,8 @@ export function VariantDetail({
   wantedQuantity?: number
   /** Onde as copias estao guardadas. Ausente para quem nao tem sessao. */
   allocations?: VariantAllocations
+  /** Cotacao vigente. Nulo para paralela e para carta sem cotacao na fonte. */
+  price?: MarketPrice | null
 }) {
   const { card } = variant
 
@@ -94,10 +99,13 @@ export function VariantDetail({
         />
 
         {/*
-          O preco ainda nao existe no produto, e a Liga e onde quem joga no
-          Brasil consulta o dele. O link e so trafego chegando: ler preco de la
-          exigiria contornar a protecao anti-bot do site.
+          O preco e o link da Liga ficam juntos, e nesta ordem, porque respondem
+          a mesma pergunta em dois mercados: o valor em dolar aqui, e o preco em
+          real a um toque de distancia. Ler preco da Liga direto exigiria
+          contornar a protecao anti-bot do site.
         */}
+        <MarketPricePanel price={price} variantType={variant.variantType} />
+
         <LigaLink
           cardCode={card.code}
           cardName={card.name}

@@ -7,6 +7,7 @@ import { getCardVariant } from '@/server/application/catalog'
 import { searchCollection } from '@/server/application/collection'
 import { listVariantAllocations } from '@/server/application/storage'
 import { getWantQuantity } from '@/server/application/wants'
+import { getMarketPrice } from '@/server/application/prices'
 import { safeReturnTo } from '@/lib/catalog-params'
 import { currentViewer } from '@/server/http/viewer'
 import { VariantDetail } from '@/components/catalog/variant-detail'
@@ -45,9 +46,13 @@ export async function generateMetadata({
  * é daqui que se guarda pela primeira vez num binder, sem passar pelo
  * armazenamento e procurar a carta de novo.
  *
- * O que ainda não existe: want, disponível para troca e preço. São casos de uso
- * dos próximos checkpoints, e botões que não fazem nada seriam pior que a
- * ausência deles.
+ * O preço de mercado fica logo acima do link da Liga: quem chega aqui querendo
+ * saber quanto vale a carta encontra o número em dólar e, um toque abaixo, o
+ * caminho para o preço em real. Ele é lido sem sessão — o valor da carta não
+ * depende de quem está olhando.
+ *
+ * O que ainda não existe: disponível para troca. É caso de uso dos próximos
+ * checkpoints, e botão que não faz nada seria pior que a ausência dele.
  */
 export default async function CartaPage({
   params,
@@ -78,9 +83,10 @@ export default async function CartaPage({
       )?.quantity ?? 0
     : 0
 
-  const [allocations, wanted] = await Promise.all([
+  const [allocations, wanted, price] = await Promise.all([
     viewer && owned > 0 ? listVariantAllocations(viewer, id) : undefined,
     viewer ? getWantQuantity(viewer, id) : 0,
+    getMarketPrice(id),
   ])
 
   return (
@@ -98,6 +104,7 @@ export default async function CartaPage({
         ownedQuantity={owned}
         wantedQuantity={wanted}
         allocations={allocations}
+        price={price}
       />
     </>
   )
