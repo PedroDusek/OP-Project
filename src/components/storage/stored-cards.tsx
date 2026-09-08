@@ -72,10 +72,14 @@ export function StoredCards({ cards, storageLocationId, locationName }: StoredCa
           title={cards.length === 0 ? 'Nada guardado aqui' : 'Nada nesta busca'}
           description={
             cards.length === 0
-              ? 'Abra uma carta da sua coleção e diga em qual local ela está.'
+              ? 'Comece pelas cópias que ainda não têm lugar registrado.'
               : 'Tente outro código ou nome.'
           }
-          action={cards.length === 0 ? { label: 'Abrir a coleção', href: '/colecao' } : undefined}
+          action={
+            cards.length === 0
+              ? { label: 'Ver cartas sem lugar', href: '/binders/sem-lugar' }
+              : undefined
+          }
         />
       ) : layout === 'grid' ? (
         <CardGrid>

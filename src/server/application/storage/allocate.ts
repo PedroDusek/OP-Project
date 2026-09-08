@@ -113,6 +113,46 @@ export async function setAllocation(
     throw new ConflictError('QUANTIDADE_INVALIDA', 'A quantidade precisa ser zero ou mais.')
   }
 
+  return writeAllocation(prisma, user, cardVariantId, storageLocationId, () => quantity)
+}
+
+/**
+ * Acrescenta cópias a um local, em vez de definir o total.
+ *
+ * Existe para a tela de organizar: lá a pergunta é "guardar 3 aqui", e quem
+ * pergunta não sabe — nem deveria precisar saber — quantas já estavam no local.
+ * Calcular o total no cliente seria calcular a partir de um número lido antes,
+ * que é exatamente a leitura que o lock existe para invalidar.
+ */
+export async function addAllocation(
+  prisma: PrismaClient,
+  user: AuthenticatedUser,
+  cardVariantId: bigint,
+  storageLocationId: bigint,
+  copies: number,
+): Promise<SetAllocationResult> {
+  if (!Number.isInteger(copies) || copies <= 0) {
+    throw new ConflictError('QUANTIDADE_INVALIDA', 'Escolha ao menos uma cópia.')
+  }
+
+  return writeAllocation(prisma, user, cardVariantId, storageLocationId, (current) => current + copies)
+}
+
+/**
+ * O corpo compartilhado: trava, confere o espaço e grava.
+ *
+ * `resolve` recebe o que já está **neste** local, lido dentro da transação, e
+ * devolve o total desejado. É o que permite "definir" e "acrescentar" sem duas
+ * cópias da mesma verificação — e sem que "acrescentar" dependa de um número
+ * lido antes do lock.
+ */
+async function writeAllocation(
+  prisma: PrismaClient,
+  user: AuthenticatedUser,
+  cardVariantId: bigint,
+  storageLocationId: bigint,
+  resolve: (currentHere: number) => number,
+): Promise<SetAllocationResult> {
   return prisma.$transaction(async (tx) => {
     const location = await tx.storageLocation.findFirst({
       where: { id: storageLocationId, userId: user.id },
@@ -140,6 +180,9 @@ export async function setAllocation(
       quantity: row.quantity,
     }))
 
+    const current = existing.find((row) => row.storageLocationId === location.id)
+    const quantity = resolve(current?.quantity ?? 0)
+
     const room = roomFor(owned, allocations, String(location.id))
     if (quantity > room) {
       throw new ConflictError(
@@ -150,8 +193,6 @@ export async function setAllocation(
         { ownedQuantity: owned, room },
       )
     }
-
-    const current = existing.find((row) => row.storageLocationId === location.id)
 
     if (quantity === 0) {
       if (current) {

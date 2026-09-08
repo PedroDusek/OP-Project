@@ -2112,3 +2112,84 @@ pelo catálogo.
 ## Data
 
 2026-09-07
+
+---
+
+# Decisão: 045 — A direção que faltava em Binders
+
+## Contexto
+
+O dono do produto perguntou por que a edição de local de uma carta estava no
+catálogo, e se não deveria estar em Binders.
+
+A rota `/catalogo/carta/[id]` não é uma tela de catálogo, apesar do endereço:
+é o detalhe da carta, e desde o Checkpoint 9 é onde moram todas as ações
+pessoais sobre ela — quantas se tem e, desde o 10, onde ela está.
+
+Mas o diagnóstico por trás da pergunta estava certo. **Binders só tinha uma
+direção.** Dentro de um local dava para ver o que já estava lá e ajustar
+quantidades; não dava para *pôr* uma carta ali. O estado vazio da tela mandava
+a pessoa embora: *"Abra uma carta da sua coleção e diga em qual local ela
+está."*
+
+Ou seja: a única forma de guardar uma carta era entrando por uma tela cujo
+endereço diz "catálogo".
+
+## Decisão — as duas direções existem, cada uma onde a pergunta é feita
+
+Não é uma escolha entre elas: são tarefas diferentes.
+
+| Pergunta | Onde | Forma |
+|---|---|---|
+| "Onde está esta carta?" | detalhe da carta | uma carta, vários locais |
+| "O que ainda não guardei?" | Binders | várias cartas, um local por vez |
+
+A segunda passou a existir em `/binders/sem-lugar`. Ela lista as cópias sem
+lugar registrado e guarda cada uma em um toque.
+
+O painel do detalhe da carta **fica onde está**. Remover seria piorar o fluxo
+mais comum do produto: quem abre um pacote registra a carta e diz onde ela foi
+parar na mesma tela. Obrigar a ir a Binders e procurar a carta de novo trocaria
+um toque por seis.
+
+## O lembrete
+
+Uma linha calma no topo de Binders, na cor da marca, que leva à tela de
+organizar e some sozinha quando a conta fecha.
+
+**Não é um alerta, e isso é deliberado.** Cópia sem lugar registrado é estado
+normal (`business-rules.md` 3.2) — ninguém é obrigado a mapear a coleção
+inteira. `role="alert"` e vermelho diriam que há algo quebrado, e uma tela que
+grita quando nada está errado ensina a ser ignorada.
+
+Some também quando não há nenhum local criado: aí **tudo** está sem lugar, o
+número seria o tamanho da coleção e o convite não teria para onde levar. Nesse
+caso quem fala é o estado vazio da lista, que manda criar o primeiro.
+
+Mostra dois números porque respondem a coisas diferentes: as cópias dizem o
+tamanho do trabalho, as cartas dizem quantas vezes se toca na tela.
+
+## `addAllocation`: manda quantas acrescentar, não o total
+
+A tela de organizar diz "guardar 3 aqui". Quem organiza não sabe — nem deveria
+precisar saber — quantas já estavam no local.
+
+Calcular o total no cliente seria calculá-lo a partir de um número lido **antes**
+da transação, que é exatamente a leitura que o lock existe para invalidar: duas
+telas guardando a mesma carta ao mesmo tempo gravariam uma por cima da outra em
+vez de somar. O total é resolvido dentro do lock, sobre a linha travada, e um
+teste de concorrência cobre as duas adições simultâneas.
+
+`setAllocation` e `addAllocation` compartilham o mesmo corpo, que recebe o que
+já está no local e devolve o total desejado — uma verificação só, não duas
+cópias dela.
+
+## O nome do local não volta do servidor
+
+A resposta traz o id, e a tela resolve o nome na lista que já tem. Devolver o
+nome obrigaria o formulário a mandá-lo: um campo de texto escolhido pelo cliente
+e conferido por ninguém. O id é o que é conferido contra o dono.
+
+## Data
+
+2026-09-07

@@ -11,9 +11,14 @@ import {
 } from '@/server/application/storage/write-locations'
 import {
   ALLOCATION_EXCEEDS_OWNED,
+  addAllocation,
   listVariantAllocations,
   setAllocation,
 } from '@/server/application/storage/allocate'
+import {
+  countUnallocated,
+  listUnallocated,
+} from '@/server/application/storage/unallocated'
 import {
   QUANTITY_BELOW_ALLOCATED,
   RESOLUTION_INVALID,
@@ -603,5 +608,149 @@ describe('resolucao da decisao 007', () => {
     expect(resultado).toEqual({ quantity: 0, removed: true })
     expect(await testPrisma().collectionItem.count()).toBe(0)
     expect(await testPrisma().collectionItemLocation.count()).toBe(0)
+  })
+})
+
+/**
+ * Copias sem lugar registrado.
+ *
+ * Nao existe local "sem lugar" (`business-rules.md` 3.2): isto e o resto da
+ * conta — possuido menos alocado —, calculado na leitura. Materializar seria
+ * criar um segundo lugar capaz de divergir da soma real.
+ */
+describe('cartas sem lugar', () => {
+  it('conta as copias soltas e as cartas que as tem', async () => {
+    const { user, collectionId } = await owner()
+    const solta = await createCardWithVariant()
+    const guardada = await createCardWithVariant()
+    const binder = await createStorage(user.id, 'BINDER', 'COLLECTION')
+
+    const itemSolto = await own(collectionId, solta.variant.id, 4)
+    await allocate(itemSolto.id, binder.id, 1)
+
+    const itemGuardado = await own(collectionId, guardada.variant.id, 2)
+    await allocate(itemGuardado.id, binder.id, 2)
+
+    // Tres soltas, todas da mesma carta.
+    expect(await countUnallocated(testPrisma(), user)).toEqual({ copies: 3, cards: 1 })
+  })
+
+  it('carta sem nenhuma alocacao esta inteira sem lugar', async () => {
+    const { user, collectionId } = await owner()
+    const { variant } = await createCardWithVariant()
+    await own(collectionId, variant.id, 3)
+
+    expect(await countUnallocated(testPrisma(), user)).toEqual({ copies: 3, cards: 1 })
+  })
+
+  it('colecao inteiramente guardada nao gera lembrete', async () => {
+    const { user, collectionId } = await owner()
+    const { variant } = await createCardWithVariant()
+    const item = await own(collectionId, variant.id, 2)
+    const binder = await createStorage(user.id, 'BINDER', 'COLLECTION')
+    await allocate(item.id, binder.id, 2)
+
+    expect(await countUnallocated(testPrisma(), user)).toEqual({ copies: 0, cards: 0 })
+  })
+
+  it('lista so quem tem copia solta, com a conta de cada uma', async () => {
+    const { user, collectionId } = await owner()
+    const solta = await createCardWithVariant('Character', 'OP01-001')
+    const guardada = await createCardWithVariant('Character', 'OP01-002')
+    const binder = await createStorage(user.id, 'BINDER', 'COLLECTION')
+
+    const itemSolto = await own(collectionId, solta.variant.id, 4)
+    await allocate(itemSolto.id, binder.id, 1)
+    const itemGuardado = await own(collectionId, guardada.variant.id, 1)
+    await allocate(itemGuardado.id, binder.id, 1)
+
+    const lista = await listUnallocated(testPrisma(), user)
+
+    expect(lista).toHaveLength(1)
+    expect(lista[0]).toMatchObject({ cardCode: 'OP01-001', owned: 4, allocated: 1, loose: 3 })
+  })
+
+  it('nao ve a colecao de outra pessoa', async () => {
+    const dono = await owner('Dono')
+    const outro = await owner('Outro')
+    const { variant } = await createCardWithVariant()
+    await own(dono.collectionId, variant.id, 3)
+
+    expect(await countUnallocated(testPrisma(), outro.user)).toEqual({ copies: 0, cards: 0 })
+    expect(await listUnallocated(testPrisma(), outro.user)).toEqual([])
+  })
+})
+
+describe('acrescentar copias a um local', () => {
+  it('soma ao que ja estava ali', async () => {
+    const { user, collectionId } = await owner()
+    const { variant } = await createCardWithVariant()
+    await own(collectionId, variant.id, 4)
+    const binder = await createStorage(user.id, 'BINDER', 'COLLECTION')
+    await setAllocation(testPrisma(), user, variant.id, binder.id, 1)
+
+    const resultado = await addAllocation(testPrisma(), user, variant.id, binder.id, 2)
+
+    expect(resultado).toEqual({ quantity: 3, removed: false })
+  })
+
+  it('cria a alocacao quando ainda nao ha nenhuma', async () => {
+    const { user, collectionId } = await owner()
+    const { variant } = await createCardWithVariant()
+    await own(collectionId, variant.id, 2)
+    const binder = await createStorage(user.id, 'BINDER', 'COLLECTION')
+
+    await addAllocation(testPrisma(), user, variant.id, binder.id, 2)
+
+    const estado = await listVariantAllocations(testPrisma(), user, variant.id)
+    expect(estado).toMatchObject({ allocated: 2, unallocated: 0 })
+  })
+
+  /** A invariante vale igual por este caminho. */
+  it('recusa acrescentar alem do que se possui', async () => {
+    const { user, collectionId } = await owner()
+    const { variant } = await createCardWithVariant()
+    await own(collectionId, variant.id, 3)
+    const binder = await createStorage(user.id, 'BINDER', 'COLLECTION', 'Binder')
+    const caixa = await createStorage(user.id, 'BOX', 'COLLECTION', 'Caixa')
+    await setAllocation(testPrisma(), user, variant.id, binder.id, 2)
+
+    const erro = await addAllocation(testPrisma(), user, variant.id, caixa.id, 2).catch(
+      (e: unknown) => e,
+    )
+
+    expect(erro).toBeInstanceOf(ConflictError)
+    expect((erro as ConflictError).code).toBe(ALLOCATION_EXCEEDS_OWNED)
+  })
+
+  it('recusa acrescentar zero ou menos', async () => {
+    const { user, collectionId } = await owner()
+    const { variant } = await createCardWithVariant()
+    await own(collectionId, variant.id, 2)
+    const binder = await createStorage(user.id, 'BINDER', 'COLLECTION')
+
+    await expect(
+      addAllocation(testPrisma(), user, variant.id, binder.id, 0),
+    ).rejects.toBeInstanceOf(ConflictError)
+  })
+
+  /**
+   * Duas telas guardando a mesma carta ao mesmo tempo somam sobre a leitura
+   * feita **dentro** do lock. Se o total viesse do cliente, a segunda escrita
+   * gravaria por cima da primeira em vez de somar a ela.
+   */
+  it('duas adicoes simultaneas somam, e nao se sobrescrevem', async () => {
+    const { user, collectionId } = await owner()
+    const { variant } = await createCardWithVariant()
+    await own(collectionId, variant.id, 4)
+    const binder = await createStorage(user.id, 'BINDER', 'COLLECTION')
+
+    await Promise.all([
+      addAllocation(testPrisma(), user, variant.id, binder.id, 2),
+      addAllocation(testPrisma(), user, variant.id, binder.id, 2),
+    ])
+
+    const estado = await listVariantAllocations(testPrisma(), user, variant.id)
+    expect(estado.allocated).toBe(4)
   })
 })
