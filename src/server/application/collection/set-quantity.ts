@@ -1,6 +1,11 @@
 import type { PrismaClient } from '@prisma/client'
 import { ConflictError, NotFoundError } from '@/server/domain/errors'
-import { planReduction, type Allocation, type Removal } from '@/server/domain/storage/allocation'
+import {
+  deducibleReduction,
+  planReduction,
+  type Allocation,
+  type Removal,
+} from '@/server/domain/storage/allocation'
 import type { AuthenticatedUser } from '@/server/application/auth'
 
 /**
@@ -27,6 +32,13 @@ import type { AuthenticatedUser } from '@/server/application/auth'
  *
  * Retirar mais do que o conflito exige e permitido: desalocar por vontade
  * propria enquanto resolve e escolha legitima, e a invariante continua de pe.
+ *
+ * ## Perguntar so quando ha escolha
+ *
+ * A regra existe para nao presumir de onde as copias saem, e presumir so tem
+ * sentido quando ha mais de uma resposta. Sair da colecao inteira leva tudo, e
+ * um local unico so pode ser aquele: nesses dois casos a resolucao e deduzida e
+ * aplicada na mesma transacao, sem pergunta nenhuma. Ver `deducibleReduction`.
  *
  * ## O lock
  *
@@ -136,8 +148,15 @@ export async function setCollectionQuantity(
       quantity: row.quantity,
     }))
 
-    if (removals.length > 0) {
-      const plan = planReduction(quantity, allocations, removals)
+    /*
+     * Sem resolucao vinda de fora, tenta deduzir. So o que nao se deduz vira
+     * pergunta.
+     */
+    const chosen =
+      removals.length > 0 ? removals : (deducibleReduction(quantity, allocations) ?? [])
+
+    if (chosen.length > 0) {
+      const plan = planReduction(quantity, allocations, chosen)
       if (!plan.ok) {
         throw new ConflictError(
           RESOLUTION_INVALID,

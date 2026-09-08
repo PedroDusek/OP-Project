@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { Archive, Package } from 'lucide-react'
+import { Archive } from 'lucide-react'
 import { ListRow, PanelList } from '@/components/ui/surface'
 import { EmptyState } from '@/components/ui/states'
 import type { AllocationView, VariantAllocations } from '@/server/application/storage'
 import { AllocationSheet } from './allocation-sheet'
+import { LocationArt } from './location-art'
 
 /**
  * Onde as cópias desta carta estão guardadas (a partir da tela 15).
@@ -17,6 +18,11 @@ import { AllocationSheet } from './allocation-sheet'
  * A linha de cópias sem lugar não é um local. Não existe local "sem lugar"
  * (`business-rules.md` 3.2): é o resto da conta, e aparece como texto para a
  * soma fechar na cabeça de quem olha.
+ *
+ * Cada local aparece com a própria foto, e não com um ícone genérico: é o mesmo
+ * quadro da lista de binders, e reconhecer o binder pela foto é mais rápido que
+ * ler o nome. Custa pouco — são 48 px servidos pelo otimizador e guardados por
+ * trinta dias, num punhado de locais.
  */
 export function VariantAllocationsPanel({
   variantId,
@@ -52,7 +58,7 @@ export function VariantAllocationsPanel({
             {allocations.locations.map((location) => (
               <ListRow
                 key={location.storageLocationId}
-                leading={<Package className="size-5 text-text-muted" aria-hidden />}
+                leading={<LocationArt image={location.image} type={location.type} />}
                 title={location.name}
                 description={location.subtitle}
                 trailing={

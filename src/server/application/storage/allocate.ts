@@ -33,6 +33,8 @@ export interface AllocationView {
   name: string
   type: StorageType
   purpose: StoragePurpose | null
+  /** A foto do local, para a lista mostrar o mesmo quadro do resto do produto. */
+  image: string | null
   subtitle: string
   /** Cópias desta variante guardadas ali. Zero quando não há. */
   quantity: number
@@ -61,7 +63,7 @@ export async function listVariantAllocations(
   const [locations, item] = await Promise.all([
     prisma.storageLocation.findMany({
       where: { userId: user.id },
-      select: { id: true, name: true, type: true, purpose: true },
+      select: { id: true, name: true, type: true, purpose: true, image: true },
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
     }),
     prisma.collectionItem.findFirst({
@@ -89,6 +91,7 @@ export async function listVariantAllocations(
         name: location.name,
         type,
         purpose,
+        image: location.image,
         subtitle: describeLocation(type, purpose),
         quantity: here.get(String(location.id)) ?? 0,
       }

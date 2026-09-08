@@ -187,10 +187,19 @@ describe('reduzir abaixo do que esta alocado (decisao 007)', () => {
     expect((await getCollectionSummary(testPrisma(), user)).totalCards).toBe(4)
   })
 
-  it('nenhuma alocacao e removida em silencio', async () => {
+  /**
+   * O que a regra protege e a **escolha**, e nao a alocacao em si: ela existe
+   * para ninguem presumir de qual local as copias saem. Numa reducao parcial
+   * com dois locais ha escolha, e nada e tocado sem resposta — e o que este
+   * teste fixa.
+   *
+   * Sair da colecao inteira nao tem escolha: leva tudo. Esse caminho e o de
+   * `reducao que se deduz sozinha`, em `tests/integration/storage.test.ts`.
+   */
+  it('nenhuma alocacao e removida em silencio quando ha escolha', async () => {
     const { user, variant } = await comAlocacoes()
 
-    await setCollectionQuantity(testPrisma(), user, variant.id, 0).catch(() => {})
+    await setCollectionQuantity(testPrisma(), user, variant.id, 2).catch(() => {})
 
     const restantes = await testPrisma().collectionItemLocation.count()
     expect(restantes).toBe(2)

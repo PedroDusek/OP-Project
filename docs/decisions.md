@@ -2425,3 +2425,64 @@ want e matching não usam preço — `MIN(disponível, desejado)`, e só.
 ## Data
 
 2026-09-08
+
+---
+
+# Decisão: 049 — Perguntar só quando há escolha
+
+## Contexto
+
+Primeiro uso real da remoção com alocação. O relato: pedir para remover a carta
+da coleção, escolher o local de onde tirá-la, e a carta **não sair da coleção**.
+
+## O defeito
+
+Dois, na verdade, e o segundo estava escondido atrás do primeiro.
+
+**O painel resolvia a quantidade errada.** "Remover da coleção" envia zero pelo
+`value` do próprio botão, sem mexer no seletor — arranjo deliberado, para não
+depender de um `setState` assíncrono antes do envio. Só que a resolução seguinte
+era enviada com o número do seletor, que continuava sendo o antigo. A pessoa
+pedia zero, resolvia o conflito, e a carta era "reduzida" para a quantidade que
+já tinha. Nada mudava.
+
+Agora o conflito traz a quantidade pedida — `requestedQuantity` já vinha na
+resposta — e o seletor passa a mostrá-la. A resolução vale para o que foi
+pedido.
+
+**E a pergunta não deveria existir.** Remover da coleção inteira não tem
+ambiguidade: se não sobra cópia, todas as alocações vão junto.
+
+## Decisão
+
+A regra 3.3 protege a **escolha**, não a alocação. Presumir só faz sentido
+quando há mais de uma resposta possível, e em dois casos não há:
+
+- a nova quantidade é **zero** — sai tudo;
+- as cópias guardadas estão em **um local só** — é de lá que saem.
+
+Nesses dois a retirada é deduzida e aplicada na mesma transação, sem pergunta.
+Fora deles, o conflito continua exatamente como estava: com dois locais e uma
+redução parcial, tirar duas do binder ou uma de cada são resultados diferentes,
+e a escolha é de quem tem a carta.
+
+Escolha do dono do produto, e ela melhora a regra em vez de afrouxá-la: o atrito
+que sobrou é só onde existe informação a dar.
+
+## O mesmo princípio nas trocas
+
+Registrado em `business-rules.md` 4.6 para quando as trocas forem construídas:
+as cópias saem por padrão dos locais com purpose `TRADE`, e a confirmação só
+aparece quando há escolha real — trocar 2 tendo 4 divididas em dois Trade
+Binders, por exemplo.
+
+## Um teste antigo mudou de lado
+
+`nenhuma alocacao e removida em silencio` fixava que zerar a quantidade deixava
+as alocações intactas. Era o comportamento que acabou de ser trocado, então o
+teste passou a exercer o caso que a regra realmente protege — redução parcial
+com dois locais — e o caminho novo ganhou os seus.
+
+## Data
+
+2026-09-08

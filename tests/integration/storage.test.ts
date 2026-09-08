@@ -1017,3 +1017,58 @@ describe('adicionar em massa', () => {
     expect(estado.allocated).toBe(5)
   })
 })
+
+/**
+ * Retirar sem perguntar, quando nao ha o que perguntar.
+ *
+ * Relatado no uso real: pedir para remover da colecao devolvia o conflito da
+ * decisao 007, e a carta acabava nao saindo.
+ */
+describe('reducao que se deduz sozinha', () => {
+  it('remover da colecao leva as alocacoes junto, sem conflito', async () => {
+    const { user, collectionId } = await owner()
+    const { variant } = await createCardWithVariant()
+    const item = await own(collectionId, variant.id, 4)
+    const binder = await createStorage(user.id, 'BINDER', 'COLLECTION', 'Binder')
+    const caixa = await createStorage(user.id, 'BOX', 'COLLECTION', 'Caixa')
+    await allocate(item.id, binder.id, 3)
+    await allocate(item.id, caixa.id, 1)
+
+    const resultado = await setCollectionQuantity(testPrisma(), user, variant.id, 0)
+
+    expect(resultado).toEqual({ quantity: 0, removed: true })
+    expect(await testPrisma().collectionItem.count()).toBe(0)
+    expect(await testPrisma().collectionItemLocation.count()).toBe(0)
+  })
+
+  it('com um local so, a reducao parcial sai dele sem perguntar', async () => {
+    const { user, collectionId } = await owner()
+    const { variant } = await createCardWithVariant()
+    const item = await own(collectionId, variant.id, 4)
+    const binder = await createStorage(user.id, 'BINDER', 'COLLECTION')
+    await allocate(item.id, binder.id, 4)
+
+    const resultado = await setCollectionQuantity(testPrisma(), user, variant.id, 2)
+
+    expect(resultado).toEqual({ quantity: 2, removed: false })
+    const alocado = await testPrisma().collectionItemLocation.findFirst()
+    expect(alocado!.quantity).toBe(2)
+  })
+
+  /** Com escolha real, a pergunta continua: e o ponto da decisao 007. */
+  it('com dois locais e reducao parcial, ainda pergunta', async () => {
+    const { user, collectionId } = await owner()
+    const { variant } = await createCardWithVariant()
+    const item = await own(collectionId, variant.id, 4)
+    const binder = await createStorage(user.id, 'BINDER', 'COLLECTION', 'Binder')
+    const caixa = await createStorage(user.id, 'BOX', 'COLLECTION', 'Caixa')
+    await allocate(item.id, binder.id, 3)
+    await allocate(item.id, caixa.id, 1)
+
+    const erro = await setCollectionQuantity(testPrisma(), user, variant.id, 2).catch(
+      (e: unknown) => e,
+    )
+
+    expect((erro as ConflictError).code).toBe(QUANTITY_BELOW_ALLOCATED)
+  })
+})

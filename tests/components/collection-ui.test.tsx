@@ -311,3 +311,66 @@ describe('resolucao da decisao 007', () => {
     expect(within(dialog).getByRole('textbox', { name: 'Retirar de Caixa Troca' })).toHaveValue('1')
   })
 })
+
+/**
+ * A resolucao vale para a quantidade **pedida**, e nao para a do seletor.
+ *
+ * "Remover da colecao" envia zero pelo valor do botao sem mexer no seletor.
+ * Antes, a resolucao seguinte saia com o numero antigo — e a carta nao saia da
+ * colecao, que foi o relato.
+ */
+describe('a resolucao segue o que foi pedido', () => {
+  it('o seletor passa a mostrar a quantidade do conflito', async () => {
+    setQuantityAction.mockResolvedValueOnce({
+      status: 'conflict',
+      message: 'Você tem 4 cópias guardadas.',
+      currentQuantity: 4,
+      requestedQuantity: 0,
+      allocations: [
+        { storageLocationId: '1', storageName: 'Binder Principal', quantity: 3 },
+        { storageLocationId: '2', storageName: 'Caixa Troca', quantity: 1 },
+      ],
+    } as never)
+
+    withToast(<CollectionGrid items={[card({ quantity: 4, quantityForCard: 4 })]} />)
+    await userEvent.click(screen.getByRole('button', { name: /OP01-001/ }))
+    const dialog = await screen.findByRole('dialog')
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Remover da coleção' }))
+    await screen.findByRole('alert')
+
+    expect(within(dialog).getByRole('textbox', { name: 'Quantidade' })).toHaveValue('0')
+  })
+
+  it('e o envio da resolucao carrega essa mesma quantidade', async () => {
+    setQuantityAction.mockResolvedValueOnce({
+      status: 'conflict',
+      message: 'Você tem 2 cópias guardadas.',
+      currentQuantity: 2,
+      requestedQuantity: 0,
+      allocations: [
+        { storageLocationId: '1', storageName: 'Binder Principal', quantity: 1 },
+        { storageLocationId: '2', storageName: 'Caixa Troca', quantity: 1 },
+      ],
+    } as never)
+
+    withToast(<CollectionGrid items={[card({ quantity: 2, quantityForCard: 2 })]} />)
+    await userEvent.click(screen.getByRole('button', { name: /OP01-001/ }))
+    const dialog = await screen.findByRole('dialog')
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Remover da coleção' }))
+    await screen.findByRole('alert')
+
+    await userEvent.click(
+      within(dialog).getByRole('button', { name: 'Aumentar Retirar de Binder Principal' }),
+    )
+    await userEvent.click(
+      within(dialog).getByRole('button', { name: 'Aumentar Retirar de Caixa Troca' }),
+    )
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Reduzir e retirar' }))
+
+    const enviado = setQuantityAction.mock.calls[1][1]
+    expect(enviado.get('quantity')).toBe('0')
+    expect(enviado.getAll('remocao').sort()).toEqual(['1:1', '2:1'])
+  })
+})

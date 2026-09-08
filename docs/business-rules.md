@@ -113,14 +113,26 @@ O local de armazenamento precisa pertencer ao mesmo usuário dono da coleção.
 
 ### 3.3 Reduzir a quantidade abaixo do que está alocado
 
-Quando o usuário reduz `quantity` abaixo do total já alocado, a escrita é
-rejeitada atomicamente e a API devolve um conflito contendo as alocações atuais.
-O cliente apresenta uma tela de resolução onde o usuário escolhe de quais locais
-as cópias saem, e envia essa resolução junto com a nova quantidade como uma
-única operação transacional.
+Alocações nunca são removidas silenciosamente, e **nenhuma ordem de remoção é
+presumida**. O que a regra protege é a escolha: ninguém decide por quem tem a
+carta de qual local as cópias saem.
 
-Alocações nunca são removidas silenciosamente, e nenhuma ordem de remoção é
-presumida.
+Presumir só faz sentido quando há mais de uma resposta possível. Em dois casos
+não há, e neles a retirada é deduzida e aplicada sem perguntar:
+
+| Caso | Por que não há escolha |
+|---|---|
+| A nova quantidade é **zero** | Não sobra cópia nenhuma: todas as alocações vão junto. |
+| Todas as cópias guardadas estão em **um local só** | É de lá que elas saem. |
+
+Fora esses dois, a escrita é rejeitada atomicamente e a API devolve um conflito
+contendo as alocações atuais. O cliente apresenta uma tela de resolução onde o
+usuário escolhe de quais locais as cópias saem, e envia essa resolução junto com
+a nova quantidade como uma única operação transacional.
+
+A dedução foi acrescentada pelo dono do produto depois do primeiro uso real:
+pedir para remover a carta da coleção e receber uma pergunta sobre de onde
+tirá-la, sendo que sai tudo, é atrito sem informação (decisão 049).
 
 ---
 
@@ -191,7 +203,19 @@ Não existem outros estados.
   mesmas cópias sejam comprometidas em vários trades ao mesmo tempo.
 - Um usuário pode ter qualquer quantidade de trades históricos.
 
-### 4.6 Conclusão
+### 4.6 De onde saem as cartas de um trade
+
+Ao concluir um trade, as cópias saem por padrão dos locais com purpose `TRADE`,
+que é onde elas estavam disponíveis para troca (4.1). É a mesma regra da seção
+3.3 aplicada aqui: deduzir quando a resposta é única, perguntar quando há
+escolha real.
+
+Há escolha real quando as cópias oferecidas estão espalhadas por mais de um
+local de troca e o trade leva só parte delas — por exemplo, trocar 2 tendo 4
+divididas em dois Trade Binders. Nesse caso, e só nele, o usuário confirma de
+onde elas saem.
+
+### 4.7 Conclusão
 
 Concluir um trade valida, numa única transação:
 
