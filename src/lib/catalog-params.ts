@@ -17,6 +17,7 @@ import type { CatalogQuery } from '@/server/application/catalog/search-cards'
 /** Nome do parâmetro na URL para cada filtro. */
 export const PARAM = {
   busca: 'q',
+  set: 'set',
   tipo: 'tipo',
   cor: 'cor',
   raridade: 'raridade',
@@ -71,6 +72,9 @@ export function toCatalogQuery(
 ): CatalogQuery {
   return {
     search: first(params[PARAM.busca]),
+    // Um set so: "as cartas de OP-09" e a pergunta; "as de OP-09 ou OP-11" nao
+    // e um gesto que alguem faca montando colecao.
+    setCode: first(params[PARAM.set]),
     type: list(params[PARAM.tipo]) as CatalogQuery['type'],
     color: list(params[PARAM.cor]),
     rarity: list(params[PARAM.raridade]),
@@ -104,7 +108,7 @@ export function countActiveFilters(params: CatalogSearchParams): number {
     PARAM.mecanica,
     PARAM.trait,
   ]
-  const singleKeys = [PARAM.custoMin, PARAM.custoMax, PARAM.poderMin, PARAM.poderMax]
+  const singleKeys = [PARAM.set, PARAM.custoMin, PARAM.custoMax, PARAM.poderMin, PARAM.poderMax]
 
   const many = multiKeys.reduce((total, key) => total + (list(params[key])?.length ?? 0), 0)
   const single = singleKeys.filter((key) => first(params[key]) !== undefined).length

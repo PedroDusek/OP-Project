@@ -30,7 +30,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 11 concluídos**, e o 12 começou pela want list. 717 testes
+**Checkpoints 0 a 11 concluídos**, e o 12 começou pela want list. 727 testes
 de unidade, integração e componente, mais 30 ponta a ponta. Lint, typecheck e
 build passando.
 
@@ -217,15 +217,19 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     foto escolhida passa por `lib/prepare-image.ts`, que encolhe e converte
     para JPEG no próprio aparelho — resolve o formato, o tamanho e o corpo da
     ação de uma vez.
-31. **O `IntersectionObserver` é um stub vazio em `setup-dom.ts`.** Necessário
+31. **O `Select` do Radix recusa item com valor vazio.** Ele reserva a string
+    vazia para "nada escolhido", então uma opção "Todos" com `value=""` quebra o
+    painel ao ser aberto. Use um valor de sentinela e traduza para `undefined`
+    na borda.
+32. **O `IntersectionObserver` é um stub vazio em `setup-dom.ts`.** Necessário
     para o jsdom não quebrar, mas deixa a rolagem infinita sem cobertura: um
     `ref` que não chegasse ao botão passaria batido. Quem mexer nela usa o
     observador controlável de `catalog-ui.test.tsx`.
-32. **Arquivo de teste de componente que renderiza tela com Server Action
+33. **Arquivo de teste de componente que renderiza tela com Server Action
     precisa mocká-la.** Sem isso o Prisma entra no grafo e o arquivo só passa
     quando outro projeto do Vitest já carregou o `.env` no mesmo processo —
     verde na suíte inteira, vermelho sozinho.
-33. **A barra inferior tem cinco lugares.** Seis alvos a 360 px dão 60 px cada,
+34. **A barra inferior tem cinco lugares.** Seis alvos a 360 px dão 60 px cada,
     abaixo do confortável. Destino novo entra tirando outro; hoje Trocas está
     fora, dentro de "Mais" (decisão 044). `SECONDARY_DESTINATIONS` existe para
     esses, e `activeDestination` olha os dois conjuntos.

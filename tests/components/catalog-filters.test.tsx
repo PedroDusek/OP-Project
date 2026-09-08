@@ -22,6 +22,10 @@ vi.mock('next/navigation', () => ({
 }))
 
 const VOCABULARY: CatalogVocabulary = {
+  sets: [
+    { code: 'OP01', displayCode: 'OP01', displayName: 'ROMANCE DAWN', kind: 'collection' as const },
+    { code: 'ST-01', displayCode: 'ST01', displayName: 'Straw Hat Crew', kind: 'deck' as const },
+  ],
   types: ['Leader', 'Character', 'Event', 'Stage'],
   rarities: ['C', 'UC', 'R', 'SR'],
   variantTypes: ['Normal', 'Parallel'],
@@ -203,5 +207,101 @@ describe('traits', () => {
     await userEvent.click(within(painel).getByRole('button', { name: /^Aplicar filtros/ }))
 
     expect(pushed().getAll('trait')).toEqual(['Navy', 'Straw Hat Crew'])
+  })
+})
+
+/**
+ * O filtro por set.
+ *
+ * Faltava, e o relato veio da edicao em massa: guardar num binder as cartas de
+ * uma colecao e de uma cor e o gesto mais comum de quem organiza. A tela 26 da
+ * especificacao ja mostrava o campo.
+ *
+ * E lista suspensa, e nao chips: sao sessenta sets, e "as cartas de OP-09 ou de
+ * OP-11" nao e uma pergunta que alguem faca.
+ */
+describe('filtro por set', () => {
+  /**
+   * O Radix so monta as opcoes depois de abrir, e num portal.
+   *
+   * A espera tem folga de proposito: montar o portal disputa o relogio com os
+   * outros arquivos rodando em paralelo, e o padrao de um segundo ja estourou
+   * uma vez sob carga.
+   */
+  const ESPERA = { timeout: 5000 }
+
+  const escolher = async (painel: HTMLElement, rotulo: RegExp) => {
+    await userEvent.click(within(painel).getByRole('combobox', { name: 'Set' }))
+    await userEvent.click(await screen.findByRole('option', { name: rotulo }, ESPERA))
+  }
+
+  const aplicar = (painel: HTMLElement) =>
+    userEvent.click(within(painel).getByRole('button', { name: /^Aplicar filtros/ }))
+
+  it('oferece colecoes e starter decks na mesma lista', async () => {
+    const painel = await abrir()
+    await userEvent.click(within(painel).getByRole('combobox', { name: 'Set' }))
+
+    const opcoes = (await screen.findAllByRole('option', undefined, ESPERA)).map(
+      (o) => o.textContent,
+    )
+    expect(opcoes[0]).toBe('Todos os sets')
+    expect(opcoes.some((o) => o?.includes('OP01') && o.includes('Coleções'))).toBe(true)
+    expect(opcoes.some((o) => o?.includes('ST01') && o.includes('Starter Decks'))).toBe(true)
+  })
+
+  it('manda o codigo do set na URL', async () => {
+    const painel = await abrir()
+
+    await escolher(painel, /Straw Hat Crew/)
+    await aplicar(painel)
+
+    expect(pushed().get('set')).toBe('ST-01')
+  })
+
+  /** Um valor so: o set nao entra no "ou" das outras secoes. */
+  it('escolher outro set substitui o anterior', async () => {
+    search.value = new URLSearchParams('set=OP01')
+    const painel = await abrir(1)
+
+    await escolher(painel, /Straw Hat Crew/)
+    await aplicar(painel)
+
+    expect(pushed().getAll('set')).toEqual(['ST-01'])
+  })
+
+  /**
+   * "Todos os sets" tem valor de sentinela, e nao string vazia: o Radix recusa
+   * item com valor vazio, e o painel quebraria ao abrir.
+   */
+  it('voltar para todos tira o parametro', async () => {
+    search.value = new URLSearchParams('set=OP01')
+    const painel = await abrir(1)
+
+    await escolher(painel, /^Todos os sets$/)
+    await aplicar(painel)
+
+    expect(pushed().getAll('set')).toEqual([])
+  })
+
+  it('combina com cor, que e o caso do relato', async () => {
+    const painel = await abrir()
+
+    await escolher(painel, /ROMANCE DAWN/)
+    await userEvent.click(within(painel).getByRole('button', { name: 'Black' }))
+    await aplicar(painel)
+
+    const params = pushed()
+    expect(params.get('set')).toBe('OP01')
+    expect(params.getAll('cor')).toEqual(['Black'])
+  })
+
+  /** Na pagina de um set a rota ja fixa qual e, e ela vence o parametro. */
+  it('some quando a rota ja fixa o set', async () => {
+    render(<CatalogFilters vocabulary={VOCABULARY} activeCount={0} hideSetFilter />)
+    await userEvent.click(screen.getByRole('button', { name: /Filtros/ }))
+    const painel = await screen.findByRole('dialog')
+
+    expect(within(painel).queryByRole('combobox', { name: 'Set' })).not.toBeInTheDocument()
   })
 })

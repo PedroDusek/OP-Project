@@ -8,6 +8,8 @@ import { Chip } from '@/components/ui/chip'
 import { FilterSection, FilterSheet } from '@/components/ui/filter-sheet'
 import { Field, Input } from '@/components/ui/field'
 import { SearchBar } from '@/components/ui/search-bar'
+import { Select } from '@/components/ui/select'
+import { SET_KIND_LABEL } from '@/server/domain/catalog/sets'
 import { buildCatalogHref, PARAM, type CatalogSearchParams } from '@/lib/catalog-params'
 import type { CatalogVocabulary } from '@/server/application/catalog/vocabulary'
 import { cn } from '@/lib/cn'
@@ -38,6 +40,15 @@ import { cn } from '@/lib/cn'
  * Custo e poder ficam de fora disso: são faixas, e duas faixas ao mesmo tempo
  * seriam duas perguntas na mesma pergunta.
  *
+ * O set também fica de fora: são sessenta, e "as cartas de OP-09" é a pergunta
+ * que alguém faz — "as de OP-09 ou de OP-11" não é um gesto de quem organiza
+ * coleção. Por isso é uma lista suspensa, e não uma fileira de chips que não
+ * caberia na tela.
+ *
+ * "Todos os sets" tem um valor de sentinela, e não string vazia: o `Select` do
+ * Radix recusa item com valor vazio — ele reserva o vazio para "nada
+ * escolhido" — e o painel quebraria ao ser aberto.
+ *
  * ## Dois destinos para o resultado
  *
  * Por padrão a escolha vai para a **URL**, que é onde os filtros do catálogo
@@ -65,8 +76,17 @@ const MULTI_KEYS = [
   PARAM.trait,
 ] as const
 
-/** As que aceitam um só: os limites das faixas. */
-const RANGE_KEYS = [PARAM.custoMin, PARAM.custoMax, PARAM.poderMin, PARAM.poderMax] as const
+/** As que aceitam um só: o set e os limites das faixas. */
+const RANGE_KEYS = [
+  PARAM.set,
+  PARAM.custoMin,
+  PARAM.custoMax,
+  PARAM.poderMin,
+  PARAM.poderMax,
+] as const
+
+/** "Sem filtro de set". Não é string vazia porque o Radix reserva o vazio. */
+const TODOS_OS_SETS = '*'
 
 type MultiDraft = Record<string, string[]>
 type RangeDraft = Record<string, string | undefined>
@@ -77,6 +97,13 @@ export interface CatalogFiltersProps {
   activeCount: number
   /** Recebe a escolha em vez de navegar. Exige `values`. */
   onApply?: (changes: CatalogSearchParams) => void
+  /**
+   * Esconde o filtro de set.
+   *
+   * Na pagina de um set a rota ja fixa qual e — e ela vence o parametro da URL.
+   * Oferecer o campo ali seria oferecer um controle que nao muda nada.
+   */
+  hideSetFilter?: boolean
   /** Os filtros atuais, quando não vêm da URL. */
   values?: CatalogSearchParams
 }
@@ -86,6 +113,7 @@ export function CatalogFilters({
   activeCount,
   onApply,
   values,
+  hideSetFilter = false,
 }: CatalogFiltersProps) {
   const router = useRouter()
   const pathname = usePathname()
@@ -208,6 +236,28 @@ export function CatalogFilters({
         <p className="text-xs text-text-muted">
           Dentro de uma seção, vale qualquer um dos escolhidos. Entre seções, valem todos.
         </p>
+
+        {vocabulary.sets.length > 0 && !hideSetFilter ? (
+          <FilterSection title="Set">
+            <Select
+              label="Set"
+              value={ranges[PARAM.set] ?? TODOS_OS_SETS}
+              onValueChange={(value) =>
+                setRange(PARAM.set, value === TODOS_OS_SETS ? undefined : value)
+              }
+              placeholder="Todos os sets"
+              options={[
+                { value: TODOS_OS_SETS, label: 'Todos os sets' },
+                ...vocabulary.sets.map((set) => ({
+                  value: set.code,
+                  // O tipo no rótulo separa coleção de starter deck sem exigir
+                  // uma segunda lista: são sessenta numa lista só.
+                  label: `${set.displayCode} · ${set.displayName} (${SET_KIND_LABEL[set.kind]})`,
+                })),
+              ]}
+            />
+          </FilterSection>
+        ) : null}
 
         <ChipSection
           title="Tipo"

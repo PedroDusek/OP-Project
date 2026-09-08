@@ -191,3 +191,24 @@ describe('volta para a lista de origem', () => {
     expect(safeReturnTo('', '/catalogo')).toBe('/catalogo')
   })
 })
+
+describe('o filtro por set', () => {
+  it('vira `setCode` no vocabulario interno', () => {
+    expect(toCatalogQuery({ set: 'OP01' }).setCode).toBe('OP01')
+  })
+
+  /** Um valor so, mesmo com o parametro repetido numa URL editada a mao. */
+  it('fica com o primeiro quando vem repetido', () => {
+    expect(toCatalogQuery({ set: ['OP01', 'ST-01'] }).setCode).toBe('OP01')
+  })
+
+  it('conta como um filtro ativo', () => {
+    expect(countActiveFilters({ set: 'OP01' })).toBe(1)
+    expect(countActiveFilters({ set: 'OP01', cor: ['Black', 'Blue'] })).toBe(3)
+  })
+
+  /** A rota do set vence o parametro: quem sobrescreve e quem chama. */
+  it('a sobrescrita de quem chama vence', () => {
+    expect(toCatalogQuery({ set: 'OP01' }, { setCode: 'ST-01' }).setCode).toBe('ST-01')
+  })
+})
