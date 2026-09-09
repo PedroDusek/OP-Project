@@ -3025,3 +3025,85 @@ perguntadas em vez de inventadas.
 ## Data
 
 2026-09-09
+
+---
+
+# Decisão: 055 — A troca é consentida dos dois lados, e não há vitrine
+
+## Contexto
+
+A tela 32 da especificação mostra "Encontramos 12 pessoas com cartas que você
+quer", com nome, foto e cartas de estranhos. Isso não sobrevive à regra 6.2 —
+ninguém lê recurso privado de outra pessoa — nem à 6.1, que reserva a publicação
+do Trade Binder ao Premium, com token explícito e revogável.
+
+Perguntado ao dono do produto, ele definiu o protocolo inteiro.
+
+## Decisão 1 — o consentimento é o que abre o dado
+
+> "O recurso privado só vai ser lido por ter consentimento de ambas as partes."
+
+1. O usuário 1 inicia a troca com o 2.
+2. O usuário 2 entra na troca. **É aqui que o consentimento fecha.**
+3. O sistema cruza want list e Trade Binder **nas duas direções**.
+4. Cada um ajusta a própria oferta.
+
+Antes do passo 2, nenhum dado privado de nenhum dos dois é cruzado nem exibido.
+
+**A tela 32 como desenhada deixa de existir.** Não há descoberta de pessoas, não
+há porcentagem de compatibilidade, não há lista de estranhos. O que existe é o
+cruzamento dentro de uma troca — e ele é a regra 4.3 aplicada duas vezes, uma
+por direção.
+
+Isso também encerra a pergunta sobre "% de compatibilidade": ela existia para
+ordenar uma lista de estranhos que não vai existir.
+
+## Decisão 2 — cada um mexe só na própria oferta
+
+Nunca na do outro. A oferta de cada um são os `trade_items` do
+`trade_participant` dele, e quem garante isso é o servidor: um
+`trade_participant_id` vindo do cliente nunca é confiável (regra 6.2).
+
+## Decisão 3 — qualquer alteração revoga as confirmações
+
+A troca é validada quando os dois confirmam. Se alguém altera, as confirmações
+caem e a pessoa afetada é avisada: *"o usuário X alterou a troca, revise e
+confirme novamente"*.
+
+Uma confirmação significa "concordo com a troca que está na tela agora". É a
+única leitura que serve: se ela sobrevivesse a uma alteração, ninguém saberia se
+o outro concordou com o que vê ou com uma versão anterior, e o gesto de
+confirmar perderia o sentido.
+
+**A revogação vale para as duas confirmações**, e não só para a de quem não
+alterou. A regra escrita pelo dono do produto cobre o primeiro caso; o segundo é
+a mesma regra levada a sério — quem confirmou e em seguida mudou a própria
+oferta não confirmou esta. Preservar a confirmação de quem alterou pareceria
+gentileza e deixaria a pessoa confirmada numa troca diferente da que aceitou.
+
+Fica registrado como leitura, e não como palavra do dono do produto: é barato de
+corrigir se ele quiser o contrário.
+
+`CONFIRMED` volta para `NEGOTIATING` quando alguém altera — é onde o trade
+estava enquanto se conversava. `COMPLETED` e `CANCELLED` não aceitam alteração
+nenhuma: o valor histórico sai do preço vigente em `completed_at` (regra 5.1), e
+mexer nos itens depois disso reescreveria o passado.
+
+## O que ficou construído, e o que falta
+
+Construído: o domínio inteiro, puro e testado — o cruzamento nas duas direções
+(`domain/trades/crossing.ts`) e a negociação com confirmação e revogação
+(`domain/trades/negotiation.ts`).
+
+Falta, e depende de uma resposta: **como o usuário 1 alcança o usuário 2**. O
+protocolo começa em "o usuário 1 inicia a troca com o 2" e não diz como ele o
+encontra. O produto hoje não tem lista de amigos, nem nome de usuário público,
+nem busca de pessoas — e buscar por e-mail revelaria quem é cadastrado, que é
+vazamento de privacidade no exato lugar que esta decisão protege.
+
+Também está por definir os valores de `trade_participants.role`, que a coluna
+aceita mas nada define. O único assimétrico no protocolo é quem iniciou.
+
+## Data
+
+2026-09-09

@@ -215,6 +215,46 @@ local de troca e o trade leva só parte delas — por exemplo, trocar 2 tendo 4
 divididas em dois Trade Binders. Nesse caso, e só nele, o usuário confirma de
 onde elas saem.
 
+### 4.6.1 Como uma troca começa, e por que não existe vitrine
+
+**Dado privado só é cruzado com consentimento das duas partes.** Não existe tela
+que mostre o Trade Binder ou a want list de estranhos: isso violaria a regra 6.2,
+e a 6.1 já reserva a publicação do Trade Binder ao Premium, com token explícito.
+
+O ciclo é:
+
+1. O usuário 1 inicia a troca com o usuário 2.
+2. O usuário 2 entra na troca. **É aqui que o consentimento fecha** — antes
+   disso, nenhum dado privado de nenhum dos dois é cruzado nem exibido.
+3. O sistema cruza want list e Trade Binder **nas duas direções**, e mostra o
+   que 1 tem de interesse para 2 e o que 2 tem de interesse para 1.
+4. Cada um ajusta **a própria oferta**.
+
+O cruzamento é a regra 4.3 aplicada duas vezes, uma para cada direção.
+
+### 4.6.2 Cada um mexe só na própria oferta
+
+Um participante nunca altera o que o outro oferece. A oferta de cada um são os
+`trade_items` do `trade_participant` dele, e é o servidor que garante isso — um
+`trade_participant_id` vindo do cliente nunca é confiável (regra 6.2).
+
+### 4.6.3 Confirmação, e o que a revoga
+
+A troca é validada quando **os dois** participantes confirmam.
+
+**Qualquer alteração na troca revoga as confirmações já dadas**, e a pessoa
+afetada é avisada: *"o usuário X alterou a troca, revise e confirme
+novamente"*. Confirmar de novo é obrigatório.
+
+A revogação vale para as duas confirmações, e não só para a do outro: quem
+confirmou uma proposta e em seguida mudou a própria oferta não confirmou esta.
+A regra escrita pelo dono do produto cobre o primeiro caso; o segundo é a mesma
+regra levada a sério, porque uma confirmação que sobrevive à própria alteração
+diz respeito a uma troca que não existe mais.
+
+Sem isso, o valor da confirmação seria ambíguo: ninguém saberia se o outro
+concordou com o que está na tela ou com uma versão anterior dela.
+
 ### 4.7 Conclusão
 
 Concluir um trade valida, numa única transação:

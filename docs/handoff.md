@@ -30,7 +30,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 11 concluídos**, e o 12 começou pela want list. 863 testes
+**Checkpoints 0 a 11 concluídos**, e o 12 começou pela want list. 897 testes
 de unidade, integração e componente, mais 30 ponta a ponta. Lint, typecheck e
 build passando.
 
@@ -49,7 +49,7 @@ build passando.
 | 10 | Binders: locais, alocação, upload de imagem, resolução da decisão 007 |
 | — | Binders ganhou a direção inversa: organizar as cópias sem lugar (decisão 045) |
 | 11 | Edição em massa: adicionar uma leva a um local, e transferir entre locais |
-| 12 | Want list (telas 29 e 30) e Trade Binder (tela 31). Matches faltam |
+| 12 | Want list (telas 29 e 30) e Trade Binder (tela 31). Negociação em domínio (decisão 055) |
 | — | Preço de mercado das artes comuns, 96,7% do catálogo, pelo tcgcsv (decisão 050) |
 | — | Preço em real pelo PTAX, e o aviso de quando foi conferido (decisão 051) |
 | — | Reimpressão virou impressão, não variante (decisão 052) |
@@ -76,7 +76,7 @@ sem preço novo, só para de envelhecer sem ninguém perceber.
 
 ## As decisões que mais restringem o que vem depois
 
-As 54 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 55 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
