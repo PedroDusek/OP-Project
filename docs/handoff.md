@@ -57,6 +57,12 @@ build passando.
 sets, 4.842 impressões — números idênticos ao local, estrutura conferida objeto
 a objeto.
 
+> **Produção está duas migrations atrás** (5 de 7, conferido em 09/09/2026).
+> Faltam `storage_description` e `cotacao_e_registro_de_importacao`. Publicar o
+> `main` atual sem rodar `npm run supabase migrate` derruba **toda página de
+> carta** com o mesmo erro que aparece quando o cliente Prisma está velho:
+> `Cannot read properties of undefined (reading 'findFirst')`.
+
 ## As decisões que mais restringem o que vem depois
 
 As 51 estão em `decisions.md`. Estas mudam o que se pode fazer:
@@ -257,6 +263,12 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     conteúdo em `self.__next_s`, processado depois de o pacote carregar. Serve
     para script de terceiro que precede a hidratação, e **não** para mexer no
     DOM antes da primeira pintura — usar aqui traz o flash de tema de volta.
+40. **Migration nova exige reiniciar o `next dev`.** O servidor guarda o cliente
+    Prisma que carregou ao subir; `prisma generate` grava no disco e o processo
+    em pé não vê. O sintoma é `Cannot read properties of undefined (reading
+    'findFirst')` numa tabela que existe no banco e no schema — e os testes e o
+    `build` passam, porque cada um gera o cliente antes de rodar. Reiniciar
+    resolve; procurar o defeito no código não.
 
 ## Pendências
 
