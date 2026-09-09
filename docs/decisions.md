@@ -3107,3 +3107,95 @@ aceita mas nada define. O único assimétrico no protocolo é quem iniciou.
 ## Data
 
 2026-09-09
+
+---
+
+# Decisão: 056 — O convite, e quem é quem numa troca
+
+## Contexto
+
+A decisão 055 registrou o protocolo do dono do produto e parou num ponto: ele
+começa em "o usuário 1 inicia a troca com o 2" e não diz **como o 1 encontra o
+2**. O produto não tem lista de amigos, nome de usuário público nem busca de
+pessoas.
+
+## Decisão 1 — link de convite, escolhido pelo dono do produto
+
+Quem abre a troca ganha um link e manda por onde já conversa — WhatsApp,
+Discord, pessoalmente. Quem abre o link entra.
+
+As alternativas e por que caíram:
+
+- **Nome de usuário público.** Mais parecido com o mock, que mostra "LucasM" e
+  "MarinaTCG". Exige uma identidade pública que não existe, e permite descobrir
+  quem é cadastrado por tentativa.
+- **Busca por e-mail.** Revelaria se um e-mail está cadastrado a quem tentasse —
+  vazamento no exato lugar que o protocolo protege.
+- **Pelo Trade Binder público.** Nada novo a inventar, mas amarraria começar uma
+  troca ao Premium de um dos lados.
+
+O link vence porque **não cria diretório nenhum**. Não há o que vazar.
+
+## Decisão 2 — o token é longo, e é link, não código de ditar
+
+Quem entra passa a ver o cruzamento do Trade Binder e da want list de quem
+convidou. Um código curto de digitar seria adivinhável, e adivinhar um seria
+entrar na negociação de estranhos.
+
+São 24 bytes em base64url — 32 caracteres, ~192 bits — como o token do Trade
+Binder público (decisão 008). É para copiar, não para ditar.
+
+**O convite é queimado quando alguém entra**, na mesma transação. Duas razões: um
+link que continua valendo é um link que ainda pode vazar, e a regra 4.5 diz que
+um trade efetivo tem exatamente dois participantes. A condição vai no `WHERE` do
+`UPDATE`, e é o que resolve duas pessoas abrindo o mesmo link ao mesmo tempo —
+quem chega depois atualiza zero linhas e desiste.
+
+## Decisão 3 — `DRAFT` enquanto falta alguém, e não `PROPOSED`
+
+Um convite que ninguém aceitou não compromete cópia nenhuma. A regra 4.5 conta
+como ativo a partir de `PROPOSED`, e travar a pessoa em "uma troca por vez" por
+causa de um convite pendente seria cobrar por algo que não aconteceu.
+
+`PROPOSED` fica sem uso por ora. É honesto dizer isso em voz alta: ele existe no
+modelo para um convite **dirigido** a alguém, que é o que faria sentido no dia em
+que houver identidade pública. Com link, não há a quem dirigir.
+
+## Decisão 4 — `INITIATOR` e `RECIPIENT`
+
+A coluna `role` existe desde o modelo lógico e nunca teve valor definido — sem
+`CHECK`, qualquer texto entrava, e um teste antigo usava `COUNTERPARTY`, escrito
+quando não havia vocabulário.
+
+A única assimetria do protocolo é quem convidou. `COUNTERPARTY` descreveria uma
+posição que na verdade é simétrica — os dois são contraparte um do outro —,
+enquanto `RECIPIENT` nomeia o fato: recebeu o convite.
+
+## Decisão 5 — o aviso precisou de uma coluna
+
+Foi um defeito que o próprio teste expôs. A regra 4.6.3 manda avisar *"o usuário
+X alterou a troca, revise e confirme novamente"* — só que a alteração **revoga**
+as confirmações, e depois disso nada no estado lembra que houve o que revogar. A
+tela diria "confirme" como se fosse a primeira vez, e a pessoa não saberia que o
+combinado mudou.
+
+`trade_participants.review_requested_at` guarda isso. Não guarda **quem**
+alterou, porque não precisa: são exatamente dois participantes, e a própria
+alteração de alguém nunca pede revisão a ele mesmo — quem alterou sabe o que
+fez. Se o campo está preenchido, foi o outro.
+
+Um `CHECK` amarra os dois lados do mesmo fato: quem espera revisão não está
+confirmado. Se divergissem, a tela mostraria "confirmado" e "revise" ao mesmo
+tempo, e nenhuma das duas seria confiável.
+
+## O que ficou construído
+
+Começar, entrar pelo convite, ler a troca já cruzada nas duas direções, ajustar
+a própria oferta, confirmar, retirar a confirmação e cancelar. Tudo na camada de
+aplicação, com autorização, e 27 testes de integração.
+
+**Falta a interface.** As telas de negociação são o passo seguinte.
+
+## Data
+
+2026-09-09

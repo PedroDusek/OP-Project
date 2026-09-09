@@ -135,8 +135,10 @@ describe('anonimizacao preserva o outro lado do trade', () => {
     const leavingParticipant = await db.tradeParticipant.create({
       data: { tradeId: trade.id, userId: leaving.id, role: 'INITIATOR' },
     })
+    // `RECIPIENT` desde a decisao 056, que definiu o vocabulario da coluna. Antes
+    // dela `role` aceitava qualquer texto, e este teste usava um valor inventado.
     await db.tradeParticipant.create({
-      data: { tradeId: trade.id, userId: staying.id, role: 'COUNTERPARTY' },
+      data: { tradeId: trade.id, userId: staying.id, role: 'RECIPIENT' },
     })
     await db.tradeItem.create({
       data: {

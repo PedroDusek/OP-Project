@@ -435,6 +435,17 @@ model PriceImport {
 model Trade {
   id          BigInt    @id @default(autoincrement())
   status      String    @db.VarChar(30)
+  // O convite que deixa a segunda pessoa entrar (decisao 056).
+  //
+  // E o consentimento dela que abre o dado privado dos dois (regra 4.6.1),
+  // entao quem tem este token entra numa negociacao onde vera o cruzamento do
+  // Trade Binder e da want list de quem convidou. Por isso ele e longo e
+  // aleatorio, como o token do Trade Binder publico (decisao 008), e nao um
+  // codigo curto de digitar: adivinhar um seria entrar na troca de estranhos.
+  //
+  // Nulo depois que a segunda pessoa entra: o convite serviu, e um link que
+  // continua valendo e um link que ainda pode vazar.
+  inviteToken String?   @unique @map("invite_token") @db.VarChar(64)
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
   completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
@@ -446,11 +457,23 @@ model Trade {
 }
 
 model TradeParticipant {
-  id          BigInt    @id @default(autoincrement())
-  tradeId     BigInt    @map("trade_id")
-  userId      BigInt    @map("user_id")
-  role        String    @db.VarChar(30)
-  confirmedAt DateTime? @map("confirmed_at") @db.Timestamptz(6)
+  id                BigInt    @id @default(autoincrement())
+  tradeId           BigInt    @map("trade_id")
+  userId            BigInt    @map("user_id")
+  role              String    @db.VarChar(30)
+  confirmedAt       DateTime? @map("confirmed_at") @db.Timestamptz(6)
+  // Quando a **outra** pessoa alterou a troca depois desta ter confirmado.
+  //
+  // Sem isto o aviso da regra 4.6.3 seria impossivel: a alteracao revoga as
+  // confirmacoes, e depois disso nada no estado lembra que houve o que revogar.
+  // A tela diria "confirme" como se fosse a primeira vez, e a pessoa nao saberia
+  // que o combinado mudou.
+  //
+  // Nao guarda quem alterou porque nao precisa: um trade tem exatamente dois
+  // participantes (regra 4.5), e a propria alteracao de alguem nunca pede
+  // revisao a ele mesmo — quem alterou sabe o que fez. Se este campo esta
+  // preenchido, foi o outro.
+  reviewRequestedAt DateTime? @map("review_requested_at") @db.Timestamptz(6)
 
   trade Trade       @relation(fields: [tradeId], references: [id], onDelete: Cascade)
   user  User        @relation(fields: [userId], references: [id], onDelete: Restrict)
