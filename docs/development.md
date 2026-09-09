@@ -60,6 +60,12 @@ npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prism
 npx prisma migrate deploy
 ```
 
+Depois de qualquer uma das duas, rode `npx prisma generate` **e reinicie o
+`next dev`**. O servidor guarda o cliente Prisma que carregou ao subir: sem
+reiniciar, a tabela nova existe no banco e no schema, e mesmo assim o app falha
+com `Cannot read properties of undefined (reading 'findFirst')`. Testes e
+`build` não denunciam, porque cada um gera o cliente antes de rodar.
+
 ### 2.3 Rollback
 
 O Prisma não gera migrations de descida, então "rollback" aqui significa duas
