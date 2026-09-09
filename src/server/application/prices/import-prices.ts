@@ -50,6 +50,8 @@ export interface ImportPricesResult {
   unchanged: number
   /** Códigos que a fonte trouxe e o nosso catálogo não conhece. */
   unknownCodes: number
+  /** Artes não comuns que receberam preço por terem vínculo (decisão 053). */
+  linkedPriced: number
   /** Quando a fonte publicou os dados desta passada. Nulo se ela não informa. */
   sourceUpdatedAt: Date | null
 }
@@ -90,8 +92,9 @@ export async function importPrices(
     })
 
     logger.info(
-      `[precos] casados ${result.matched}, gravados ${result.written}, ` +
-        `sem mudanca ${result.unchanged}, codigo desconhecido ${result.unknownCodes}`,
+      `[precos] casados ${result.matched} (${result.linkedPriced} por vinculo), ` +
+        `gravados ${result.written}, sem mudanca ${result.unchanged}, ` +
+        `codigo desconhecido ${result.unknownCodes}`,
     )
 
     return result
@@ -128,16 +131,16 @@ async function runImport(
   logger: Pick<Console, 'info' | 'warn'>,
 ): Promise<ImportPricesResult> {
   const knownNames = await knownCardNames(prisma)
-  const { prices, sourceUpdatedAt } = await provider.fetchCommonArtPrices(knownNames)
-  logger.info(`[precos] fonte ${provider.name}: ${prices.length} precos de arte comum`)
+  const { prices, arts, sourceUpdatedAt } = await provider.fetchSnapshot(knownNames)
+  logger.info(
+    `[precos] fonte ${provider.name}: ${prices.length} precos de arte comum, ` +
+      `${arts.length} outras artes`,
+  )
 
   const variants = await commonArtVariants(prisma, prices)
-  const latest = await latestValues(prisma, [...variants.values()])
 
-  let matched = 0
-  let written = 0
-  let unchanged = 0
   let unknownCodes = 0
+  const aGravar: { variantId: bigint; value: number }[] = []
 
   for (const price of prices) {
     const variantId = variants.get(price.cardCode.toUpperCase())
@@ -145,28 +148,69 @@ async function runImport(
       unknownCodes++
       continue
     }
-    matched++
+    aGravar.push({ variantId, value: price.value })
+  }
 
-    const previous = latest.get(String(variantId))
-    if (previous !== undefined && sameValue(previous, price.value)) {
+  /*
+   * As artes vinculadas a mao ou por regra (decisao 053). Sem vinculo, uma
+   * paralela nao tem preco: o codigo identifica a carta, nao a arte, e a fonte
+   * so distingue as artes pelo nome do produto.
+   */
+  const linked = await linkedVariants(prisma, provider.name)
+  let linkedPriced = 0
+
+  for (const art of arts) {
+    if (art.value === null) continue
+    const variantId = linked.get(art.productId)
+    if (variantId === undefined) continue
+    aGravar.push({ variantId, value: art.value })
+    linkedPriced++
+  }
+
+  const latest = await latestValues(prisma, aGravar.map((item) => item.variantId))
+
+  let written = 0
+  let unchanged = 0
+
+  for (const item of aGravar) {
+    const previous = latest.get(String(item.variantId))
+    if (previous !== undefined && sameValue(previous, item.value)) {
       unchanged++
       continue
     }
 
     await prisma.cardPrice.create({
-      data: { cardVariantId: variantId, value: price.value, capturedAt },
+      data: { cardVariantId: item.variantId, value: item.value, capturedAt },
     })
     written++
   }
 
   return {
     fetched: prices.length,
-    matched,
+    matched: aGravar.length,
     written,
     unchanged,
     unknownCodes,
+    linkedPriced,
     sourceUpdatedAt,
   }
+}
+
+/**
+ * As variantes vinculadas a um produto da fonte, por id de produto.
+ *
+ * Uma consulta so: sao centenas de vinculos, e perguntar por produto
+ * transformaria a importacao diaria numa tarde.
+ */
+async function linkedVariants(
+  prisma: PrismaClient,
+  source: string,
+): Promise<Map<string, bigint>> {
+  const rows = await prisma.variantSourceProduct.findMany({
+    where: { source },
+    select: { cardVariantId: true, sourceProductId: true },
+  })
+  return new Map(rows.map((row) => [row.sourceProductId, row.cardVariantId]))
 }
 
 /**
@@ -228,12 +272,13 @@ async function latestValues(
   prisma: PrismaClient,
   variantIds: readonly bigint[],
 ): Promise<Map<string, number>> {
-  if (variantIds.length === 0) return new Map()
+  const unicos = [...new Set(variantIds)]
+  if (unicos.length === 0) return new Map()
 
   const rows = await prisma.$queryRawUnsafe<{ card_variant_id: bigint; value: string }[]>(
     `SELECT DISTINCT ON (card_variant_id) card_variant_id, value::text
      FROM card_prices
-     WHERE card_variant_id IN (${variantIds.join(',')})
+     WHERE card_variant_id IN (${unicos.join(',')})
      ORDER BY card_variant_id, captured_at DESC`,
   )
 

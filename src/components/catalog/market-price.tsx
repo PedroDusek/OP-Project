@@ -105,15 +105,17 @@ function sourceNote(freshness: PriceFreshness | null): string {
 /**
  * O motivo de não haver preço, que é diferente para paralela e para comum.
  *
- * Paralela é uma limitação conhecida até as artes serem mapeadas uma a uma;
- * arte comum sem preço é a carta que a fonte não anuncia — promo de evento,
- * quase sempre. Dizer "sem preço" nos dois casos faria a pessoa achar que o
- * produto quebrou.
+ * Arte comum sem preço é a carta que a fonte não anuncia — promo de evento,
+ * quase sempre. Paralela sem preço é outra coisa: falta o **vínculo** que diz
+ * qual das artes da fonte é esta (decisão 053). As que já foram vinculadas
+ * mostram preço como qualquer outra.
+ *
+ * Dizer "sem preço" nos dois casos faria a pessoa achar que o produto quebrou.
  */
 function semPreco(variantType: string): string {
   return variantType === 'Normal'
     ? 'Sem cotação na fonte para esta carta.'
-    : 'Artes paralelas ainda não têm preço: a fonte não distingue qual paralela é qual.'
+    : 'Esta arte ainda não foi identificada na fonte, então fica sem preço.'
 }
 
 /**

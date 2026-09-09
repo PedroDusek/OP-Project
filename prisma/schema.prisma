@@ -109,12 +109,13 @@ model CardVariant {
   // Deliberadamente sem @@unique([cardId, variantType]): uma mesma carta possui
   // varias alternate arts distintas com o mesmo variant_type.
   // Ver docs/database.md secao 6.1.
-  card            Card              @relation(fields: [cardId], references: [id], onDelete: Restrict)
+  card            Card                   @relation(fields: [cardId], references: [id], onDelete: Restrict)
   printings       VariantPrinting[]
   prices          CardPrice[]
   collectionItems CollectionItem[]
   wantItems       WantItem[]
   tradeItems      TradeItem[]
+  sourceProducts  VariantSourceProduct[]
 
   @@unique([source, sourceId])
   @@index([cardId])
@@ -337,6 +338,41 @@ model CardPrice {
   // Manter os dois custaria escrita e espaco sem ganho de leitura.
   @@unique([cardVariantId, capturedAt])
   @@map("card_prices")
+}
+
+// Qual produto da fonte de preco e esta arte nossa (decisao 053).
+//
+// A arte comum nao precisa desta tabela: a regra da decisao 050 identifica ela
+// sozinha, sem ambiguidade, e uma linha gravada aqui envelheceria mal quando a
+// fonte mudasse. O que precisa e a **paralela**, porque o nosso catalogo so
+// separa Normal de Parallel (decisao 023) e nao sabe qual paralela e qual.
+//
+// `origin` e o que torna isto sustentavel. Vinculo `automatic` sai de uma regra
+// e pode ser refeito a qualquer momento; `manual` sai do julgamento do dono do
+// produto e **nunca** e sobrescrito por regra nenhuma. Sem essa distincao, a
+// primeira rederivacao apagaria o trabalho manual.
+model VariantSourceProduct {
+  id              BigInt   @id @default(autoincrement())
+  cardVariantId   BigInt   @map("card_variant_id")
+  source          String   @db.VarChar(40)
+  /**
+   * O id do produto na fonte. Texto, porque nem toda fonte usa numero.
+   */
+  sourceProductId String   @map("source_product_id") @db.VarChar(60)
+  origin          String   @db.VarChar(20)
+  confirmedAt     DateTime @default(now()) @map("confirmed_at") @db.Timestamptz(6)
+
+  // Cascade como variant_printings, e nao Restrict como card_prices: isto e
+  // dado derivado do catalogo, sem valor historico proprio. Variante que sai do
+  // catalogo leva o vinculo junto.
+  cardVariant CardVariant @relation(fields: [cardVariantId], references: [id], onDelete: Cascade)
+
+  // Uma arte aponta para um produto so, e um produto pertence a uma arte so. O
+  // segundo unico e o que impede dois vinculos manuais para o mesmo produto —
+  // erro facil de cometer mapeando centenas de cartas a mao.
+  @@unique([cardVariantId, source])
+  @@unique([source, sourceProductId])
+  @@map("variant_source_products")
 }
 
 // Cotacao de moeda, uma linha por par por dia (decisao 051).

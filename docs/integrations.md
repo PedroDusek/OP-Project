@@ -309,14 +309,19 @@ Preços são gravados em `card_prices` como novas linhas com `captured_at`; linh
 existentes nunca são atualizadas, porque o valor histórico dos trades é resolvido
 a partir desse histórico.
 
-### 3.1.1 Só arte comum
+### 3.1.1 Arte comum por regra, paralela por vínculo
 
 O código identifica a carta, não a arte, e o nosso catálogo só separa Normal de
-Parallel (decisão 023). Entra preço na variante **Normal**; paralela fica sem, e
-a tela explica por quê.
-
-Cobertura medida: **2.692 das 2.785 cartas (96,7%)**. Para reabrir a conta:
+Parallel (decisão 023). A arte comum é identificada por regra, sem ambiguidade
+(decisão 050): **2.692 das 2.785 cartas (96,7%)**. Para reabrir a conta:
 `npx tsx scripts/cobertura-precos.ts`.
+
+A paralela depende de `variant_source_products`, que diz qual produto da fonte
+é cada arte nossa (decisão 053). 478 vínculos saem por dedução — uma arte de
+cada lado, sem escolha a fazer; as 351 ambíguas esperam mapeamento manual, e o
+que entra à mão nunca é sobrescrito por rederivação.
+
+O vínculo roda antes do preço, na mesma passada pela fonte.
 
 ### 3.1.2 Grava só o que mudou
 

@@ -1,8 +1,10 @@
 import 'dotenv/config'
 import { importPrices } from '@/server/application/prices/import-prices'
+import { linkArtProducts } from '@/server/application/prices/link-art-products'
 import { importExchangeRate } from '@/server/application/prices/import-exchange-rate'
 import { TcgCsvPriceProvider } from '@/server/infrastructure/prices/tcgcsv-price-provider'
 import { BcbPtaxProvider } from '@/server/infrastructure/prices/bcb-ptax-provider'
+import { oncePerRun } from '@/server/infrastructure/prices/once-per-run'
 import { createPrisma } from '@/server/infrastructure/prisma'
 
 /**
@@ -37,11 +39,20 @@ async function main(): Promise<void> {
       },
     )
 
-    const result = await importPrices(prisma, new TcgCsvPriceProvider())
+    /*
+     * O vinculo antes do preco, e nao depois: um vinculo criado agora ja rende
+     * preco na mesma passada, em vez de esperar o dia seguinte.
+     */
+    // Uma passada pela fonte serve os dois: sem isto, sao 348 requisicoes
+    // onde 174 bastam.
+    const provider = oncePerRun(new TcgCsvPriceProvider())
+    await linkArtProducts(prisma, provider)
+
+    const result = await importPrices(prisma, provider)
     console.log(
       `[precos] fonte ${result.fetched} | casados ${result.matched} | ` +
         `gravados ${result.written} | sem mudanca ${result.unchanged} | ` +
-        `codigo desconhecido ${result.unknownCodes}`,
+        `por vinculo ${result.linkedPriced} | codigo desconhecido ${result.unknownCodes}`,
     )
   } finally {
     await prisma.$disconnect()

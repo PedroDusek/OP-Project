@@ -2848,3 +2848,107 @@ era a ponta deste fio. Reimpressão sem campo de set não acrescenta nada — o 
 ## Data
 
 2026-09-09
+
+---
+
+# Decisão: 053 — O vínculo entre a nossa arte e o produto da fonte
+
+## Contexto
+
+O preço da arte comum funciona por regra (decisão 050). A paralela não tem
+como: o código identifica a carta, não a arte, e o nosso catálogo só separa
+Normal de Parallel (decisão 023). Uma carta com três paralelas tem três linhas
+indistinguíveis, e a fonte tem três produtos com nome e preço próprios.
+
+Decisão do dono do produto: tabela nova, **priorizando manutenibilidade a longo
+prazo nas futuras atualizações e importações**.
+
+## Decisão 1 — `variant_source_products`, e só para o que a regra não deriva
+
+Uma linha por arte nossa que precise de vínculo. A **arte comum não entra**: a
+regra da decisão 050 identifica ela sozinha, sem ambiguidade, e uma linha
+gravada aqui envelheceria mal quando a fonte mudasse. Materializar o que é
+derivável cria uma segunda verdade que pode divergir da primeira.
+
+Dois índices únicos, e o segundo é o que importa: `(source, source_product_id)`
+impede dois vínculos apontando para o mesmo produto — erro fácil de cometer
+mapeando centenas de cartas à mão.
+
+`ON DELETE CASCADE`, como `variant_printings` e ao contrário de `card_prices`:
+vínculo é dado derivado do catálogo, sem valor histórico próprio.
+
+## Decisão 2 — `origin` é o que sustenta isto a longo prazo
+
+Foi o pedido explícito, e a resposta a ele é esta coluna.
+
+- `automatic` — sai de uma regra. Pode ser refeito quantas vezes for preciso; se
+  a fonte trocar o produto, a próxima passada corrige sozinha.
+- `manual` — sai do julgamento do dono do produto. **Nunca é sobrescrito por
+  regra nenhuma.**
+
+Sem essa distinção, a primeira rederivação apagaria horas de trabalho manual, e
+mapear à mão deixaria de fazer sentido. É a única coluna aqui que não descreve
+o dado, e sim como confiar nele.
+
+## Decisão 3 — o automático cobre só o caso sem escolha
+
+Vincula quando a carta tem **uma** paralela do nosso lado e a fonte oferece
+**uma** arte além da comum. Aí não há o que escolher: casar é dedução.
+
+Com duas de cada lado, a resposta depende de saber qual é a *Alternate Art* e
+qual é a *Manga*. Isso é olho humano, e chutar poria o preço de uma arte na
+outra — no campo de dinheiro, o pior lugar para um palpite.
+
+Resultado da primeira passada, sobre as 997 cartas com paralela:
+
+| | cartas |
+|---|---:|
+| vinculadas automaticamente | **478** |
+| ambíguas — esperam mapeamento manual | 351 |
+| a fonte não oferece a arte | 168 |
+
+As 478 ganharam preço na mesma execução.
+
+## Decisão 4 — separar arte de embalagem virou domínio
+
+A fonte lista um produto por **caixa**, não por arte: a mesma ilustração aparece
+como `(Reprint)`, `(Dash Pack)`, `(Nami Deck)`, `(Premium Card Collection)` e
+como uma dúzia de pacotes de torneio.
+
+O vocabulário de tratamento de arte — `Alternate Art`, `Manga`, `SP`, `Full
+Art`, `Box Topper`, `Jolly Roger Foil`, `Pirate Foil`, `Wanted Poster`,
+`Pandaman Art`, `TR`, `Gem`, `Gold`, `Silver`, `Parallel` e as variações de
+*Super Alternate Art* — saiu do script de levantamento e virou
+`domain/prices/treatments.ts`, onde pode ser testado.
+
+Falha fechado: o que não está na lista **não é arte** — não porque se saiba que
+é embalagem, mas porque não se sabe que é arte. A lista cresce quando a fonte
+inventa um tratamento novo, e crescer é seguro; encolher não.
+
+Combinações são reais (`SP + Gold`, `Alternate Art + Manga`) e valem como arte
+só quando **todas** as partes valem. Uma parte desconhecida no meio tira o
+produto da conta.
+
+## Uma passada pela fonte por execução
+
+Vincular e importar preço pedem a mesma coisa: os 87 arquivos. Rodando um atrás
+do outro, cada um pedia a sua cópia — 348 requisições onde 174 bastam, contra
+infraestrutura de terceiro, o que a decisão 020 existe para evitar.
+
+`oncePerRun` embrulha o provedor e guarda a resposta **desta execução e só**.
+Não é cache com validade: o objeto vive o tempo do script. Guardar entre
+execuções seria servir preço velho sem que nada dissesse isso.
+
+O vínculo roda **antes** do preço, para que um vínculo criado agora já renda
+preço na mesma passada em vez de esperar o dia seguinte.
+
+## O que mudou na tela
+
+Paralela sem preço dizia *"artes paralelas ainda não têm preço: a fonte não
+distingue qual paralela é qual"*. Virou *"esta arte ainda não foi identificada
+na fonte, então fica sem preço"* — porque agora 478 delas têm preço, e a frase
+antiga passou a ser falsa.
+
+## Data
+
+2026-09-09

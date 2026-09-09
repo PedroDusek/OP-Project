@@ -138,13 +138,27 @@ describe('o aviso de origem e frescor', () => {
 
 describe('sem cotação', () => {
   /**
-   * A fonte distingue as artes pelo nome do produto e o nosso catálogo só
-   * separa Normal de Parallel: não há como dizer qual paralela é qual.
+   * Paralela sem preço não é limitação permanente: falta o vínculo que diz qual
+   * arte da fonte é esta (decisão 053). As vinculadas mostram preço normalmente,
+   * então a frase não pode dizer que paralela nunca tem preço.
    */
-  it('explica que paralela ainda não tem preço', () => {
+  it('explica que falta identificar a arte, e não que paralela nunca tem preço', () => {
     render(<MarketPricePanel price={null} variantType="Parallel" />)
 
-    expect(screen.getByText(/paralelas ainda não têm preço/i)).toBeInTheDocument()
+    expect(screen.getByText(/ainda não foi identificada na fonte/i)).toBeInTheDocument()
+    expect(screen.queryByText(/paralelas ainda não têm preço/i)).not.toBeInTheDocument()
+  })
+
+  it('mostra o preço da paralela vinculada como o de qualquer outra', () => {
+    render(
+      <MarketPricePanel
+        price={comReal(42.5, 216.14, 5.0856)}
+        variantType="Parallel"
+      />,
+    )
+
+    expect(screen.getByText('$42.50')).toBeInTheDocument()
+    expect(screen.queryByText(/ainda não foi identificada/i)).not.toBeInTheDocument()
   })
 
   it('diz que a arte comum não tem cotação, em vez de sumir', () => {
