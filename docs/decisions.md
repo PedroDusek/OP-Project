@@ -2952,3 +2952,76 @@ antiga passou a ser falsa.
 ## Data
 
 2026-09-09
+
+---
+
+# Decisão: 054 — O Trade Binder é uma leitura, não uma lista que se monta
+
+## Contexto
+
+Tela 31. O Trade Binder é a soma do que está guardado em locais com finalidade
+`TRADE` (`business-rules.md` 4.1) — não é uma coleção separada.
+
+## Decisão 1 — não se adiciona nada aqui
+
+A tela lê e leva para os binders. Um segundo jeito de dizer "esta carta está
+disponível" criaria duas listas que podem discordar, e a pergunta "por que a
+carta não aparece no Trade Binder" passaria a ter duas respostas possíveis.
+
+O vazio diz isso em voz alta e leva para `/binders`, senão a pessoa procura um
+botão de adicionar que não existe nesta tela.
+
+## Decisão 2 — a tela desdiz o próprio nome
+
+"Trade Binder" sugere um lugar onde as cartas ficam reservadas. A regra 4.2 diz
+o contrário: estar ali significa **disponível**, não comprometido com ninguém.
+
+O nome vem da especificação e fica. O resumo no topo é que esclarece, porque o
+nome sozinho engana e a consequência de entender errado é achar que uma carta
+está guardada para alguém quando não está.
+
+## Decisão 3 — duas contagens, porque são duas perguntas
+
+"3 cartas · 7 cópias". Quem procura uma carta pensa em cartas; quem oferece uma
+troca pensa em cópias, e oferecer três Zoro não é oferecer três cartas.
+
+A especificação mostra só um número ("74 cartas disponíveis para troca") e não
+diz qual dos dois é. Mostrar os dois evita escolher no escuro, e custa meia
+linha.
+
+## Decisão 4 — "em N locais" aparece na carta
+
+Não é enfeite: muda o que acontece ao concluir o trade. Com as cópias num lugar
+só, de onde elas saem é dedução; espalhadas, a regra 4.6 manda perguntar. Ver
+antes é melhor que ser perguntado depois sem contexto.
+
+## O que foi feito diferente da especificação, e por quê
+
+**"Por Set" e "Por Raridade" viraram busca e modo de exibição.** A tela 31
+mostra esses dois agrupamentos. O produto já tem um padrão de busca e filtro —
+usado em Coleção, Catálogo e nas cartas de um binder — e uma quarta gramática só
+nesta tela custa mais em aprendizado do que rende em conveniência. Fácil de
+acrescentar se o dono do produto preferir o desenho original.
+
+**O botão "Compartilhar" não existe.** É a rota pública do Trade Binder, que é
+Premium e tem token revogável (decisão 008). Botão que não faz nada é pior que a
+ausência dele.
+
+## Os matches não entraram, e não por falta de tempo
+
+A tela 32 depende de duas definições que a especificação não dá:
+
+1. **Quem pode ver o Trade Binder de quem.** A regra 6.2 diz que ninguém lê
+   recurso privado de outra pessoa, e a 6.1 põe a publicação atrás do Premium,
+   com token explícito. A tela de matches mostra nome, foto e cartas de
+   estranhos sem nada disso.
+2. **O que é "% de compatibilidade".** A regra 4.3 define a quantidade do match
+   — `MIN(disponível, desejado)` — e nada mais. A porcentagem, e o corte de
+   "alta compatibilidade", não estão em lugar nenhum.
+
+As duas são decisão do dono do produto, e a primeira é de privacidade. Ficam
+perguntadas em vez de inventadas.
+
+## Data
+
+2026-09-09
