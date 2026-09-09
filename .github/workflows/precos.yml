@@ -35,6 +35,16 @@ jobs:
     # runner por seis horas.
     timeout-minutes: 30
 
+    env:
+      # O `prisma.config.ts` resolve DATABASE_URL na carga, entao qualquer
+      # comando do CLI — `generate` inclusive, que nem conecta — falha sem ela.
+      #
+      # O valor e deliberadamente inutil. Producao chega por
+      # SUPABASE_DATABASE_URL, e so por ela: se algum dia um passo daqui usar
+      # DATABASE_URL por engano, e melhor que ele nao consiga conectar em nada
+      # do que escreva no lugar errado.
+      DATABASE_URL: postgresql://nao-usar:nao-usar@127.0.0.1:5432/nao-usar
+
     steps:
       - uses: actions/checkout@v5
 
