@@ -176,7 +176,6 @@ async function main() {
     set: string
     code: string
     nossas: number
-    nossasReimpressoes: number
     fonte: number
     rarities: string
     tratamentos: string
@@ -189,19 +188,14 @@ async function main() {
     const artes = todos.filter(isArtTreatment)
     const outras = todos.filter((t) => !isArtTreatment(t))
 
-    // A Bandai marca a arte paralela com `_pN` e a reimpressao com `_rN`, e o
-    // nosso importador gravou as duas como Parallel. Aqui contam so as `_p`,
-    // que sao as que a fonte oferece como arte separada.
-    const artesNossas = lista.filter((v) => /_p\d+$/.test(v.sourceId ?? ''))
-    const reimpressoesNossas = lista.length - artesNossas.length
-
+    // Desde a decisao 052, `variantType = 'Parallel'` e so arte paralela: as
+    // reimpressoes `_rN` viraram impressao da arte comum e nao chegam aqui.
     linhas.push({
       set: setDaCarta.get(code) ?? '(sem set)',
       code,
-      nossas: artesNossas.length,
-      nossasReimpressoes: reimpressoesNossas,
+      nossas: lista.length,
       fonte: artes.length,
-      rarities: artesNossas.map((v) => v.rarity ?? '?').join(' | '),
+      rarities: lista.map((v) => v.rarity ?? '?').join(' | '),
       tratamentos: artes.join(' | '),
       reimpressoes: [...new Set(outras)].join(' | '),
     })
@@ -241,13 +235,13 @@ async function main() {
   }
 
   const detalhe = [
-    'set	carta	artes nossas	reimpressoes nossas	artes na fonte	' +
-      'rarities	vocabulario	reimpressoes na fonte',
+    'set	carta	artes nossas	artes na fonte	rarities	vocabulario	' +
+      'reimpressoes na fonte',
   ]
   for (const l of linhas) {
     detalhe.push(
-      `${l.set}	${l.code}	${l.nossas}	${l.nossasReimpressoes}	${l.fonte}	` +
-        `${l.rarities}	${l.tratamentos}	${l.reimpressoes}`,
+      `${l.set}	${l.code}	${l.nossas}	${l.fonte}	${l.rarities}	` +
+        `${l.tratamentos}	${l.reimpressoes}`,
     )
   }
 

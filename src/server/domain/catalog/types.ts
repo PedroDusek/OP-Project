@@ -44,10 +44,33 @@ export interface VariantDTO {
   printedInSetCodes: string[]
 }
 
+/**
+ * Uma reimpressao: a mesma arte publicada de novo, noutro produto.
+ *
+ * Nao e variante, e por isso nao e `VariantDTO`. A fonte marca com o sufixo
+ * `_rN` — `EB01-012_r1` e a `EB01-012` reimpressa no PRB-02 — e o unico dado
+ * novo que ela traz e **o set**: mesma arte, mesma raridade, mesmo tudo.
+ *
+ * Ate a decisao 052 cada uma virava uma linha de variante marcada `Parallel`,
+ * o que fazia o produto dizer que a carta tinha uma arte a mais do que tem.
+ * Agora vira impressao da variante que ela reimprime.
+ */
+export interface ReprintDTO {
+  /** O identificador da propria reimpressao, ex.: `EB01-012_r1`. */
+  sourceId: string
+  cardCode: string
+  /** O identificador da variante reimpressa. Hoje, sempre a arte comum. */
+  reprintOfSourceId: string
+  /** Os sets em que esta reimpressao saiu. */
+  printedInSetCodes: string[]
+}
+
 export interface CatalogPage {
   sets: SetDTO[]
   cards: CardDTO[]
   variants: VariantDTO[]
+  /** Reimpressoes desta pagina. Viram impressoes, nunca variantes. */
+  reprints: ReprintDTO[]
   /** Entradas descartadas, com o motivo. Nunca adivinhadas. */
   rejected: RejectedEntry[]
   /**

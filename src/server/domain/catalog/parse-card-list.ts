@@ -7,6 +7,7 @@ import {
   type CardType,
   type CatalogPage,
   type RejectedEntry,
+  type ReprintDTO,
   type SetDTO,
   type VariantDTO,
 } from './types'
@@ -122,11 +123,28 @@ function parseSets(rawSets: string | null): { sets: SetDTO[]; promotional: strin
 }
 
 /**
- * O sufixo "_pN" e a propria notacao da fonte para arte paralela. "Normal" e
- * "Parallel" sao o que a fonte permite afirmar; classificacoes mais finas como
- * "Manga" nao existem no dado e nao sao adivinhadas aqui. O sourceId preserva o
- * sufixo exato, entao uma taxonomia mais rica pode ser derivada depois sem
- * reimportar.
+ * A fonte usa dois sufixos, e eles querem dizer coisas diferentes.
+ *
+ * `_pN` e arte paralela: outra ilustracao da mesma carta. `_rN` e reimpressao:
+ * **a mesma arte**, publicada de novo noutro produto. `EB01-012_r1` e a
+ * Cavendish do EB-01 saindo tambem no PRB-02.
+ *
+ * Confirmado por dois lados: a raridade das 412 reimpressoes bate com a da arte
+ * comum em 100% dos casos, e no catalogo do TCGplayer nenhum dos 255 produtos
+ * marcados `(Reprint)` traz junto um tratamento de arte — nao existe
+ * "reimpressao da alternate art". Ver a decisao 052.
+ */
+const REPRINT_SUFFIX = /_r\d+$/
+
+export function isReprintSourceId(sourceId: string): boolean {
+  return REPRINT_SUFFIX.test(sourceId)
+}
+
+/**
+ * "Normal" e "Parallel" sao o que a fonte permite afirmar; classificacoes mais
+ * finas como "Manga" nao existem no dado e nao sao adivinhadas aqui. O sourceId
+ * preserva o sufixo exato, entao uma taxonomia mais rica pode ser derivada
+ * depois sem reimportar.
  */
 function variantTypeFor(sourceId: string, cardCode: string): string {
   return sourceId === cardCode ? 'Normal' : 'Parallel'
@@ -138,6 +156,7 @@ export function parseCardList(html: string): CatalogPage {
   const cardsByCode = new Map<string, CardDTO>()
   const setsByCode = new Map<string, SetDTO>()
   const variants: VariantDTO[] = []
+  const reprints: ReprintDTO[] = []
   const rejected: RejectedEntry[] = []
   const promotionalProductNames = new Set<string>()
   const variantsWithoutSet: string[] = []
@@ -209,6 +228,21 @@ export function parseCardList(html: string): CatalogPage {
     for (const name of printings.promotional) promotionalProductNames.add(name)
     if (printings.sets.length === 0) variantsWithoutSet.push(sourceId)
 
+    /*
+     * Reimpressao nao vira variante: o unico dado novo dela e o set, e quem
+     * junta isso a arte reimpressa e o importador — a arte pode estar noutra
+     * pagina, e daqui nao da para alcanca-la.
+     */
+    if (isReprintSourceId(sourceId)) {
+      reprints.push({
+        sourceId,
+        cardCode: code,
+        reprintOfSourceId: code,
+        printedInSetCodes: printings.sets.map((set) => set.code),
+      })
+      continue
+    }
+
     variants.push({
       sourceId,
       cardCode: code,
@@ -223,6 +257,7 @@ export function parseCardList(html: string): CatalogPage {
     sets: [...setsByCode.values()],
     cards: [...cardsByCode.values()],
     variants,
+    reprints,
     rejected,
     promotionalProductNames: [...promotionalProductNames],
     variantsWithoutSet,

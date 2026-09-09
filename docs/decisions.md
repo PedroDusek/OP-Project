@@ -2748,3 +2748,103 @@ coisas diferentes e agora têm funções diferentes.
 ## Data
 
 2026-09-09
+
+---
+
+# Decisão: 052 — Reimpressão não é variante
+
+## Contexto
+
+Ao preparar o mapeamento manual das artes paralelas, o levantamento mostrou que
+o nosso catálogo tinha **mais paralelas do que o TCGplayer oferece** — 1.086
+cartas com paralela contra uma contagem que fechava em menos da metade.
+
+A explicação estava no identificador da própria Bandai. Ela usa dois sufixos:
+
+- `_pN` — **arte paralela**: outra ilustração da mesma carta.
+- `_rN` — **reimpressão**: a mesma arte, publicada de novo noutro produto.
+
+O nosso parser tratava tudo que não fosse o código puro como `Parallel`.
+
+## As três evidências
+
+Antes de apagar 412 linhas, três medições independentes:
+
+1. **Raridade.** As 412 reimpressões têm a mesma raridade da arte comum da
+   carta, em 100% dos casos. Nenhuma exceção.
+2. **O catálogo do TCGplayer.** Dos 255 produtos marcados `(Reprint)`, **zero**
+   trazem junto um tratamento de arte. Não existe "reimpressão da alternate
+   art" — toda reimpressão é da arte comum.
+3. **Os sets batem.** `EB01-012_r1` está no PRB-02, e é exatamente lá que o
+   TCGplayer lista `Cavendish (Reprint)`. `OP09-056_r1` está no ST-25, onde a
+   fonte lista `Mr.3(Galdino) (Reprint)`.
+
+## Decisão — vira impressão, não variante
+
+Escolha do dono do produto: *"é a mesma carta, o único dado interessante aí é
+saber que esta mesma carta existe em mais de um set, onde exibimos os sets de
+cada carta"*.
+
+E para isso a tabela já existia. `variant_printings` é literalmente "esta
+variante foi impressa neste set". A reimpressão passa a ser uma linha lá, na
+arte que ela reimprime.
+
+A `EB01-012` deixou de ter três paralelas e passou a mostrar `EB-01, PRB-02`.
+
+## O que isso conserta, medido
+
+| | antes | depois |
+|---|---:|---:|
+| variantes | 4.843 | 4.431 |
+| cartas com paralela | 1.086 | 997 |
+| cartas caindo na busca da Liga | 501 | 406 |
+
+**95 cartas ganharam link exato na Liga.** O link só é exato quando existe uma
+paralela só — com duas ou mais, não dá para saber qual é qual e ele cai na
+busca. Em 95 cartas a "outra paralela" era uma reimpressão.
+
+Some também uma explicação errada na tela: a reimpressão dizia *"artes paralelas
+ainda não têm preço"*, sendo que não é paralela.
+
+**Playset não muda.** A regra 2.1 conta por código de carta somando todas as
+variantes; o resultado é o mesmo dos dois jeitos. Conferido antes de anunciar.
+
+## A aplicação fica para o fim do import
+
+`EB01-012_r1` chega na página do PRB-02, e a arte que ela reimprime está na do
+EB-01. Gravar na hora funcionaria ou não conforme a ordem em que a fonte lista
+as séries — o tipo de acerto que quebra sozinho um dia.
+
+Então o parser só separa os dois sufixos, e o importador aplica todas as
+reimpressões numa passada final, com o catálogo inteiro já no banco. Reimpressão
+cujo original não apareceu fica no relatório em `reprintsWithoutBase`: descarte
+silencioso já custou 538 variantes uma vez (armadilha 5).
+
+## A migration falha alto em vez de apagar coleção
+
+Hoje nenhuma reimpressão tem coleção, want, trade ou preço associado —
+conferido no banco local e em produção, que ainda não tem usuários. As chaves
+estrangeiras são `RESTRICT` e já barrariam o `DELETE`, mas com uma mensagem
+sobre constraint em vez de sobre o problema.
+
+A migration checa antes e levanta com o motivo escrito. Se um dia disparar, a
+resposta certa não é forçar: é **somar as quantidades** na variante Normal, com
+cuidado sobre o único `(collection_id, card_variant_id)` — e essa lógica não
+está escrita, porque escrever para zero linhas seria inventar requisito.
+
+## O que se perde
+
+A imagem da reimpressão. Ela mostra a carta com o símbolo do set novo, e some
+junto com a linha. É o preço aceito pela decisão do dono do produto: o dado que
+interessa é o set, e esse fica.
+
+## Uma pendência antiga fechou junto
+
+O handoff registrava *"uma variante sem set: `ST14-010_r1`"*, com o palpite de
+que o sufixo `_r1` não era reconhecido como os `_pN`. O palpite estava certo, e
+era a ponta deste fio. Reimpressão sem campo de set não acrescenta nada — o set
+é o único dado que ela traz.
+
+## Data
+
+2026-09-09
