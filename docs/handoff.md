@@ -56,7 +56,8 @@ build passando.
 | — | Vínculo arte ↔ produto: 478 paralelas com preço automático (decisão 053) |
 
 **Banco de produção populado e conferido**, idêntico ao local em 09/09/2026:
-2.785 cartas, 4.431 variantes, 60 sets, 4.834 impressões, 2.692 preços.
+2.785 cartas, 4.431 variantes, 60 sets, 4.834 impressões, **3.170 variantes com
+preço** — 2.692 artes comuns por regra e 478 paralelas por vínculo.
 
 Confira com `npm run supabase status` — ele compara as migrations com o
 repositório e mostra o estado dos preços, que é o único dado que muda sozinho.
