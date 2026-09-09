@@ -59,3 +59,6 @@ $RECYCLE.BIN/
 # ---- Vercel / deploy ----
 .vercel/
 .claude/
+
+# Saida do levantamento de paralelas: derivada, regeravel pelo script.
+paralelas-*.tsv
