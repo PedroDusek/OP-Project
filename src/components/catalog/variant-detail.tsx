@@ -9,7 +9,7 @@ import { MarketPricePanel } from './market-price'
 import { Panel } from '@/components/ui/surface'
 import type { getCardVariant } from '@/server/application/catalog/get-card-variant'
 import type { VariantAllocations } from '@/server/application/storage'
-import type { MarketPrice } from '@/server/application/prices'
+import type { MarketPrice, PriceFreshness } from '@/server/application/prices'
 import { displaySetCode, displaySetName } from '@/server/domain/catalog/sets'
 import { cn } from '@/lib/cn'
 
@@ -34,6 +34,7 @@ export function VariantDetail({
   wantedQuantity = 0,
   allocations,
   price = null,
+  priceFreshness = null,
 }: {
   variant: Variant
   ownedQuantity?: number
@@ -43,6 +44,8 @@ export function VariantDetail({
   allocations?: VariantAllocations
   /** Cotacao vigente. Nulo para paralela e para carta sem cotacao na fonte. */
   price?: MarketPrice | null
+  /** Quando os precos foram conferidos pela ultima vez. */
+  priceFreshness?: PriceFreshness | null
 }) {
   const { card } = variant
 
@@ -104,7 +107,11 @@ export function VariantDetail({
           real a um toque de distancia. Ler preco da Liga direto exigiria
           contornar a protecao anti-bot do site.
         */}
-        <MarketPricePanel price={price} variantType={variant.variantType} />
+        <MarketPricePanel
+          price={price}
+          variantType={variant.variantType}
+          freshness={priceFreshness}
+        />
 
         <LigaLink
           cardCode={card.code}

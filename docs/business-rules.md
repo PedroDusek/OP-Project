@@ -237,6 +237,25 @@ concluído parcialmente.
 `card_prices` mantém histórico: uma linha por variante por captura, com
 `captured_at`. Preços nunca são sobrescritos.
 
+A captura **só grava quando o valor muda** (decisão 050): a série é esparsa, e o
+preço vigente em T é a última linha com `captured_at <= T`. Quando cada
+importação rodou fica em `price_imports`, e não em `card_prices` — são duas
+afirmações diferentes, e confundi-las faz a tela dizer "atualizado hoje" sobre
+uma mudança de três semanas atrás.
+
+### 5.0 Moeda
+
+Os preços são cotados em **dólar**, e é assim que ficam gravados. O valor em
+real é **derivado na leitura**, multiplicando pela cotação de `exchange_rates`
+do dia — nunca guardado (decisão 051).
+
+Guardar o convertido criaria duas verdades para o mesmo fato, e o valor
+histórico de um trade deixaria de fechar: em real, ele é o preço daquele dia
+vezes a cotação daquele dia, duas linhas com data, e não um número congelado.
+
+Sem cotação utilizável, o valor em real não é exibido. Converter por taxa velha
+seria apresentar um palpite com cara de dado.
+
 | Valor | Definição |
 |---|---|
 | Valor da coleção | `SUM(quantidade * preço de mercado atual)` |

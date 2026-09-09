@@ -28,8 +28,22 @@ export interface SourcePrice {
  */
 export type KnownCardNames = ReadonlyMap<string, string>
 
+/**
+ * Um conjunto de preços e o instante a que ele se refere.
+ *
+ * A data vem junto porque ela é uma afirmação diferente da nossa: `sourceUpdatedAt`
+ * diz de quando é o dado do mercado, e o horário da nossa importação diz quando
+ * conferimos. Confundir os dois é o que faz uma tela dizer "atualizado agora"
+ * sobre um número de ontem.
+ */
+export interface PriceSnapshot {
+  prices: SourcePrice[]
+  /** Quando a fonte publicou este conjunto. Nulo quando ela não informa. */
+  sourceUpdatedAt: Date | null
+}
+
 export interface PriceProvider {
   readonly name: string
   /** Todos os preços de arte comum que a fonte consegue identificar. */
-  fetchCommonArtPrices(knownNames: KnownCardNames): Promise<SourcePrice[]>
+  fetchCommonArtPrices(knownNames: KnownCardNames): Promise<PriceSnapshot>
 }

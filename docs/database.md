@@ -5,7 +5,14 @@ em `development.md`.
 
 O schema implementa as 24 tabelas do modelo lógico, mais as adições estruturais
 aprovadas em `decisions.md` (008 token público do Trade Binder, 009 Premium e
-trial, 015 exclusão de conta). Nada além disso é acrescentado.
+trial, 015 exclusão de conta, 051 cotação e registro de importação). Nada além
+disso é acrescentado.
+
+As duas tabelas da decisão 051 são `exchange_rates`, que guarda a cotação do
+dólar de cada dia para o preço em real não depender do câmbio de hoje, e
+`price_imports`, que registra cada execução da importação — sem ela não há como
+a tela dizer "atualizado hoje às 04:00", porque `card_prices` só ganha linha
+quando o valor muda.
 
 Extensões necessárias: apenas `pg_trgm`, para busca indexada por nome. Tokens são
 gerados na aplicação com `crypto.randomBytes`, então `pgcrypto` é dispensável.

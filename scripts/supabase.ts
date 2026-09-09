@@ -15,7 +15,7 @@ import { createPrisma } from '@/server/infrastructure/prisma'
  *   npm run supabase import --from=DIR  importa de um snapshot local
  *   npm run supabase status             mostra o que existe la hoje
  *   npm run supabase storage            cria o bucket das imagens do usuario
- *   npm run supabase prices             importa os precos de arte comum
+ *   npm run supabase prices             importa precos de arte comum e cambio
  *
  * Prefira `--from` quando o snapshot ja existir: rebaixar o catalogo inteiro a
  * cada importacao e carga evitavel sobre a origem (decisao 020).
@@ -112,9 +112,29 @@ async function main(): Promise<void> {
     const prisma = createPrisma(url)
     try {
       const { importPrices } = await import('@/server/application/prices/import-prices')
+      const { importExchangeRate } = await import(
+        '@/server/application/prices/import-exchange-rate'
+      )
       const { TcgCsvPriceProvider } = await import(
         '@/server/infrastructure/prices/tcgcsv-price-provider'
       )
+      const { BcbPtaxProvider } = await import(
+        '@/server/infrastructure/prices/bcb-ptax-provider'
+      )
+
+      // Cambio primeiro, e sem poder derrubar os precos: sem cotacao a tela
+      // mostra so o dolar, o que e bem melhor que nao mostrar preco nenhum.
+      const rate = await importExchangeRate(prisma, new BcbPtaxProvider()).catch(
+        (error: unknown) => {
+          console.warn(
+            '[supabase] cambio falhou, seguindo sem atualizar:',
+            error instanceof Error ? error.message : error,
+          )
+          return null
+        },
+      )
+      if (rate) console.log(`[supabase] cambio: USD/BRL ${rate.rate}`)
+
       const result = await importPrices(prisma, new TcgCsvPriceProvider())
       console.log(
         `[supabase] precos: fonte ${result.fetched} | casados ${result.matched} | ` +

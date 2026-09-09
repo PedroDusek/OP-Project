@@ -327,8 +327,47 @@ isso a tela escreve "desde", e nunca "atualizado em".
 
 ### 3.1.3 Execução
 
-`npm run supabase prices`, à mão. O agendamento diário escreveria em produção e
-espera decisão do dono do produto.
+`npm run supabase prices` importa a cotação e os preços, nesta ordem. Roda
+diariamente às **07:00 UTC — 04:00 em Brasília** pelo workflow
+`.github/workflows/precos.yml`, e também à mão.
+
+O workflow só age depois que o segredo `SUPABASE_DATABASE_URL` existir no
+repositório; sem ele, termina sem erro dizendo que pulou. Falhar todo dia por
+segredo ausente seria ruído, e ruído diário é o jeito mais rápido de ninguém
+mais olhar para um alerta.
+
+O horário não é arbitrário: o espelho publica às 20:00 UTC, então ler às 04:00
+do dia seguinte dá folga para uma publicação atrasada sem ninguém estar usando o
+produto no meio. A consequência é que o dado do mercado tem cerca de onze horas
+quando chega — e a tela diz isso.
+
+## 3.2 Câmbio
+
+Fonte: **PTAX do Banco Central**, aberto, sem chave e sem cadastro (decisão
+051). Uma requisição por dia, junto da importação de preços.
+
+```ts
+interface ExchangeRateProvider {
+  readonly name: string
+  fetchLatestUsdBrl(on: Date): Promise<SourceRate | null>
+}
+```
+
+A **data da cotação** faz parte do contrato porque o PTAX só existe em dia útil:
+numa segunda, a cotação mais recente é a de sexta. O provedor anda para trás até
+cinco dias — o que cobre um fim de semana com feriado emendado dos dois lados —
+e a tela mostra de que dia é o número.
+
+Usa-se `cotacaoVenda`: quem olha o preço de uma carta americana está pensando em
+comprar dólar. A alternativa considerada foi uma API comercial de cotação ao
+vivo, que cobre fim de semana mas não tem compromisso de disponibilidade.
+
+Uma linha por par por dia, e o valor é **sobrescrito** quando muda — ao
+contrário de `card_prices`. O Banco Central corrige cotação publicada, e duas
+verdades para o mesmo dia é o que a chave única existe para impedir.
+
+Câmbio que falha não derruba a importação de preços: o real some da tela, o
+dólar fica.
 
 ### 3.2 Um provedor por vez
 
@@ -340,6 +379,12 @@ qualquer implementação.
 ---
 
 ## 4. Observabilidade
+
+A importação de preços registra cada execução em `price_imports`: quando
+começou, quando terminou, o carimbo que a fonte publicou, os contadores e a
+mensagem de erro quando falhou (decisão 051). É a única das importações com
+registro persistido, e ela precisa dele por outro motivo além de observabilidade
+— a tela lê dali o "atualizado hoje às 04:00".
 
 Toda execução de importação registra, como eventos estruturados:
 

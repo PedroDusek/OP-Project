@@ -2631,3 +2631,120 @@ nunca é alvo por padrão neste projeto. Fica para o dono do produto decidir.
 ## Data
 
 2026-09-08
+
+---
+
+# Decisão: 051 — Preço em real, e uma frase que não mente sobre a data
+
+## Contexto
+
+Pedido do dono do produto, em três partes: mostrar também o valor em real pela
+cotação do dia, exibir o dólar usado, e trocar o aviso por
+*"Fonte: TCGplayer. Atualizado hoje 04:00"*.
+
+A terceira parte batia de frente com a decisão 050, que escolheu escrever
+"desde" justamente porque a série de preços só ganha linha quando o valor muda —
+não havia como saber quando a última conferência aconteceu. A saída não foi
+recuar de nenhum dos dois lados, e sim dar à afirmação sobre a conferência um
+lugar próprio.
+
+## Decisão 1 — A cotação vem do PTAX do Banco Central
+
+Escolha do dono do produto entre as opções apuradas. É a referência oficial
+brasileira, aberta, sem chave e sem cadastro — qualquer pessoa confere no site
+do BC o número que a tela mostra, o que não é pouco num campo de dinheiro.
+
+A alternativa era uma API comercial gratuita de cotação ao vivo, que cobre fim
+de semana. Foi recusada por ser serviço de terceiro sem compromisso de
+disponibilidade: no dia em que sumisse, o valor em real sumiria da tela.
+
+**Dia útil, e o que isso obriga.** O PTAX não existe em sábado, domingo nem
+feriado bancário, e a consulta de uma data sem cotação devolve **lista vazia**,
+não erro. O provedor anda para trás até cinco dias — que cobre um fim de semana
+com feriado emendado dos dois lados — e a tela mostra de que dia é o número.
+
+Usa-se `cotacaoVenda` e não `cotacaoCompra`: quem olha o preço de uma carta
+americana está pensando em comprar dólar. A diferença é pequena — 5,12470 contra
+5,12530 em 04/09 — mas escolher sem dizer qual seria escolher no escuro.
+
+## Decisão 2 — O real é derivado, nunca guardado
+
+Fica no banco o preço em dólar e a cotação do dia, separados. O real é calculado
+na leitura.
+
+Guardar o convertido criaria duas verdades para o mesmo fato: quando o Banco
+Central corrigisse a cotação de um dia — e ele corrige —, o valor gravado
+continuaria contando a história antiga, e ninguém saberia qual dos dois números
+estava certo.
+
+É também o que a regra 5.1 exige. O valor histórico de um trade sai do preço
+vigente em `completed_at`; em real, isso é o preço daquele dia vezes a cotação
+daquele dia — duas linhas com data, e não um número congelado.
+
+**Sem cotação utilizável, o real não aparece.** Três dias é o limite: cobre o
+fim de semana com feriado emendado, que é o buraco mais longo que o calendário
+brasileiro produz sem que algo esteja errado. Passando disso, a importação
+parou, e converter por taxa velha seria apresentar um palpite com cara de dado.
+
+## Decisão 3 — Duas tabelas novas, aprovadas pelo dono do produto
+
+`exchange_rates` — uma linha por par por dia. O valor é **sobrescrito** quando
+muda, ao contrário de `card_prices`: duas verdades para o mesmo dia é o que a
+chave única existe para impedir.
+
+`price_imports` — uma linha por execução, com o horário, o carimbo da fonte, os
+contadores e a mensagem de erro quando falha. É daqui que sai o "atualizado hoje
+às 04:00", e é ela que permite manter a série de preços esparsa sem que a tela
+precise mentir. De quebra, preenche a observabilidade que `integrations.md`
+seção 4 pedia desde o começo e nunca teve onde morar.
+
+**Importação que falhou não conta como conferência.** Contá-la faria a tela
+dizer "atualizado hoje" justamente no dia em que a importação quebrou — que é
+quando o aviso mais precisa ser verdade.
+
+## Decisão 4 — Três datas, e a tela usa a certa para cada coisa
+
+Este foi o nó, e vale escrito:
+
+| | de onde vem | o que afirma |
+|---|---|---|
+| `since` | `card_prices` | quando **este valor** passou a valer |
+| `checkedAt` | `price_imports` | quando **conferimos** pela última vez |
+| `sourceUpdatedAt` | `last-updated.txt` da fonte | de quando é o **dado do mercado** |
+
+A tela mostra a segunda como "Atualizado hoje às 04:00". A primeira não aparece:
+num common estável ela é de semanas atrás e faria o produto parecer abandonado.
+
+A terceira aparece **quando é de outro dia**, e é o caso normal — o espelho
+publica às 20:00 UTC, 17:00 aqui, e a importação roda de madrugada. Então o
+texto fica *"Atualizado hoje às 04:00, com dados do mercado de 08/09"*. Dizer só
+a nossa daria a entender que o mercado foi lido às 04:00.
+
+E "hoje" só é escrito quando é hoje: no dia em que a importação não rodar, a
+linha passa a mostrar a data — que é justamente o dia em que isso importa.
+
+## Decisão 5 — A importação diária roda às 04:00, por workflow agendado
+
+07:00 UTC. O Brasil não tem mais horário de verão, então a conta não muda no
+meio do ano.
+
+O workflow **só age depois** que o segredo `SUPABASE_DATABASE_URL` existir no
+repositório; sem ele termina sem erro dizendo que pulou. Falhar todo dia por
+segredo ausente seria ruído, e ruído diário é o jeito mais rápido de ninguém
+mais olhar para um alerta.
+
+Produção continua sendo alvo explícito: quem decide o destino é o script, pela
+variável, e não o agendamento.
+
+## Um defeito que o teste pegou antes da tela
+
+`quote_date` é coluna `DATE` — um dia, não um instante — e chega ao código como
+meia-noite UTC. Formatá-la no fuso de São Paulo a jogava para as 21h do dia
+anterior: a cotação de 08/09 aparecia como 07/09.
+
+Data de calendário é formatada em UTC; instante, no fuso de São Paulo. São
+coisas diferentes e agora têm funções diferentes.
+
+## Data
+
+2026-09-09

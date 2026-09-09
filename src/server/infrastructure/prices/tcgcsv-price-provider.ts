@@ -1,5 +1,10 @@
 import { commonArtByNumber, type SourceProduct } from '@/server/domain/prices/matching'
-import type { KnownCardNames, PriceProvider, SourcePrice } from '@/server/http/price-provider'
+import type {
+  KnownCardNames,
+  PriceProvider,
+  PriceSnapshot,
+  SourcePrice,
+} from '@/server/http/price-provider'
 
 /**
  * Preços do TCGplayer pelo espelho diário do tcgcsv (decisão 050).
@@ -26,9 +31,18 @@ import type { KnownCardNames, PriceProvider, SourcePrice } from '@/server/http/p
  * O `fetch` do Node não manda nenhum, e o host responde **401** a quem chega
  * sem se identificar. Além de destravar, é o mínimo de educação: quem hospeda
  * consegue ver quem está consumindo e falar com a gente se precisar.
+ *
+ * ## De quando é o dado
+ *
+ * A fonte publica o próprio carimbo em `last-updated.txt`, e ele volta junto
+ * com os preços. Importa porque o espelho é atualizado **às 20:00 UTC** — 17:00
+ * aqui — e a nossa importação roda de madrugada: o dado que chega às 04:00 é do
+ * fim da tarde anterior. A tela pode dizer quando conferimos sem dar a entender
+ * que o mercado foi lido naquele instante.
  */
 
-const BASE = 'https://tcgcsv.com/tcgplayer'
+const ORIGIN = 'https://tcgcsv.com'
+const BASE = `${ORIGIN}/tcgplayer`
 
 /** O One Piece Card Game no catálogo da fonte. */
 const CATEGORY_ID = 68
@@ -77,7 +91,8 @@ export class TcgCsvPriceProvider implements PriceProvider {
     this.logger = options.logger ?? console
   }
 
-  async fetchCommonArtPrices(knownNames: KnownCardNames): Promise<SourcePrice[]> {
+  async fetchCommonArtPrices(knownNames: KnownCardNames): Promise<PriceSnapshot> {
+    const sourceUpdatedAt = await this.sourceUpdatedAt()
     const groups = await this.get<{ results: Group[] }>(`${BASE}/${CATEGORY_ID}/groups`)
     const prices = new Map<string, SourcePrice>()
 
@@ -110,7 +125,28 @@ export class TcgCsvPriceProvider implements PriceProvider {
     this.logger.info(
       `[precos] ${prices.size} artes comuns com preço em ${groups.results.length} grupos`,
     )
-    return [...prices.values()]
+    return { prices: [...prices.values()], sourceUpdatedAt }
+  }
+
+  /**
+   * O carimbo que a fonte publica, ou nulo.
+   *
+   * Nulo e não exceção: não saber de quando é o dado deixa a tela um pouco mais
+   * vaga, mas abortar a importação inteira por causa de um arquivo de texto
+   * seria trocar todos os preços por nenhum.
+   */
+  private async sourceUpdatedAt(): Promise<Date | null> {
+    try {
+      const response = await this.fetchImpl(`${ORIGIN}/last-updated.txt`, {
+        headers: { 'user-agent': USER_AGENT },
+      })
+      if (!response.ok) return null
+
+      const parsed = new Date((await response.text()).trim())
+      return Number.isNaN(parsed.getTime()) ? null : parsed
+    } catch {
+      return null
+    }
   }
 
   /** Serializa e respeita o intervalo mínimo, como o provedor do catálogo. */

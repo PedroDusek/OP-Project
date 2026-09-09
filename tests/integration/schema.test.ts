@@ -9,6 +9,16 @@ import { disconnect, testPrisma } from '../helpers'
  * integridade (CHECK, triggers, extensoes) nao passa pelo Prisma.
  */
 
+/**
+ * As 24 tabelas do modelo logico, mais as adicoes aprovadas.
+ *
+ * A lista e escrita a mao de proposito: tabela nova so entra aqui junto de uma
+ * decisao que diz por que ela existe. Um teste que contasse as tabelas do banco
+ * concordaria com qualquer coisa que alguem criasse.
+ *
+ * Fora do modelo logico:
+ * - `exchange_rates` e `price_imports` (decisao 051).
+ */
 const EXPECTED_TABLES = [
   'attributes',
   'card_attributes',
@@ -24,7 +34,9 @@ const EXPECTED_TABLES = [
   'collections',
   'colors',
   'effects',
+  'exchange_rates',
   'mechanics',
+  'price_imports',
   'sets',
   'storage_locations',
   'trade_items',
@@ -74,7 +86,7 @@ afterAll(async () => {
 })
 
 describe('estrutura do banco', () => {
-  it('possui exatamente as 24 tabelas do modelo logico', async () => {
+  it('possui exatamente as tabelas do modelo logico e as aprovadas', async () => {
     const rows = await testPrisma().$queryRawUnsafe<{ table_name: string }[]>(
       `SELECT table_name FROM information_schema.tables
        WHERE table_schema = 'public'

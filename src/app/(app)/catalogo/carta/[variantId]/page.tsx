@@ -7,7 +7,7 @@ import { getCardVariant } from '@/server/application/catalog'
 import { searchCollection } from '@/server/application/collection'
 import { listVariantAllocations } from '@/server/application/storage'
 import { getWantQuantity } from '@/server/application/wants'
-import { getMarketPrice } from '@/server/application/prices'
+import { getMarketPrice, getPriceFreshness } from '@/server/application/prices'
 import { safeReturnTo } from '@/lib/catalog-params'
 import { currentViewer } from '@/server/http/viewer'
 import { VariantDetail } from '@/components/catalog/variant-detail'
@@ -83,10 +83,11 @@ export default async function CartaPage({
       )?.quantity ?? 0
     : 0
 
-  const [allocations, wanted, price] = await Promise.all([
+  const [allocations, wanted, price, priceFreshness] = await Promise.all([
     viewer && owned > 0 ? listVariantAllocations(viewer, id) : undefined,
     viewer ? getWantQuantity(viewer, id) : 0,
     getMarketPrice(id),
+    getPriceFreshness(),
   ])
 
   return (
@@ -105,6 +106,7 @@ export default async function CartaPage({
         wantedQuantity={wanted}
         allocations={allocations}
         price={price}
+        priceFreshness={priceFreshness}
       />
     </>
   )

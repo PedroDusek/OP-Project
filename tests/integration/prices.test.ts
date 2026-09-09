@@ -1,6 +1,12 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { importPrices } from '@/server/application/prices/import-prices'
-import { getMarketPrice } from '@/server/application/prices/read-prices'
+import { importExchangeRate } from '@/server/application/prices/import-exchange-rate'
+import {
+  getMarketPrice,
+  getPriceFreshness,
+  getUsdBrlRate,
+} from '@/server/application/prices/read-prices'
+import type { ExchangeRateProvider } from '@/server/http/exchange-rate-provider'
 import type { KnownCardNames, PriceProvider, SourcePrice } from '@/server/http/price-provider'
 import { createVariant, disconnect, resetDatabase, testPrisma } from '../helpers'
 
@@ -17,18 +23,28 @@ import { createVariant, disconnect, resetDatabase, testPrisma } from '../helpers
 const silent = { info: () => {}, warn: () => {} }
 
 /** Fonte falsa: sem rede, e guarda o que recebeu para o teste conferir. */
-function fakeProvider(prices: SourcePrice[]) {
+function fakeProvider(prices: SourcePrice[], sourceUpdatedAt: Date | null = null) {
   const recebido: KnownCardNames[] = []
 
   const provider: PriceProvider = {
     name: 'falsa',
     fetchCommonArtPrices: async (knownNames) => {
       recebido.push(knownNames)
-      return prices
+      return { prices, sourceUpdatedAt }
     },
   }
 
   return { provider, recebido }
+}
+
+/** Fonte que quebra, para exercer o registro da falha. */
+function brokenProvider(message: string): PriceProvider {
+  return {
+    name: 'falsa',
+    fetchCommonArtPrices: async () => {
+      throw new Error(message)
+    },
+  }
 }
 
 const usd = (cardCode: string, value: number): SourcePrice => ({
@@ -211,6 +227,185 @@ describe('leitura do preco vigente', () => {
       value: 2,
       since: quando,
       currency: 'USD',
+      brl: null,
     })
+  })
+})
+
+
+/** Fonte de cambio falsa: sem rede, com a data que o teste quiser. */
+function fakeRates(rates: { rate: number; quoteDate: Date }[]): ExchangeRateProvider {
+  let call = 0
+  return {
+    name: 'falsa',
+    fetchLatestUsdBrl: async () => {
+      const next = rates[Math.min(call++, rates.length - 1)]
+      if (!next) return null
+      return { base: 'USD', quote: 'BRL', ...next }
+    },
+  }
+}
+
+const semCambio: ExchangeRateProvider = {
+  name: 'falsa',
+  fetchLatestUsdBrl: async () => null,
+}
+
+describe('cotacao do dolar', () => {
+  const dia = new Date('2026-09-08T00:00:00Z')
+
+  it('grava a cotacao do dia', async () => {
+    const db = testPrisma()
+
+    const resultado = await importExchangeRate(db, fakeRates([{ rate: 5.1253, quoteDate: dia }]), {
+      logger: silent,
+    })
+
+    expect(resultado).toMatchObject({ rate: 5.1253, unchanged: false })
+    expect(await getUsdBrlRate(db, new Date('2026-09-08T12:00:00Z'))).toMatchObject({
+      rate: 5.1253,
+    })
+  })
+
+  /**
+   * Uma linha por par por dia. Sem isso, "a cotacao de hoje" dependeria de qual
+   * linha a consulta escolhesse — e no fim de semana seriam tres dias gravando
+   * a mesma sexta.
+   */
+  it('nao duplica ao rodar duas vezes no mesmo dia', async () => {
+    const db = testPrisma()
+    const fonte = fakeRates([{ rate: 5.1253, quoteDate: dia }])
+
+    await importExchangeRate(db, fonte, { logger: silent })
+    const segunda = await importExchangeRate(db, fonte, { logger: silent })
+
+    expect(segunda).toMatchObject({ unchanged: true })
+    expect(await db.exchangeRate.count()).toBe(1)
+  })
+
+  /** O Banco Central corrige cotacao publicada, e a correcao tem de valer. */
+  it('sobrescreve o valor do mesmo dia quando ele muda', async () => {
+    const db = testPrisma()
+
+    await importExchangeRate(db, fakeRates([{ rate: 5.1253, quoteDate: dia }]), { logger: silent })
+    await importExchangeRate(db, fakeRates([{ rate: 5.2, quoteDate: dia }]), { logger: silent })
+
+    expect(await db.exchangeRate.count()).toBe(1)
+    expect(await getUsdBrlRate(db, new Date('2026-09-08T12:00:00Z'))).toMatchObject({ rate: 5.2 })
+  })
+
+  it('devolve nulo quando a fonte nao tem cotacao', async () => {
+    const resultado = await importExchangeRate(testPrisma(), semCambio, { logger: silent })
+
+    expect(resultado).toBeNull()
+    expect(await testPrisma().exchangeRate.count()).toBe(0)
+  })
+
+  /** Converter por taxa velha seria apresentar palpite com cara de dado. */
+  it('esconde a cotacao velha demais', async () => {
+    const db = testPrisma()
+    await importExchangeRate(db, fakeRates([{ rate: 5.1253, quoteDate: dia }]), { logger: silent })
+
+    // Tres dias ainda valem: cobrem o fim de semana com feriado emendado.
+    expect(await getUsdBrlRate(db, new Date('2026-09-11T12:00:00Z'))).not.toBeNull()
+    expect(await getUsdBrlRate(db, new Date('2026-09-12T12:00:00Z'))).toBeNull()
+  })
+})
+
+describe('preco em real', () => {
+  it('converte usando a cotacao vigente e diz qual foi', async () => {
+    const db = testPrisma()
+    const { normal } = await carta('OP01-020')
+
+    await importPrices(db, fakeProvider([usd('OP01-020', 12.34)]).provider, { logger: silent })
+    await importExchangeRate(
+      db,
+      fakeRates([{ rate: 5.1253, quoteDate: new Date('2026-09-08T00:00:00Z') }]),
+      { logger: silent },
+    )
+
+    const preco = await getMarketPrice(db, normal.id, new Date('2026-09-08T12:00:00Z'))
+
+    expect(preco).toMatchObject({ value: 12.34 })
+    expect(preco?.brl).toMatchObject({ value: 63.25, rate: 5.1253 })
+  })
+
+  it('deixa o real nulo quando nao ha cotacao', async () => {
+    const db = testPrisma()
+    const { normal } = await carta('OP01-021')
+
+    await importPrices(db, fakeProvider([usd('OP01-021', 12.34)]).provider, { logger: silent })
+
+    expect((await getMarketPrice(db, normal.id))?.brl).toBeNull()
+  })
+})
+
+describe('registro de cada importacao', () => {
+  /**
+   * card_prices so ganha linha quando o valor muda, entao sem este registro nao
+   * ha como a tela dizer "conferido hoje as 04:00".
+   */
+  it('grava quando rodou, e o que aconteceu', async () => {
+    const db = testPrisma()
+    await carta('OP01-030')
+    const publicado = new Date('2026-09-08T20:06:11Z')
+
+    await importPrices(db, fakeProvider([usd('OP01-030', 1)], publicado).provider, {
+      logger: silent,
+    })
+
+    const frescor = await getPriceFreshness(db)
+    expect(frescor?.sourceUpdatedAt).toEqual(publicado)
+    expect(frescor?.checkedAt).toBeInstanceOf(Date)
+  })
+
+  it('guarda os numeros da passada', async () => {
+    const db = testPrisma()
+    await carta('OP01-031')
+
+    await importPrices(db, fakeProvider([usd('OP01-031', 1), usd('OP99-999', 2)]).provider, {
+      logger: silent,
+    })
+
+    expect(await db.priceImport.findFirst()).toMatchObject({
+      source: 'falsa',
+      fetched: 2,
+      matched: 1,
+      written: 1,
+      unknownCodes: 1,
+    })
+  })
+
+  /**
+   * Importacao que quebrou nao conferiu nada. Conta-la faria a tela dizer
+   * "atualizado hoje" justamente no dia em que a importacao parou — que e
+   * quando o aviso mais precisa ser verdade.
+   */
+  it('nao conta como conferida a importacao que falhou', async () => {
+    const db = testPrisma()
+
+    await expect(
+      importPrices(db, brokenProvider('fonte fora do ar'), { logger: silent }),
+    ).rejects.toThrow('fonte fora do ar')
+
+    expect(await getPriceFreshness(db)).toBeNull()
+    expect(await db.priceImport.findFirst()).toMatchObject({ failure: 'fonte fora do ar' })
+  })
+
+  it('devolve a ultima que terminou bem, e nao a mais recente', async () => {
+    const db = testPrisma()
+    await carta('OP01-032')
+
+    await importPrices(db, fakeProvider([usd('OP01-032', 1)]).provider, { logger: silent })
+    await expect(
+      importPrices(db, brokenProvider('caiu depois'), { logger: silent }),
+    ).rejects.toThrow()
+
+    const frescor = await getPriceFreshness(db)
+    expect(frescor).not.toBeNull()
+  })
+
+  it('devolve nulo antes da primeira importacao', async () => {
+    expect(await getPriceFreshness(testPrisma())).toBeNull()
   })
 })
