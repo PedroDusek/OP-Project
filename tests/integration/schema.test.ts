@@ -18,6 +18,7 @@ import { disconnect, testPrisma } from '../helpers'
  *
  * Fora do modelo logico:
  * - `exchange_rates` e `price_imports` (decisao 051).
+ * - `variant_source_products` (decisao 053).
  */
 const EXPECTED_TABLES = [
   'attributes',
@@ -45,6 +46,7 @@ const EXPECTED_TABLES = [
   'traits',
   'users',
   'variant_printings',
+  'variant_source_products',
   'want_items',
 ]
 
@@ -57,6 +59,9 @@ const EXPECTED_DELETE_ACTIONS: Record<string, 'CASCADE' | 'RESTRICT'> = {
   'collection_item_locations.collection_item_id': 'CASCADE',
   'collection_item_locations.storage_location_id': 'CASCADE',
   'variant_printings.card_variant_id': 'CASCADE',
+  // O vinculo e dado derivado do catalogo: variante que sai leva o vinculo
+  // junto, como a impressao. Nao e historico, ao contrario de card_prices.
+  'variant_source_products.card_variant_id': 'CASCADE',
   'card_colors.card_id': 'CASCADE',
   'card_traits.card_id': 'CASCADE',
   'card_attributes.card_id': 'CASCADE',

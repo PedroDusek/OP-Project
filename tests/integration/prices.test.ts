@@ -7,7 +7,12 @@ import {
   getUsdBrlRate,
 } from '@/server/application/prices/read-prices'
 import type { ExchangeRateProvider } from '@/server/http/exchange-rate-provider'
-import type { KnownCardNames, PriceProvider, SourcePrice } from '@/server/http/price-provider'
+import type {
+  KnownCardNames,
+  PriceProvider,
+  SourceArtProduct,
+  SourcePrice,
+} from '@/server/http/price-provider'
 import { createVariant, disconnect, resetDatabase, testPrisma } from '../helpers'
 
 /**
@@ -23,14 +28,18 @@ import { createVariant, disconnect, resetDatabase, testPrisma } from '../helpers
 const silent = { info: () => {}, warn: () => {} }
 
 /** Fonte falsa: sem rede, e guarda o que recebeu para o teste conferir. */
-function fakeProvider(prices: SourcePrice[], sourceUpdatedAt: Date | null = null) {
+function fakeProvider(
+  prices: SourcePrice[],
+  sourceUpdatedAt: Date | null = null,
+  arts: SourceArtProduct[] = [],
+) {
   const recebido: KnownCardNames[] = []
 
   const provider: PriceProvider = {
     name: 'falsa',
-    fetchCommonArtPrices: async (knownNames) => {
+    fetchSnapshot: async (knownNames) => {
       recebido.push(knownNames)
-      return { prices, sourceUpdatedAt }
+      return { prices, arts, sourceUpdatedAt }
     },
   }
 
@@ -41,7 +50,7 @@ function fakeProvider(prices: SourcePrice[], sourceUpdatedAt: Date | null = null
 function brokenProvider(message: string): PriceProvider {
   return {
     name: 'falsa',
-    fetchCommonArtPrices: async () => {
+    fetchSnapshot: async () => {
       throw new Error(message)
     },
   }

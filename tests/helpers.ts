@@ -11,6 +11,7 @@ const TABLES_IN_TRUNCATION_ORDER = [
   'trade_items',
   'trade_participants',
   'trades',
+  'variant_source_products',
   'card_prices',
   // Sem chave estrangeira nenhuma: a ordem aqui e so para a lista continuar
   // legivel ao lado do que elas servem.

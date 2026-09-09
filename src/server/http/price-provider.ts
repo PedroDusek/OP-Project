@@ -29,7 +29,30 @@ export interface SourcePrice {
 export type KnownCardNames = ReadonlyMap<string, string>
 
 /**
- * Um conjunto de preços e o instante a que ele se refere.
+ * Um produto que é **outra arte** da carta, e não a comum.
+ *
+ * Vem sem casar com nada: qual arte nossa ele é, o nosso catálogo não sabe
+ * dizer sozinho (decisão 023), e é isso que o vínculo da decisão 053 resolve.
+ *
+ * `value` pode ser nulo — a fonte lista produtos que não tem à venda. Ele vem
+ * junto mesmo assim, porque a lista de artes é o que permite vincular, e
+ * vincular hoje serve mesmo que o preço só apareça amanhã.
+ */
+export interface SourceArtProduct {
+  cardCode: string
+  /** O id do produto na fonte, como texto. */
+  productId: string
+  /** O tratamento, como a fonte escreve: `Alternate Art`, `SP + Gold`. */
+  label: string
+  value: number | null
+}
+
+/**
+ * O que uma passada pela fonte devolve.
+ *
+ * Uma passada, e não duas: são 87 arquivos, e tanto o preço da arte comum
+ * quanto a lista de artes para vincular saem dos mesmos. Buscar em separado
+ * dobraria a carga sobre infraestrutura de terceiro para ler o mesmo dado.
  *
  * A data vem junto porque ela é uma afirmação diferente da nossa: `sourceUpdatedAt`
  * diz de quando é o dado do mercado, e o horário da nossa importação diz quando
@@ -37,13 +60,16 @@ export type KnownCardNames = ReadonlyMap<string, string>
  * sobre um número de ontem.
  */
 export interface PriceSnapshot {
+  /** Preços da arte comum, já casados por código. */
   prices: SourcePrice[]
+  /** As demais artes, com ou sem preço, para vincular. */
+  arts: SourceArtProduct[]
   /** Quando a fonte publicou este conjunto. Nulo quando ela não informa. */
   sourceUpdatedAt: Date | null
 }
 
 export interface PriceProvider {
   readonly name: string
-  /** Todos os preços de arte comum que a fonte consegue identificar. */
-  fetchCommonArtPrices(knownNames: KnownCardNames): Promise<PriceSnapshot>
+  /** Uma passada pela fonte: preços da arte comum e a lista das demais artes. */
+  fetchSnapshot(knownNames: KnownCardNames): Promise<PriceSnapshot>
 }

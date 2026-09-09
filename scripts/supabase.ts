@@ -120,9 +120,13 @@ async function main(): Promise<void> {
       const { importExchangeRate } = await import(
         '@/server/application/prices/import-exchange-rate'
       )
+      const { linkArtProducts } = await import(
+        '@/server/application/prices/link-art-products'
+      )
       const { TcgCsvPriceProvider } = await import(
         '@/server/infrastructure/prices/tcgcsv-price-provider'
       )
+      const { oncePerRun } = await import('@/server/infrastructure/prices/once-per-run')
       const { BcbPtaxProvider } = await import(
         '@/server/infrastructure/prices/bcb-ptax-provider'
       )
@@ -140,10 +144,16 @@ async function main(): Promise<void> {
       )
       if (rate) console.log(`[supabase] cambio: USD/BRL ${rate.rate}`)
 
-      const result = await importPrices(prisma, new TcgCsvPriceProvider())
+      // O vinculo antes do preco, para um vinculo novo ja render preco na
+      // mesma passada. `oncePerRun` faz os dois lerem a fonte uma vez so.
+      const provider = oncePerRun(new TcgCsvPriceProvider())
+      await linkArtProducts(prisma, provider)
+
+      const result = await importPrices(prisma, provider)
       console.log(
         `[supabase] precos: fonte ${result.fetched} | casados ${result.matched} | ` +
-          `gravados ${result.written} | sem mudanca ${result.unchanged}`,
+          `gravados ${result.written} | sem mudanca ${result.unchanged} | ` +
+          `por vinculo ${result.linkedPriced}`,
       )
     } finally {
       await prisma.$disconnect()

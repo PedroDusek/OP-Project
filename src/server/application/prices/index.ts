@@ -10,6 +10,10 @@ import {
   type ImportExchangeRateOptions,
 } from './import-exchange-rate'
 import {
+  linkArtProducts as linkArtProductsWith,
+  type LinkArtProductsOptions,
+} from './link-art-products'
+import {
   getMarketPrice as getMarketPriceWith,
   getPriceFreshness as getPriceFreshnessWith,
   getUsdBrlRate as getUsdBrlRateWith,
@@ -41,9 +45,14 @@ export function importExchangeRate(options: ImportExchangeRateOptions = {}) {
   return importExchangeRateWith(prisma, new BcbPtaxProvider(), options)
 }
 
+export function linkArtProducts(options: LinkArtProductsOptions = {}) {
+  return linkArtProductsWith(prisma, new TcgCsvPriceProvider(), options)
+}
+
 export type { ImportPricesResult, ImportPricesOptions } from './import-prices'
 export type {
   ImportExchangeRateResult,
   ImportExchangeRateOptions,
 } from './import-exchange-rate'
+export type { LinkArtProductsResult, LinkArtProductsOptions } from './link-art-products'
 export type { MarketPrice, BrlValue, PriceFreshness } from './read-prices'

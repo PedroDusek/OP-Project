@@ -30,7 +30,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 11 concluídos**, e o 12 começou pela want list. 816 testes
+**Checkpoints 0 a 11 concluídos**, e o 12 começou pela want list. 842 testes
 de unidade, integração e componente, mais 30 ponta a ponta. Lint, typecheck e
 build passando.
 
@@ -52,6 +52,8 @@ build passando.
 | 12 | Want list (telas 29 e 30), como aba da Coleção. Trade Binder e matches faltam |
 | — | Preço de mercado das artes comuns, 96,7% do catálogo, pelo tcgcsv (decisão 050) |
 | — | Preço em real pelo PTAX, e o aviso de quando foi conferido (decisão 051) |
+| — | Reimpressão virou impressão, não variante (decisão 052) |
+| — | Vínculo arte ↔ produto: 478 paralelas com preço automático (decisão 053) |
 
 **Banco de produção populado e conferido**, idêntico ao local em 09/09/2026:
 2.785 cartas, 4.431 variantes, 60 sets, 4.834 impressões, 2.692 preços.
@@ -73,7 +75,7 @@ sem preço novo, só para de envelhecer sem ninguém perceber.
 
 ## As decisões que mais restringem o que vem depois
 
-As 52 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 53 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
@@ -417,11 +419,13 @@ Depois: negociação, Trade Binder público (Premium) e pagamento.
   existir nos secrets do repositório. Só o dono da conta pode criá-lo.
 - **Produção ainda sem preço.** O banco local está populado; produção espera
   `npm run supabase prices` ou o primeiro disparo do workflow.
-- **Mapear as paralelas, coleção a coleção.** Em andamento com o dono do
-  produto. O vocabulário de tratamentos da fonte (`Alternate Art`, `Parallel`,
-  `Box Topper`, `SP`, `Manga`, `Full Art`) parece alinhar com os sufixos da Liga
-  (`-PAR`, `-BT`). Enquanto não existir o mapa, paralela não tem preço nem link
-  exato.
+- **Mapear as 351 paralelas ambíguas.** O automático já cobriu 478 (decisão
+  053); sobram as cartas com duas ou mais artes dos dois lados, onde é preciso
+  dizer qual é a *Alternate Art* e qual é a *Manga*. Entram com
+  `origin = 'manual'`, que nenhuma rederivação sobrescreve.
+  `npx tsx scripts/levantar-paralelas.ts` gera a lista.
+- **168 cartas com paralela que a fonte não oferece.** Não há produto para
+  vincular; ficam sem preço até a fonte listá-las.
 
 O protocolo continua: uma branch e um PR por checkpoint, o assistente merge
 quando estiver completo e sem pendência, e para antes de iniciar o próximo

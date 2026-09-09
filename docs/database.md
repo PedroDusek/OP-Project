@@ -422,6 +422,7 @@ Analisada relação a relação, e não aplicada uniformemente.
 | `collection_item_locations.storage_location_id` | CASCADE | apagar um binder libera as alocações; as cópias permanecem na coleção |
 | `card_variants.card_id` | RESTRICT | integridade do catálogo; remoção passa pelas ferramentas de importação |
 | `variant_printings.card_variant_id` | CASCADE | uma impressão não tem sentido sem a variante |
+| `variant_source_products.card_variant_id` | CASCADE | o vínculo é dado derivado do catálogo, sem valor histórico próprio |
 | `variant_printings.set_id` | RESTRICT | um set com impressões nunca é removido silenciosamente |
 | `card_<vocabulário>.card_id` | CASCADE | reconstruído a cada importação |
 | `card_<vocabulário>.<vocabulário>_id` | RESTRICT | um termo em uso nunca é removido silenciosamente |

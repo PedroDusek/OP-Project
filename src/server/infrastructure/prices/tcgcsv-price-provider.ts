@@ -1,8 +1,10 @@
 import { commonArtByNumber, type SourceProduct } from '@/server/domain/prices/matching'
+import { artProducts, treatmentOf } from '@/server/domain/prices/treatments'
 import type {
   KnownCardNames,
   PriceProvider,
   PriceSnapshot,
+  SourceArtProduct,
   SourcePrice,
 } from '@/server/http/price-provider'
 
@@ -91,10 +93,11 @@ export class TcgCsvPriceProvider implements PriceProvider {
     this.logger = options.logger ?? console
   }
 
-  async fetchCommonArtPrices(knownNames: KnownCardNames): Promise<PriceSnapshot> {
+  async fetchSnapshot(knownNames: KnownCardNames): Promise<PriceSnapshot> {
     const sourceUpdatedAt = await this.sourceUpdatedAt()
     const groups = await this.get<{ results: Group[] }>(`${BASE}/${CATEGORY_ID}/groups`)
     const prices = new Map<string, SourcePrice>()
+    const arts = new Map<string, SourceArtProduct>()
 
     for (const group of groups.results) {
       const [products, quotes] = await Promise.all([
@@ -120,12 +123,37 @@ export class TcgCsvPriceProvider implements PriceProvider {
           prices.set(number, { cardCode: number, value, currency: 'USD' })
         }
       }
+
+      /*
+       * As demais artes, por produto e não por número: uma carta tem várias, e
+       * o id do produto é o que as distingue. União entre grupos — a mesma arte
+       * aparece no set de origem e em cada produto que a reimprime, e ficar com
+       * o primeiro perderia as artes do set original quando uma reimpressão
+       * chegasse antes.
+       */
+      for (const product of cards) {
+        const number = product.number.trim().toUpperCase()
+        const daCarta = cards.filter((c) => c.number.trim().toUpperCase() === number)
+
+        for (const art of artProducts(daCarta, common.get(number) ?? null)) {
+          const id = String(art.productId)
+          if (arts.has(id)) continue
+
+          arts.set(id, {
+            cardCode: number,
+            productId: id,
+            label: treatmentOf(art, common.get(number)?.name ?? null),
+            value: market.get(art.productId) ?? null,
+          })
+        }
+      }
     }
 
     this.logger.info(
-      `[precos] ${prices.size} artes comuns com preço em ${groups.results.length} grupos`,
+      `[precos] ${prices.size} artes comuns com preço e ${arts.size} outras artes ` +
+        `em ${groups.results.length} grupos`,
     )
-    return { prices: [...prices.values()], sourceUpdatedAt }
+    return { prices: [...prices.values()], arts: [...arts.values()], sourceUpdatedAt }
   }
 
   /**
