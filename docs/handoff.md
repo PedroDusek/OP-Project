@@ -30,7 +30,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 11 concluídos**, e o 12 começou pela want list. 801 testes
+**Checkpoints 0 a 11 concluídos**, e o 12 começou pela want list. 816 testes
 de unidade, integração e componente, mais 30 ponta a ponta. Lint, typecheck e
 build passando.
 
@@ -53,9 +53,12 @@ build passando.
 | — | Preço de mercado das artes comuns, 96,7% do catálogo, pelo tcgcsv (decisão 050) |
 | — | Preço em real pelo PTAX, e o aviso de quando foi conferido (decisão 051) |
 
-**Banco de produção populado e conferido:** 2.785 cartas, 4.843 variantes, 60
-sets, 4.842 impressões — números idênticos ao local, estrutura conferida objeto
-a objeto.
+**Banco de produção populado e conferido:** 2.785 cartas, 60 sets.
+
+> **Local e produção divergem em variantes** desde a decisão 052: local tem
+> **4.431**, produção ainda **4.843**. A diferença são as 412 reimpressões que
+> deixaram de ser variantes. A migration `reimpressao_nao_e_variante` está
+> pendente lá — enquanto não rodar, produção mostra artes que não existem.
 
 **Migrations em produção: 7 de 7**, alinhadas em 09/09/2026. Estiveram duas
 atrás sem ninguém notar, e o custo disso seria alto — publicar código que usa
@@ -71,7 +74,7 @@ sem preço novo, só para de envelhecer sem ninguém perceber.
 
 ## As decisões que mais restringem o que vem depois
 
-As 51 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 52 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
@@ -325,11 +328,10 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
   os produtos novos têm página. Cobrir os 60 sets exigiria hospedar as imagens
   por conta própria, como a LigaOnePiece faz. Hoje a capa é o Leader do set.
 
-- **Uma variante sem set.** `ST14-010_r1` (Brook, Parallel) não tem nenhuma
-  impressão em `variant_printings` — 4.842 das 4.843 têm. Ela aparece na busca
-  mas não é alcançável por nenhum set. O sufixo `_r1` sugere que o parser não
-  reconhece esse formato, diferente dos `_pN`. É pouco, mas é da mesma família da
-  armadilha 5: algo que a importação deixou passar em silêncio.
+- ~~**Uma variante sem set.** `ST14-010_r1`~~ — **resolvido pela decisão 052.**
+  O palpite anotado aqui estava certo: `_r1` não é o mesmo que `_pN`. É
+  reimpressão, e reimpressão sem campo de set não acrescenta nada, porque o set
+  é o único dado que ela traz. Ela deixou de existir como variante.
 - **Data de lançamento dos starter decks.** A ordem informada cobre as coleções;
   os decks saem por número, que é a ordem deles entre si. Intercalá-los com as
   coleções exigiria as datas.

@@ -1,6 +1,11 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
 import { PROMO_SET } from '@/server/domain/catalog/types'
-import type { CardDTO, CatalogPage, CatalogProvider } from '@/server/domain/catalog/types'
+import type {
+  CardDTO,
+  CatalogPage,
+  CatalogProvider,
+  ReprintDTO,
+} from '@/server/domain/catalog/types'
 
 /**
  * Importacao do catalogo.
@@ -39,6 +44,16 @@ export interface ImportReport {
   promotionalProductNames: string[]
   /** Variantes que a fonte trouxe sem campo de sets. */
   variantsWithoutSet: string[]
+  /** Impressoes gravadas a partir de reimpressoes (decisao 052). */
+  reprintPrintings: number
+  /**
+   * sourceIds de reimpressoes cuja arte reimpressa nao foi encontrada.
+   *
+   * Nao deveria acontecer: a fonte publica a arte comum antes de reimprimi-la.
+   * Fica visivel em vez de sumir — se aparecer, ou a fonte mudou a notacao ou
+   * uma serie falhou e levou junto uma carta que outra depende.
+   */
+  reprintsWithoutBase: string[]
 }
 
 export interface ImportOptions {
@@ -71,8 +86,20 @@ export async function importCatalog(
     failures: [],
     promotionalProductNames: [],
     variantsWithoutSet: [],
+    reprintPrintings: 0,
+    reprintsWithoutBase: [],
   }
   const promotional = new Set<string>()
+
+  /*
+   * As reimpressoes esperam o fim de tudo.
+   *
+   * `EB01-012_r1` chega na pagina do PRB-02, e a arte que ela reimprime esta
+   * na do EB-01. Se as series vierem nessa ordem, gravar na hora perderia o
+   * set; se vierem na outra, funcionaria. Depender da ordem em que a fonte
+   * lista as series e o tipo de acerto que quebra sozinho um dia.
+   */
+  const reprints: ReprintDTO[] = []
 
   const seriesIds = options.seriesIds ?? (await provider.listSeriesIds())
   log.info(`[import] inicio provider=${provider.name} series=${seriesIds.length}`)
@@ -93,6 +120,7 @@ export async function importCatalog(
       report.rejected.push(...page.rejected)
       for (const name of page.promotionalProductNames) promotional.add(name)
       report.variantsWithoutSet.push(...page.variantsWithoutSet)
+      reprints.push(...page.reprints)
 
       log.info(
         `[import] serie=${seriesId} sets=${counts.sets} cards=${counts.cards} ` +
@@ -105,6 +133,16 @@ export async function importCatalog(
       report.failures.push({ seriesId, reason })
       log.error(`[import] serie=${seriesId} FALHOU: ${reason}`)
     }
+  }
+
+  if (reprints.length > 0) {
+    const applied = await applyReprints(prisma, provider.name, reprints)
+    report.reprintPrintings = applied.printings
+    report.reprintsWithoutBase = applied.withoutBase
+    log.info(
+      `[import] ${reprints.length} reimpressoes: ${applied.printings} impressoes gravadas, ` +
+        `${applied.withoutBase.length} sem arte correspondente`,
+    )
   }
 
   report.promotionalProductNames = [...promotional].sort()
@@ -229,6 +267,75 @@ async function persistPage(
     variants: page.variants.length,
     printings,
   }
+}
+
+/**
+ * Grava as reimpressoes como impressoes da arte que elas reimprimem.
+ *
+ * Roda depois de todas as series, com o catalogo inteiro ja no banco: e a unica
+ * hora em que se pode ter certeza de que a arte reimpressa existe, venha ela da
+ * serie que veio.
+ *
+ * Uma transacao so para o lote. Sao poucas centenas de linhas, e ou o conjunto
+ * inteiro entra ou nao entra nenhum — meia reimpressao gravada seria pior que
+ * nenhuma, porque a proxima execucao acharia que ja estava tudo feito.
+ */
+async function applyReprints(
+  prisma: PrismaClient,
+  source: string,
+  reprints: readonly ReprintDTO[],
+): Promise<{ printings: number; withoutBase: string[] }> {
+  const baseIds = [...new Set(reprints.map((r) => r.reprintOfSourceId))]
+  const setCodes = [...new Set(reprints.flatMap((r) => r.printedInSetCodes))]
+
+  const [bases, sets] = await Promise.all([
+    prisma.cardVariant.findMany({
+      where: { source, sourceId: { in: baseIds } },
+      select: { id: true, sourceId: true },
+    }),
+    prisma.set.findMany({ where: { code: { in: setCodes } }, select: { id: true, code: true } }),
+  ])
+
+  const variantIdBySourceId = new Map(bases.map((b) => [b.sourceId ?? '', b.id]))
+  const setIdByCode = new Map(sets.map((s) => [s.code, s.id]))
+
+  const withoutBase: string[] = []
+  const pares: { cardVariantId: bigint; setId: bigint }[] = []
+
+  for (const reprint of reprints) {
+    const cardVariantId = variantIdBySourceId.get(reprint.reprintOfSourceId)
+    if (cardVariantId === undefined) {
+      withoutBase.push(reprint.sourceId)
+      continue
+    }
+    for (const code of reprint.printedInSetCodes) {
+      const setId = setIdByCode.get(code)
+      if (setId === undefined) continue
+      pares.push({ cardVariantId, setId })
+    }
+  }
+
+  if (pares.length === 0) return { printings: 0, withoutBase }
+
+  const printings = await prisma.$transaction(
+    async (tx) => {
+      let gravadas = 0
+      for (const par of pares) {
+        // A chave composta e o que torna isto idempotente: a mesma reimpressao
+        // vista de novo nao acrescenta linha.
+        await tx.variantPrinting.upsert({
+          where: { cardVariantId_setId: par },
+          create: par,
+          update: {},
+        })
+        gravadas += 1
+      }
+      return gravadas
+    },
+    { timeout: TRANSACTION_TIMEOUT_MS },
+  )
+
+  return { printings, withoutBase }
 }
 
 /**

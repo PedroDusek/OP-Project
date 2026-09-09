@@ -265,8 +265,38 @@ describe('variantes que a fonte deixa sem set', () => {
 
     // A carta entra: a lacuna e do dado da fonte, nao motivo para descartar.
     expect(parsed.cards).toHaveLength(1)
-    expect(parsed.variants[0].printedInSetCodes).toEqual([])
     expect(parsed.variantsWithoutSet).toEqual(['TST-020_r1'])
+
+    /*
+     * `_r1` e reimpressao (decisao 052), entao nao vira variante. E uma
+     * reimpressao sem set nao acrescenta nada: o set e o unico dado que ela
+     * traz. Continua sinalizada, porque desaparecer em silencio e o que esta
+     * secao existe para impedir.
+     */
+    expect(parsed.variants).toEqual([])
+    expect(parsed.reprints[0].printedInSetCodes).toEqual([])
+  })
+
+  it('sinaliza tambem a arte paralela sem set', () => {
+    const block = `
+      <dl class="modalCol" id="TST-020_p1">
+        <dt>
+          <div class="infoCol"><span>TST-020</span> | <span>C</span> | <span>CHARACTER</span></div>
+          <div class="cardName">Sem set</div>
+        </dt>
+        <dd><div class="backCol">
+          <div class="cost"><h3>Cost</h3>5</div>
+          <div class="power"><h3>Power</h3>5000</div>
+          <div class="counter"><h3>Counter</h3>-</div>
+          <div class="color"><h3>Color</h3>Red</div>
+          <div class="feature"><h3>Type</h3>Teste</div>
+          <div class="text"><h3>Effect</h3>-</div>
+        </div></dd>
+      </dl>`
+    const parsed = parseCardList(block)
+
+    expect(parsed.variants[0].printedInSetCodes).toEqual([])
+    expect(parsed.variantsWithoutSet).toEqual(['TST-020_p1'])
   })
 
   it('nao sinaliza nada quando toda variante tem set', () => {

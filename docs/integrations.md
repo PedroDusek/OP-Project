@@ -293,7 +293,7 @@ interface PriceProvider {
 }
 ```
 
-Em lote, e não por carta: são 4.843 variantes, e uma requisição por carta daria
+Em lote, e não por carta: são 4.431 variantes, e uma requisição por carta daria
 mais de duas horas por dia contra servidor de terceiro. A fonte lê 87 arquivos.
 
 `knownNames` é o nome que o **nosso** catálogo dá a cada código. A fonte precisa

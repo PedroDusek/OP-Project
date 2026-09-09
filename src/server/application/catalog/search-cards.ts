@@ -197,7 +197,7 @@ export function buildCatalogWhere(filters: CatalogFilters): Prisma.CardVariantWh
  * pagina. Nao e uma consulta a mais: o `count` que existia antes some, porque o
  * total passa a ser o tamanho da lista.
  *
- * O que isso custa: com 4.843 variantes, o pior caso traz 4.843 pares
+ * O que isso custa: com 4.431 variantes, o pior caso traz 4.431 pares
  * (id, codigo do set) por requisicao. Sao dezenas de kilobytes e uma varredura
  * de indice. Se o catalogo crescer uma ordem de grandeza, isto precisa virar
  * ordenacao no banco — provavelmente com a posicao materializada em `sets`.

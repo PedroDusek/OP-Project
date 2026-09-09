@@ -19,7 +19,7 @@ import type {
  *
  * ## Por que arquivo em lote importa tanto
  *
- * São 4.843 variantes no nosso catálogo. Uma fonte por carta exigiria 4.843
+ * São 4.431 variantes no nosso catálogo. Uma fonte por carta exigiria 4.431
  * requisições — mais de duas horas no intervalo de cortesia do projeto, todo
  * dia, contra servidor de terceiro. Aqui são 87 grupos: um punhado de arquivos.
  *
