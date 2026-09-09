@@ -31,8 +31,12 @@ import type { PriceProvider, SourcePrice } from '@/server/http/price-provider'
  * contrário.
  *
  * **O que isso custa em precisão**: sem linha nova, não dá para distinguir
- * "não mudou" de "não foi verificado". A idade do preço exibido é a idade da
- * última **mudança**, não da última conferida.
+ * "não mudou" de "não foi verificado".
+ *
+ * Quem paga essa conta é `price_imports`: cada execução deixa um registro com o
+ * horário, o carimbo da fonte e o que aconteceu. É de lá que a tela tira
+ * "atualizado hoje às 04:00" — a série de preços continua esparsa, e a
+ * afirmação sobre a conferência tem onde morar (decisão 051).
  */
 
 export interface ImportPricesResult {
@@ -46,6 +50,8 @@ export interface ImportPricesResult {
   unchanged: number
   /** Códigos que a fonte trouxe e o nosso catálogo não conhece. */
   unknownCodes: number
+  /** Quando a fonte publicou os dados desta passada. Nulo se ela não informa. */
+  sourceUpdatedAt: Date | null
 }
 
 export interface ImportPricesOptions {
@@ -62,8 +68,67 @@ export async function importPrices(
   const logger = options.logger ?? console
   const capturedAt = options.capturedAt ?? new Date()
 
+  const run = await prisma.priceImport.create({
+    data: { source: provider.name, startedAt: capturedAt },
+    select: { id: true },
+  })
+
+  try {
+    const result = await runImport(prisma, provider, capturedAt, logger)
+
+    await prisma.priceImport.update({
+      where: { id: run.id },
+      data: {
+        finishedAt: new Date(),
+        sourceUpdatedAt: result.sourceUpdatedAt,
+        fetched: result.fetched,
+        matched: result.matched,
+        written: result.written,
+        unchanged: result.unchanged,
+        unknownCodes: result.unknownCodes,
+      },
+    })
+
+    logger.info(
+      `[precos] casados ${result.matched}, gravados ${result.written}, ` +
+        `sem mudanca ${result.unchanged}, codigo desconhecido ${result.unknownCodes}`,
+    )
+
+    return result
+  } catch (error) {
+    /*
+     * A falha fica gravada e a excecao sobe. Sem o registro, uma importacao que
+     * parou de rodar vira preco velho na tela sem nenhum aviso — que e
+     * exatamente o modo de falha que este registro existe para tornar visivel.
+     */
+    await prisma.priceImport.update({
+      where: { id: run.id },
+      data: { finishedAt: new Date(), failure: describe(error) },
+    })
+    throw error
+  }
+}
+
+/** Erro em texto curto, para caber na coluna sem virar despejo de stack. */
+function describe(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error)
+  return message.slice(0, 500)
+}
+
+/**
+ * A importação em si, sem o registro em volta.
+ *
+ * Separada para que o `try` acima seja curto e óbvio: tudo que acontecer aqui
+ * dentro deixa rastro em `price_imports`, dando certo ou não.
+ */
+async function runImport(
+  prisma: PrismaClient,
+  provider: PriceProvider,
+  capturedAt: Date,
+  logger: Pick<Console, 'info' | 'warn'>,
+): Promise<ImportPricesResult> {
   const knownNames = await knownCardNames(prisma)
-  const prices = await provider.fetchCommonArtPrices(knownNames)
+  const { prices, sourceUpdatedAt } = await provider.fetchCommonArtPrices(knownNames)
   logger.info(`[precos] fonte ${provider.name}: ${prices.length} precos de arte comum`)
 
   const variants = await commonArtVariants(prisma, prices)
@@ -94,12 +159,14 @@ export async function importPrices(
     written++
   }
 
-  logger.info(
-    `[precos] casados ${matched}, gravados ${written}, sem mudanca ${unchanged}, ` +
-      `codigo desconhecido ${unknownCodes}`,
-  )
-
-  return { fetched: prices.length, matched, written, unchanged, unknownCodes }
+  return {
+    fetched: prices.length,
+    matched,
+    written,
+    unchanged,
+    unknownCodes,
+    sourceUpdatedAt,
+  }
 }
 
 /**

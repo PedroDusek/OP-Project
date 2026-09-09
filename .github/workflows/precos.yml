@@ -1,0 +1,72 @@
+name: Precos
+
+# Importacao diaria dos precos e da cotacao do dolar (decisao 051).
+#
+# 07:00 UTC e 04:00 em Brasilia — o Brasil nao tem mais horario de verao, entao
+# a conta nao muda no meio do ano. O horario foi escolhido pelo dono do produto,
+# e a tela diz "Atualizado hoje as 04:00" a partir do que esta execucao grava.
+#
+# Por que de madrugada e nao logo depois da fonte publicar: o espelho sai as
+# 20:00 UTC, e ler as 04:00 do dia seguinte da folga para uma publicacao
+# atrasada sem que ninguem esteja usando o produto no meio.
+#
+# **Este workflow escreve em producao.** Ele so faz alguma coisa depois que o
+# segredo SUPABASE_DATABASE_URL existir no repositorio, e ate la termina sem
+# erro dizendo que pulou. Falhar todo dia por segredo ausente seria ruido, e
+# ruido diario e o jeito mais rapido de ninguem mais olhar para um alerta.
+
+on:
+  schedule:
+    - cron: '0 7 * * *'
+  # Permite rodar a mao, que e como se confere que o agendamento funciona antes
+  # de esperar um dia inteiro.
+  workflow_dispatch:
+
+concurrency:
+  group: precos
+  cancel-in-progress: false
+
+jobs:
+  importar:
+    name: Importar precos e cotacao
+    runs-on: ubuntu-latest
+    # 87 arquivos com intervalo de cortesia entre requisicoes, mais a espera do
+    # Banco Central. O limite existe para uma fonte pendurada nao segurar o
+    # runner por seis horas.
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Verificar se o destino esta configurado
+        id: destino
+        env:
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        run: |
+          if [ -z "$SUPABASE_DATABASE_URL" ]; then
+            echo "::notice::SUPABASE_DATABASE_URL nao esta configurado. Nada a fazer."
+            echo "configurado=nao" >> "$GITHUB_OUTPUT"
+          else
+            echo "configurado=sim" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Instalar dependencias
+        if: steps.destino.outputs.configurado == 'sim'
+        run: npm ci
+
+      - name: Gerar Prisma Client
+        if: steps.destino.outputs.configurado == 'sim'
+        run: npx prisma generate
+
+      # O mesmo comando que se roda a mao. Producao continua sendo alvo
+      # explicito: quem decide e o script, pela variavel, e nao o agendamento.
+      - name: Importar
+        if: steps.destino.outputs.configurado == 'sim'
+        env:
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        run: npm run supabase prices

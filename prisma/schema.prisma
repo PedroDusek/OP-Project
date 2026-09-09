@@ -260,8 +260,8 @@ model CollectionItem {
   cardVariantId BigInt @map("card_variant_id")
   quantity      Int
 
-  collection  Collection              @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  cardVariant CardVariant             @relation(fields: [cardVariantId], references: [id], onDelete: Restrict)
+  collection  Collection               @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  cardVariant CardVariant              @relation(fields: [cardVariantId], references: [id], onDelete: Restrict)
   locations   CollectionItemLocation[]
 
   @@unique([collectionId, cardVariantId])
@@ -337,6 +337,61 @@ model CardPrice {
   // Manter os dois custaria escrita e espaco sem ganho de leitura.
   @@unique([cardVariantId, capturedAt])
   @@map("card_prices")
+}
+
+// Cotacao de moeda, uma linha por par por dia (decisao 051).
+//
+// Existe porque o preco vem em dolar e a tela mostra tambem em real: sem
+// guardar a taxa, o valor em real de um trade passado mudaria toda vez que o
+// cambio mexesse, e a regra 5.1 diz que valor historico nao muda.
+//
+// A data e a da cotacao, nao a da captura. O PTAX so existe em dia util: no
+// sabado vale a de sexta, e e a linha de sexta que a consulta encontra.
+model ExchangeRate {
+  id            BigInt   @id @default(autoincrement())
+  baseCurrency  String   @map("base_currency") @db.VarChar(3)
+  quoteCurrency String   @map("quote_currency") @db.VarChar(3)
+  quoteDate     DateTime @map("quote_date") @db.Date
+  rate          Decimal  @db.Decimal(18, 6)
+  source        String   @db.VarChar(40)
+  capturedAt    DateTime @default(now()) @map("captured_at") @db.Timestamptz(6)
+
+  // Uma cotacao por par por dia. Reexecutar a importacao no mesmo dia atualiza
+  // a linha em vez de criar uma segunda, que faria "a cotacao de hoje" depender
+  // de qual delas a consulta escolhesse.
+  @@unique([baseCurrency, quoteCurrency, quoteDate])
+  @@map("exchange_rates")
+}
+
+// Registro de cada importacao de precos (decisao 051).
+//
+// Existe por dois motivos. O primeiro e a tela: card_prices so ganha linha
+// quando o valor muda, entao sem este registro nao ha como dizer "conferido
+// hoje as 04:00" — so "sem mudanca desde tal dia", que e outra afirmacao.
+//
+// O segundo e a observabilidade que integrations.md secao 4 pede desde o
+// inicio e que nunca teve onde morar.
+model PriceImport {
+  id              BigInt    @id @default(autoincrement())
+  source          String    @db.VarChar(40)
+  // O carimbo que a propria fonte publica. O nosso horario diz quando
+  // conferimos; este diz de quando e o dado do mercado, que nao e a mesma coisa
+  // — o espelho publica as 20:00 UTC e a importacao roda de madrugada.
+  sourceUpdatedAt DateTime? @map("source_updated_at") @db.Timestamptz(6)
+  startedAt       DateTime  @map("started_at") @db.Timestamptz(6)
+  finishedAt      DateTime? @map("finished_at") @db.Timestamptz(6)
+  fetched         Int       @default(0)
+  matched         Int       @default(0)
+  written         Int       @default(0)
+  unchanged       Int       @default(0)
+  unknownCodes    Int       @default(0) @map("unknown_codes")
+  // Mensagem do erro quando a importacao nao terminou. Nulo em execucao que
+  // deu certo; sem isto, falha silenciosa vira preco velho na tela sem aviso.
+  failure         String?   @db.VarChar(500)
+
+  // A tela pergunta sempre a mesma coisa: qual foi a ultima que terminou.
+  @@index([finishedAt])
+  @@map("price_imports")
 }
 
 // -------------------------------------------------------------------- trocas

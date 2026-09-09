@@ -1,4 +1,4 @@
-# Handoff — estado em 08/09/2026
+# Handoff — estado em 09/09/2026
 
 Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
 
@@ -30,7 +30,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 11 concluídos**, e o 12 começou pela want list. 762 testes
+**Checkpoints 0 a 11 concluídos**, e o 12 começou pela want list. 796 testes
 de unidade, integração e componente, mais 30 ponta a ponta. Lint, typecheck e
 build passando.
 
@@ -51,6 +51,7 @@ build passando.
 | 11 | Edição em massa: adicionar uma leva a um local, e transferir entre locais |
 | 12 | Want list (telas 29 e 30), como aba da Coleção. Trade Binder e matches faltam |
 | — | Preço de mercado das artes comuns, 96,7% do catálogo, pelo tcgcsv (decisão 050) |
+| — | Preço em real pelo PTAX, e o aviso de quando foi conferido (decisão 051) |
 
 **Banco de produção populado e conferido:** 2.785 cartas, 4.843 variantes, 60
 sets, 4.842 impressões — números idênticos ao local, estrutura conferida objeto
@@ -58,7 +59,7 @@ a objeto.
 
 ## As decisões que mais restringem o que vem depois
 
-As 50 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 51 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
@@ -373,16 +374,18 @@ lá, e sai em dólar — a conversão para real é decisão em aberto.
 
 Depois: negociação, Trade Binder público (Premium) e pagamento.
 
-## Duas decisões esperando o dono do produto
+## O que falta em preços
 
-- **Agendar a importação diária de preços.** O comando existe
-  (`npm run supabase prices`) e roda em minutos. Automatizar significa agendar
-  algo que escreve em produção com a credencial dela — e produção nunca é alvo
-  por padrão neste projeto.
-- **Mapear as paralelas, coleção a coleção.** O vocabulário de tratamentos da
-  fonte (`Alternate Art`, `Parallel`, `Box Topper`, `SP`, `Manga`, `Full Art`)
-  parece alinhar com os sufixos da Liga (`-PAR`, `-BT`). Enquanto não existir o
-  mapa, paralela não tem preço nem link exato.
+- **O segredo do agendamento.** `.github/workflows/precos.yml` roda todo dia às
+  07:00 UTC (04:00 em Brasília), mas fica inerte até `SUPABASE_DATABASE_URL`
+  existir nos secrets do repositório. Só o dono da conta pode criá-lo.
+- **Produção ainda sem preço.** O banco local está populado; produção espera
+  `npm run supabase prices` ou o primeiro disparo do workflow.
+- **Mapear as paralelas, coleção a coleção.** Em andamento com o dono do
+  produto. O vocabulário de tratamentos da fonte (`Alternate Art`, `Parallel`,
+  `Box Topper`, `SP`, `Manga`, `Full Art`) parece alinhar com os sufixos da Liga
+  (`-PAR`, `-BT`). Enquanto não existir o mapa, paralela não tem preço nem link
+  exato.
 
 O protocolo continua: uma branch e um PR por checkpoint, o assistente merge
 quando estiver completo e sem pendência, e para antes de iniciar o próximo
