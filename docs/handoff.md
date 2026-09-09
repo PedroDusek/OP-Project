@@ -57,11 +57,12 @@ build passando.
 sets, 4.842 impressões — números idênticos ao local, estrutura conferida objeto
 a objeto.
 
-> **Produção está duas migrations atrás** (5 de 7, conferido em 09/09/2026).
-> Faltam `storage_description` e `cotacao_e_registro_de_importacao`. Publicar o
-> `main` atual sem rodar `npm run supabase migrate` derruba **toda página de
-> carta** com o mesmo erro que aparece quando o cliente Prisma está velho:
-> `Cannot read properties of undefined (reading 'findFirst')`.
+**Migrations em produção: 7 de 7**, alinhadas em 09/09/2026. Estiveram duas
+atrás sem ninguém notar, e o custo disso seria alto — publicar código que usa
+uma tabela ausente derruba a tela inteira, não só a parte nova.
+
+Por isso `npm run supabase status` agora compara com o repositório em vez de só
+contar, e diz em voz alta quais faltam. É o comando a rodar antes de publicar.
 
 ## As decisões que mais restringem o que vem depois
 

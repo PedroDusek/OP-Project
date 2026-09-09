@@ -1,5 +1,7 @@
 import 'dotenv/config'
 import { execFileSync } from 'node:child_process'
+import { readdirSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { provisionImageBucket } from '@/server/infrastructure/storage/supabase-image-storage'
 import { importCatalog } from '@/server/application/catalog/import-catalog'
 import { BandaiCatalogProvider } from '@/server/infrastructure/catalog/bandai-catalog-provider'
@@ -26,6 +28,9 @@ import { createPrisma } from '@/server/infrastructure/prisma'
  * `db:reset` aqui: derrubar producao nao deve ser um comando a um passo de
  * distancia.
  */
+
+/** As migrations do repositorio, para comparar com o que esta aplicado la. */
+const MIGRATIONS_DIR = fileURLToPath(new URL('../prisma/migrations', import.meta.url))
 
 function target(): { url: string; host: string; database: string } {
   const url = process.env.SUPABASE_DATABASE_URL
@@ -174,7 +179,28 @@ async function main(): Promise<void> {
         prisma.variantPrinting.count(),
         prisma.user.count(),
       ])
-      console.log(`[supabase] migrations aplicadas: ${migrations.length}`)
+      /*
+       * Comparar com o repositorio, e nao so contar.
+       *
+       * Producao ficou duas migrations atras sem ninguem notar, porque o numero
+       * sozinho nao diz nada: "5" so vira problema quando alguem conta as
+       * pastas a mao. E o preco de nao notar e alto — publicar codigo que usa
+       * uma tabela ausente derruba a tela inteira, e nao so a parte nova.
+       */
+      const noRepositorio = readdirSync(MIGRATIONS_DIR, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name)
+        .sort()
+      const aplicadas = new Set(migrations.map((m) => m.migration_name))
+      const faltando = noRepositorio.filter((name) => !aplicadas.has(name))
+
+      console.log(
+        `[supabase] migrations: ${migrations.length} de ${noRepositorio.length} aplicadas`,
+      )
+      if (faltando.length > 0) {
+        console.log(`[supabase] FALTAM ${faltando.length}: ${faltando.join(', ')}`)
+        console.log('[supabase] rode: npm run supabase migrate')
+      }
       console.log(
         `[supabase] cards=${cards} variants=${variants} sets=${sets} ` +
           `printings=${printings} users=${users}`,
