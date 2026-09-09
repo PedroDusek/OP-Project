@@ -53,12 +53,11 @@ build passando.
 | — | Preço de mercado das artes comuns, 96,7% do catálogo, pelo tcgcsv (decisão 050) |
 | — | Preço em real pelo PTAX, e o aviso de quando foi conferido (decisão 051) |
 
-**Banco de produção populado e conferido:** 2.785 cartas, 60 sets.
+**Banco de produção populado e conferido**, idêntico ao local em 09/09/2026:
+2.785 cartas, 4.431 variantes, 60 sets, 4.834 impressões, 2.692 preços.
 
-> **Local e produção divergem em variantes** desde a decisão 052: local tem
-> **4.431**, produção ainda **4.843**. A diferença são as 412 reimpressões que
-> deixaram de ser variantes. A migration `reimpressao_nao_e_variante` está
-> pendente lá — enquanto não rodar, produção mostra artes que não existem.
+Confira com `npm run supabase status` — ele compara as migrations com o
+repositório e mostra o estado dos preços, que é o único dado que muda sozinho.
 
 **Migrations em produção: 7 de 7**, alinhadas em 09/09/2026. Estiveram duas
 atrás sem ninguém notar, e o custo disso seria alto — publicar código que usa
