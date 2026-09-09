@@ -14,6 +14,17 @@ name: Precos
 # segredo SUPABASE_DATABASE_URL existir no repositorio, e ate la termina sem
 # erro dizendo que pulou. Falhar todo dia por segredo ausente seria ruido, e
 # ruido diario e o jeito mais rapido de ninguem mais olhar para um alerta.
+#
+# **O segredo precisa ser a string do *pooler*, e nao a conexao direta.** O host
+# direto do Supabase, `db.<ref>.supabase.co`, tem **so registro AAAA** — e o
+# runner do GitHub nao tem rota IPv6. A conexao morre com
+# `connect ENETUNREACH <endereco v6>:5432`, o que nao parece problema de rede
+# nenhum a primeira vista. Na maquina de quem desenvolve funciona, porque la ha
+# IPv6; e por isso que isto so aparece aqui.
+#
+# No painel do Supabase: Project Settings -> Database -> Connection string ->
+# **Session pooler**. O host vira `aws-N-<regiao>.pooler.supabase.com`, que tem
+# IPv4, e o usuario passa a ser `postgres.<ref>`.
 
 on:
   schedule:

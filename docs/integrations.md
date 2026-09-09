@@ -332,7 +332,9 @@ diariamente às **07:00 UTC — 04:00 em Brasília** pelo workflow
 `.github/workflows/precos.yml`, e também à mão.
 
 O workflow só age depois que o segredo `SUPABASE_DATABASE_URL` existir no
-repositório; sem ele, termina sem erro dizendo que pulou. Falhar todo dia por
+repositório; sem ele, termina sem erro dizendo que pulou. **O valor tem de ser a
+string do Session pooler** — o host direto `db.<ref>.supabase.co` só tem
+registro AAAA, e o runner do GitHub não tem rota IPv6. Falhar todo dia por
 segredo ausente seria ruído, e ruído diário é o jeito mais rápido de ninguém
 mais olhar para um alerta.
 
