@@ -217,6 +217,15 @@ onde elas saem.
 
 ### 4.6.1 Como uma troca começa, e por que não existe vitrine
 
+O usuário 1 abre a troca e recebe um **link de convite**, que ele manda por onde
+já conversa. Quem abre o link entra. Não existe diretório de pessoas para vazar,
+porque não existe diretório: buscar por e-mail ou por nome revelaria quem é
+cadastrado a quem tentasse (decisão 056).
+
+O convite é queimado quando alguém entra — um link que continua valendo é um
+link que ainda pode vazar, e um trade efetivo tem exatamente dois participantes.
+
+
 **Dado privado só é cruzado com consentimento das duas partes.** Não existe tela
 que mostre o Trade Binder ou a want list de estranhos: isso violaria a regra 6.2,
 e a 6.1 já reserva a publicação do Trade Binder ao Premium, com token explícito.
