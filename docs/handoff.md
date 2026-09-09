@@ -275,6 +275,12 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     'findFirst')` numa tabela que existe no banco e no schema — e os testes e o
     `build` passam, porque cada um gera o cliente antes de rodar. Reiniciar
     resolve; procurar o defeito no código não.
+41. **O host direto do Supabase é IPv6 puro, e o runner do GitHub não tem
+    IPv6.** `db.<ref>.supabase.co` tem só registro AAAA. Na máquina de quem
+    desenvolve funciona; no GitHub Actions morre com
+    `connect ENETUNREACH <endereço v6>:5432`, que não parece problema de rede.
+    O agendamento precisa da string do **Session pooler**
+    (`aws-N-<região>.pooler.supabase.com`), que tem IPv4.
 
 ## Pendências
 
