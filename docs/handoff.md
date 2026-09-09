@@ -64,6 +64,11 @@ uma tabela ausente derruba a tela inteira, não só a parte nova.
 Por isso `npm run supabase status` agora compara com o repositório em vez de só
 contar, e diz em voz alta quais faltam. É o comando a rodar antes de publicar.
 
+**Preços em produção: 2.692 variantes**, importados em 09/09/2026, com a cotação
+PTAX de 08/09 (USD/BRL 5,0856). O `status` também mostra isso, porque preço é o
+único dado que muda sozinho — e o modo de falha é silencioso: a tela não quebra
+sem preço novo, só para de envelhecer sem ninguém perceber.
+
 ## As decisões que mais restringem o que vem depois
 
 As 51 estão em `decisions.md`. Estas mudam o que se pode fazer:

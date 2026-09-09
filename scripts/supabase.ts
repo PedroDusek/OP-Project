@@ -179,6 +179,30 @@ async function main(): Promise<void> {
         prisma.variantPrinting.count(),
         prisma.user.count(),
       ])
+
+      /*
+       * O estado dos precos, que e o unico que muda sozinho.
+       *
+       * Catalogo so muda quando alguem manda importar; preco muda todo dia, por
+       * agendamento. Entao e aqui que se ve se o agendamento esta vivo — e o
+       * modo de falha e silencioso: a tela nao quebra sem preco novo, so para
+       * de envelhecer sem ninguem perceber.
+       */
+      const [ultimaImportacao, cotacao, variantesComPreco] = await Promise.all([
+        prisma.priceImport.findFirst({
+          where: { finishedAt: { not: null }, failure: null },
+          orderBy: { finishedAt: 'desc' },
+          select: { finishedAt: true, matched: true, written: true },
+        }),
+        prisma.exchangeRate.findFirst({
+          where: { baseCurrency: 'USD', quoteCurrency: 'BRL' },
+          orderBy: { quoteDate: 'desc' },
+          select: { rate: true, quoteDate: true },
+        }),
+        prisma.cardPrice
+          .findMany({ distinct: ['cardVariantId'], select: { cardVariantId: true } })
+          .then((rows) => rows.length),
+      ])
       /*
        * Comparar com o repositorio, e nao so contar.
        *
@@ -201,6 +225,22 @@ async function main(): Promise<void> {
         console.log(`[supabase] FALTAM ${faltando.length}: ${faltando.join(', ')}`)
         console.log('[supabase] rode: npm run supabase migrate')
       }
+      if (ultimaImportacao?.finishedAt) {
+        console.log(
+          `[supabase] precos: ${variantesComPreco} variantes | ultima importacao ` +
+            `${ultimaImportacao.finishedAt.toISOString()} ` +
+            `(casados ${ultimaImportacao.matched}, gravados ${ultimaImportacao.written})`,
+        )
+      } else {
+        console.log('[supabase] precos: nenhuma importacao concluida ainda.')
+      }
+      if (cotacao) {
+        console.log(
+          `[supabase] cambio: USD/BRL ${cotacao.rate} em ` +
+            `${cotacao.quoteDate.toISOString().slice(0, 10)}`,
+        )
+      }
+
       console.log(
         `[supabase] cards=${cards} variants=${variants} sets=${sets} ` +
           `printings=${printings} users=${users}`,

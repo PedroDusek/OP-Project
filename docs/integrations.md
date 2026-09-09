@@ -382,7 +382,8 @@ qualquer implementação.
 
 A importação de preços registra cada execução em `price_imports`: quando
 começou, quando terminou, o carimbo que a fonte publicou, os contadores e a
-mensagem de erro quando falhou (decisão 051). É a única das importações com
+mensagem de erro quando falhou (decisão 051). `npm run supabase status` lê esse
+registro — é como se confere, de fora, se o agendamento diário continua vivo. É a única das importações com
 registro persistido, e ela precisa dele por outro motivo além de observabilidade
 — a tela lê dali o "atualizado hoje às 04:00".
 
