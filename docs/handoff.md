@@ -30,7 +30,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 11 concluídos**, e o 12 começou pela want list. 796 testes
+**Checkpoints 0 a 11 concluídos**, e o 12 começou pela want list. 801 testes
 de unidade, integração e componente, mais 30 ponta a ponta. Lint, typecheck e
 build passando.
 
@@ -208,9 +208,10 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     refazer a árvore. Script pertence ao `<head>`; para escrever na tela sem o
     React desfazer, pendure o elemento fora da raiz dele.
 28. **Diagnóstico que depende do React não diagnostica React.** A primeira
-    versão de `/diagnostico` mostrava "nenhum erro" exatamente quando nada
-    funcionava, porque quem renderizava a linha era o componente que não tinha
-    hidratado.
+    versão da página `/diagnostico` mostrava "nenhum erro" exatamente quando
+    nada funcionava, porque quem renderizava a linha era o componente que não
+    tinha hidratado. A página e o gravador de erros eram andaime e já saíram —
+    a lição fica.
 29. **Server Action tem corpo de 1 MB por padrão.** Foto de celular tem de 3 a
     5 MB, então salvar com foto morria com "Body exceeded 1 MB limit" — erro do
     framework, longe da tela. `serverActions.bodySizeLimit` no `next.config.ts`,
@@ -246,6 +247,16 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     regex escrito por `cat <<'EOF'` chegou ao disco com as barras duplas
     reduzidas a uma e não compilou. Para arquivo com escape, use a ferramenta
     de escrita em vez do heredoc.
+38. **Tag `<script>` na árvore do React reclama a cada navegação de cliente.**
+    O layout raiz volta a renderizar no cliente numa navegação por `<Link>`, e
+    o React acusa *"scripts inside React components are never executed when
+    rendering on the client"* — dois erros por navegação no painel do Next. Não
+    reproduz em carga limpa, só em navegação de cliente. A saída é `ThemeInit`,
+    que emite a tag só na renderização do servidor.
+39. **`next/script` com `beforeInteractive` NÃO inlina o código.** Ele empilha o
+    conteúdo em `self.__next_s`, processado depois de o pacote carregar. Serve
+    para script de terceiro que precede a hidratação, e **não** para mexer no
+    DOM antes da primeira pintura — usar aqui traz o flash de tema de volta.
 
 ## Pendências
 

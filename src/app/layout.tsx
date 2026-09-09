@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Geist } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme/theme-provider'
 import { ToastProvider } from '@/components/ui/toast'
-import { ERROR_RECORDER_SCRIPT, THEME_INIT_SCRIPT } from '@/lib/theme'
+import { ThemeInit } from '@/components/theme/theme-init'
 import './globals.css'
 
 /**
@@ -43,18 +43,13 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="pt-BR" className={`${sans.variable} h-full`} suppressHydrationWarning>
-      <head>
-        {/*
-          Roda antes da primeira pintura para aplicar o tema escolhido. Sem ele,
-          quem escolheu escuro num sistema claro ve a pagina branca ate o React
-          hidratar. Ver `src/lib/theme.ts`.
-        */}
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
-        {/*
-          Temporario: guarda erro de script para a pagina `/diagnostico` mostrar
-          no aparelho de quem nao consegue abrir um console. Ver `theme.ts`.
-        */}
-        <script dangerouslySetInnerHTML={{ __html: ERROR_RECORDER_SCRIPT }} />
+      {/*
+        `suppressHydrationWarning`: o script de tema so e emitido na
+        renderizacao do servidor, entao servidor e cliente divergem aqui de
+        proposito. Ver `ThemeInit`.
+      */}
+      <head suppressHydrationWarning>
+        <ThemeInit />
       </head>
       <body className="min-h-full font-sans">
         <ThemeProvider>
