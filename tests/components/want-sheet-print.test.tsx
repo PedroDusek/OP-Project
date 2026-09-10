@@ -238,6 +238,7 @@ describe('compartilhar', () => {
   async function comFolhas(
     quantas: number,
     navegador: { share?: unknown; canShare?: unknown } = {},
+    seguro = true,
   ) {
     const blobs = Array.from({ length: quantas }, () => new Blob(['x'], { type: 'image/jpeg' }))
     vi.doMock('@/lib/want-sheet-image', () => ({
@@ -252,6 +253,11 @@ describe('compartilhar', () => {
     for (const [chave, valor] of Object.entries(navegador)) {
       Object.defineProperty(navigator, chave, { value: valor, configurable: true, writable: true })
     }
+    Object.defineProperty(window, 'isSecureContext', {
+      value: seguro,
+      configurable: true,
+      writable: true,
+    })
 
     renderRaw(
       <Provider>
@@ -500,5 +506,88 @@ describe('a arte na folha impressa', () => {
 
     expect(print).toHaveBeenCalledTimes(1)
     vi.unstubAllGlobals()
+  })
+})
+
+/**
+ * Por que o compartilhamento nao aparece, quando nao aparece.
+ *
+ * Isto foi relatado pelo dono do produto: no celular dele so apareciam os botoes
+ * de baixar folha a folha. A causa nao era o codigo do compartilhamento — era o
+ * **endereco**. `navigator.share` so existe em contexto seguro, e o app aberto
+ * pelo IP da rede local em `http://` nao e um.
+ *
+ * O defeito de produto era a tela cair em silencio nos downloads: parecia que o
+ * compartilhamento nao tinha sido feito. Agora ela diz o motivo.
+ */
+describe('quando nao da para compartilhar, a tela diz por que', () => {
+  async function comContexto(seguro: boolean, navegador: Record<string, unknown>) {
+    vi.doMock('@/lib/want-sheet-image', () => ({
+      CARDS_PER_SHEET: 12,
+      renderWantSheets: vi
+        .fn()
+        .mockResolvedValue([new Blob(['x'], { type: 'image/jpeg' })]),
+    }))
+    vi.resetModules()
+
+    const { WantSheetPrint: Componente } = await import('@/components/wants/want-sheet-print')
+    const { ToastProvider: Provider } = await import('@/components/ui/toast')
+
+    for (const [chave, valor] of Object.entries(navegador)) {
+      Object.defineProperty(navigator, chave, { value: valor, configurable: true, writable: true })
+    }
+    Object.defineProperty(window, 'isSecureContext', {
+      value: seguro,
+      configurable: true,
+      writable: true,
+    })
+
+    renderRaw(
+      <Provider>
+        <Componente wants={[want()]} />
+      </Provider>,
+    )
+  }
+
+  afterEach(() => {
+    for (const chave of ['share', 'canShare']) {
+      if (chave in navigator) {
+        Reflect.deleteProperty(navigator as unknown as Record<string, unknown>, chave)
+      }
+    }
+    Object.defineProperty(window, 'isSecureContext', {
+      value: true,
+      configurable: true,
+      writable: true,
+    })
+    vi.doUnmock('@/lib/want-sheet-image')
+    vi.resetModules()
+  })
+
+  /*
+   * O caso real: o mesmo iPhone, no mesmo Safari, compartilha em `https://` e
+   * nao compartilha pelo IP da rede. A culpa nunca foi do aparelho.
+   */
+  it('aponta o endereco quando a pagina nao esta em contexto seguro', async () => {
+    await comContexto(false, { share: vi.fn(), canShare: () => true })
+
+    expect(await screen.findByText(/precisa de HTTPS, e este endereço não é/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /compartilhar/i })).not.toBeInTheDocument()
+  })
+
+  it('aponta o navegador quando a pagina e segura e a API nao existe', async () => {
+    await comContexto(true, {})
+
+    expect(
+      await screen.findByText(/este navegador não manda arquivo para outro aplicativo/i),
+    ).toBeInTheDocument()
+  })
+
+  it('nao explica nada quando da para compartilhar', async () => {
+    await comContexto(true, { share: vi.fn(), canShare: () => true })
+
+    await screen.findByRole('button', { name: /compartilhar/i })
+    expect(screen.queryByText(/precisa de HTTPS/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/não manda arquivo/i)).not.toBeInTheDocument()
   })
 })

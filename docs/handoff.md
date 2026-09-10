@@ -347,6 +347,13 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     e o defeito parece corte ou quebra de página, que é onde se perde tempo
     procurando. São duas metades: `eager` na arte, e esperar o `decode()` de cada
     uma antes de chamar a impressão.
+48. **`navigator.share` não existe fora de contexto seguro.** Ele é gated em
+    HTTPS, e o app aberto no celular pelo **IP da rede local em `http://`** — que
+    é como se testa aqui — não é contexto seguro. O mesmo aparelho, no mesmo
+    navegador, compartilha sem problema em `https://`. Isso custou uma rodada
+    inteira: a tela caía em silêncio nos botões de baixar, e parecia que o
+    compartilhamento não tinha sido implementado. Para testar de verdade existe
+    `npm run dev:https`.
 
 ## Pendências
 
@@ -510,6 +517,17 @@ Três coisas para não desfazer sem querer:
 - A arte da folha carrega com `eager`, e **imprimir espera** o desenho de cada
   uma. Sem as duas, o PDF sai com a primeira página completa e as seguintes em
   branco (armadilha 47).
+
+### Para testar o compartilhamento no celular
+
+**`npm run dev` não serve.** O app aberto pelo IP da rede em `http://` não é
+contexto seguro, e ali o `navigator.share` **não existe** — a tela mostra os
+botões de baixar e explica o motivo (armadilha 48).
+
+Use **`npm run dev:https`**. O Next gera um certificado próprio; o Safari vai
+avisar que ele não é confiável e deixa seguir em "Mostrar detalhes". Depois de
+seguir, a página é HTTPS, o botão de compartilhar aparece e a folha do iOS abre
+com todas as imagens.
 
 **Falta a confirmação no aparelho de verdade** — o compartilhamento no iPhone e a
 impressão de uma lista com mais de 24 cartas. Nada disso é reproduzível no jsdom,

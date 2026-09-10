@@ -139,7 +139,13 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assinatura])
 
-  const compartilhavel = arquivos !== null && podeCompartilhar(arquivos)
+  /*
+   * `null` quando da para compartilhar. Quando nao da, diz **por que** — a tela
+   * cair em silencio nos downloads fazia o caminho principal parecer nao existir,
+   * e o motivo mais comum nem e do navegador: e o endereco.
+   */
+  const semCompartilhar = arquivos === null ? 'sem-suporte' : motivoSemCompartilhar(arquivos)
+  const compartilhavel = arquivos !== null && semCompartilhar === null
 
   const compartilhar = async () => {
     if (!arquivos) return
@@ -238,6 +244,14 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
           uma navegacao para o `blob:`, e a seguinte cancela a anterior que ainda
           nao terminou. Foi esse o defeito.
         */}
+        {!preparando && arquivos !== null && semCompartilhar !== null ? (
+          <p className="text-sm text-text-muted">
+            {semCompartilhar === 'inseguro'
+              ? 'Mandar direto para outro aplicativo precisa de HTTPS, e este endereço não é. Em colexa.com.br o botão de compartilhar aparece aqui.'
+              : 'Este navegador não manda arquivo para outro aplicativo. Baixe as folhas e mande do jeito que preferir.'}
+          </p>
+        ) : null}
+
         {!preparando && !compartilhavel && arquivos !== null && arquivos.length > 1 ? (
           <div className="flex flex-wrap items-center gap-2">
             {arquivos.map((arquivo, indice) => (
@@ -431,24 +445,43 @@ function nomeDaFolha(indice: number, total: number): string {
 }
 
 /**
- * Este aparelho compartilha **arquivos**?
+ * Por que este aparelho não manda os arquivos, ou `null` quando manda.
  *
- * As três checagens são necessárias e diferentes. `share` sozinho existe em
- * navegadores que só mandam texto e link; `canShare` sem argumento responde
- * sobre a API, não sobre estes arquivos. Só `canShare({ files })` responde a
- * pergunta que importa, e ele precisa de `File` — com `Blob` devolve `false`
- * sem dizer por quê.
+ * ## O motivo mais comum não é o navegador, é o endereço
+ *
+ * `navigator.share` só existe em **contexto seguro**. Aberto pelo IP da rede
+ * local em `http://`, como se testa no celular durante o desenvolvimento, a API
+ * simplesmente não está lá — e o mesmo aparelho, no mesmo navegador, compartilha
+ * sem problema em `https://`.
+ *
+ * Isso custou uma rodada: a tela caía em silêncio nos downloads, e parecia que o
+ * compartilhamento não tinha sido feito.
+ *
+ * ## As três checagens, e por que são três
+ *
+ * `share` sozinho existe em navegadores que só mandam texto e link; `canShare`
+ * sem argumento responde sobre a API, não sobre estes arquivos. Só
+ * `canShare({ files })` responde a pergunta que importa, e ele precisa de
+ * `File` — com `Blob` devolve `false` sem dizer por quê.
  */
-function podeCompartilhar(arquivos: readonly File[]): boolean {
-  if (arquivos.length === 0) return false
-  if (typeof navigator === 'undefined') return false
-  if (typeof navigator.share !== 'function') return false
-  if (typeof navigator.canShare !== 'function') return false
+function motivoSemCompartilhar(
+  arquivos: readonly File[],
+): 'inseguro' | 'sem-suporte' | null {
+  if (arquivos.length === 0) return 'sem-suporte'
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return 'sem-suporte'
+
+  if (window.isSecureContext === false) return 'inseguro'
+
+  if (typeof navigator.share !== 'function') {
+    // Sem `share` num contexto seguro, e o navegador mesmo que nao tem.
+    return 'sem-suporte'
+  }
+  if (typeof navigator.canShare !== 'function') return 'sem-suporte'
 
   try {
-    return navigator.canShare({ files: [...arquivos] })
+    return navigator.canShare({ files: [...arquivos] }) ? null : 'sem-suporte'
   } catch {
-    return false
+    return 'sem-suporte'
   }
 }
 

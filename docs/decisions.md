@@ -3984,6 +3984,30 @@ lá são as do nosso servidor contra a Bandai, na importação do catálogo. Est
 saem do navegador de quem usa, contra o CDN da fonte de preço, e a mesma tela já
 carrega essas imagens para desenhar a folha na página.
 
+## Decisão 8 — quando não dá para compartilhar, a tela diz por quê
+
+O dono do produto relatou que **só apareciam os botões de baixar folha a folha**.
+O compartilhamento estava implementado e correto; o que faltava era contexto.
+
+`navigator.share` é gated em **contexto seguro**. O app aberto no celular pelo IP
+da rede local em `http://` — que é como se testa aqui — não é um, e a API
+simplesmente não está lá. O mesmo aparelho, no mesmo navegador, compartilha sem
+problema em `https://`.
+
+O defeito de produto não era o compartilhamento: era a tela **cair em silêncio**
+nos downloads. Um caminho principal que desaparece sem explicação é
+indistinguível de um caminho que ninguém construiu — e foi exatamente essa a
+leitura, com razão.
+
+Agora a tela distingue os dois motivos e diz qual é:
+
+| | |
+|---|---|
+| Fora de contexto seguro | "Mandar direto para outro aplicativo precisa de HTTPS, e este endereço não é." |
+| Navegador sem a API | "Este navegador não manda arquivo para outro aplicativo." |
+
+E existe `npm run dev:https` para testar o caminho de verdade antes de publicar.
+
 ## Sobre a área de transferência
 
 O pedido do dono do produto falava em "copiar para a área de transferência e
