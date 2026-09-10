@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render as renderRaw, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { WantSheetPrint } from '@/components/wants/want-sheet-print'
@@ -111,10 +111,32 @@ describe('gerar o arquivo', () => {
     expect(screen.getByText(/salvar como pdf/i)).toBeInTheDocument()
   })
 
-  it('mostra as duas saidas', () => {
+  /*
+   * A regra mudou: as folhas passaram a ser preparadas quando a tela abre, e nao
+   * ao toque. Enquanto isso, o botao principal diz que esta esperando — um botao
+   * que aceita o toque e nao faz nada e pior que um que diz que ainda nao pode.
+   *
+   * O motivo esta no componente: `navigator.share` exige a ativacao do toque, e
+   * ela nao sobrevive ao desenho, que carrega uma imagem por carta da rede.
+   */
+  it('comeca preparando, com imprimir ja disponivel', () => {
     render(<WantSheetPrint wants={[want()]} />)
 
-    expect(screen.getByRole('button', { name: /baixar imagem/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /preparando/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /imprimir/i })).toBeInTheDocument()
+  })
+
+  /*
+   * O jsdom nao tem canvas, entao o desenho falha aqui como falharia num
+   * aparelho que nao consegue. O que se protege e que a falha **nao** tira a
+   * tela do ar: imprimir continua, e imprimindo todas as cartas saem com arte.
+   */
+  it('nao derruba a tela quando o desenho falha', async () => {
+    render(<WantSheetPrint wants={[want()]} />)
+
+    expect(
+      await screen.findByText(/não foi possível preparar as imagens neste aparelho/i),
+    ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /imprimir/i })).toBeInTheDocument()
   })
 })
@@ -122,8 +144,12 @@ describe('gerar o arquivo', () => {
 describe('a imagem', () => {
   /**
    * O canvas nao existe no jsdom, entao o desenho e trocado por um dublê. O que
-   * este teste protege e a ligacao: o botao chama o gerador com o que falta, e
-   * so com o que falta.
+   * este teste protege e a ligacao: o gerador e chamado com o que falta, e so
+   * com o que falta.
+   *
+   * A regra mudou: ele passou a ser chamado **ao abrir a tela**, e nao ao toque.
+   * Ver o comentario no componente — a ativacao do toque nao sobrevive ao
+   * desenho, e `navigator.share` recusaria depois dele.
    */
   it('gera a partir das cartas que faltam, e nao das satisfeitas', async () => {
     const render_ = vi.fn().mockResolvedValue([new Blob(['x'], { type: 'image/jpeg' })])
@@ -149,7 +175,7 @@ describe('a imagem', () => {
         />
       </Provider>,
     )
-    await userEvent.click(screen.getByRole('button', { name: /baixar imagem/i }))
+    await screen.findByRole('button', { name: /baixar imagem/i })
 
     expect(render_).toHaveBeenCalledWith([
       {
@@ -184,13 +210,142 @@ describe('a paginacao', () => {
     )
     render(<WantSheetPrint wants={muitas} />)
 
-    expect(screen.getByText(/Saem 3 imagens, de até 12 cartas cada/)).toBeInTheDocument()
+    // A frase mudou de tempo: enquanto prepara, ela diz o que esta sendo feito.
+    expect(screen.getByText(/Preparando 3 imagens, de até 12 cartas cada/)).toBeInTheDocument()
   })
 
   it('nao fala em varias imagens quando cabe numa folha', () => {
     render(<WantSheetPrint wants={[want()]} />)
 
-    expect(screen.queryByText(/Saem \d+ imagens/)).not.toBeInTheDocument()
-    expect(screen.getByText(/A imagem baixa direto/)).toBeInTheDocument()
+    expect(screen.queryByText(/\d+ imagens/)).not.toBeInTheDocument()
+    expect(screen.getByText(/Preparando uma imagem/)).toBeInTheDocument()
+  })
+})
+
+/**
+ * O compartilhamento, e o defeito que ele corrige.
+ *
+ * O laco de downloads programaticos nao sobrevivia ao Safari do iPhone: um
+ * download ali e uma navegacao para o `blob:`, e a navegacao seguinte cancela a
+ * anterior que ainda nao terminou. So a ultima imagem chegava, e as notificacoes
+ * de todas apareciam — o que fazia parecer que tinha funcionado.
+ *
+ * Estes testes existem porque a cobertura antiga olhava o **desenho** e nunca a
+ * **entrega**, que e onde o defeito estava.
+ */
+describe('compartilhar', () => {
+  /** Monta o componente com o desenho dublado e o `navigator` que o teste pedir. */
+  async function comFolhas(
+    quantas: number,
+    navegador: { share?: unknown; canShare?: unknown } = {},
+  ) {
+    const blobs = Array.from({ length: quantas }, () => new Blob(['x'], { type: 'image/jpeg' }))
+    vi.doMock('@/lib/want-sheet-image', () => ({
+      CARDS_PER_SHEET: 12,
+      renderWantSheets: vi.fn().mockResolvedValue(blobs),
+    }))
+    vi.resetModules()
+
+    const { WantSheetPrint: Componente } = await import('@/components/wants/want-sheet-print')
+    const { ToastProvider: Provider } = await import('@/components/ui/toast')
+
+    for (const [chave, valor] of Object.entries(navegador)) {
+      Object.defineProperty(navigator, chave, { value: valor, configurable: true, writable: true })
+    }
+
+    renderRaw(
+      <Provider>
+        <Componente wants={[want()]} />
+      </Provider>,
+    )
+
+    return { blobs }
+  }
+
+  afterEach(() => {
+    for (const chave of ['share', 'canShare']) {
+      if (chave in navigator) {
+        Reflect.deleteProperty(navigator as unknown as Record<string, unknown>, chave)
+      }
+    }
+    vi.doUnmock('@/lib/want-sheet-image')
+    vi.unstubAllGlobals()
+    vi.resetModules()
+  })
+
+  it('manda todas as imagens numa chamada so', async () => {
+    const share = vi.fn().mockResolvedValue(undefined)
+    await comFolhas(3, { share, canShare: () => true })
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: /compartilhar as 3 imagens/i }),
+    )
+
+    expect(share).toHaveBeenCalledTimes(1)
+    const enviado = share.mock.calls[0][0] as { files: File[] }
+    expect(enviado.files).toHaveLength(3)
+    expect(enviado.files.every((arquivo) => arquivo.type === 'image/jpeg')).toBe(true)
+  })
+
+  /*
+   * `canShare` precisa ser consultado com os **arquivos**. Sem argumento ele
+   * responde sobre a API, e ha navegador que compartilha texto e nao arquivo —
+   * ali o botao apareceria e a chamada falharia.
+   */
+  it('pergunta ao navegador sobre os arquivos, e nao sobre a API', async () => {
+    const canShare = vi.fn().mockReturnValue(true)
+    await comFolhas(2, { share: vi.fn().mockResolvedValue(undefined), canShare })
+
+    await screen.findByRole('button', { name: /compartilhar/i })
+
+    expect(canShare).toHaveBeenCalled()
+    const perguntado = canShare.mock.calls[0][0] as { files: File[] }
+    expect(perguntado.files).toHaveLength(2)
+  })
+
+  it('cai para baixar quando o aparelho nao compartilha arquivo', async () => {
+    await comFolhas(2, { share: vi.fn(), canShare: () => false })
+
+    expect(await screen.findByRole('button', { name: /baixar folha 1 de 2/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /baixar folha 2 de 2/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /compartilhar/i })).not.toBeInTheDocument()
+  })
+
+  /*
+   * O defeito, em forma de teste: uma folha, um botao. Nenhuma tela oferece
+   * baixar varias de uma vez, porque e isso que o Safari cancela.
+   */
+  it('nunca oferece baixar varias de uma vez', async () => {
+    await comFolhas(3, { share: vi.fn(), canShare: () => false })
+
+    await screen.findByRole('button', { name: /baixar folha 1 de 3/i })
+
+    const baixar = screen.getAllByRole('button', { name: /baixar/i })
+    expect(baixar).toHaveLength(3)
+    expect(screen.queryByRole('button', { name: /baixar (todas|tudo)/i })).not.toBeInTheDocument()
+  })
+
+  /* Fechar a folha do sistema e a pessoa desistindo, e nao um problema dela. */
+  it('nao avisa erro quando a pessoa fecha a folha do sistema', async () => {
+    const abortado = Object.assign(new Error('cancelado'), { name: 'AbortError' })
+    await comFolhas(1, {
+      share: vi.fn().mockRejectedValue(abortado),
+      canShare: () => true,
+    })
+
+    await userEvent.click(await screen.findByRole('button', { name: /compartilhar/i }))
+
+    expect(screen.queryByText(/não foi possível compartilhar/i)).not.toBeInTheDocument()
+  })
+
+  it('avisa quando o compartilhamento falha de verdade', async () => {
+    await comFolhas(1, {
+      share: vi.fn().mockRejectedValue(new Error('deu ruim')),
+      canShare: () => true,
+    })
+
+    await userEvent.click(await screen.findByRole('button', { name: /compartilhar/i }))
+
+    expect(await screen.findByText(/não foi possível compartilhar/i)).toBeInTheDocument()
   })
 })

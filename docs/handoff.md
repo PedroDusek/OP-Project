@@ -19,7 +19,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 64 PRs mergeados, CI verde em todos |
+| Branch | `main`, 65 PRs mergeados, CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -102,7 +102,7 @@ outra hora, e isso é verdade, não defeito.
 
 ## As decisões que mais restringem o que vem depois
 
-As 62 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 63 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
@@ -321,7 +321,13 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     notificações das outras aparecem mesmo assim, o que faz parecer que
     funcionou. Aumentar o intervalo entre os cliques é chutar um número que
     depende do tamanho do arquivo. A saída é um toque por arquivo, ou
-    `navigator.share` com vários `files`.
+    `navigator.share` com vários `files` (decisão 063).
+45. **A ativação do toque não sobrevive a trabalho assíncrono.** `navigator.share`
+    exige ativação, e ela é gasta enquanto o código carrega imagens da rede — o
+    compartilhamento é recusado com `NotAllowedError` depois de um `await` longo.
+    Quem precisa compartilhar arquivo prepara o arquivo **antes** do toque, e
+    deixa o toque só chamar `share`. Foi a parte não óbvia da decisão 063, e
+    corrigir sem ela teria trocado um defeito por outro mais difícil de achar.
 44. **A tabela nova precisa entrar em três listas, não numa.** `schema.prisma` é
     só a primeira: `tests/integration/schema.test.ts` guarda a lista de tabelas
     aprovadas **e** a política de exclusão, e `tests/helpers.ts` guarda a ordem
@@ -447,51 +453,39 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 
 ## Próximo passo
 
-**O defeito do JPEG da want list no Safari do iPhone.** Relatado pelo dono do
-produto em 10/09 e **diagnosticado, não corrigido** — ver a seção abaixo. É a
-próxima branch.
+**A passada de Claude Design nos componentes compartilhados**, combinada para
+acontecer **antes da Social**: botão, painel, linha de lista e estado vazio são o
+vocabulário de toda tela, e a Social é o maior pedaço que falta. Mexer neles
+depois dela seria refazer todas as telas dela. A revisão visual e textual tela a
+tela, e os links das cartas, ficam para o fim.
 
-Depois dele, a passada de **Claude Design nos componentes compartilhados**,
-combinada para acontecer **antes da Social**: botão, painel, linha de lista e
-estado vazio são o vocabulário de toda tela, e a Social é o maior pedaço que
-falta. Mexer neles depois dela seria refazer todas as telas dela. A revisão
-visual e textual tela a tela, e os links das cartas, ficam para o fim.
+A skill `design` está habilitada e funciona; o conector do **Figma** aparece na
+sessão mas está **sem autorização**, e sessões não interativas não conseguem
+rodar o login. Ligar é por fora, nas configurações de conectores do claude.ai ou
+com `/mcp` num terminal interativo.
 
 Depois disso, a **aba Social**, que tem as regras escritas (decisão 060) e a
 identidade construída, e falta tudo o mais: listagem ordenada, busca por carta,
 bloquear, denunciar e o chat.
 
-## O defeito do JPEG no Safari do iPhone — diagnosticado, a corrigir
+## A folha da want list agora se compartilha
 
-**Sintoma:** baixando a want list em imagem no celular, só a **última** imagem é
-baixada de verdade. As notificações de todas aparecem, e tocar nas outras não
-entrega arquivo.
+Corrigido em 10/09 (decisão 063), depois de o dono do produto relatar num iPhone
+que **só a última imagem era baixada**.
 
-**Causa**, em `src/components/wants/want-sheet-print.tsx`, no laço de `baixar()`:
-são N cliques programáticos em `<a download>` separados por 300 ms. No Safari do
-iPhone um download programático é na prática uma **navegação** para o `blob:`, e
-uma navegação nova **cancela a anterior que ainda não terminou**. Os 300 ms são
-curtíssimos perto do tempo de materializar um JPEG de folha inteira. Cada clique
-mata o anterior e sobra o último.
+A saída principal passou a ser **Compartilhar**: um toque, a folha do sistema, e
+todas as imagens vão de uma vez para o grupo. Onde não há compartilhamento de
+arquivo, cada folha tem o próprio botão de baixar — **nunca um laço**.
 
-Dois agravantes no mesmo trecho: o `<a>` nunca é anexado ao documento, e o
-`await` antes dos cliques seguintes já gastou a ativação do toque.
+Duas coisas para não desfazer sem querer:
 
-Passou batido porque o teste da folha cobre o **desenho**, não a entrega — o
-jsdom não baixa arquivo. É irmão da armadilha 10.
+- As folhas são desenhadas **quando a tela abre**, e não ao toque. Não é
+  otimização: `navigator.share` exige ativação do toque, e ela não sobrevive ao
+  carregamento das imagens (armadilha 45).
+- Nenhum caminho dispara mais de um download por toque (armadilha 43).
 
-**A correção acertada não é aumentar o intervalo**, que continuaria dependendo do
-tamanho do arquivo e da velocidade do aparelho. É tirar os N downloads de um
-toque só:
-
-- **Compartilhar quando o aparelho tem** (`navigator.share` com `files`): um
-  toque, a folha do iOS, e as imagens vão direto ao grupo. É o propósito escrito
-  na decisão 058, e some com o laço.
-- **Um botão por folha** no resto: um toque por arquivo, cada um com a própria
-  ativação.
-
-Não foi possível reproduzir num iPhone de verdade — a confirmação final é do
-dono do produto depois da correção.
+**Falta a confirmação no aparelho de verdade.** Não é reproduzível no jsdom, e o
+dono do produto confere no iPhone dele.
 
 ## Onde a troca está hoje
 

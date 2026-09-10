@@ -3859,3 +3859,83 @@ para listar.
 ## Data
 
 2026-09-10
+
+---
+
+# Decisão: 063 — A folha da want list se compartilha, e não se baixa em lote
+
+## Contexto
+
+Defeito relatado pelo dono do produto em 10/09/2026, num iPhone de verdade:
+baixando a want list em imagem, **só a última imagem chegava**. As notificações
+de todas apareciam, e tocar nas outras não entregava arquivo.
+
+A causa estava no laço de `baixar()`: N cliques programáticos em `<a download>`
+separados por 300 ms. No Safari do iPhone um download programático é na prática
+uma **navegação** para o `blob:`, e uma navegação nova cancela a anterior que
+ainda não terminou. Os 300 ms eram curtíssimos perto do tempo de materializar um
+JPEG de folha inteira.
+
+Dois agravantes no mesmo trecho: o `<a>` nunca era anexado ao documento, e o
+`await` antes dos cliques seguintes já havia gasto a ativação do toque.
+
+## Decisão 1 — compartilhar é a saída principal
+
+`navigator.share` com `files`. Um toque, a folha do sistema, e as imagens vão
+para o grupo do WhatsApp ou para onde a pessoa escolher.
+
+**Escolha do dono do produto**, e ela devolve o recurso ao propósito escrito na
+decisão 058: a folha em imagem existe para ser mandada num grupo. Baixar sempre
+foi o meio, e não o fim — e era o meio que quebrava.
+
+## Decisão 2 — as folhas são preparadas quando a tela abre, não ao toque
+
+Esta é a parte não óbvia, e é o que faz a decisão 1 funcionar.
+
+`navigator.share` exige **ativação do toque**, e essa ativação não sobrevive ao
+desenho: montar as folhas carrega uma imagem por carta da rede. Gerar depois do
+toque e compartilhar em seguida seria recusado com `NotAllowedError` — trocaria
+um defeito por outro, mais difícil de diagnosticar.
+
+Preparando ao abrir, o toque só compartilha. Enquanto não há o que mandar, o
+botão principal diz "Preparando" e não aceita toque: um botão que aceita o toque
+e não faz nada é pior que um que diz que está esperando.
+
+O custo é desenhar folhas que talvez ninguém use. É aceitável porque `/quero/pdf`
+é uma tela dedicada — quem chega ali já quer a folha.
+
+## Decisão 3 — um botão por folha, e nunca um laço
+
+Onde não há compartilhamento de arquivo — computador, quase sempre —, cada folha
+tem o próprio botão.
+
+**Aumentar o intervalo entre os cliques foi descartado de propósito.** Seria
+chutar um número que continua dependendo do tamanho do arquivo e da velocidade do
+aparelho, e o defeito voltaria numa lista maior sem ninguém entender por quê. Um
+toque por arquivo não depende de número nenhum.
+
+O `<a>` passou a entrar no documento antes do clique e sair depois: o Safari
+ignora clique em elemento que nunca esteve na árvore.
+
+## Decisão 4 — fechar a folha do sistema não é erro
+
+`navigator.share` rejeita com `AbortError` quando a pessoa desiste. Avisar ali
+transformaria uma escolha dela num problema. Só falha de verdade vira aviso.
+
+## O que a cobertura passou a proteger
+
+O teste antigo olhava o **desenho** — quais cartas entram na folha — e nunca a
+**entrega**. Foi por isso que o defeito passou: o jsdom não baixa arquivo, e
+nenhum teste de componente prova comportamento de navegador (armadilha 10).
+
+Agora há teste para o `navigator` ser consultado sobre os **arquivos** e não
+sobre a API, para a queda em baixar quando o aparelho não compartilha, para
+nunca existir um botão que baixe várias de uma vez, e para o `AbortError` não
+virar aviso.
+
+Isso não substitui o teste num aparelho real, e o dono do produto confirma no
+iPhone dele.
+
+## Data
+
+2026-09-10
