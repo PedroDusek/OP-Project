@@ -42,6 +42,8 @@ export function TopBar({ viewer, hasUnread = false, className }: TopBarProps) {
       className={cn(
         'sticky top-0 z-20 flex h-14 items-center gap-2 px-4',
         'border-b border-border bg-surface',
+        // Ver `BottomNav`: navegacao nao entra na folha.
+        'print:hidden',
         className,
       )}
     >

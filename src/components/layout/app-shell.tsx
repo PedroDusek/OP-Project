@@ -49,13 +49,19 @@ export function AppShell({ viewer, hasUnread, children, className }: AppShellPro
 
       <SideNav />
 
-      <div className="md:pl-16 lg:pl-56">
+      {/*
+        Na impressao o conteudo ocupa a folha inteira: sem a reserva da barra
+        lateral a esquerda, sem a reserva da barra inferior embaixo, e sem o
+        limite de largura, que na folha vira margem branca de sobra.
+      */}
+      <div className="md:pl-16 lg:pl-56 print:pl-0">
         <TopBar viewer={viewer} hasUnread={hasUnread} />
         <main
           id="conteudo"
           className={cn(
             'mx-auto w-full max-w-6xl px-4 pt-4',
             'pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-8',
+            'print:max-w-none print:px-0 print:pt-0 print:pb-0',
             className,
           )}
         >

@@ -28,6 +28,9 @@ export function BottomNav() {
       aria-label="Navegação principal"
       className={cn(
         'fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface md:hidden',
+        // Impressao e do conteudo, nao do aplicativo: a barra saia dentro da
+        // folha, atravessada por cima das cartas.
+        'print:hidden',
         // A barra some no teclado virtual do iOS sem isto, e o gesto de voltar
         // do Android encosta nos icones.
         'pb-safe',

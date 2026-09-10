@@ -3268,6 +3268,16 @@ diálogo, fica no aparelho, e não passa pelo nosso servidor nem pelo nosso banc
 no diálogo. A tela diz isso, porque sem a instrução o diálogo de impressão
 parece o botão errado.
 
+## Decisão 4.1 — a folha imprime sem o aplicativo em volta
+
+A primeira versão saía com a barra inferior atravessada por cima das cartas.
+Não é detalhe estético: a barra é `fixed`, então ela imprime em **toda** página,
+sobre o conteúdo, e come uma faixa de cada folha.
+
+As três barras — inferior, lateral e superior — ganharam `print:hidden`, e o
+conteúdo perdeu na folha as reservas que existem para elas. Conferido no CSS
+compilado: os dez utilitários saem dentro de `@media print`.
+
 ## Decisão 5 — só o que falta entra na folha
 
 Uma folha com o que a pessoa já conseguiu faria alguém oferecer carta que ela

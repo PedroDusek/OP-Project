@@ -28,6 +28,8 @@ export function SideNav() {
       aria-label="Navegação principal"
       className={cn(
         'fixed inset-y-0 left-0 z-30 hidden border-r border-border bg-surface md:flex',
+        // Ver `BottomNav`: navegacao nao entra na folha.
+        'print:hidden',
         'w-16 flex-col lg:w-56',
       )}
     >
