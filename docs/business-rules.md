@@ -266,6 +266,22 @@ concordou com o que está na tela ou com uma versão anterior dela.
 
 ### 4.7 Conclusão
 
+**Os dois participantes marcam que as cartas trocaram de mão**, e a troca conclui
+quando o segundo marca (decisão 062).
+
+Marcar não é confirmar. Confirmar é concordar com a oferta que está na tela;
+marcar é dizer que o encontro aconteceu. Entre um e outro pode passar uma semana,
+e é por isso que `CONFIRMED` é estado de descanso e não passagem. Só se marca uma
+troca confirmada.
+
+Cada um marca por si, e ninguém tem a coleção alterada pelo gesto do outro. É
+também o que dá a quem oferece a chance de responder, pelas próprias cópias, a
+pergunta da regra 4.6.
+
+**Qualquer alteração na troca revoga as marcações**, como revoga as
+confirmações (4.6.3), e pelo mesmo motivo: uma marcação fala da troca que estava
+na tela. Retirar a própria marcação é permitido e não desfaz a confirmação.
+
 Concluir um trade valida, numa única transação:
 
 1. exatamente dois participantes;
@@ -276,8 +292,15 @@ Concluir um trade valida, numa única transação:
 6. as localizações são atualizadas quando aplicável;
 7. `completed_at` é definido.
 
+As verificações 3 e 4 acontecem **na conclusão**, e não só na marcação: entre uma
+marcação e outra as cópias podem ter saído do local de troca.
+
 Se qualquer etapa falhar, a transação inteira sofre rollback. Um trade nunca é
 concluído parcialmente.
+
+As cópias recebidas entram na coleção **sem localização registrada**. Cópia sem
+lugar é normal e esperada (3.2), e escolher um destino por quem recebeu seria
+decidir no lugar dela.
 
 ---
 

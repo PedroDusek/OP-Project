@@ -5,10 +5,10 @@ Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
 ## Para retomar
 
 1. `npm run dev` — **sempre reinicie**. O servidor guarda o cliente Prisma que
-   carregou ao subir, e três migrations entraram depois da última sessão
+   carregou ao subir, e a migration `concluir_a_troca` entrou nesta sessão
    (armadilha 40).
 2. `npm run supabase status` — mostra o que produção tem e o que falta. Hoje
-   ela está **três migrations atrás**.
+   ela está **quatro migrations atrás**.
 3. Leia "Produção, em 10/09/2026" e "Próximo passo", abaixo.
 
 O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
@@ -19,7 +19,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 63 PRs mergeados, CI verde em todos |
+| Branch | `main`, 64 PRs mergeados, CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -41,9 +41,8 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 11 concluídos**, e o 12 inteiro menos concluir a troca. 984
-testes de unidade, integração e componente, mais 31 ponta a ponta. Lint,
-typecheck e build passando.
+**Checkpoints 0 a 12 concluídos.** 1.030 testes de unidade, integração e
+componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
 |---|---|
@@ -60,7 +59,7 @@ typecheck e build passando.
 | 10 | Binders: locais, alocação, upload de imagem, resolução da decisão 007 |
 | — | Binders ganhou a direção inversa: organizar as cópias sem lugar (decisão 045) |
 | 11 | Edição em massa: adicionar uma leva a um local, e transferir entre locais |
-| 12 | Want list (29 e 30), Trade Binder (31) e a negociação com interface. **Falta concluir a troca** |
+| 12 | Want list (29 e 30), Trade Binder (31), a negociação e a conclusão da troca |
 | — | Preço de mercado das artes comuns, 96,7% do catálogo, pelo tcgcsv (decisão 050) |
 | — | Preço em real pelo PTAX, e o aviso de quando foi conferido (decisão 051) |
 | — | Reimpressão virou impressão, não variante (decisão 052) |
@@ -69,14 +68,17 @@ typecheck e build passando.
 | — | Convite, cruzamento e negociação: servidor (055, 056) e interface (059) |
 | — | Nome de usuário e as regras da rede escritas (decisão 060) |
 | — | Navegação em gaveta: sete destinos e a conta, sem teto de cinco (decisão 061) |
+| — | Concluir a troca: os dois marcam, e de onde as cartas saem (decisão 062) |
 
 ### Produção, em 10/09/2026
 
-> **Produção está TRÊS migrations atrás: 9 de 12.** Faltam
-> `convite_de_troca`, `revisao_apos_alteracao` e `nome_de_usuario`. **Publicar o
-> `main` atual sem rodar `npm run supabase migrate` derruba a tela de Trocas e a
-> de conta**, com `Cannot read properties of undefined`. É a primeira coisa a
-> resolver antes de qualquer publicação.
+> **Produção está QUATRO migrations atrás: 9 de 13.** Faltam
+> `convite_de_troca`, `revisao_apos_alteracao`, `nome_de_usuario` e
+> `concluir_a_troca`. **Publicar o `main` atual sem rodar
+> `npm run supabase migrate` derruba a tela de Trocas e a de conta**, com
+> `Cannot read properties of undefined`. É a primeira coisa a resolver antes de
+> qualquer publicação. Produção tem **zero usuários**, então o atraso ainda não
+> quebrou a tela de ninguém.
 
 Catálogo e preços estão certos e iguais ao local: 2.785 cartas, 4.431 variantes,
 60 sets, 4.834 impressões, **3.170 variantes com preço** — 2.692 artes comuns
@@ -100,7 +102,7 @@ outra hora, e isso é verdade, não defeito.
 
 ## As decisões que mais restringem o que vem depois
 
-As 61 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 62 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
@@ -313,6 +315,19 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 42. **Cabeçalho CORS só aparece quando a requisição manda `Origin`.** Conferir
     com `curl -I` sem ele diz "não tem CORS" sobre servidores que têm — e essa
     conclusão errada quase enterrou a folha em JPEG (decisão 058).
+43. **Vários downloads programáticos num toque só não sobrevivem ao Safari do
+    iPhone.** Um download ali é uma navegação para o `blob:`, e a navegação
+    seguinte cancela a anterior que ainda não terminou — sobra a última, e as
+    notificações das outras aparecem mesmo assim, o que faz parecer que
+    funcionou. Aumentar o intervalo entre os cliques é chutar um número que
+    depende do tamanho do arquivo. A saída é um toque por arquivo, ou
+    `navigator.share` com vários `files`.
+44. **A tabela nova precisa entrar em três listas, não numa.** `schema.prisma` é
+    só a primeira: `tests/integration/schema.test.ts` guarda a lista de tabelas
+    aprovadas **e** a política de exclusão, e `tests/helpers.ts` guarda a ordem
+    de truncação. Esquecer a terceira deixa lixo entre testes; esquecer a
+    segunda quebra a CI, que é o desfecho bom — o guarda existe para que tabela
+    nova não entre sem uma decisão que diga por que ela existe.
 
 ## Pendências
 
@@ -377,9 +392,15 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
   "A FIST OF DIVINE SPEED" e não "The Blackbeard Pirates"; `OP-12` é
   "LEGACY OF THE MASTER" e não "The Revolutionary Army". A tela mostra o nome da
   fonte. Trocar por nomes próprios seria manter uma segunda lista à mão.
-- **Trocas fora da barra.** Sai de `SECONDARY_DESTINATIONS` e volta para
-  `DESTINATIONS` quando a seção existir — e aí a barra passa a ter seis, ou algo
-  sai. Decisão do dono do produto na hora.
+- ~~**Trocas fora da barra.**~~ — **resolvido pela decisão 061.** A barra
+  inferior e o `SECONDARY_DESTINATIONS` deixaram de existir; Trocas é um dos sete
+  destinos da gaveta, como qualquer outro. Conferido no código.
+- **Histórico de trocas (tela 35) não existe.** Escolha do dono do produto ao
+  fechar a conclusão (decisão 062): a troca concluída vira leitura no próprio
+  endereço, e `/trocas` volta a oferecer começar outra. A listagem com filtros
+  Todas/Em andamento/Concluídas é tela nova, e faz sentido quando houver mais de
+  um punhado de trocas para listar. Hoje uma troca concluída só é alcançável por
+  quem guardou o endereço.
 - **Reduzir em massa não existe.** A tela 27 da especificação mostra
   "Atual: 3 → 4", com decremento. Ficou de fora porque reduzir pode disparar o
   conflito da decisão 007 — "de qual local as cópias saem?" —, e isso não cabe
@@ -426,24 +447,72 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 
 ## Próximo passo
 
-**Concluir a troca.** É o que falta do Checkpoint 12. Confirmada pelos dois, a
-troca para em `CONFIRMED`: mover as cópias de verdade depende da regra 4.6 — de
-onde as cartas saem —, e a decisão 049 já diz que só se pergunta quando há
-escolha real. `deducibleReduction` no domínio já resolve o caso sem escolha.
+**O defeito do JPEG da want list no Safari do iPhone.** Relatado pelo dono do
+produto em 10/09 e **diagnosticado, não corrigido** — ver a seção abaixo. É a
+próxima branch.
+
+Depois dele, a passada de **Claude Design nos componentes compartilhados**,
+combinada para acontecer **antes da Social**: botão, painel, linha de lista e
+estado vazio são o vocabulário de toda tela, e a Social é o maior pedaço que
+falta. Mexer neles depois dela seria refazer todas as telas dela. A revisão
+visual e textual tela a tela, e os links das cartas, ficam para o fim.
 
 Depois disso, a **aba Social**, que tem as regras escritas (decisão 060) e a
 identidade construída, e falta tudo o mais: listagem ordenada, busca por carta,
 bloquear, denunciar e o chat.
 
+## O defeito do JPEG no Safari do iPhone — diagnosticado, a corrigir
+
+**Sintoma:** baixando a want list em imagem no celular, só a **última** imagem é
+baixada de verdade. As notificações de todas aparecem, e tocar nas outras não
+entrega arquivo.
+
+**Causa**, em `src/components/wants/want-sheet-print.tsx`, no laço de `baixar()`:
+são N cliques programáticos em `<a download>` separados por 300 ms. No Safari do
+iPhone um download programático é na prática uma **navegação** para o `blob:`, e
+uma navegação nova **cancela a anterior que ainda não terminou**. Os 300 ms são
+curtíssimos perto do tempo de materializar um JPEG de folha inteira. Cada clique
+mata o anterior e sobra o último.
+
+Dois agravantes no mesmo trecho: o `<a>` nunca é anexado ao documento, e o
+`await` antes dos cliques seguintes já gastou a ativação do toque.
+
+Passou batido porque o teste da folha cobre o **desenho**, não a entrega — o
+jsdom não baixa arquivo. É irmão da armadilha 10.
+
+**A correção acertada não é aumentar o intervalo**, que continuaria dependendo do
+tamanho do arquivo e da velocidade do aparelho. É tirar os N downloads de um
+toque só:
+
+- **Compartilhar quando o aparelho tem** (`navigator.share` com `files`): um
+  toque, a folha do iOS, e as imagens vão direto ao grupo. É o propósito escrito
+  na decisão 058, e some com o laço.
+- **Um botão por folha** no resto: um toque por arquivo, cada um com a própria
+  ativação.
+
+Não foi possível reproduzir num iPhone de verdade — a confirmação final é do
+dono do produto depois da correção.
+
 ## Onde a troca está hoje
 
 Dá para testar entre duas contas. `/trocas` → **Começar uma troca** → copiar o
 link → abrir na outra conta → **Entrar nesta troca** → os dois veem o
-cruzamento, cada um monta a própria oferta, os dois confirmam.
+cruzamento, cada um monta a própria oferta, os dois confirmam, e os dois marcam
+**"Já trocamos as cartas"** — aí as cópias mudam de dono de verdade.
 
-O que existe: convite, entrada, cruzamento nas duas direções, edição da própria
-oferta, confirmar, retirar a confirmação, cancelar, e o aviso de revisão quando
-o outro altera. O que não existe: concluir.
+O ciclo está **inteiro**: convite, descartar o convite que ninguém aceitou,
+entrada, cruzamento nas duas direções, edição da própria oferta, confirmar,
+retirar a confirmação, marcar, retirar a marcação, cancelar, o aviso de revisão
+quando o outro altera, e a conclusão.
+
+Duas coisas que valem saber ao testar:
+
+- **A pergunta de origem só aparece às vezes.** Cópias num binder de troca só, ou
+  saindo todas, se deduzem (decisão 049). Para ver a pergunta, ponha a mesma
+  carta em dois locais de troca e ofereça só parte dela.
+- **Concluída, a troca vira leitura no próprio endereço** — "Você entregou" e
+  "Você recebeu" —, e `/trocas` volta a oferecer começar outra. O histórico com
+  filtros (tela 35) **não foi construído**, por escolha do dono do produto.
 
 ## O que falta em preços e no vínculo
 

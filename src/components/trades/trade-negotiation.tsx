@@ -1,10 +1,11 @@
 'use client'
 
 import { useActionState } from 'react'
-import { ArrowRight, Check, Minus, Plus, TriangleAlert, X } from 'lucide-react'
+import { ArrowRight, Check, Handshake, Minus, Plus, TriangleAlert, X } from 'lucide-react'
 import { CardArt } from '@/components/catalog/card-art'
 import { Button } from '@/components/ui/button'
 import { Panel, PanelList, ListRow } from '@/components/ui/surface'
+import { ExchangeControls } from '@/components/trades/trade-exchange'
 import {
   cancelTradeAction,
   confirmTradeAction,
@@ -43,7 +44,9 @@ import type { TradeCardOffer, TradeView } from '@/server/application/trades'
  * uma tela que já viesse com tudo oferecido decidiria pela pessoa.
  */
 export function TradeNegotiation({ trade }: { trade: TradeView }) {
-  const encerrada = trade.status === 'COMPLETED' || trade.status === 'CANCELLED'
+  const concluida = trade.status === 'COMPLETED'
+  const encerrada = concluida || trade.status === 'CANCELLED'
+  const outro = trade.other?.name ?? 'A outra pessoa'
 
   return (
     <div className="flex flex-col gap-5">
@@ -51,18 +54,23 @@ export function TradeNegotiation({ trade }: { trade: TradeView }) {
         <Panel className="flex items-start gap-3 border-warning/40 bg-warning-soft p-4">
           <TriangleAlert className="mt-0.5 size-5 shrink-0 text-warning" aria-hidden />
           <p className="text-sm text-text">
-            <strong>{trade.other?.name ?? 'A outra pessoa'} alterou a troca.</strong> Revise o que
-            está combinado e confirme de novo.
+            <strong>{outro} alterou a troca.</strong> Revise o que está combinado e confirme de
+            novo.
           </p>
         </Panel>
       ) : null}
 
       <TradeStatusPanel trade={trade} />
 
+      {/*
+        Depois de concluida a tela muda de tempo verbal. "Voce oferece" descreve
+        uma proposta em aberto, e ler isso numa troca que ja aconteceu faz duvidar
+        se ela aconteceu mesmo.
+      */}
       <OfferSection
-        title="Você oferece"
+        title={concluida ? 'Você entregou' : 'Você oferece'}
         offer={trade.me.offer}
-        confirmed={trade.me.confirmed}
+        confirmed={!concluida && trade.me.confirmed}
         tradeId={trade.tradeId}
         editable={!encerrada}
       />
@@ -78,41 +86,65 @@ export function TradeNegotiation({ trade }: { trade: TradeView }) {
       ) : null}
 
       <OfferSection
-        title={`${trade.other?.name ?? 'A outra pessoa'} oferece`}
+        title={concluida ? 'Você recebeu' : `${outro} oferece`}
         offer={trade.other?.offer ?? []}
-        confirmed={trade.other?.confirmed ?? false}
+        confirmed={!concluida && (trade.other?.confirmed ?? false)}
         tradeId={trade.tradeId}
         editable={false}
       />
+
+      {/*
+        Marcar so aparece depois de os dois confirmarem. Antes disso a troca ainda
+        se negocia, e "ja trocamos" seria um gesto sobre um combinado que ninguem
+        fechou (regra 4.5 e decisao 062).
+      */}
+      {trade.validated && !encerrada ? <ExchangeControls trade={trade} /> : null}
 
       {!encerrada ? <TradeControls trade={trade} /> : null}
     </div>
   )
 }
 
-/** Onde a troca está: quem confirmou, e o que falta para valer. */
+/** Onde a troca está: quem confirmou, quem marcou, e o que falta. */
 function TradeStatusPanel({ trade }: { trade: TradeView }) {
   const outro = trade.other?.name ?? 'a outra pessoa'
+  const concluida = trade.status === 'COMPLETED'
 
-  const texto = trade.validated
-    ? 'Os dois confirmaram. A troca está combinada.'
-    : trade.me.confirmed
-      ? `Você confirmou. Falta ${outro} confirmar.`
-      : trade.other?.confirmed
-        ? `${outro} confirmou. Falta você.`
-        : 'Ninguém confirmou ainda. Ajuste as ofertas à vontade.'
+  const texto = concluida
+    ? 'Troca concluída. As cartas já estão nas coleções de vocês dois.'
+    : trade.status === 'CANCELLED'
+      ? 'Troca cancelada.'
+      : trade.validated
+        ? trade.me.exchanged
+          ? `Você marcou que trocaram. Falta ${outro}.`
+          : trade.other?.exchanged
+            ? `${outro} marcou que vocês trocaram. Falta você.`
+            : 'Os dois confirmaram. Quando trocarem as cartas, marquem aqui.'
+        : trade.me.confirmed
+          ? `Você confirmou. Falta ${outro} confirmar.`
+          : trade.other?.confirmed
+            ? `${outro} confirmou. Falta você.`
+            : 'Ninguém confirmou ainda. Ajuste as ofertas à vontade.'
+
+  const feito = concluida || trade.validated
 
   return (
     <Panel className="flex items-center gap-3 p-4">
       <span
         aria-hidden
         className={
-          trade.validated
+          feito
             ? 'flex size-9 shrink-0 items-center justify-center rounded-full bg-success-soft text-success'
             : 'flex size-9 shrink-0 items-center justify-center rounded-full bg-surface-muted text-text-muted'
         }
       >
-        {trade.validated ? <Check className="size-5" /> : <ArrowRight className="size-5" />}
+        {concluida ? (
+          <Handshake className="size-5" />
+        ) : feito ? (
+          <Check className="size-5" />
+        ) : (
+          <ArrowRight className="size-5" />
+        )}
       </span>
       <p className="text-sm text-text">{texto}</p>
     </Panel>

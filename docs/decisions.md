@@ -3707,3 +3707,155 @@ o conteúdo chega até o fim da tela, porque não há mais nada por cima.
 ## Data
 
 2026-09-10
+
+---
+
+# Decisão: 062 — Concluir a troca: os dois marcam, e de onde as cartas saem
+
+## Contexto
+
+O Checkpoint 12 entregou a negociação inteira menos o fim. Confirmada pelos
+dois, a troca parava em `CONFIRMED` e não havia como concluí-la: as cópias nunca
+mudavam de dono.
+
+A regra 4.7 descreve o que a conclusão faz — sete verificações e duas coleções
+atualizadas, numa transação só. A regra 4.6 diz de onde as cópias saem. O que
+nenhuma das duas diz, e a especificação visual também não, é **quem** faz a
+troca sair de `CONFIRMED` para `COMPLETED`. As telas 34 e 35 mostram a proposta
+e o histórico, e nada entre elas.
+
+Perguntado ao dono do produto, com as três leituras possíveis e o custo de cada
+uma.
+
+## Decisão 1 — os dois marcam que trocaram
+
+**Escolha do dono do produto.** Depois de os dois confirmarem, cada um marca
+"já trocamos as cartas". Quando o segundo marca, a troca conclui.
+
+As três opções eram:
+
+| | Custo |
+|---|---|
+| **Um dos dois conclui** | Move a coleção do outro sem gesto dele, e não há a quem perguntar de onde as cópias **dele** saem. |
+| **Automático na segunda confirmação** | `CONFIRMED` deixaria de ser estado de descanso e viraria passagem, e a coleção mudaria antes de as cartas trocarem de mão de verdade. |
+| **Os dois marcam** | Uma troca pode ficar parada se o outro sumir. Cancelar continua disponível para os dois. |
+
+O que decidiu foi a regra 4.6: *"o usuário confirma de onde elas saem"* — cada um
+pelas próprias cópias. Só existe um arranjo em que essa frase tem a quem ser
+dita, e é este.
+
+Confirmar e ter trocado são **fatos diferentes**, e a regra 4.5 já os separava ao
+listar `CONFIRMED` e `COMPLETED` como estados distintos. Entre um e outro existe
+um encontro no mundo, que o sistema não vê acontecer e sobre o qual não tem
+opinião. Concluir na confirmação apagaria esse intervalo e mentiria sobre a
+coleção durante ele.
+
+## Decisão 2 — uma coluna e uma tabela novas, aprovadas antes de escritas
+
+**Aprovado pelo dono do produto**, como manda o acordo de trabalho.
+
+**`trade_participants.exchanged_at`** — onde a marcação de cada um mora.
+Reaproveitar `confirmed_at` juntaria dois fatos diferentes e apagaria o estado
+`CONFIRMED`. Vem com um `CHECK`: não se marca troca que não foi confirmada.
+
+**`trade_item_origins`** — de qual local de troca saem quantas cópias de cada
+item da oferta.
+
+Ela existe por causa de uma janela de tempo. A conclusão é uma transação só
+(regra 4.7), mas as duas marcações acontecem em momentos diferentes: quem marca
+primeiro responde hoje, e a transação roda quando o outro marcar. A resposta
+precisa sobreviver nesse meio, e não havia onde guardá-la.
+
+Uma coluna só não serviria. Quem oferece duas cópias com uma em cada binder de
+troca precisa dizer "uma daqui, uma dali", e isso é um para N. O formato é o
+mesmo de `collection_item_locations`, de propósito: é a mesma pergunta.
+
+Fica **vazia na maioria das vezes**, e isso é o esperado: ausência ali significa
+"deduza", não "sem origem".
+
+## Decisão 3 — a dedução da coleção vale para a troca, sem uma segunda cópia dela
+
+De onde as cópias saem é `deducibleReduction`, a mesma função que a coleção usa
+na decisão 049, aplicada às alocações de finalidade `TRADE`. Num local só, ou
+saindo todas, deduz; espalhadas e saindo em parte, pergunta.
+
+Reusar não foi economia de linhas. Duas implementações da mesma pergunta
+divergem um dia, e nesse dia "de onde sai esta carta" passa a ter duas respostas
+dependendo da tela em que se está.
+
+**O que não foi reusado foi `planReduction`**, e a diferença importa. Lá, retirar
+**a mais** é permitido: quem resolve o conflito da decisão 007 pode aproveitar e
+desalocar por vontade própria, e a invariante continua de pé. Aqui isso seria
+mentira — as cópias que saem do local são exatamente as que mudaram de dono, e
+uma a mais registraria que uma carta saiu do binder quando ela continua lá. A
+soma tem de bater exata.
+
+## Decisão 4 — quem recebe recebe sem lugar
+
+As cópias que chegam entram na coleção e **não** vão para local nenhum. A regra
+3.2 diz que cópia sem localização registrada é normal e esperada, e não existe
+local "sem lugar" para inventar.
+
+Adivinhar um destino seria pior que não escolher: quem acabou de receber a carta
+ainda vai decidir onde guardá-la, e Binders já tem a direção para isso
+(decisão 045).
+
+## Decisão 5 — qualquer alteração derruba a marcação, como derruba a confirmação
+
+A regra 4.6.3 escrita para a confirmação vale igual para a marcação, e pelo mesmo
+motivo. Marcar diz "as cartas que estão na tela mudaram de dono"; se o combinado
+deixou de valer, a marcação fala de uma troca que não existe mais.
+
+Cai também quando alguém **retira a confirmação**. Sem isso, retirar e confirmar
+de novo concluiria a troca no mesmo instante, usando a marcação que o outro deu
+para um combinado que acabou de ser desfeito e refeito.
+
+As origens vão junto: elas descrevem a oferta anterior, e revalidá-las contra uma
+oferta diferente daria um resultado plausível e errado.
+
+O `CHECK` do banco existe para que isso nunca seja esquecido em código novo.
+
+## Decisão 6 — dá para retirar a própria marcação
+
+Espelha "retirar minha confirmação", e não é só simetria. Se as cópias saírem do
+binder de troca depois da marcação, a origem guardada deixa de fechar e a
+conclusão passa a recusar — para os dois. Retirar e marcar de novo é a saída, e
+sem ela não haveria nenhuma.
+
+## Decisão 7 — o convite abandonado ganhou fim
+
+**Pedido do dono do produto**, junto desta entrega: o link do convite ficava no
+alto de Trocas para sempre quando ninguém entrava.
+
+O servidor já aceitava cancelar um `DRAFT` desde o começo. Faltava o botão — ele
+morava dentro da negociação, que é justamente onde a pessoa não chega enquanto
+está sozinha na troca. Agora "Descartar este convite" aparece no próprio cartão,
+e só enquanto ninguém entrou: depois disso há outra pessoa do outro lado, e
+desfazer sem abrir seria cancelar às costas dela.
+
+Descartar queima o link junto com a troca, e é isso que se quer — um convite
+abandonado é um convite que ainda pode vazar (regra 4.6.1).
+
+## A ordem das escritas, que o banco impõe
+
+Primeiro as cópias saem do local de troca, depois a coleção anda. Não é estética:
+há um trigger que recusa reduzir a quantidade possuída abaixo do que está
+alocado, e um `CHECK` que proíbe `quantity` zero. Reduzir antes de desalocar
+bateria no trigger; deixar a linha em zero bateria no `CHECK`.
+
+E a coleção anda **uma vez por carta**, com o saldo dos dois lados já somado. O
+caso que obriga a isso é a mesma carta aparecendo nas duas ofertas — trocar duas
+e receber uma de volta como parte do acerto. Em duas escritas separadas, a
+passagem pelo estado intermediário é exatamente o que o trigger recusa.
+
+## O que fica de fora, e por quê
+
+**O histórico de trocas (tela 35) não entra.** Escolha do dono do produto: a
+troca concluída vira leitura no próprio endereço, mostrando o que cada um
+entregou e recebeu, e `/trocas` volta a oferecer "começar uma troca". A listagem
+com filtros é tela nova, e fica para quando houver mais de um punhado de trocas
+para listar.
+
+## Data
+
+2026-09-10

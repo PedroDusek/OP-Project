@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
-import { Check, Copy, Handshake, TriangleAlert } from 'lucide-react'
+import { useActionState, useState } from 'react'
+import { Check, Copy, Handshake, TriangleAlert, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/ui/surface'
+import { cancelTradeAction } from '@/app/(app)/trocas/actions'
+import { TRADE_ACTION_IDLE } from '@/app/(app)/trocas/state'
 import type { OpenTrade } from '@/server/application/trades'
 
 /**
@@ -13,9 +15,24 @@ import type { OpenTrade } from '@/server/application/trades'
  * que importa é entrar na negociação — e, se a pessoa alterou depois de você
  * confirmar, saber disso **antes** de abrir. Sem ninguém ainda, o que importa é
  * o convite: ele é o único jeito de a troca sair do lugar.
+ *
+ * ## O convite precisa ter fim
+ *
+ * Enquanto ninguém entra, este cartão ocupa o lugar de "começar uma troca" — e
+ * sem uma saída ele ficaria ali para sempre, com um link que a pessoa mandou
+ * para alguém que nunca abriu. Descartar era possível desde sempre pelo servidor,
+ * e só não tinha botão: ele morava dentro da negociação, que é onde a pessoa não
+ * chega enquanto está sozinha.
+ *
+ * Descartar queima o link junto com a troca, e é isso que se quer: um convite
+ * abandonado é um convite que ainda pode vazar (regra 4.6.1).
  */
 export function OpenTradeCard({ trade, appUrl }: { trade: OpenTrade; appUrl: string }) {
   const [copiado, setCopiado] = useState(false)
+  const [descartar, descartarAction, descartando] = useActionState(
+    cancelTradeAction,
+    TRADE_ACTION_IDLE,
+  )
   const link = trade.inviteToken ? `${appUrl}/trocas/entrar/${trade.inviteToken}` : null
 
   return (
@@ -73,6 +90,26 @@ export function OpenTradeCard({ trade, appUrl }: { trade: OpenTrade; appUrl: str
       <Button asChild block>
         <a href={`/trocas/${trade.tradeId}`}>Abrir a troca</a>
       </Button>
+
+      {/*
+        So enquanto ninguem entrou. Depois disso a troca tem outra pessoa do
+        outro lado, e desfaze-la sem abrir seria cancelar as costas dela — o
+        botao de cancelar existe la dentro, junto do que se esta cancelando.
+      */}
+      {trade.otherName === null ? (
+        <form action={descartarAction}>
+          <input type="hidden" name="tradeId" value={trade.tradeId} />
+          <Button type="submit" variant="ghost" block loading={descartando}>
+            <X className="size-4" aria-hidden />
+            Descartar este convite
+          </Button>
+          {descartar.status === 'error' ? (
+            <p role="alert" className="mt-1 text-sm text-danger">
+              {descartar.message}
+            </p>
+          ) : null}
+        </form>
+      ) : null}
     </Panel>
   )
 }
