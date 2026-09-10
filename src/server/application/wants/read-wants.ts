@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client'
 import { compareSetsForCatalog } from '@/server/domain/catalog/sets'
 import { remainingToGet, wantStatus, type WantStatus } from '@/server/domain/wants/status'
+import { sourceImageUrl } from '@/server/domain/prices/source-image'
 import { buildCatalogWhere, type CatalogFilters } from '@/server/application/catalog/search-cards'
 import type { AuthenticatedUser } from '@/server/application/auth'
 
@@ -24,6 +25,13 @@ export interface WantView {
   rarity: string | null
   variantType: string
   imageUrl: string | null
+  /**
+   * A mesma carta na fonte de preco, ou nulo quando nao ha vinculo.
+   *
+   * Existe por um motivo so: e a unica imagem que o navegador consegue desenhar
+   * num `canvas` para exportar (decisao 058). Na tela quem vale e `imageUrl`.
+   */
+  sheetImageUrl: string | null
   /** Quantas a pessoa quer. */
   wanted: number
   /** Quantas ela já tem desta variante. */
@@ -86,6 +94,10 @@ export async function listWants(
           imageUrl: true,
           card: { select: { code: true, name: true } },
           printings: { select: { set: { select: { code: true } } }, take: 1 },
+          // O vinculo com a fonte de preco, que e a unica imagem que autoriza
+          // leitura cruzada e por isso serve para desenhar a folha (decisao
+          // 058). So o numero do produto: a imagem nunca entra no nosso banco.
+          sourceProducts: { select: { sourceProductId: true }, take: 1 },
         },
       },
     },
@@ -109,6 +121,9 @@ export async function listWants(
         rarity: variant.rarity,
         variantType: variant.variantType,
         imageUrl: variant.imageUrl,
+        sheetImageUrl: variant.sourceProducts[0]
+          ? sourceImageUrl(variant.sourceProducts[0].sourceProductId)
+          : null,
         wanted: want.quantity,
         owned: have,
         remaining: remainingToGet(have, want.quantity),

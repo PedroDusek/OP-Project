@@ -30,7 +30,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 11 concluídos**, e o 12 começou pela want list. 944 testes
+**Checkpoints 0 a 11 concluídos**, e o 12 começou pela want list. 947 testes
 de unidade, integração e componente, mais 30 ponta a ponta. Lint, typecheck e
 build passando.
 
@@ -76,7 +76,7 @@ sem preço novo, só para de envelhecer sem ninguém perceber.
 
 ## As decisões que mais restringem o que vem depois
 
-As 57 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 58 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
@@ -286,6 +286,9 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     `connect ENETUNREACH <endereço v6>:5432`, que não parece problema de rede.
     O agendamento precisa da string do **Session pooler**
     (`aws-N-<região>.pooler.supabase.com`), que tem IPv4.
+42. **Cabeçalho CORS só aparece quando a requisição manda `Origin`.** Conferir
+    com `curl -I` sem ele diz "não tem CORS" sobre servidores que têm — e essa
+    conclusão errada quase enterrou a folha em JPEG (decisão 058).
 
 ## Pendências
 

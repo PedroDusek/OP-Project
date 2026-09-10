@@ -1,8 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render as renderRaw, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { WantSheetPrint } from '@/components/wants/want-sheet-print'
+import { ToastProvider } from '@/components/ui/toast'
 import type { WantView } from '@/server/application/wants'
+
+/** A folha avisa por toast quando o desenho falha, e o aviso precisa de um lar. */
+const render = (ui: React.ReactElement) => renderRaw(<ToastProvider>{ui}</ToastProvider>)
 
 /**
  * A want list em folha.
@@ -20,6 +24,7 @@ const want = (over: Partial<WantView> = {}): WantView => ({
   rarity: 'SR',
   variantType: 'Normal',
   imageUrl: null,
+  sheetImageUrl: 'https://cdn/arte.jpg',
   wanted: 4,
   owned: 0,
   remaining: 4,
@@ -93,7 +98,7 @@ describe('gerar o arquivo', () => {
     vi.stubGlobal('print', print)
 
     render(<WantSheetPrint wants={[want()]} />)
-    await userEvent.click(screen.getByRole('button', { name: /baixar pdf/i }))
+    await userEvent.click(screen.getByRole('button', { name: /imprimir/i }))
 
     expect(print).toHaveBeenCalled()
     vi.unstubAllGlobals()
@@ -104,5 +109,62 @@ describe('gerar o arquivo', () => {
     render(<WantSheetPrint wants={[want()]} />)
 
     expect(screen.getByText(/salvar como pdf/i)).toBeInTheDocument()
+  })
+
+  it('mostra as duas saidas', () => {
+    render(<WantSheetPrint wants={[want()]} />)
+
+    expect(screen.getByRole('button', { name: /baixar imagem/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /imprimir/i })).toBeInTheDocument()
+  })
+})
+
+describe('a imagem', () => {
+  /**
+   * O canvas nao existe no jsdom, entao o desenho e trocado por um dublê. O que
+   * este teste protege e a ligacao: o botao chama o gerador com o que falta, e
+   * so com o que falta.
+   */
+  it('gera a partir das cartas que faltam, e nao das satisfeitas', async () => {
+    const render_ = vi.fn().mockResolvedValue(new Blob(['x'], { type: 'image/jpeg' }))
+    vi.doMock('@/lib/want-sheet-image', () => ({ renderWantSheet: render_ }))
+    vi.resetModules()
+
+    const { WantSheetPrint: Componente } = await import('@/components/wants/want-sheet-print')
+    // `resetModules` cria um grafo novo: o provider tem de vir dele, senao o
+    // componente le um contexto que ninguem forneceu.
+    const { ToastProvider: Provider } = await import('@/components/ui/toast')
+    vi.stubGlobal('URL', { ...URL, createObjectURL: () => 'blob:x', revokeObjectURL: () => {} })
+
+    renderRaw(
+      <Provider>
+        <Componente
+          wants={[
+            want({ variantId: '1', remaining: 2, sheetImageUrl: 'https://cdn/1.jpg' }),
+            want({ variantId: '2', status: 'satisfied', remaining: 0 }),
+          ]}
+        />
+      </Provider>,
+    )
+    await userEvent.click(screen.getByRole('button', { name: /baixar imagem/i }))
+
+    expect(render_).toHaveBeenCalledWith([
+      {
+        cardCode: 'OP01-001',
+        cardName: 'Roronoa Zoro',
+        sheetImageUrl: 'https://cdn/1.jpg',
+        remaining: 2,
+      },
+    ])
+
+    vi.unstubAllGlobals()
+    vi.doUnmock('@/lib/want-sheet-image')
+  })
+
+  /** Sem vinculo a carta nao some: sai com o codigo no lugar da arte. */
+  it('avisa quantas cartas saem sem arte', () => {
+    render(<WantSheetPrint wants={[want({ sheetImageUrl: null })]} />)
+
+    expect(screen.getByText(/1 carta sai com o código no lugar da arte/i)).toBeInTheDocument()
   })
 })

@@ -59,9 +59,25 @@ export interface SourceArtProduct {
  * conferimos. Confundir os dois é o que faz uma tela dizer "atualizado agora"
  * sobre um número de ontem.
  */
+/**
+ * A arte comum de uma carta, identificada na fonte.
+ *
+ * Separada dos preços porque nem toda arte comum tem cotação — e a que não tem
+ * continua servindo para uma coisa: **a imagem**. O produto da fonte é a única
+ * referência de imagem que autoriza leitura cruzada, e é dela que sai a folha
+ * em JPEG (decisão 058).
+ */
+export interface SourceCommonArt {
+  cardCode: string
+  /** O id do produto na fonte, como texto. */
+  productId: string
+}
+
 export interface PriceSnapshot {
   /** Preços da arte comum, já casados por código. */
   prices: SourcePrice[]
+  /** Toda arte comum identificada, com ou sem preço. */
+  commonArts: SourceCommonArt[]
   /** As demais artes, com ou sem preço, para vincular. */
   arts: SourceArtProduct[]
   /** Quando a fonte publicou este conjunto. Nulo quando ela não informa. */

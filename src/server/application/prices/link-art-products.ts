@@ -13,8 +13,18 @@ import type { PriceProvider, SourceArtProduct } from '@/server/http/price-provid
  * tem três linhas indistinguíveis entre si — e a fonte tem três produtos, cada
  * um com nome e preço próprios. Ninguém consegue dizer qual é qual sem olhar.
  *
- * A arte comum não passa por aqui: a regra da decisão 050 identifica ela
- * sozinha, sem ambiguidade, e não precisa de linha gravada.
+ * ## A arte comum passou a entrar, e o motivo mudou
+ *
+ * A decisão 053 a deixou de fora: o preço dela é derivado por regra a cada
+ * importação, e materializar o derivável cria uma segunda verdade.
+ *
+ * A folha em JPEG mudou isso (decisão 058). Ela precisa do id do produto **na
+ * hora de desenhar**, no navegador de quem usa — e ali não dá para rodar a
+ * regra, que exige ler os 87 arquivos da fonte. O vínculo deixou de ser só
+ * atalho de preço e virou a referência de imagem.
+ *
+ * O que se guarda é o **número do produto**, nunca a imagem: ela continua sendo
+ * buscada na origem pelo aparelho de quem usa.
  *
  * ## Só o caso sem escolha
  *
@@ -66,8 +76,20 @@ export async function linkArtProducts(
   const cards = await prisma.card.findMany({ select: { code: true, name: true } })
   const knownNames = new Map(cards.map((card) => [card.code.toUpperCase(), card.name]))
 
-  const { arts } = await provider.fetchSnapshot(knownNames)
+  const { arts, commonArts } = await provider.fetchSnapshot(knownNames)
   const artsByCode = groupByCode(arts)
+
+  const normais = await prisma.cardVariant.findMany({
+    where: { variantType: 'Normal' },
+    select: { id: true, card: { select: { code: true } } },
+  })
+  const normalPorCarta = new Map<string, bigint[]>()
+  for (const variant of normais) {
+    const code = variant.card.code.toUpperCase()
+    const list = normalPorCarta.get(code)
+    if (list) list.push(variant.id)
+    else normalPorCarta.set(code, [variant.id])
+  }
 
   const nossas = await prisma.cardVariant.findMany({
     where: { variantType: 'Parallel' },
@@ -97,6 +119,47 @@ export async function linkArtProducts(
     ambiguous: 0,
     withoutSource: 0,
     manualKept: 0,
+  }
+
+  /*
+   * A arte comum primeiro. Ela nunca é ambígua — a regra da decisão 050 já
+   * decidiu qual produto é —, então aqui é só gravar o vínculo. Códigos com
+   * mais de uma variante Normal ficam de fora: não deveria acontecer, e se
+   * acontecer é ambiguidade, que não vira palpite.
+   */
+  for (const common of commonArts) {
+    const ids = normalPorCarta.get(common.cardCode.toUpperCase())
+    if (!ids || ids.length !== 1) continue
+
+    const cardVariantId = ids[0]
+    const atual = porVariante.get(String(cardVariantId))
+
+    if (atual?.origin === 'manual') {
+      result.manualKept++
+      continue
+    }
+    if (atual?.sourceProductId === common.productId) {
+      result.unchanged++
+      continue
+    }
+
+    await prisma.variantSourceProduct.upsert({
+      where: { cardVariantId_source: { cardVariantId, source: provider.name } },
+      create: {
+        cardVariantId,
+        source: provider.name,
+        sourceProductId: common.productId,
+        origin: 'automatic',
+      },
+      update: {
+        sourceProductId: common.productId,
+        origin: 'automatic',
+        confirmedAt: new Date(),
+      },
+    })
+
+    if (atual) result.updated++
+    else result.created++
   }
 
   for (const [code, variantIds] of nossasPorCarta) {
