@@ -3,7 +3,6 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { WantList } from '@/components/wants/want-list'
 import { WantButton } from '@/components/wants/want-sheet'
-import { CollectionTabs } from '@/components/collection/collection-tabs'
 import { ToastProvider } from '@/components/ui/toast'
 import type { WantView } from '@/server/application/wants'
 
@@ -171,33 +170,5 @@ describe('WantSheet', () => {
     const painel = await abrir(1)
 
     expect(within(painel).queryByRole('textbox', { name: /anota/i })).not.toBeInTheDocument()
-  })
-})
-
-describe('CollectionTabs', () => {
-  /**
-   * Sao links, e nao botoes: cada face e uma rota propria, compartilhavel, e que
-   * funciona antes de o JavaScript subir.
-   */
-  it('leva as duas faces da colecao', () => {
-    render(<CollectionTabs />)
-
-    expect(screen.getByRole('tab', { name: 'Tenho' })).toHaveAttribute('href', '/colecao')
-    expect(screen.getByRole('tab', { name: 'Quero' })).toHaveAttribute('href', '/colecao/quero')
-  })
-
-  it('marca a face atual', () => {
-    pathname.value = '/colecao/quero'
-    render(<CollectionTabs />)
-
-    expect(screen.getByRole('tab', { name: 'Quero' })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('tab', { name: 'Tenho' })).not.toHaveAttribute('aria-current')
-  })
-
-  it('mostra a contagem de cada face', () => {
-    render(<CollectionTabs counts={{ '/colecao': 120, '/colecao/quero': 32 }} />)
-
-    expect(screen.getByRole('tab', { name: /Tenho/ })).toHaveTextContent('(120)')
-    expect(screen.getByRole('tab', { name: /Quero/ })).toHaveTextContent('(32)')
   })
 })

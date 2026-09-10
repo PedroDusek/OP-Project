@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { FileDown, Heart, ListPlus } from 'lucide-react'
 import { UsernameForm } from '@/components/social/username-form'
 import { getUsernameState } from '@/server/application/social'
 import { PageHeader } from '@/components/layout/app-shell'
@@ -7,26 +6,23 @@ import { ThemeControl } from '@/components/theme/theme-control'
 import { Panel, PanelList, ListRow } from '@/components/ui/surface'
 import { Avatar } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { DESTINATIONS, SECONDARY_DESTINATIONS } from '@/components/layout/navigation'
 import { SignOutButton } from '@/components/auth/sign-out-button'
 import { currentViewer } from '@/server/http/viewer'
 import { isPremium } from '@/server/application/authorization'
 
-export const metadata: Metadata = { title: 'Mais' }
+export const metadata: Metadata = { title: 'Minha conta' }
 
 /**
- * Mais.
+ * Minha conta.
  *
- * Secao 4: perfil, Premium e configuracoes. Destes existem hoje a identidade de
- * quem esta logado, a aparencia e sair da conta — e existem de verdade, nao
- * como demonstracao.
+ * Quem voce e, o nome que a rede ve, e as preferencias do aplicativo. Deixou de
+ * ser "Mais" — uma gaveta de tudo que nao coubera na barra — quando a navegacao
+ * virou gaveta e passou a caber inteira (decisao 061).
  *
- * Trocas mora aqui por enquanto: ela nao cabe na barra de cinco e ainda nao foi
- * construida. Volta para a barra no checkpoint que a constroi.
- *
- * As outras entradas nao aparecem como itens desabilitados de proposito. Uma
- * lista de seis linhas em que cinco nao levam a lugar nenhum ensina a pessoa a
- * nao tocar na lista.
+ * A lista de secoes saiu daqui pelo mesmo motivo: ela existia porque a barra de
+ * cinco escondia destinos, e agora nenhum esta escondido. Repeti-la seria um
+ * segundo lugar para navegar, que discordaria do primeiro no dia em que alguem
+ * acrescentasse um destino e esquecesse deste.
  */
 export default async function MaisPage() {
   // O layout ja exigiu sessao; aqui ela so e lida de novo para os dados.
@@ -35,7 +31,7 @@ export default async function MaisPage() {
 
   return (
     <>
-      <PageHeader title="Mais" description="Sua conta e suas preferências." />
+      <PageHeader title="Minha conta" description="Seus dados, sua identidade na rede e as preferências." />
 
       <div className="flex flex-col gap-6">
         {viewer ? (
@@ -71,59 +67,7 @@ export default async function MaisPage() {
           </Panel>
         </section>
 
-        <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold text-text">Seções</h2>
-          <PanelList>
-            {[
-              ...DESTINATIONS.filter((destination) => destination.href !== '/mais'),
-              ...SECONDARY_DESTINATIONS,
-            ].map(
-              (destination) => (
-                <ListRow
-                  key={destination.href}
-                  href={destination.href}
-                  leading={
-                    <destination.icon className="size-5 text-text-muted" aria-hidden />
-                  }
-                  title={destination.label}
-                  description={destination.description}
-                />
-              ),
-            )}
-          </PanelList>
-        </section>
 
-        {/*
-          As ferramentas da want list, e nao a lista.
-          A lista mora na Colecao (decisao 048), porque quem a abre esta pensando
-          na propria colecao. O que mora aqui e o trabalho **sobre** ela —
-          acrescentar em leva, revisar, levar para o grupo —, no mesmo arranjo
-          que a decisao 044 pediu para binders: navega-se onde se navega,
-          administra-se onde se administra.
-        */}
-        <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold text-text">Want list</h2>
-          <PanelList>
-            <ListRow
-              href="/colecao/quero/adicionar"
-              leading={<ListPlus className="size-5 text-text-muted" aria-hidden />}
-              title="Adicionar em massa"
-              description="Percorra o catálogo com filtros e marque quantas de cada você procura."
-            />
-            <ListRow
-              href="/colecao/quero"
-              leading={<Heart className="size-5 text-text-muted" aria-hidden />}
-              title="Revisar a lista"
-              description="Ajuste as quantidades e tire o que você já conseguiu."
-            />
-            <ListRow
-              href="/colecao/quero/pdf"
-              leading={<FileDown className="size-5 text-text-muted" aria-hidden />}
-              title="Baixar em PDF"
-              description="Uma folha com as cartas que faltam, para mandar nos grupos."
-            />
-          </PanelList>
-        </section>
 
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold text-text">Sobre</h2>

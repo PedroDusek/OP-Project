@@ -25,7 +25,7 @@ export async function setUsernameAction(
 
   try {
     const { username } = await setUsername(viewer, String(data.get('username') ?? ''))
-    revalidatePath('/mais')
+    revalidatePath('/conta')
     return { status: 'saved', username }
   } catch (error) {
     if (isAppError(error)) return formErrorFrom(error)

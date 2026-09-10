@@ -7,8 +7,13 @@ import { expect, test } from '@playwright/test'
  * o projeto toma como piso, 768 e a entrada do `md`, 1280 e o desktop.
  *
  * O que se verifica e a **exclusividade**: em cada largura existe exatamente uma
- * navegacao. O erro que isto pega e o par de barras aparecendo junto, que
- * nenhum teste em jsdom enxerga — para o jsdom, `md:hidden` e so uma string.
+ * navegacao alcancavel. O erro que isto pega e a coluna e a gaveta aparecendo
+ * juntas, que nenhum teste em jsdom enxerga — para o jsdom, `md:hidden` e so
+ * uma string.
+ *
+ * Desde a decisao 061 o celular usa uma **gaveta**, e nao uma barra: fechada,
+ * ela nao poe navegacao nenhuma na tela, e o botao que a abre e o que precisa
+ * existir.
  *
  * As medidas rodam em `/design-system`, a unica rota publica que desenha o
  * shell: as cinco secoes exigem sessao, e autenticar aqui pediria uma conta real
@@ -32,23 +37,31 @@ const SHELL = '/design-system'
 const MAIN_NAV = 'nav[aria-label="Navegação principal"]:visible'
 
 test.describe('navegação responsiva', () => {
-  test('no celular, apenas a barra inferior', async ({ page }) => {
+  test('no celular, nenhuma navegação ocupa a tela até alguém pedir', async ({ page }) => {
     await page.setViewportSize(MOBILE)
     await page.goto(SHELL)
 
-    // Uma so navegacao chega a arvore de acessibilidade. As duas existem no
-    // HTML — e assim que um layout unico atende os tres tamanhos — mas a
-    // escondida sai da arvore junto com o `display: none`, entao quem usa
-    // leitor de tela nunca ouve os cinco destinos duas vezes.
-    await expect(page.getByRole('navigation', { name: 'Navegação principal' })).toHaveCount(1)
-
-    const box = await page.locator(MAIN_NAV).boundingBox()
-    expect(box).not.toBeNull()
-    expect(box!.y + box!.height).toBeGreaterThan(MOBILE.height - 80)
-    expect(box!.width).toBe(MOBILE.width)
+    // A coluna lateral existe no HTML — e assim que um layout unico atende os
+    // tres tamanhos — mas sai da arvore de acessibilidade junto com o
+    // `display: none`. Fechada, a gaveta tambem nao poe nada la.
+    await expect(page.getByRole('navigation', { name: 'Navegação principal' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Abrir o menu' })).toBeVisible()
   })
 
-  test('no tablet, apenas a coluna lateral', async ({ page }) => {
+  test('no celular, a gaveta abre com todos os destinos', async ({ page }) => {
+    await page.setViewportSize(MOBILE)
+    await page.goto(SHELL)
+    await page.getByRole('button', { name: 'Abrir o menu' }).click()
+
+    const nav = page.locator(MAIN_NAV)
+    await expect(nav).toHaveCount(1)
+    // O teto de cinco era da barra; a gaveta cabe o produto inteiro.
+    await expect(nav.getByRole('link', { name: 'Catálogo' })).toBeVisible()
+    await expect(nav.getByRole('link', { name: 'Social' })).toBeVisible()
+    await expect(nav.getByRole('link', { name: 'Minha conta' })).toBeVisible()
+  })
+
+  test('no tablet, a coluna lateral já vem com rótulos', async ({ page }) => {
     await page.setViewportSize(TABLET)
     await page.goto(SHELL)
 
@@ -57,8 +70,14 @@ test.describe('navegação responsiva', () => {
 
     const box = await visible.boundingBox()
     expect(box!.x).toBe(0)
-    // No `md` a coluna e estreita, so com icones.
-    expect(box!.width).toBeLessThan(100)
+    // Antes a coluna era so de icones ate o `lg`. O dono do produto pediu para
+    // abrir de vez: no computador ha espaco, e icone sem palavra e enigma.
+    expect(box!.width).toBeGreaterThan(150)
+    await expect(visible.getByRole('link', { name: 'Catálogo' })).toBeVisible()
+
+    // E o botao da gaveta some: duas navegacoes ao mesmo tempo seriam dois
+    // jeitos de ir ao mesmo lugar, e um deles esconderia o outro.
+    await expect(page.getByRole('button', { name: 'Abrir o menu' })).toBeHidden()
   })
 
   test('no desktop, coluna lateral com rótulos', async ({ page }) => {
@@ -90,11 +109,12 @@ test.describe('navegação responsiva', () => {
   })
 
   /**
-   * A barra inferior e fixa, entao ela flutua sobre o conteudo. O `pb-20` do
-   * shell e o que reserva a altura dela; sem esse respiro, o ultimo item de
-   * qualquer lista fica coberto — e so da para ver isso rolando ate o fim.
+   * A gaveta substituiu a barra fixa, e com ela foi embora a reserva de altura
+   * que o conteudo precisava embaixo. Este teste virou o oposto do que era:
+   * antes media o respiro, agora confere que **nao ha** navegacao cobrindo o
+   * fim da pagina.
    */
-  test('o conteúdo não fica sob a barra inferior', async ({ page }) => {
+  test('o conteúdo chega até o fim da tela no celular', async ({ page }) => {
     await page.setViewportSize(MOBILE)
     await page.goto(SHELL)
 
@@ -104,12 +124,12 @@ test.describe('navegação responsiva', () => {
       return Math.abs(window.scrollY - limite) < 2
     })
 
-    const nav = await page.locator(MAIN_NAV).boundingBox()
-    // O último bloco do guia de estilo. Ancorar num texto do fim é o que
-    // torna a medida sensível ao respiro que a barra fixa exige.
+    // O último bloco do guia de estilo. Ancorar num texto do fim é o que torna
+    // a medida sensível a qualquer coisa flutuando por cima.
     const last = await page.getByRole('heading', { name: 'Avatar' }).boundingBox()
+    expect(last!.y + last!.height).toBeLessThanOrEqual(MOBILE.height)
 
-    expect(last!.y + last!.height).toBeLessThanOrEqual(nav!.y)
+    await expect(page.locator(MAIN_NAV)).toHaveCount(0)
   })
 })
 

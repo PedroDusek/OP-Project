@@ -3,21 +3,23 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/cn'
-import { Logotype, Symbol } from '@/components/brand/logo'
-import { DESTINATIONS, activeDestination } from './navigation'
+import { Logotype } from '@/components/brand/logo'
+import { ACCOUNT, DESTINATIONS, activeDestination } from './navigation'
 
 /**
  * Navegacao lateral do tablet e do desktop.
  *
- * Secao 4: no desktop a navegacao pode migrar para sidebar, e o conteudo ganha
- * espaco **sem mudar a logica da experiencia**. Por isso sao os mesmos cinco
- * destinos, na mesma ordem, com o mesmo criterio de ativo — o que muda e onde
- * ficam.
+ * ## Sempre com rotulo
  *
- * Duas larguras, nao duas navegacoes: no `md` so o icone cabe sem espremer a
- * grade de cartas, e a partir do `lg` entra o rotulo. O icone sozinho continua
- * tendo nome acessivel pelo `title`, e o rotulo escondido continua na arvore
- * de acessibilidade.
+ * Antes ela tinha duas larguras: so icone no `md`, rotulo a partir do `lg`. O
+ * dono do produto pediu para abrir de vez — no computador ha espaco de sobra, e
+ * um icone sem palavra ao lado e um enigma que a pessoa resolve por tentativa.
+ *
+ * ## A conta fica no rodape, separada por uma linha
+ *
+ * Ela nao e um lugar onde se faz coisa, e sim onde se ve quem voce e e se
+ * ajusta o produto. No meio da lista, obrigaria a pessoa a passar por
+ * configuracao para chegar ao catalogo.
  */
 export function SideNav() {
   const pathname = usePathname()
@@ -27,46 +29,60 @@ export function SideNav() {
     <nav
       aria-label="Navegação principal"
       className={cn(
-        'fixed inset-y-0 left-0 z-30 hidden border-r border-border bg-surface md:flex',
-        // Ver `BottomNav`: navegacao nao entra na folha.
+        'fixed inset-y-0 left-0 z-30 hidden w-56 flex-col border-r border-border bg-surface md:flex',
+        // Ver `AppShell`: navegacao nao entra na folha impressa.
         'print:hidden',
-        'w-16 flex-col lg:w-56',
       )}
     >
       <Link
         href="/inicio"
-        className="flex h-14 shrink-0 items-center justify-center px-3 lg:justify-start lg:px-4"
+        className="flex h-14 shrink-0 items-center px-4"
         aria-label="ColeXa, ir para o início"
       >
-        <Symbol className="h-6 lg:hidden" label={null} />
-        <Logotype className="hidden h-5 lg:block" label={null} />
+        <Logotype className="h-5" label={null} />
       </Link>
 
-      <ul className="flex flex-1 flex-col gap-1 p-2">
-        {DESTINATIONS.map((destination) => {
-          const Icon = destination.icon
-          const current = destination.href === active?.href
-          return (
-            <li key={destination.href}>
-              <Link
-                href={destination.href}
-                aria-current={current ? 'page' : undefined}
-                title={destination.label}
-                className={cn(
-                  'flex h-11 items-center gap-3 rounded-control px-3 transition-colors',
-                  'justify-center lg:justify-start',
-                  current
-                    ? 'bg-accent-soft font-semibold text-accent-ink'
-                    : 'text-text-muted hover:bg-surface-muted hover:text-text',
-                )}
-              >
-                <Icon className="size-5 shrink-0" strokeWidth={current ? 2.4 : 1.8} aria-hidden />
-                <span className="hidden text-sm lg:inline">{destination.label}</span>
-              </Link>
-            </li>
-          )
-        })}
+      <ul className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
+        {DESTINATIONS.map((destination) => (
+          <li key={destination.href}>
+            <NavLink destination={destination} current={destination.href === active?.href} />
+          </li>
+        ))}
       </ul>
+
+      <div className="border-t border-border p-2">
+        <NavLink destination={ACCOUNT} current={ACCOUNT.href === active?.href} />
+      </div>
     </nav>
+  )
+}
+
+/** A linha de um destino. A mesma na coluna e na gaveta, de propósito. */
+export function NavLink({
+  destination,
+  current,
+  onNavigate,
+}: {
+  destination: { href: string; label: string; icon: React.ElementType }
+  current: boolean
+  onNavigate?: () => void
+}) {
+  const Icon = destination.icon
+
+  return (
+    <Link
+      href={destination.href}
+      aria-current={current ? 'page' : undefined}
+      onClick={onNavigate}
+      className={cn(
+        'flex h-11 items-center gap-3 rounded-control px-3 transition-colors',
+        current
+          ? 'bg-accent-soft font-semibold text-accent-ink'
+          : 'text-text-muted hover:bg-surface-muted hover:text-text',
+      )}
+    >
+      <Icon className="size-5 shrink-0" aria-hidden />
+      <span className="truncate text-sm">{destination.label}</span>
+    </Link>
   )
 }

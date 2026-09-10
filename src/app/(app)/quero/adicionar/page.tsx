@@ -19,7 +19,7 @@ export const metadata: Metadata = { title: 'Adicionar à want list' }
  * isso a tela abre vazia e depende do JavaScript para mostrar qualquer coisa.
  */
 export default async function AdicionarWantPage() {
-  await requireViewer('/colecao/quero/adicionar')
+  await requireViewer('/quero/adicionar')
 
   const [vocabulary, primeira] = await Promise.all([
     getCatalogVocabulary(),
@@ -30,7 +30,7 @@ export default async function AdicionarWantPage() {
     <>
       <div className="flex items-start gap-3 pb-4">
         <Link
-          href="/colecao/quero"
+          href="/quero"
           aria-label="Voltar para a want list"
           className="-ml-2 inline-flex size-11 shrink-0 items-center justify-center rounded-control text-text-muted transition-colors hover:bg-surface-muted"
         >

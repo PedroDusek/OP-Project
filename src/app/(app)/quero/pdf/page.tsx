@@ -20,14 +20,14 @@ export const metadata: Metadata = { title: 'Want list em PDF' }
  * levar a lista.
  */
 export default async function WantPdfPage() {
-  const viewer = await requireViewer('/colecao/quero/pdf')
+  const viewer = await requireViewer('/quero/pdf')
   const wants = await listWants(viewer)
 
   return (
     <>
       <div className="flex items-start gap-3 pb-4 print:hidden">
         <Link
-          href="/colecao/quero"
+          href="/quero"
           aria-label="Voltar para a want list"
           className="-ml-2 inline-flex size-11 shrink-0 items-center justify-center rounded-control text-text-muted transition-colors hover:bg-surface-muted"
         >

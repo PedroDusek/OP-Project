@@ -87,7 +87,7 @@ describe('o vazio', () => {
     expect(screen.getByText(/nada faltando/i)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /adicionar cartas/i })).toHaveAttribute(
       'href',
-      '/colecao/quero/adicionar',
+      '/quero/adicionar',
     )
   })
 })

@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { DESTINATIONS, activeDestination } from '@/components/layout/navigation'
-import { BottomNav } from '@/components/layout/bottom-nav'
+import userEvent from '@testing-library/user-event'
+import { ACCOUNT, DESTINATIONS, activeDestination } from '@/components/layout/navigation'
+import { NavDrawer } from '@/components/layout/nav-drawer'
 import { SideNav } from '@/components/layout/side-nav'
 
 const pathname = vi.hoisted(() => ({ value: '/inicio' }))
@@ -28,19 +29,24 @@ describe('activeDestination', () => {
   it('devolve indefinido fora das secoes', () => {
     expect(activeDestination('/design-system')).toBeUndefined()
   })
+
+  it('reconhece a conta, que fica fora da lista de destinos', () => {
+    expect(activeDestination('/conta')?.label).toBe('Minha conta')
+  })
 })
 
-describe('BottomNav', () => {
-  it('lista os cinco destinos da especificacao', () => {
+describe('NavDrawer', () => {
+  /**
+   * A gaveta e o que destravou passar de cinco destinos: a barra inferior
+   * tinha teto porque seis alvos a 360 px dao 60 px cada, e aqui cada linha
+   * tem a altura de uma lista.
+   */
+  it('lista todos os destinos e a conta', async () => {
     pathname.value = '/inicio'
-    render(<BottomNav />)
+    render(<NavDrawer />)
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir o menu' }))
 
-    const nav = screen.getByRole('navigation', { name: 'Navegação principal' })
-    const links = screen.getAllByRole('link')
-    expect(links).toHaveLength(DESTINATIONS.length)
-    expect(nav).toBeInTheDocument()
-
-    for (const destination of DESTINATIONS) {
+    for (const destination of [...DESTINATIONS, ACCOUNT]) {
       expect(screen.getByRole('link', { name: destination.label })).toHaveAttribute(
         'href',
         destination.href,
@@ -48,17 +54,35 @@ describe('BottomNav', () => {
     }
   })
 
+  /** Fechada, ela nao poe link nenhum na arvore: nao ha o que tabular por tras. */
+  it('nao expoe os destinos enquanto esta fechada', () => {
+    pathname.value = '/inicio'
+    render(<NavDrawer />)
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument()
+  })
+
   /**
-   * Secao 4: a barra identifica claramente a secao ativa. `aria-current` e o
-   * que faz o leitor de tela dizer "pagina atual" em vez de mais um link — a
-   * cor sozinha nao chega ate ele.
+   * `aria-current` e o que faz o leitor de tela dizer "pagina atual" em vez de
+   * mais um link — a cor sozinha nao chega ate ele.
    */
-  it('marca a secao ativa com aria-current', () => {
+  it('marca a secao ativa com aria-current', async () => {
     pathname.value = '/colecao'
-    render(<BottomNav />)
+    render(<NavDrawer />)
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir o menu' }))
 
     expect(screen.getByRole('link', { name: 'Coleção' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: 'Início' })).not.toHaveAttribute('aria-current')
+  })
+
+  /** Sem isto ela ficaria aberta sobre a tela nova. */
+  it('fecha ao escolher um destino', async () => {
+    pathname.value = '/inicio'
+    render(<NavDrawer />)
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir o menu' }))
+    await userEvent.click(screen.getByRole('link', { name: 'Coleção' }))
+
+    expect(screen.queryByRole('link', { name: 'Coleção' })).not.toBeInTheDocument()
   })
 })
 
@@ -70,9 +94,11 @@ describe('SideNav', () => {
     const links = screen.getAllByRole('link')
     // O primeiro link e a marca, que leva ao inicio.
     expect(links[0]).toHaveAttribute('href', '/inicio')
-    expect(links.slice(1).map((link) => link.getAttribute('href'))).toEqual(
-      DESTINATIONS.map((destination) => destination.href),
-    )
+    // A marca, os destinos, e a conta no rodape.
+    expect(links.slice(1).map((link) => link.getAttribute('href'))).toEqual([
+      ...DESTINATIONS.map((destination) => destination.href),
+      ACCOUNT.href,
+    ])
   })
 
   it('marca a secao ativa com aria-current', () => {
@@ -83,15 +109,25 @@ describe('SideNav', () => {
   })
 
   /**
-   * Trocas saiu da barra para ela ficar em cinco, mas continua sendo uma secao:
-   * `activeDestination` precisa reconhece-la, senao quem entra em `/trocas` nao
-   * ve nada marcado em lugar nenhum.
+   * Trocas ficava fora da barra por falta de vaga; com a gaveta, nenhum destino
+   * fica escondido (decisao 061). O teste virou o contrario do que era.
    */
-  it('reconhece a secao que ficou fora da barra', () => {
+  it('nao esconde mais nenhum destino', () => {
     pathname.value = '/trocas'
     render(<SideNav />)
 
-    expect(screen.queryByRole('link', { name: 'Trocas' })).not.toBeInTheDocument()
-    expect(activeDestination('/trocas')?.label).toBe('Trocas')
+    expect(screen.getByRole('link', { name: 'Trocas' })).toHaveAttribute('href', '/trocas')
+    expect(screen.getByRole('link', { name: 'Social' })).toHaveAttribute('href', '/social')
+  })
+
+  /** A conta fica separada dos destinos, no rodape. */
+  it('leva para a conta', () => {
+    pathname.value = '/conta'
+    render(<SideNav />)
+
+    expect(screen.getByRole('link', { name: 'Minha conta' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
   })
 })

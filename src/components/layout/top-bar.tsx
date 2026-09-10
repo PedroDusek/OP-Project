@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { Bell, CircleUser } from 'lucide-react'
+import { NavDrawer } from './nav-drawer'
 import { cn } from '@/lib/cn'
 import { Logotype } from '@/components/brand/logo'
 import { Avatar } from '@/components/ui/avatar'
@@ -40,13 +41,19 @@ export function TopBar({ viewer, hasUnread = false, className }: TopBarProps) {
   return (
     <header
       className={cn(
-        'sticky top-0 z-20 flex h-14 items-center gap-2 px-4',
+        'sticky top-0 z-20 flex h-14 items-center gap-2 px-4 max-md:pl-2',
         'border-b border-border bg-surface',
-        // Ver `BottomNav`: navegacao nao entra na folha.
+        // Ver `AppShell`: navegacao nao entra na folha impressa.
         'print:hidden',
         className,
       )}
     >
+      {/*
+        No celular a gaveta vem primeiro, encostada na borda: e o alvo que a
+        pessoa procura antes de qualquer outra coisa nesta barra.
+      */}
+      <NavDrawer />
+
       <Link href="/inicio" className="flex items-center md:hidden" aria-label="ColeXa, ir para o início">
         <Logotype className="h-5" label={null} />
       </Link>
@@ -54,7 +61,7 @@ export function TopBar({ viewer, hasUnread = false, className }: TopBarProps) {
       <div className="flex-1" />
 
       <Link
-        href="/mais"
+        href="/conta"
         aria-label={
           hasUnread ? 'Notificações, há mensagens não lidas' : 'Notificações'
         }
@@ -71,7 +78,7 @@ export function TopBar({ viewer, hasUnread = false, className }: TopBarProps) {
 
       {viewer ? (
         <Link
-          href="/mais"
+          href="/conta"
           aria-label={`Perfil de ${viewer.name}`}
           className="inline-flex size-11 items-center justify-center rounded-control"
         >
@@ -79,7 +86,7 @@ export function TopBar({ viewer, hasUnread = false, className }: TopBarProps) {
         </Link>
       ) : (
         <Link
-          href="/mais"
+          href="/conta"
           aria-label="Entrar na sua conta"
           className="inline-flex size-11 items-center justify-center rounded-control text-text-muted transition-colors hover:bg-surface-muted hover:text-text"
         >
