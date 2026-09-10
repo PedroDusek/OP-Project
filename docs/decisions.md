@@ -3859,3 +3859,226 @@ para listar.
 ## Data
 
 2026-09-10
+
+---
+
+# Decisão: 063 — A folha da want list se compartilha, e não se baixa em lote
+
+## Contexto
+
+Defeito relatado pelo dono do produto em 10/09/2026, num iPhone de verdade:
+baixando a want list em imagem, **só a última imagem chegava**. As notificações
+de todas apareciam, e tocar nas outras não entregava arquivo.
+
+A causa estava no laço de `baixar()`: N cliques programáticos em `<a download>`
+separados por 300 ms. No Safari do iPhone um download programático é na prática
+uma **navegação** para o `blob:`, e uma navegação nova cancela a anterior que
+ainda não terminou. Os 300 ms eram curtíssimos perto do tempo de materializar um
+JPEG de folha inteira.
+
+Dois agravantes no mesmo trecho: o `<a>` nunca era anexado ao documento, e o
+`await` antes dos cliques seguintes já havia gasto a ativação do toque.
+
+## Decisão 1 — compartilhar é a saída principal
+
+`navigator.share` com `files`. Um toque, a folha do sistema, e as imagens vão
+para o grupo do WhatsApp ou para onde a pessoa escolher.
+
+**Escolha do dono do produto**, e ela devolve o recurso ao propósito escrito na
+decisão 058: a folha em imagem existe para ser mandada num grupo. Baixar sempre
+foi o meio, e não o fim — e era o meio que quebrava.
+
+## Decisão 2 — as folhas são preparadas quando a tela abre, não ao toque
+
+Esta é a parte não óbvia, e é o que faz a decisão 1 funcionar.
+
+`navigator.share` exige **ativação do toque**, e essa ativação não sobrevive ao
+desenho: montar as folhas carrega uma imagem por carta da rede. Gerar depois do
+toque e compartilhar em seguida seria recusado com `NotAllowedError` — trocaria
+um defeito por outro, mais difícil de diagnosticar.
+
+Preparando ao abrir, o toque só compartilha. Enquanto não há o que mandar, o
+botão principal diz "Preparando" e não aceita toque: um botão que aceita o toque
+e não faz nada é pior que um que diz que está esperando.
+
+O custo é desenhar folhas que talvez ninguém use. É aceitável porque `/quero/pdf`
+é uma tela dedicada — quem chega ali já quer a folha.
+
+## Decisão 3 — um botão por folha, e nunca um laço
+
+Onde não há compartilhamento de arquivo — computador, quase sempre —, cada folha
+tem o próprio botão.
+
+**Aumentar o intervalo entre os cliques foi descartado de propósito.** Seria
+chutar um número que continua dependendo do tamanho do arquivo e da velocidade do
+aparelho, e o defeito voltaria numa lista maior sem ninguém entender por quê. Um
+toque por arquivo não depende de número nenhum.
+
+O `<a>` passou a entrar no documento antes do clique e sair depois: o Safari
+ignora clique em elemento que nunca esteve na árvore.
+
+## Decisão 4 — fechar a folha do sistema não é erro
+
+`navigator.share` rejeita com `AbortError` quando a pessoa desiste. Avisar ali
+transformaria uma escolha dela num problema. Só falha de verdade vira aviso.
+
+## Decisão 5 — a folha impressa se divide de doze em doze
+
+Segundo defeito relatado na mesma rodada: **a arte saía cortada ao meio a partir
+da terceira página**.
+
+A causa era a lista inteira numa **grade única**. `break-inside: avoid` num item
+de grade não é respeitado de forma confiável — o navegador fatia a **linha** da
+grade na borda da página, e não o item. Só aparecia da terceira folha em diante
+porque é onde o acúmulo faz uma linha cair em cima da borda.
+
+Cada folha passou a ser um bloco próprio que termina em quebra de página, com a
+mesma constante da imagem: doze cabem, doze vão. **O número de páginas nunca é
+presumido** — sai da divisão. Uma carta dá uma folha; cem dão nove.
+
+A margem da página passou a sair do nosso CSS (`@page { margin: 10mm }`) e não do
+diálogo do navegador: a garantia de doze por página depende de quanto sobra de
+altura, e com a margem padrão de cada navegador o mesmo bloco cabe num e
+transborda no outro — transbordar aqui significa a décima segunda carta sozinha
+na página seguinte.
+
+Na tela a divisão também aparece, e isso é melhorar de quebra: a pessoa vê
+exatamente o que sai em cada folha, do mesmo jeito que vê o que vai em cada
+imagem.
+
+## Decisão 6 — a arte é carregada cedo, e a impressão espera por ela
+
+O PDF que o dono do produto mandou tinha quatro folhas, paginação correta — e da
+**segunda em diante, nenhuma arte**. Página 1 com doze imagens, página 2 com
+três, páginas 3 e 4 vazias.
+
+Não era corte nem quebra de página: era o **carregamento preguiçoso** do
+`next/image`. O que nunca passou pela tela nunca foi buscado, e imprimir não
+força busca nenhuma. As três da página 2 eram as que estavam logo abaixo da
+dobra.
+
+São duas metades, e uma sem a outra não resolve:
+
+- **`eager` na arte da folha.** `CardArt` ganhou a opção, separada de
+  `priority` — `priority` também emite dica de pré-carregamento no `<head>`, o
+  que serve para **uma** imagem e faz o Next avisar quando são quarenta.
+- **Imprimir espera.** `window.print()` dispara na hora, e imagem a caminho não
+  entra no papel. O botão agora aguarda o `decode()` de cada arte antes de
+  chamar a impressão. Falha de uma não trava as outras: a carta sai com o código
+  no lugar da arte, que é o comportamento já previsto na decisão 058.
+
+O rodapé da folha 1 também estava caindo no topo da página 2, sinal de que o
+bloco passava alguns pixels da altura útil. A margem foi para 8 mm e o
+cabeçalho, o rodapé e as legendas encolheram na impressão. A folga passou a ser
+de cerca de cem pixels, que absorve o cabeçalho que o navegador desenha quando
+está ligado.
+
+## Decisão 7 — as folhas são desenhadas em paralelo
+
+Sequencial, uma lista de quarenta cartas esperava quatro rodadas de rede uma
+depois da outra — e isso é tempo com o botão de compartilhar desabilitado, na
+frente de quem só queria mandar a lista no grupo.
+
+Isto **não** esbarra na mitigação da decisão 020. As requisições serializadas de
+lá são as do nosso servidor contra a Bandai, na importação do catálogo. Estas
+saem do navegador de quem usa, contra o CDN da fonte de preço, e a mesma tela já
+carrega essas imagens para desenhar a folha na página.
+
+## Decisão 8 — quando não dá para compartilhar, a tela diz por quê
+
+O dono do produto relatou que **só apareciam os botões de baixar folha a folha**.
+O compartilhamento estava implementado e correto; o que faltava era contexto.
+
+`navigator.share` é gated em **contexto seguro**. O app aberto no celular pelo IP
+da rede local em `http://` — que é como se testa aqui — não é um, e a API
+simplesmente não está lá. O mesmo aparelho, no mesmo navegador, compartilha sem
+problema em `https://`.
+
+O defeito de produto não era o compartilhamento: era a tela **cair em silêncio**
+nos downloads. Um caminho principal que desaparece sem explicação é
+indistinguível de um caminho que ninguém construiu — e foi exatamente essa a
+leitura, com razão.
+
+Agora a tela distingue os dois motivos e diz qual é:
+
+| | |
+|---|---|
+| Fora de contexto seguro | "Mandar direto para outro aplicativo precisa de HTTPS, e este endereço não é." |
+| Navegador sem a API | "Este navegador não manda arquivo para outro aplicativo." |
+
+E existe `npm run dev:https` para testar o caminho de verdade antes de publicar.
+
+## Decisão 9 — o `next dev` não escreve no nosso `CLAUDE.md`
+
+Decisão técnica, tomada no fim desta rodada.
+
+O Next 16 acrescenta um bloco próprio ao `CLAUDE.md` toda vez que o servidor
+sobe, e o reescreve se for removido. O `CLAUDE.md` daqui é o **acordo de
+trabalho do dono do produto** — texto autoral, com voz e ordem própria —, e uma
+ferramenta acrescentando parágrafos a ele sem pedir é o oposto do que o próprio
+acordo estabelece.
+
+`agentRules: false` no `next.config.ts` desliga. O conteúdo do bloco não se
+perde por isso: o que vale sobre este projeto está em `docs/`, e o que vale sobre
+o Next está na documentação do Next.
+
+## Como isto foi confirmado, e o que custou
+
+O compartilhamento foi confirmado **no iPhone do dono do produto** em
+10/09/2026, com o servidor em HTTPS.
+
+Chegar lá custou três rodadas em que eu disse "corrigido" e não estava, e vale
+registrar por quê: **a causa nunca esteve no código do compartilhamento**. Ele
+estava certo desde o primeiro commit. O que faltava era contexto seguro, e o
+caminho até poder testar tinha três obstáculos empilhados, cada um invisível
+atrás do anterior:
+
+1. O app aberto pelo IP em `http://` não expõe `navigator.share` (armadilha 48).
+2. `--experimental-https-key` e `-cert` **sozinhos não ligam o HTTPS** — o Next
+   sobe em `http://` sem reclamar, e o único sinal é uma linha no meio do log.
+3. O certificado sem `extendedKeyUsage=serverAuth` é recusado pelo iOS **por
+   política**, sem oferecer o "visitar mesmo assim" (armadilha 50).
+
+A lição que fica é a mesma nos três: **conferir o efeito, não o artefato**. O
+arquivo do certificado em disco parecia correto; o que importava era o
+certificado servido na conexão. O comando parecia certo; o que importava era o
+protocolo que o servidor anunciou.
+
+## Sobre a área de transferência
+
+O pedido do dono do produto falava em "copiar para a área de transferência e
+abrir a tela de enviar para". São dois mecanismos diferentes, e só um faz o que
+ele descreve.
+
+`navigator.share` é o que abre o seletor de aplicativo, e leva **todos** os
+arquivos. A área de transferência não abre seletor nenhum, carrega **uma** imagem
+por vez e, na maioria dos navegadores, só em PNG. Usá-la aqui daria menos do que
+o pedido, não mais.
+
+## O que a cobertura passou a proteger
+
+O teste antigo olhava o **desenho** — quais cartas entram na folha — e nunca a
+**entrega**. Foi por isso que o defeito passou: o jsdom não baixa arquivo, e
+nenhum teste de componente prova comportamento de navegador (armadilha 10).
+
+Agora há teste para o `navigator` ser consultado sobre os **arquivos** e não
+sobre a API, para a queda em baixar quando o aparelho não compartilha, para
+nunca existir um botão que baixe várias de uma vez, e para o `AbortError` não
+virar aviso.
+
+A paginação da impressão também não tinha teste nenhum, e é o que deixou o
+segundo defeito passar. Agora a divisão é verificada em seis tamanhos de lista —
+1, 12, 13, 24, 25 e 100 cartas —, junto com o teto de doze por folha e a quebra
+de página entre elas.
+
+E a **arte** da folha impressa não tinha teste nenhum, que é o que deixou o
+terceiro defeito passar. Agora há teste para toda carta ser pedida sem esperar a
+rolagem, para a impressão esperar o desenho de cada arte antes de disparar, e
+para uma arte que falha não travar a folha inteira.
+
+Isso não substitui o teste num aparelho real, e o dono do produto confirma no
+iPhone dele.
+
+## Data
+
+2026-09-10

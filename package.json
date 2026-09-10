@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:https": "tsx scripts/dev-https.ts",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

@@ -80,11 +80,24 @@ export async function renderWantSheets(cards: readonly SheetCard[]): Promise<Blo
   }
   if (folhas.length === 0) folhas.push([])
 
-  const imagens: Blob[] = []
-  for (const [indice, folha] of folhas.entries()) {
-    imagens.push(await renderWantSheet(folha, { page: indice + 1, pages: folhas.length }))
-  }
-  return imagens
+  /*
+   * As folhas sao desenhadas em paralelo, e a ordem vem do `Promise.all` e nao
+   * da ordem em que terminam.
+   *
+   * Sequencial, uma lista de quarenta cartas espera quatro rodadas de rede uma
+   * depois da outra — e isso e tempo com o botao de compartilhar desabilitado,
+   * olhando para quem so queria mandar a lista no grupo.
+   *
+   * Isto nao esbarra na mitigacao da decisao 020: as requisicoes serializadas de
+   * la sao as do **nosso servidor** contra a Bandai, na importacao do catalogo.
+   * Estas saem do navegador de quem usa, contra o CDN da fonte de preco, e a
+   * mesma tela ja carrega essas imagens para desenhar a folha.
+   */
+  return Promise.all(
+    folhas.map((folha, indice) =>
+      renderWantSheet(folha, { page: indice + 1, pages: folhas.length }),
+    ),
+  )
 }
 
 export interface SheetPage {

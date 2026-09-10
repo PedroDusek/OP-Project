@@ -61,6 +61,21 @@ function supabaseImageHost() {
 const nextConfig: NextConfig = {
   allowedDevOrigins: localAddresses(),
 
+  /**
+   * O `next dev` nao escreve no nosso `CLAUDE.md`.
+   *
+   * A partir do Next 16 ele acrescenta um bloco proprio ao arquivo toda vez que
+   * sobe, e o reescreve se for removido. O `CLAUDE.md` daqui e o acordo de
+   * trabalho do dono do produto — texto autoral, com voz e ordem propria —, e
+   * uma ferramenta acrescentando paragrafos a ele sem pedir e o oposto do que o
+   * proprio acordo estabelece.
+   *
+   * O conteudo do bloco (ler os guias do Next antes de escrever codigo) nao se
+   * perde por isto: o que vale sobre este projeto esta em `docs/`, e o que vale
+   * sobre o Next esta na documentacao do Next.
+   */
+  agentRules: false,
+
   experimental: {
     /**
      * O corpo de uma Server Action, que precisa caber a foto.

@@ -19,7 +19,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 64 PRs mergeados, CI verde em todos |
+| Branch | `main`, 65 PRs mergeados, CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -102,7 +102,7 @@ outra hora, e isso é verdade, não defeito.
 
 ## As decisões que mais restringem o que vem depois
 
-As 62 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 63 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
@@ -321,13 +321,53 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     notificações das outras aparecem mesmo assim, o que faz parecer que
     funcionou. Aumentar o intervalo entre os cliques é chutar um número que
     depende do tamanho do arquivo. A saída é um toque por arquivo, ou
-    `navigator.share` com vários `files`.
+    `navigator.share` com vários `files` (decisão 063).
 44. **A tabela nova precisa entrar em três listas, não numa.** `schema.prisma` é
     só a primeira: `tests/integration/schema.test.ts` guarda a lista de tabelas
     aprovadas **e** a política de exclusão, e `tests/helpers.ts` guarda a ordem
     de truncação. Esquecer a terceira deixa lixo entre testes; esquecer a
     segunda quebra a CI, que é o desfecho bom — o guarda existe para que tabela
     nova não entre sem uma decisão que diga por que ela existe.
+45. **A ativação do toque não sobrevive a trabalho assíncrono.** `navigator.share`
+    exige ativação, e ela é gasta enquanto o código carrega imagens da rede — o
+    compartilhamento é recusado com `NotAllowedError` depois de um `await` longo.
+    Quem precisa compartilhar arquivo prepara o arquivo **antes** do toque, e
+    deixa o toque só chamar `share`. Foi a parte não óbvia da decisão 063, e
+    corrigir sem ela teria trocado um defeito por outro mais difícil de achar.
+46. **`break-inside: avoid` em item de grade não segura a impressão.** O
+    navegador fatia a **linha** da grade na borda da página, e não o item — a
+    arte sai cortada ao meio. Aparece só da terceira página em diante, quando o
+    acúmulo faz uma linha cair em cima da borda, e por isso passa numa lista
+    curta. Conteúdo que precisa caber por página vira um bloco por página, com
+    `break-after: page`. E a margem tem de ser nossa: com a margem padrão de cada
+    navegador, o mesmo bloco cabe num e transborda no outro.
+47. **Imagem preguiçosa não existe na hora de imprimir.** `next/image` só busca
+    o que passou pela tela, e `window.print()` dispara na hora, sem esperar
+    nada. O PDF sai com a primeira página completa e as seguintes **em branco** —
+    e o defeito parece corte ou quebra de página, que é onde se perde tempo
+    procurando. São duas metades: `eager` na arte, e esperar o `decode()` de cada
+    uma antes de chamar a impressão.
+48. **`navigator.share` não existe fora de contexto seguro.** Ele é gated em
+    HTTPS, e o app aberto no celular pelo **IP da rede local em `http://`** — que
+    é como se testa aqui — não é contexto seguro. O mesmo aparelho, no mesmo
+    navegador, compartilha sem problema em `https://`. Isso custou **três
+    rodadas**: a tela caía em silêncio nos botões de baixar, cada rodada parecia
+    um defeito novo no compartilhamento, e a causa nunca esteve no código dele.
+    Para testar de verdade existe `npm run dev:https`, e a tela agora diz o
+    motivo em vez de calar.
+49. **O iOS recusa `files` junto de `text` no compartilhamento.** `canShare`
+    devolve `false` para o pacote inteiro, e o botão some num aparelho que
+    compartilha imagem sem dificuldade nenhuma. Pergunte pelo pacote completo e,
+    se ele não passar, pelos arquivos sozinhos — e mande **exatamente** o que foi
+    aprovado: conferir um pacote e enviar outro é a forma mais direta de o iOS
+    recusar sem dizer por quê.
+50. **Certificado sem `extendedKeyUsage=serverAuth` o iOS recusa por política.**
+    Desde o iOS 13 é exigência da Apple, e quando falta o Safari **não oferece o
+    "visitar mesmo assim"** — a página simplesmente não abre, sem dizer por quê,
+    e parece problema de rede ou de firewall. A mesma lista pede SHA-256, RSA de
+    2048 ou mais, validade até 825 dias e nome alternativo preenchido. E conferir
+    o arquivo em disco não basta: o que vale é o certificado servido na conexão,
+    que é onde se vê o que o aparelho realmente recebe.
 
 ## Pendências
 
@@ -447,51 +487,79 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 
 ## Próximo passo
 
-**O defeito do JPEG da want list no Safari do iPhone.** Relatado pelo dono do
-produto em 10/09 e **diagnosticado, não corrigido** — ver a seção abaixo. É a
-próxima branch.
+**A passada de Claude Design nos componentes compartilhados**, combinada para
+acontecer **antes da Social**: botão, painel, linha de lista e estado vazio são o
+vocabulário de toda tela, e a Social é o maior pedaço que falta. Mexer neles
+depois dela seria refazer todas as telas dela. A revisão visual e textual tela a
+tela, e os links das cartas, ficam para o fim.
 
-Depois dele, a passada de **Claude Design nos componentes compartilhados**,
-combinada para acontecer **antes da Social**: botão, painel, linha de lista e
-estado vazio são o vocabulário de toda tela, e a Social é o maior pedaço que
-falta. Mexer neles depois dela seria refazer todas as telas dela. A revisão
-visual e textual tela a tela, e os links das cartas, ficam para o fim.
+A skill `design` está habilitada e funciona; o conector do **Figma** aparece na
+sessão mas está **sem autorização**, e sessões não interativas não conseguem
+rodar o login. Ligar é por fora, nas configurações de conectores do claude.ai ou
+com `/mcp` num terminal interativo.
 
 Depois disso, a **aba Social**, que tem as regras escritas (decisão 060) e a
 identidade construída, e falta tudo o mais: listagem ordenada, busca por carta,
 bloquear, denunciar e o chat.
 
-## O defeito do JPEG no Safari do iPhone — diagnosticado, a corrigir
+## A folha da want list agora se compartilha
 
-**Sintoma:** baixando a want list em imagem no celular, só a **última** imagem é
-baixada de verdade. As notificações de todas aparecem, e tocar nas outras não
-entrega arquivo.
+Corrigido em 10/09 (decisão 063), depois de o dono do produto relatar num iPhone
+que **só a última imagem era baixada**.
 
-**Causa**, em `src/components/wants/want-sheet-print.tsx`, no laço de `baixar()`:
-são N cliques programáticos em `<a download>` separados por 300 ms. No Safari do
-iPhone um download programático é na prática uma **navegação** para o `blob:`, e
-uma navegação nova **cancela a anterior que ainda não terminou**. Os 300 ms são
-curtíssimos perto do tempo de materializar um JPEG de folha inteira. Cada clique
-mata o anterior e sobra o último.
+A saída principal passou a ser **Compartilhar**: um toque, a folha do sistema, e
+todas as imagens vão de uma vez para o grupo. Onde não há compartilhamento de
+arquivo, cada folha tem o próprio botão de baixar — **nunca um laço**.
 
-Dois agravantes no mesmo trecho: o `<a>` nunca é anexado ao documento, e o
-`await` antes dos cliques seguintes já gastou a ativação do toque.
+No celular é **um botão só**. Baixar folha a folha existe apenas onde não há
+compartilhamento de arquivo — computador, quase sempre.
 
-Passou batido porque o teste da folha cobre o **desenho**, não a entrega — o
-jsdom não baixa arquivo. É irmão da armadilha 10.
+A impressão foi corrigida junto, no mesmo relato: a arte saía **cortada ao meio a
+partir da terceira página**, porque a lista inteira era uma grade única e o
+navegador fatia a linha da grade, não o item. Agora cada folha é um bloco que
+termina em quebra de página, de doze em doze, e o número de páginas sai da
+divisão — nunca é presumido.
 
-**A correção acertada não é aumentar o intervalo**, que continuaria dependendo do
-tamanho do arquivo e da velocidade do aparelho. É tirar os N downloads de um
-toque só:
+Três coisas para não desfazer sem querer:
 
-- **Compartilhar quando o aparelho tem** (`navigator.share` com `files`): um
-  toque, a folha do iOS, e as imagens vão direto ao grupo. É o propósito escrito
-  na decisão 058, e some com o laço.
-- **Um botão por folha** no resto: um toque por arquivo, cada um com a própria
-  ativação.
+- As folhas são desenhadas **quando a tela abre**, e não ao toque. Não é
+  otimização: `navigator.share` exige ativação do toque, e ela não sobrevive ao
+  carregamento das imagens (armadilha 45).
+- Nenhum caminho dispara mais de um download por toque (armadilha 43).
+- A margem de impressão sai do nosso `@page` em `globals.css`, e não do diálogo
+  do navegador (armadilha 46).
+- A arte da folha carrega com `eager`, e **imprimir espera** o desenho de cada
+  uma. Sem as duas, o PDF sai com a primeira página completa e as seguintes em
+  branco (armadilha 47).
 
-Não foi possível reproduzir num iPhone de verdade — a confirmação final é do
-dono do produto depois da correção.
+### Para testar o compartilhamento no celular
+
+**`npm run dev` não serve.** O app aberto pelo IP da rede em `http://` não é
+contexto seguro, e ali o `navigator.share` **não existe** — a tela mostra os
+botões de baixar e explica o motivo (armadilha 48).
+
+Use **`npm run dev:https`**, e **pare o `npm run dev` antes** — o Next recusa
+subir dois servidores, e o script para com essa instrução em vez de mudar de
+porta às escondidas.
+
+Ele gera um certificado cobrindo o **nome mDNS** e os **IPs desta máquina**,
+lidos das interfaces de rede. Prefira `https://<maquina>.local:3000` — o iOS
+resolve `.local` sozinho por Bonjour, e o Safari lida melhor com nome do que com
+IP nu. Isso é o que o `next dev --experimental-https` puro não faz: ele emite
+para `localhost`, e o celular chega por `192.168.x.y` — um certificado que não
+cobre o endereço usado é recusado antes de qualquer pergunta, sem saída.
+
+O Safari vai avisar que não confia no certificado, porque ele é assinado por ele
+mesmo. Em "Mostrar detalhes" dá para seguir. Depois disso a página é HTTPS de
+verdade, `isSecureContext` é `true`, o botão de compartilhar aparece e a folha do
+iOS abre com todas as imagens.
+
+**Confirmado no iPhone em 10/09**: com o servidor em HTTPS, o botão de
+compartilhar aparece e a folha de envio do iOS abre com as imagens.
+
+O que ainda vale conferir é a **impressão de uma lista com mais de 24 cartas** —
+que a arte saia em todas as páginas, e não só na primeira. Foi o que o PDF de
+41 cartas denunciou, e a correção não é reproduzível no jsdom.
 
 ## Onde a troca está hoje
 

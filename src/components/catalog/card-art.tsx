@@ -38,6 +38,18 @@ export interface CardArtProps {
   sizes?: string
   /** Carrega sem esperar a rolagem. Para a arte principal de uma tela. */
   priority?: boolean
+  /**
+   * Carrega ja, sem esperar a rolagem e sem pre-carregar.
+   *
+   * Diferente de `priority`, que alem de carregar cedo emite uma dica de
+   * pre-carregamento no `<head>` — util para **uma** imagem, e o Next avisa
+   * quando sao muitas.
+   *
+   * Existe para a folha da want list. Ali a grade inteira precisa estar
+   * desenhada antes de imprimir, e o carregamento preguicoso mandava para o PDF
+   * paginas sem arte nenhuma: o que nunca passou pela tela nunca foi buscado.
+   */
+  eager?: boolean
 }
 
 export function CardArt({
@@ -47,6 +59,7 @@ export function CardArt({
   className,
   sizes = GRID_SIZES,
   priority = false,
+  eager = false,
 }: CardArtProps) {
   return (
     <span
@@ -63,6 +76,7 @@ export function CardArt({
           fill
           sizes={sizes}
           priority={priority}
+          loading={eager && !priority ? 'eager' : undefined}
           className="object-cover"
         />
       ) : (
