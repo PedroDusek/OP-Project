@@ -3,7 +3,13 @@ import { PageHeader } from '@/components/layout/app-shell'
 import { OpenTradeCard } from '@/components/trades/open-trade-card'
 import { TradeStarter } from '@/components/trades/trade-starter'
 import { TradeBinder, TradeBinderSummary } from '@/components/trades/trade-binder'
-import { countCopies, getOpenTrade, listTradeBinder } from '@/server/application/trades'
+import { TradeBinderShareCard } from '@/components/trades/trade-binder-share'
+import {
+  countCopies,
+  getOpenTrade,
+  getTradeBinderShare,
+  listTradeBinder,
+} from '@/server/application/trades'
 import { appUrl } from '@/server/http/app-url'
 import { requireViewer } from '@/server/http/viewer'
 
@@ -24,7 +30,11 @@ export const metadata: Metadata = { title: 'Trocas' }
  */
 export default async function TrocasPage() {
   const viewer = await requireViewer('/trocas')
-  const [aberta, cards] = await Promise.all([getOpenTrade(viewer), listTradeBinder(viewer)])
+  const [aberta, cards, share] = await Promise.all([
+    getOpenTrade(viewer),
+    listTradeBinder(viewer),
+    getTradeBinderShare(viewer),
+  ])
 
   return (
     <>
@@ -42,6 +52,11 @@ export default async function TrocasPage() {
         <section className="flex flex-col gap-4">
           <h2 className="text-sm font-semibold text-text">Trade Binder</h2>
           <TradeBinderSummary cards={cards.length} copies={countCopies(cards)} />
+          {/*
+            Compartilhar vem antes da lista, como na tela 31: quem rola ate o fim
+            das cartas ja encontrou o que procurava, e nao volta para publicar.
+          */}
+          <TradeBinderShareCard share={share} appUrl={appUrl()} cards={cards.length} />
           <TradeBinder cards={cards} />
         </section>
       </div>

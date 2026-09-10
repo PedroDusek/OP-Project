@@ -69,6 +69,8 @@ componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 | — | Nome de usuário e as regras da rede escritas (decisão 060) |
 | — | Navegação em gaveta: sete destinos e a conta, sem teto de cinco (decisão 061) |
 | — | Concluir a troca: os dois marcam, e de onde as cartas saem (decisão 062) |
+| — | A folha da want list se compartilha num toque (decisão 063) |
+| — | Trade Binder público: um conjunto, e o link é da pessoa (decisão 064) |
 
 ### Produção, em 10/09/2026
 
@@ -102,7 +104,7 @@ outra hora, e isso é verdade, não defeito.
 
 ## As decisões que mais restringem o que vem depois
 
-As 63 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 64 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
@@ -484,6 +486,35 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 - Pagamento (Checkpoint 15): Supabase não processa. Para assinatura recorrente
   no Brasil, conta Stripe brasileira **não** tem Pix Automático; PSPs nacionais
   como Asaas e Mercado Pago têm.
+
+## O Trade Binder público, e a dívida que ele deixou
+
+Construído em 10/09 (decisão 064). `/trade/<token>` mostra o conjunto de tudo o
+que está em local de troca, somado, sem pedir sessão — é a **única** página do
+produto que mostra dado de alguém sem login.
+
+Três coisas para não desfazer sem querer:
+
+- A página **não chama `requireViewer`**, e essa ausência é a decisão. Está
+  escrita no arquivo.
+- Ela sai dos buscadores (`robots: noindex`): indexar transformaria um endereço
+  compartilhado numa vitrine, que é o que a regra 4.6.1 recusa.
+- O que ela expõe é decidido em `readPublicTradeBinder`, e a maior parte dos
+  testes de integração verifica **ausências**. Um campo a mais na consulta vaza
+  para todo mundo que tiver o endereço, e não há segunda barreira depois dela.
+
+**Dívida explícita: a trava de Premium.** A regra 6.1 reserva o recurso ao
+Premium, e ela **não está aplicada** por escolha do dono do produto — não existe
+caminho no código para alguém virar Premium (`trial_started_at` nunca é usado, e
+não há pagamento), então gatear agora entregaria um recurso inalcançável. Quando
+o pagamento existir, a trava entra em `publishTradeBinder`, que é o único ponto
+por onde um token nasce.
+
+**Dependência para quando a exclusão de conta existir:** anonimizar precisa
+apagar `trade_binder_token`, senão um link publicado sobrevive à saída da pessoa.
+Hoje `readPublicTradeBinder` recusa conta com `deleted_at`, que é a rede de
+segurança — mas a limpeza pertence à anonimização (decisão 015), que ainda não
+foi construída.
 
 ## Próximo passo
 

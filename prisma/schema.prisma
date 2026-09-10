@@ -24,14 +24,14 @@ datasource db {
 // ---------------------------------------------------------------- identidade
 
 model User {
-  id                BigInt    @id @default(autoincrement())
-  name              String    @db.VarChar(100)
-  email             String    @unique @db.VarChar(255)
+  id                        BigInt    @id @default(autoincrement())
+  name                      String    @db.VarChar(100)
+  email                     String    @unique @db.VarChar(255)
   // Identidade no provedor de autenticacao (decisao 025). A senha nunca chega
   // ao nosso banco: quem guarda e verifica credencial e o Supabase. Esta coluna
   // apenas amarra a conta de la a esta linha, que collections, storage_locations
   // e trade_participants referenciam.
-  authUserId        String?   @unique @map("auth_user_id") @db.VarChar(64)
+  authUserId                String?   @unique @map("auth_user_id") @db.VarChar(64)
   // O nome que outros usuarios veem, unico em toda a rede (decisao 060).
   //
   // Guardado ja em minusculas: e sobre esta forma que a unicidade vale, e
@@ -40,17 +40,30 @@ model User {
   //
   // Anulavel porque a conta existe antes de a pessoa escolher: exigir no
   // cadastro poria mais um campo entre alguem e a primeira carta registrada.
-  username          String?   @unique @db.VarChar(20)
+  username                  String?   @unique @db.VarChar(20)
   // Quando trocou pela ultima vez. Nulo para quem nunca trocou — e escolher
   // pela primeira vez nao conta, senao alguem que acabou de chegar esperaria
   // uma semana para corrigir um erro de digitacao.
-  usernameChangedAt DateTime? @map("username_changed_at") @db.Timestamptz(6)
-  plan              String    @default("FREE") @db.VarChar(20)
-  trialStartedAt    DateTime? @map("trial_started_at") @db.Timestamptz(6)
-  premiumUntil      DateTime? @map("premium_until") @db.Timestamptz(6)
-  deletedAt         DateTime? @map("deleted_at") @db.Timestamptz(6)
-  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  usernameChangedAt         DateTime? @map("username_changed_at") @db.Timestamptz(6)
+  // O Trade Binder publico (decisao 064, que altera a 008).
+  //
+  // Mora aqui, e nao em `storage_locations`, porque o que se publica e o
+  // **conjunto**: todas as copias em locais de troca aparecem como uma colecao
+  // so, e nao segmentadas pelo movel em que estao guardadas. Quem recebe o link
+  // quer ver o que a pessoa tem para trocar, e a divisao em binder e caixa e
+  // organizacao domestica dela.
+  //
+  // Longo e aleatorio como o convite de troca (decisao 056): quem tem o link ve
+  // o inventario de troca de alguem, entao adivinhar um seria bisbilhotar. Nulo
+  // enquanto ninguem publicou, e volta a nulo ao revogar.
+  tradeBinderToken          String?   @unique @map("trade_binder_token") @db.VarChar(64)
+  tradeBinderTokenCreatedAt DateTime? @map("trade_binder_token_created_at") @db.Timestamptz(6)
+  plan                      String    @default("FREE") @db.VarChar(20)
+  trialStartedAt            DateTime? @map("trial_started_at") @db.Timestamptz(6)
+  premiumUntil              DateTime? @map("premium_until") @db.Timestamptz(6)
+  deletedAt                 DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt                 DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                 DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   collection        Collection?
   storageLocations  StorageLocation[]
@@ -284,17 +297,15 @@ model CollectionItem {
 }
 
 model StorageLocation {
-  id                   BigInt    @id @default(autoincrement())
-  userId               BigInt    @map("user_id")
-  name                 String    @db.VarChar(100)
-  description          String?   @db.VarChar(500)
-  image                String?   @db.VarChar(500)
-  type                 String    @db.VarChar(20)
-  purpose              String?   @db.VarChar(20)
-  publicToken          String?   @unique @map("public_token") @db.VarChar(64)
-  publicTokenCreatedAt DateTime? @map("public_token_created_at") @db.Timestamptz(6)
-  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id          BigInt   @id @default(autoincrement())
+  userId      BigInt   @map("user_id")
+  name        String   @db.VarChar(100)
+  description String?  @db.VarChar(500)
+  image       String?  @db.VarChar(500)
+  type        String   @db.VarChar(20)
+  purpose     String?  @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   user         User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   locations    CollectionItemLocation[]
@@ -516,8 +527,8 @@ model TradeItem {
   cardVariantId      BigInt @map("card_variant_id")
   quantity           Int
 
-  tradeParticipant TradeParticipant @relation(fields: [tradeParticipantId], references: [id], onDelete: Cascade)
-  cardVariant      CardVariant      @relation(fields: [cardVariantId], references: [id], onDelete: Restrict)
+  tradeParticipant TradeParticipant  @relation(fields: [tradeParticipantId], references: [id], onDelete: Cascade)
+  cardVariant      CardVariant       @relation(fields: [cardVariantId], references: [id], onDelete: Restrict)
   origins          TradeItemOrigin[]
 
   @@unique([tradeParticipantId, cardVariantId])

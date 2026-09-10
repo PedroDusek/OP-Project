@@ -4082,3 +4082,117 @@ iPhone dele.
 ## Data
 
 2026-09-10
+
+---
+
+# Decisão: 064 — O Trade Binder público é um conjunto, e o link é da pessoa
+
+**Altera a decisão 008.**
+
+## Contexto
+
+A regra 6.1 e a decisão 008 previam publicar um Trade Binder em `/trade/<token>`,
+com o token guardado em `storage_locations`. As colunas foram criadas no
+Checkpoint 2 e **nunca chegaram a ser usadas por linha nenhuma de código** — a
+funcionalidade existia no modelo, na decisão e na regra, e não no produto.
+
+Ao construí-la, apareceu uma divergência: a decisão 008 guarda o token **por
+local**, e a tela 31 mostra o botão Compartilhar sobre o Trade Binder **agregado**,
+que pela decisão 054 é a soma de todos os locais de finalidade `TRADE`.
+
+## Decisão 1 — o que se publica é o conjunto
+
+**Escolha do dono do produto**, com a frase que resolveu a questão: *"todas as
+cartas armazenadas em um lugar definido para troca aparecem digitalmente como se
+fossem um conjunto só… não faz sentido segmentar ali."*
+
+E é verdade sobre quem olha. A divisão entre binder e caixa é organização
+doméstica de quem guarda; quem abre o link está procurando uma carta, e para essa
+pessoa a pergunta é "você tem?", não "em qual móvel?".
+
+A mesma carta em dois locais de troca aparece **uma vez, com a soma**.
+
+## Decisão 2 — o token passa para `users`
+
+Consequência direta da 1: o que se publica é da pessoa, então o token é dela.
+
+`users` ganha `trade_binder_token` e `trade_binder_token_created_at`, com índice
+único e um `CHECK` que obriga os dois a andarem juntos — publicar grava ambos,
+revogar apaga ambos. Divergirem produziria "publicado em <nada>" ou uma data de
+publicação sem link, e nenhuma das duas seria verdade.
+
+As duas colunas em `storage_locations` **saem na mesma migration**. Coluna morta
+que uma decisão descreve é pior que coluna nenhuma, porque quem lê a decisão
+acredita nela — foi exatamente o que aconteceu aqui, e custou uma revisão do
+código para descobrir que a funcionalidade não existia.
+
+Aprovado pelo dono do produto antes de escrito, como manda o acordo.
+
+## Decisão 3 — a página é vitrine, e a negociação continua pelo convite
+
+**Escolha do dono do produto.** A página pública mostra o conjunto e nada mais.
+Quem quiser trocar usa o convite que já existe (decisão 056).
+
+O caminho alternativo — negociar a partir da página — muda o modelo de
+consentimento da regra 4.6.1, onde hoje nada é cruzado antes de as duas pessoas
+entrarem na troca. Isso é decisão de produto e de exposição, e fica para quando
+for tomada de propósito, e não como efeito colateral de um botão.
+
+## Decisão 4 — publicar exige nome de usuário
+
+A regra 6.1.1 diz que o nome de usuário é a única identidade que outros veem.
+Sem ele não há o que a página mostre como identidade, e publicar produziria uma
+página de ninguém.
+
+Não é regra nova: é a 6.1.1 levada ao seu consequente. A recusa vem com o motivo
+e o caminho.
+
+## Decisão 5 — o Premium fica para o fim
+
+A regra 6.1 reserva o recurso ao Premium. **Escolha do dono do produto: deixar
+para mais para o final.**
+
+O motivo é concreto: não existe caminho no código para alguém virar Premium —
+`trial_started_at` nunca é usado e não há pagamento. Gatear agora entregaria um
+recurso que ninguém alcança.
+
+Fica registrado como **dívida explícita**, e não como esquecimento: quando o
+pagamento existir, a trava entra em `publishTradeBinder`, que é o único ponto por
+onde um token nasce.
+
+## O que a página nunca mostra
+
+A regra 6.1 é, na prática, uma lista de ausências, e é ela que a maior parte dos
+testes verifica. Não aparecem: nome real, e-mail, a coleção, outros
+armazenamentos, decks, a want list, nem **quantas cópias a pessoa tem ao todo**.
+
+Essa última merece nota. O Trade Binder de dentro do app mostra o total possuído,
+para a pessoa saber o que ficou de fora; num link público o mesmo número contaria
+a estranhos o tamanho da coleção dela, que não é o que ela publicou.
+
+Token inexistente e token revogado dão **a mesma resposta**. Distinguir contaria
+a quem tentasse que aquele link já existiu.
+
+## A página não pede sessão, e isso é a decisão
+
+É a única página do produto que mostra dado de alguém sem login. Ela simplesmente
+não chama `requireViewer` — a ausência é deliberada, e está escrita no arquivo
+para que ninguém a "conserte" depois.
+
+Ela também sai dos buscadores (`robots: noindex`): o link é para mandar a quem se
+quer, e indexar transformaria um endereço compartilhado numa vitrine pública, que
+é o que a regra 4.6.1 recusa.
+
+## Um defeito encontrado ao olhar a página
+
+O contador de cópias saiu invisível na primeira versão: `bg-ink/85`, e **`ink`
+não é um token deste projeto**. A classe não gerava CSS nenhum, e o texto branco
+ficava sobre fundo transparente. O arranjo certo já existia em `CardTile`, com
+fundo próprio em vez de token de superfície — porque o contador fica sobre arte
+de qualquer cor.
+
+Nenhum teste pegaria isso: o jsdom não avalia estilo. Foi visto abrindo a página.
+
+## Data
+
+2026-09-10
