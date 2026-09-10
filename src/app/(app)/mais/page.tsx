@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { FileDown, Heart, ListPlus } from 'lucide-react'
 import { PageHeader } from '@/components/layout/app-shell'
 import { ThemeControl } from '@/components/theme/theme-control'
 import { Panel, PanelList, ListRow } from '@/components/ui/surface'
@@ -79,6 +80,38 @@ export default async function MaisPage() {
                 />
               ),
             )}
+          </PanelList>
+        </section>
+
+        {/*
+          As ferramentas da want list, e nao a lista.
+          A lista mora na Colecao (decisao 048), porque quem a abre esta pensando
+          na propria colecao. O que mora aqui e o trabalho **sobre** ela —
+          acrescentar em leva, revisar, levar para o grupo —, no mesmo arranjo
+          que a decisao 044 pediu para binders: navega-se onde se navega,
+          administra-se onde se administra.
+        */}
+        <section className="flex flex-col gap-3">
+          <h2 className="text-sm font-semibold text-text">Want list</h2>
+          <PanelList>
+            <ListRow
+              href="/colecao/quero/adicionar"
+              leading={<ListPlus className="size-5 text-text-muted" aria-hidden />}
+              title="Adicionar em massa"
+              description="Percorra o catálogo com filtros e marque quantas de cada você procura."
+            />
+            <ListRow
+              href="/colecao/quero"
+              leading={<Heart className="size-5 text-text-muted" aria-hidden />}
+              title="Revisar a lista"
+              description="Ajuste as quantidades e tire o que você já conseguiu."
+            />
+            <ListRow
+              href="/colecao/quero/pdf"
+              leading={<FileDown className="size-5 text-text-muted" aria-hidden />}
+              title="Baixar em PDF"
+              description="Uma folha com as cartas que faltam, para mandar nos grupos."
+            />
           </PanelList>
         </section>
 

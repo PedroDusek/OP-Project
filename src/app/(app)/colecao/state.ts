@@ -39,3 +39,17 @@ export type WantState =
   | { status: 'error'; message: string }
 
 export const WANT_IDLE: WantState = { status: 'idle' }
+
+/**
+ * O resultado de uma leva na want list.
+ *
+ * Fica aqui e nao em `actions.ts` porque um arquivo `'use server'` so pode
+ * exportar funcao assincrona: exportar a constante de la passa no build e
+ * quebra no primeiro envio.
+ */
+export type BulkWantState =
+  | { status: 'idle' }
+  | { status: 'added'; cards: number; copies: number }
+  | { status: 'error'; message: string }
+
+export const BULK_WANT_IDLE: BulkWantState = { status: 'idle' }
