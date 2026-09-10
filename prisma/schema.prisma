@@ -24,20 +24,33 @@ datasource db {
 // ---------------------------------------------------------------- identidade
 
 model User {
-  id             BigInt    @id @default(autoincrement())
-  name           String    @db.VarChar(100)
-  email          String    @unique @db.VarChar(255)
+  id                BigInt    @id @default(autoincrement())
+  name              String    @db.VarChar(100)
+  email             String    @unique @db.VarChar(255)
   // Identidade no provedor de autenticacao (decisao 025). A senha nunca chega
   // ao nosso banco: quem guarda e verifica credencial e o Supabase. Esta coluna
   // apenas amarra a conta de la a esta linha, que collections, storage_locations
   // e trade_participants referenciam.
-  authUserId     String?   @unique @map("auth_user_id") @db.VarChar(64)
-  plan           String    @default("FREE") @db.VarChar(20)
-  trialStartedAt DateTime? @map("trial_started_at") @db.Timestamptz(6)
-  premiumUntil   DateTime? @map("premium_until") @db.Timestamptz(6)
-  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz(6)
-  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  authUserId        String?   @unique @map("auth_user_id") @db.VarChar(64)
+  // O nome que outros usuarios veem, unico em toda a rede (decisao 060).
+  //
+  // Guardado ja em minusculas: e sobre esta forma que a unicidade vale, e
+  // guardar como a pessoa digitou criaria dois nomes que o banco aceita e o
+  // olho nao distingue.
+  //
+  // Anulavel porque a conta existe antes de a pessoa escolher: exigir no
+  // cadastro poria mais um campo entre alguem e a primeira carta registrada.
+  username          String?   @unique @db.VarChar(20)
+  // Quando trocou pela ultima vez. Nulo para quem nunca trocou — e escolher
+  // pela primeira vez nao conta, senao alguem que acabou de chegar esperaria
+  // uma semana para corrigir um erro de digitacao.
+  usernameChangedAt DateTime? @map("username_changed_at") @db.Timestamptz(6)
+  plan              String    @default("FREE") @db.VarChar(20)
+  trialStartedAt    DateTime? @map("trial_started_at") @db.Timestamptz(6)
+  premiumUntil      DateTime? @map("premium_until") @db.Timestamptz(6)
+  deletedAt         DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   collection        Collection?
   storageLocations  StorageLocation[]

@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import { FileDown, Heart, ListPlus } from 'lucide-react'
+import { UsernameForm } from '@/components/social/username-form'
+import { getUsernameState } from '@/server/application/social'
 import { PageHeader } from '@/components/layout/app-shell'
 import { ThemeControl } from '@/components/theme/theme-control'
 import { Panel, PanelList, ListRow } from '@/components/ui/surface'
@@ -29,6 +31,7 @@ export const metadata: Metadata = { title: 'Mais' }
 export default async function MaisPage() {
   // O layout ja exigiu sessao; aqui ela so e lida de novo para os dados.
   const viewer = await currentViewer()
+  const username = viewer ? await getUsernameState(viewer) : null
 
   return (
     <>
@@ -48,6 +51,13 @@ export default async function MaisPage() {
               ) : null}
             </div>
           </Panel>
+        ) : null}
+
+        {username ? (
+          <section className="flex flex-col gap-3">
+            <h2 className="text-sm font-semibold text-text">Sua identidade na rede</h2>
+            <UsernameForm state={username} />
+          </section>
         ) : null}
 
         <section className="flex flex-col gap-3">
