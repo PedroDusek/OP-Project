@@ -7,7 +7,7 @@ import { Logotype, Symbol } from '@/components/brand/logo'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/states'
 import { useToast } from '@/components/ui/toast'
-import { renderWantSheet } from '@/lib/want-sheet-image'
+import { CARDS_PER_SHEET, renderWantSheets } from '@/lib/want-sheet-image'
 import type { WantView } from '@/server/application/wants'
 
 /**
@@ -16,7 +16,9 @@ import type { WantView } from '@/server/application/wants'
  * ## Duas saídas, e elas servem a coisas diferentes
  *
  * **JPEG** é o caminho normal: baixa direto, e imagem se manda em grupo sem
- * ninguém precisar abrir nada. Ele é desenhado aqui no aparelho, com as
+ * ninguém precisar abrir nada. Sai uma imagem por folha de doze, o mesmo corte
+ * da impressão — uma lista longa numa imagem só vira uma tira que o WhatsApp
+ * recomprime até o número da carta borrar. Ele é desenhado aqui no aparelho, com as
  * imagens da fonte de preço — as únicas que o navegador deixa exportar
  * (decisão 058).
  *
@@ -56,6 +58,7 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
   const faltando = wants.filter((want) => want.status !== 'satisfied')
   const copias = faltando.reduce((total, want) => total + want.remaining, 0)
   const semArte = faltando.filter((want) => want.sheetImageUrl === null).length
+  const folhas = Math.max(1, Math.ceil(faltando.length / CARDS_PER_SHEET))
 
   /**
    * Desenha e entrega o arquivo.
@@ -67,7 +70,7 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
   const baixar = async () => {
     setGerando(true)
     try {
-      const blob = await renderWantSheet(
+      const imagens = await renderWantSheets(
         faltando.map((want) => ({
           cardCode: want.cardCode,
           cardName: want.cardName,
@@ -76,12 +79,30 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
         })),
       )
 
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = 'want-list-colexa.jpg'
-      link.click()
-      URL.revokeObjectURL(url)
+      for (const [indice, blob] of imagens.entries()) {
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download =
+          imagens.length === 1
+            ? 'want-list-colexa.jpg'
+            : `want-list-colexa-${indice + 1}-de-${imagens.length}.jpg`
+        link.click()
+
+        /*
+         * O endereço não é revogado aqui.
+         *
+         * `click()` só **inicia** o download; revogar na linha seguinte
+         * derruba o endereço antes de o navegador ler os bytes, e o arquivo sai
+         * vazio ou nem sai. O minuto é folga larga de propósito: a alternativa
+         * é vazar um punhado de blobs, que somem quando a aba fecha.
+         */
+        setTimeout(() => URL.revokeObjectURL(url), 60_000)
+
+        // Uma pausa entre os arquivos. Vários cliques no mesmo instante fazem
+        // o navegador tratar o segundo em diante como download não pedido.
+        if (indice < imagens.length - 1) await new Promise((r) => setTimeout(r, 300))
+      }
     } catch (error) {
       toast({
         title: 'Não foi possível gerar a imagem',
@@ -121,9 +142,12 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
           </Button>
         </div>
         <p className="text-sm text-text-muted">
+          {folhas > 1
+            ? `Saem ${folhas} imagens, de até ${CARDS_PER_SHEET} cartas cada — o navegador pode pedir permissão para baixar várias. `
+            : 'A imagem baixa direto. '}
           {semArte > 0
-            ? `A imagem baixa direto. ${semArte} ${semArte === 1 ? 'carta sai' : 'cartas saem'} com o código no lugar da arte; imprimindo, todas saem com a arte.`
-            : 'A imagem baixa direto. Imprimindo, escolha “Salvar como PDF” no diálogo.'}
+            ? `${semArte} ${semArte === 1 ? 'carta sai' : 'cartas saem'} com o código no lugar da arte; imprimindo, todas saem com a arte.`
+            : 'Imprimindo, escolha “Salvar como PDF” no diálogo.'}
         </p>
       </div>
 

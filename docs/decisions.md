@@ -3355,6 +3355,25 @@ um resultado que muda quando o CSS muda.
 carrega e **contamina em silêncio**: a falha só apareceria no `toBlob`, longe da
 causa.
 
+## Decisão 4.1 — uma imagem por folha de doze
+
+O mesmo corte da impressão, e pelo mesmo motivo: quatro colunas por três linhas
+é o que cabe legível numa página.
+
+Uma lista de cem cartas numa imagem só teria 25 linhas e mais de sete mil pixels
+de altura. O WhatsApp recomprime imagem grande com força, e o número no canto da
+carta — que é o dado que a folha existe para carregar — é a primeira coisa que
+borra. Três imagens de doze se mandam num grupo do mesmo jeito que três fotos.
+
+Cada folha diz "folha 2 de 3" e conta as cartas **dela**. Quem recebe a terceira
+imagem precisa saber que há uma primeira, senão lê uma lista truncada como se
+fosse a lista inteira.
+
+**O endereço do blob não é revogado logo após o clique.** `click()` só inicia o
+download; revogar na linha seguinte derruba o endereço antes de o navegador ler
+os bytes. E há uma pausa entre os arquivos: vários cliques no mesmo instante
+fazem o navegador tratar o segundo em diante como download não pedido.
+
 ## Decisão 5 — imprimir continua, e não é redundância
 
 São saídas diferentes. O JPEG baixa direto e usa a imagem da fonte de preço, que

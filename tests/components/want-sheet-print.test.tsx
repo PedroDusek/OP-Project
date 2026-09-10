@@ -126,8 +126,11 @@ describe('a imagem', () => {
    * so com o que falta.
    */
   it('gera a partir das cartas que faltam, e nao das satisfeitas', async () => {
-    const render_ = vi.fn().mockResolvedValue(new Blob(['x'], { type: 'image/jpeg' }))
-    vi.doMock('@/lib/want-sheet-image', () => ({ renderWantSheet: render_ }))
+    const render_ = vi.fn().mockResolvedValue([new Blob(['x'], { type: 'image/jpeg' })])
+    vi.doMock('@/lib/want-sheet-image', () => ({
+      CARDS_PER_SHEET: 12,
+      renderWantSheets: render_,
+    }))
     vi.resetModules()
 
     const { WantSheetPrint: Componente } = await import('@/components/wants/want-sheet-print')
@@ -166,5 +169,28 @@ describe('a imagem', () => {
     render(<WantSheetPrint wants={[want({ sheetImageUrl: null })]} />)
 
     expect(screen.getByText(/1 carta sai com o código no lugar da arte/i)).toBeInTheDocument()
+  })
+})
+
+describe('a paginacao', () => {
+  /**
+   * O mesmo corte da impressao. Uma lista longa numa imagem so vira uma tira
+   * que o WhatsApp recomprime ate o numero da carta borrar — e o numero e o
+   * dado que a folha existe para carregar.
+   */
+  it('avisa quantas imagens saem quando passa de doze', () => {
+    const muitas = Array.from({ length: 25 }, (_, i) =>
+      want({ variantId: String(i), cardCode: `OP01-${i}` }),
+    )
+    render(<WantSheetPrint wants={muitas} />)
+
+    expect(screen.getByText(/Saem 3 imagens, de até 12 cartas cada/)).toBeInTheDocument()
+  })
+
+  it('nao fala em varias imagens quando cabe numa folha', () => {
+    render(<WantSheetPrint wants={[want()]} />)
+
+    expect(screen.queryByText(/Saem \d+ imagens/)).not.toBeInTheDocument()
+    expect(screen.getByText(/A imagem baixa direto/)).toBeInTheDocument()
   })
 })
