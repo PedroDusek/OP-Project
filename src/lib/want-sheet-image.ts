@@ -26,6 +26,17 @@ import { SYMBOL, LOGOTYPE } from './marca'
  * Ela entra com o código no lugar da arte. Sumir seria pior: a pessoa levaria
  * ao grupo uma lista incompleta sem saber, e é a lista inteira que faz a folha
  * valer a ida.
+ *
+ * ## Uma imagem por folha, e não uma imagem gigante
+ *
+ * Doze cartas por folha, o mesmo corte da impressão — e o mesmo pelo mesmo
+ * motivo: quatro colunas por três linhas é o que cabe legível numa página.
+ *
+ * Uma lista de cem cartas numa imagem só teria 25 linhas e mais de sete mil
+ * pixels de altura. O WhatsApp recomprime imagem grande com força, e o número
+ * no canto da carta — que é o dado que a folha existe para carregar — é a
+ * primeira coisa que borra. Três imagens de doze se mandam num grupo do mesmo
+ * jeito que três fotos.
  */
 
 export interface SheetCard {
@@ -40,6 +51,8 @@ export interface SheetCard {
 /** Largura fixa: uma imagem para mandar em grupo, não para ampliar. */
 const WIDTH = 1240
 const COLUMNS = 4
+/** Doze por folha: quatro colunas, três linhas — o mesmo corte da impressão. */
+export const CARDS_PER_SHEET = 12
 const GAP = 24
 const PADDING = 48
 const HEADER = 132
@@ -53,7 +66,36 @@ const MUTED = '#6b6a76'
 const PAPER = '#ffffff'
 const ACCENT = '#5b4bd6'
 
-export async function renderWantSheet(cards: readonly SheetCard[]): Promise<Blob> {
+/**
+ * Uma imagem por folha de doze.
+ *
+ * Devolve na ordem, e sempre ao menos uma: a tela decide o que fazer com a
+ * lista, e receber um array vazio de volta seria um caso a mais para ela tratar
+ * sem nada a ganhar.
+ */
+export async function renderWantSheets(cards: readonly SheetCard[]): Promise<Blob[]> {
+  const folhas: SheetCard[][] = []
+  for (let i = 0; i < cards.length; i += CARDS_PER_SHEET) {
+    folhas.push(cards.slice(i, i + CARDS_PER_SHEET))
+  }
+  if (folhas.length === 0) folhas.push([])
+
+  const imagens: Blob[] = []
+  for (const [indice, folha] of folhas.entries()) {
+    imagens.push(await renderWantSheet(folha, { page: indice + 1, pages: folhas.length }))
+  }
+  return imagens
+}
+
+export interface SheetPage {
+  page: number
+  pages: number
+}
+
+export async function renderWantSheet(
+  cards: readonly SheetCard[],
+  pagina: SheetPage = { page: 1, pages: 1 },
+): Promise<Blob> {
   const cardWidth = Math.floor((WIDTH - PADDING * 2 - GAP * (COLUMNS - 1)) / COLUMNS)
   const cardHeight = Math.round(cardWidth * CARD_RATIO)
   const rows = Math.ceil(cards.length / COLUMNS)
@@ -71,7 +113,7 @@ export async function renderWantSheet(cards: readonly SheetCard[]): Promise<Blob
   ctx.fillRect(0, 0, WIDTH, height)
 
   await drawWatermark(ctx, height)
-  await drawHeader(ctx, cards)
+  await drawHeader(ctx, cards, pagina)
 
   /*
    * Todas as imagens de uma vez, e nenhuma pode derrubar a folha: quem falhar
@@ -154,6 +196,7 @@ function drawCard(
 async function drawHeader(
   ctx: CanvasRenderingContext2D,
   cards: readonly SheetCard[],
+  pagina: SheetPage,
 ): Promise<void> {
   const copies = cards.reduce((total, card) => total + card.remaining, 0)
 
@@ -165,9 +208,14 @@ async function drawHeader(
 
   ctx.fillStyle = MUTED
   ctx.font = '400 22px system-ui, sans-serif'
-  ctx.fillText(
+  // A contagem e a de **esta** folha. Quem recebe a terceira imagem precisa
+  // saber que ha uma primeira e uma segunda, senao le uma lista truncada como
+  // se fosse a lista inteira.
+  const contagem =
     `${cards.length} ${cards.length === 1 ? 'carta' : 'cartas'} · ` +
-      `${copies} ${copies === 1 ? 'cópia' : 'cópias'}`,
+    `${copies} ${copies === 1 ? 'cópia' : 'cópias'}`
+  ctx.fillText(
+    pagina.pages > 1 ? `${contagem} · folha ${pagina.page} de ${pagina.pages}` : contagem,
     PADDING,
     100,
   )
