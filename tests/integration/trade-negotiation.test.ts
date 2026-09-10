@@ -192,12 +192,23 @@ describe('o cruzamento nas duas direcoes', () => {
     const tradeId = await tradeBetween(ana, bruno)
     const view = await getTrade(testPrisma(), ana.user, tradeId)
 
-    expect(view.iCanOffer).toEqual([
-      { variantId: String(daAna.id), quantity: 3, available: 3, stillWanted: 4 },
-    ])
-    expect(view.theyCanOffer).toEqual([
-      { variantId: String(doBruno.id), quantity: 1, available: 2, stillWanted: 1 },
-    ])
+    // `toMatchObject` e nao `toEqual`: a sugestao carrega tambem a carta, para
+    // a tela nao precisar buscar uma por uma. O que este teste protege e a
+    // aritmetica, e fixar a forma inteira o quebraria a cada campo novo.
+    expect(view.iCanOffer).toHaveLength(1)
+    expect(view.iCanOffer[0]).toMatchObject({
+      variantId: String(daAna.id),
+      quantity: 3,
+      available: 3,
+      stillWanted: 4,
+    })
+    expect(view.theyCanOffer).toHaveLength(1)
+    expect(view.theyCanOffer[0]).toMatchObject({
+      variantId: String(doBruno.id),
+      quantity: 1,
+      available: 2,
+      stillWanted: 1,
+    })
   })
 
   /** A tela e sempre "eu" e "a outra pessoa", nunca participante 1 e 2. */

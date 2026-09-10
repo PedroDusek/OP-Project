@@ -1,35 +1,49 @@
 import type { Metadata } from 'next'
 import { PageHeader } from '@/components/layout/app-shell'
+import { OpenTradeCard } from '@/components/trades/open-trade-card'
+import { TradeStarter } from '@/components/trades/trade-starter'
 import { TradeBinder, TradeBinderSummary } from '@/components/trades/trade-binder'
-import { countCopies, listTradeBinder } from '@/server/application/trades'
+import { countCopies, getOpenTrade, listTradeBinder } from '@/server/application/trades'
+import { appUrl } from '@/server/http/app-url'
 import { requireViewer } from '@/server/http/viewer'
 
-export const metadata: Metadata = { title: 'Trade Binder' }
+export const metadata: Metadata = { title: 'Trocas' }
 
 /**
- * Trade Binder (tela 31).
+ * Trocas: a negociação aberta e o Trade Binder (telas 31 e a negociação).
  *
- * É a soma do que está guardado em locais com finalidade de troca
- * (`business-rules.md` 4.1). Não se monta nada aqui: quem quer mudar o que está
- * disponível mexe nos binders, e a tela leva para lá — dois jeitos de fazer a
- * mesma coisa é como se acaba com duas listas que discordam.
+ * A troca vem primeiro porque é o que tem alguém do outro lado esperando. O
+ * Trade Binder é consulta, e consulta espera.
  *
- * O que ainda não existe: **compartilhar** e **matches**. O compartilhamento é
- * a rota pública do Premium (decisão 008), de um checkpoint adiante. Os matches
- * dependem de duas definições que a especificação não dá — o que é
- * "compatibilidade" e quem pode ver o Trade Binder de quem — e inventar
- * qualquer uma seria decidir no lugar do dono do produto.
+ * Uma troca por vez (`business-rules.md` 4.5): ou a tela oferece começar, ou
+ * mostra a que está aberta. Oferecer as duas coisas convidaria a um gesto que o
+ * servidor recusaria.
+ *
+ * O Trade Binder continua sendo leitura: quem quer mudar o que está disponível
+ * mexe nos binders. Ver `TradeBinder`.
  */
 export default async function TrocasPage() {
   const viewer = await requireViewer('/trocas')
-  const cards = await listTradeBinder(viewer)
+  const [aberta, cards] = await Promise.all([getOpenTrade(viewer), listTradeBinder(viewer)])
 
   return (
     <>
-      <PageHeader title="Trade Binder" />
-      <div className="flex flex-col gap-4">
-        <TradeBinderSummary cards={cards.length} copies={countCopies(cards)} />
-        <TradeBinder cards={cards} />
+      <PageHeader title="Trocas" />
+
+      <div className="flex flex-col gap-6">
+        <section className="flex flex-col gap-3">
+          {aberta ? (
+            <OpenTradeCard trade={aberta} appUrl={appUrl()} />
+          ) : (
+            <TradeStarter appUrl={appUrl()} />
+          )}
+        </section>
+
+        <section className="flex flex-col gap-4">
+          <h2 className="text-sm font-semibold text-text">Trade Binder</h2>
+          <TradeBinderSummary cards={cards.length} copies={countCopies(cards)} />
+          <TradeBinder cards={cards} />
+        </section>
       </div>
     </>
   )

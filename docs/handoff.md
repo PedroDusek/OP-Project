@@ -30,7 +30,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 11 concluídos**, e o 12 começou pela want list. 949 testes
+**Checkpoints 0 a 11 concluídos**, e o 12 começou pela want list. 961 testes
 de unidade, integração e componente, mais 30 ponta a ponta. Lint, typecheck e
 build passando.
 
@@ -76,7 +76,7 @@ sem preço novo, só para de envelhecer sem ninguém perceber.
 
 ## As decisões que mais restringem o que vem depois
 
-As 58 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 59 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do

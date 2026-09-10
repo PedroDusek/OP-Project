@@ -3390,3 +3390,78 @@ jeito que a decisão 020 foi.
 ## Data
 
 2026-09-09
+
+---
+
+# Decisão: 059 — A interface da negociação
+
+## Contexto
+
+O protocolo (decisões 055 e 056) estava inteiro no servidor, com 27 testes, e
+não havia tela nenhuma. Não dava para começar uma troca pelo aplicativo.
+
+## Decisão 1 — sempre "eu" e "a outra pessoa"
+
+Nunca "participante 1" e "participante 2". Quem olha precisa saber o que está
+**oferecendo** e o que vai **receber**, e essa orientação depende de quem está
+olhando — por isso ela é resolvida no servidor, em `getTrade`, e não na tela.
+
+Tem teste de simetria: ler a mesma troca dos dois lados troca as duas listas de
+lugar e nada mais.
+
+## Decisão 2 — a oferta do outro é só leitura
+
+É a aparência da regra 4.6.2. Quem a **garante** é o servidor, que descobre
+sozinho qual participante é quem chamou; nenhum formulário desta tela manda um
+id de participante.
+
+A aparência importa mesmo assim: uma tela que deixasse tocar na oferta alheia
+ensinaria a pessoa a esperar o que o servidor vai recusar.
+
+## Decisão 3 — sugestão não é oferta
+
+O cruzamento mostra o que interessa ao outro. Pôr na oferta é um gesto separado
+e deliberado: um match não compromete cópia nenhuma (regra 4.3), e uma tela que
+já viesse com tudo oferecido decidiria pela pessoa.
+
+Sugestão já oferecida sai da lista — repetir convidaria a oferecer a mesma carta
+duas vezes.
+
+## Decisão 4 — o aviso de revisão vem antes de tudo
+
+Quando a outra pessoa altera depois de você confirmar, a confirmação cai. Sem o
+aviso, a tela pediria "confirme" como se fosse a primeira vez, e a pessoa
+reconfirmaria sem saber que o combinado mudou. Ele aparece no topo da
+negociação **e** no cartão de Trocas, para ser visto antes de abrir.
+
+## Decisão 5 — abrir o link não é entrar
+
+Entrar fecha o consentimento das duas partes (regra 4.6.1), e a partir dele a
+want list e o Trade Binder de quem entra passam a ser cruzados com os do outro.
+
+Um clique num link recebido no WhatsApp **não é consentimento**. A página
+explica o que acontece — vocês veem o que um tem do interesse do outro, cada um
+monta a própria oferta, a troca só vale com as duas confirmações, dá para
+cancelar — e a entrada é um botão.
+
+## Decisão 6 — uma troca por vez, e a tela reflete isso
+
+Ou a tela oferece começar, ou mostra a que está aberta. Oferecer as duas coisas
+convidaria a um gesto que o servidor recusaria (regra 4.5).
+
+## Um defeito corrigido antes de subir
+
+A navegação depois de entrar estava sendo disparada **durante a renderização**.
+`replace` seria chamado a cada passagem enquanto o estado continuasse `done`, e
+o componente pediria a mesma navegação em laço até desmontar. Foi para um
+efeito: navegar é falar com um sistema externo, que é para o que efeito serve.
+
+## O que ainda não existe
+
+**Concluir a troca.** Confirmada, ela para em `CONFIRMED`: mover as cópias de
+verdade depende da regra 4.6 — de onde as cartas saem —, e a decisão 049 já diz
+que só se pergunta quando há escolha real. É o passo seguinte.
+
+## Data
+
+2026-09-09

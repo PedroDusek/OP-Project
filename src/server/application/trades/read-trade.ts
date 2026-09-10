@@ -48,6 +48,19 @@ export interface TradeSideView {
   offer: TradeCardOffer[]
 }
 
+/**
+ * Uma sugestão do cruzamento, com a carta que a tela precisa desenhar.
+ *
+ * O domínio devolve só ids — ele é aritmética, e não sabe o que é uma carta. É
+ * aqui que os dois se juntam, uma vez, em vez de a tela pedir a carta de cada
+ * sugestão depois.
+ */
+export interface TradeSuggestion extends CrossedCard {
+  cardCode: string
+  cardName: string
+  imageUrl: string | null
+}
+
 export interface TradeView {
   tradeId: string
   status: TradeStatus
@@ -57,9 +70,9 @@ export interface TradeView {
   /** Nulo enquanto o convite não foi aceito: não há outro lado ainda. */
   other: TradeSideView | null
   /** O que eu tenho e a outra pessoa quer. Sugestão, nunca obrigação. */
-  iCanOffer: CrossedCard[]
+  iCanOffer: TradeSuggestion[]
   /** O que a outra pessoa tem e eu quero. */
-  theyCanOffer: CrossedCard[]
+  theyCanOffer: TradeSuggestion[]
   /** Os dois confirmaram: a troca está validada. */
   validated: boolean
 }
@@ -127,16 +140,64 @@ export async function getTrade(
     confirmedAt: participant.confirmedAt,
   }))
 
+  const cartas = await cardsByVariant(prisma, [
+    ...crossing.fromFirst.map((c) => c.variantId),
+    ...crossing.fromSecond.map((c) => c.variantId),
+  ])
+
   return {
     tradeId: String(trade.id),
     status: trade.status as TradeStatus,
     inviteToken: trade.inviteToken,
     me: toSideView(mine),
     other: theirs ? toSideView(theirs) : null,
-    iCanOffer: crossing.fromFirst,
-    theyCanOffer: crossing.fromSecond,
+    iCanOffer: withCards(crossing.fromFirst, cartas),
+    theyCanOffer: withCards(crossing.fromSecond, cartas),
     validated: isValidated(participants),
   }
+}
+
+type CardLabel = { cardCode: string; cardName: string; imageUrl: string | null }
+
+/**
+ * As cartas das sugestões, numa consulta só.
+ *
+ * Uma por sugestão daria dezenas de idas ao banco para desenhar uma tela.
+ */
+async function cardsByVariant(
+  prisma: PrismaClient,
+  variantIds: readonly string[],
+): Promise<Map<string, CardLabel>> {
+  const ids = [...new Set(variantIds)].map((id) => BigInt(id))
+  if (ids.length === 0) return new Map()
+
+  const rows = await prisma.cardVariant.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, imageUrl: true, card: { select: { code: true, name: true } } },
+  })
+
+  return new Map(
+    rows.map((row) => [
+      String(row.id),
+      { cardCode: row.card.code, cardName: row.card.name, imageUrl: row.imageUrl },
+    ]),
+  )
+}
+
+/**
+ * Junta a aritmética com a carta, e descarta o que não tem carta.
+ *
+ * Uma sugestão sem carta não existe: a variante teria de ter saído do catálogo
+ * entre uma consulta e outra. Mostrar um id cru seria pior que não mostrar.
+ */
+function withCards(
+  crossed: readonly CrossedCard[],
+  cards: Map<string, CardLabel>,
+): TradeSuggestion[] {
+  return crossed.flatMap((item) => {
+    const card = cards.get(item.variantId)
+    return card ? [{ ...item, ...card }] : []
+  })
 }
 
 type ParticipantRow = {
@@ -214,5 +275,63 @@ async function tradeSideData(prisma: PrismaClient, userId: bigint): Promise<Trad
       wanted: want.quantity,
       owned: want.cardVariant.collectionItems[0]?.quantity ?? 0,
     })),
+  }
+}
+
+export interface OpenTrade {
+  tradeId: string
+  status: TradeStatus
+  /** O nome de quem está do outro lado, ou nulo enquanto o convite não foi aceito. */
+  otherName: string | null
+  /** O convite, enquanto ainda falta alguém entrar. */
+  inviteToken: string | null
+  /** A outra pessoa alterou depois de eu confirmar. */
+  reviewRequested: boolean
+}
+
+/**
+ * A troca que esta pessoa tem aberta, ou nula.
+ *
+ * Uma por vez: a regra 4.5 permite um trade ativo, e o rascunho — o convite que
+ * ninguém aceitou ainda — é o único que pode coexistir com ele. Quando os dois
+ * existirem, vale o ativo: é o que tem alguém do outro lado esperando.
+ *
+ * Serve à tela de Trocas, que precisa decidir entre "começar uma troca" e
+ * "continuar a que está aberta" antes de desenhar qualquer coisa.
+ */
+export async function getOpenTrade(
+  prisma: PrismaClient,
+  user: AuthenticatedUser,
+): Promise<OpenTrade | null> {
+  const participacoes = await prisma.tradeParticipant.findMany({
+    where: {
+      userId: user.id,
+      trade: { status: { in: ['DRAFT', 'PROPOSED', 'NEGOTIATING', 'CONFIRMED'] } },
+    },
+    select: {
+      reviewRequestedAt: true,
+      trade: {
+        select: {
+          id: true,
+          status: true,
+          inviteToken: true,
+          participants: { select: { userId: true, user: { select: { name: true } } } },
+        },
+      },
+    },
+    orderBy: { id: 'desc' },
+  })
+  if (participacoes.length === 0) return null
+
+  const escolhida =
+    participacoes.find((p) => p.trade.status !== 'DRAFT') ?? participacoes[0]
+  const outro = escolhida.trade.participants.find((p) => p.userId !== user.id)
+
+  return {
+    tradeId: String(escolhida.trade.id),
+    status: escolhida.trade.status as TradeStatus,
+    otherName: outro?.user.name ?? null,
+    inviteToken: escolhida.trade.inviteToken,
+    reviewRequested: escolhida.reviewRequestedAt !== null,
   }
 }

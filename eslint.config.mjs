@@ -56,10 +56,32 @@ const layerBoundaries = [
   },
 ];
 
+/**
+ * O prefixo `_` num argumento significa "a assinatura exige, o corpo nao usa".
+ *
+ * E o caso das Server Actions: `useActionState` sempre chama com
+ * `(estadoAnterior, formData)`, e nem toda acao precisa dos dois. O codigo ja
+ * usava a convencao; sem esta regra ela valia so quando o argumento nao usado
+ * vinha antes de um usado, o que e uma sutileza do `after-used` que ninguem
+ * deveria precisar ter na cabeca.
+ */
+const argumentosIntencionalmenteIgnorados = [
+  {
+    files: ["**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrors: "all" },
+      ],
+    },
+  },
+];
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   ...layerBoundaries,
+  ...argumentosIntencionalmenteIgnorados,
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
