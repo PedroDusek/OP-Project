@@ -339,6 +339,52 @@ e regerado.
 A página pública expõe **somente** aquele Trade Binder. Nunca expõe a coleção,
 outros armazenamentos, decks, wants ou qualquer dado pessoal.
 
+### 6.1.1 Nome de usuário
+
+Cada pessoa escolhe um **nome de usuário**, único em toda a rede. É a única
+identidade que outros usuários veem: nome real e e-mail permanecem invisíveis.
+
+Pode ser alterado **uma vez por semana**. O limite existe porque o nome é como
+as pessoas se reconhecem entre trocas; trocar à vontade permitiria assumir a
+aparência de outra pessoa logo depois de ela mudar, e apagaria o rastro de quem
+se comportou mal.
+
+### 6.1.2 A rede: o que é visível, e para quem
+
+Um usuário autenticado vê, de qualquer outro:
+
+- o **nome de usuário**;
+- o **Trade Binder**.
+
+E nada mais. A **want list é pessoal e nunca aparece** — ela diz o que a pessoa
+não tem, que é informação sobre ela, e não sobre o que ela oferece.
+
+**O Trade Binder é visível obrigatoriamente**, sem opção de desligar. Estar nele
+já significa disponível para troca (regra 4.2); esconder de quem poderia trocar
+seria disponibilizar para ninguém. Quem não quer aparecer tira as cartas do
+local de troca — o mesmo gesto que já governa o que está disponível.
+
+### 6.1.3 Ordem em que as pessoas aparecem
+
+1. **Assinantes Premium primeiro.** É a vantagem do plano: mais visibilidade
+   para negociar.
+2. **Desempate: quantas cartas do binder interessam a quem está olhando** — a
+   interseção com a want list de quem consulta.
+
+Buscar por uma carta devolve **as pessoas que a têm no Trade Binder**, na mesma
+apresentação. Sem ninguém, a tela diz que ninguém na rede tem aquela carta
+disponível — e não devolve uma lista vazia sem explicação.
+
+### 6.1.4 Bloquear e denunciar
+
+Qualquer usuário pode **bloquear** outro. Quem está bloqueado não aparece na
+rede para quem bloqueou, e não consegue iniciar conversa com ele. A lista de
+bloqueados fica nas configurações da conta, com desbloquear ao lado de cada
+nome.
+
+Qualquer usuário pode **denunciar** outro. As denúncias chegam a um endereço
+próprio do domínio; o que se faz com elas é processo, e não produto.
+
 ### 6.2 Autorização
 
 Toda requisição é autorizada no servidor contra o usuário autenticado. Um

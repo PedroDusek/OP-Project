@@ -3465,3 +3465,158 @@ que só se pergunta quando há escolha real. É o passo seguinte.
 ## Data
 
 2026-09-09
+
+---
+
+# Decisão: 060 — A rede: identidade, visibilidade e exposição
+
+## Contexto
+
+O dono do produto propôs uma aba Social: nome de usuário público, ver o que
+outras pessoas têm para troca, buscar por carta. As perguntas foram organizadas
+e respondidas por ele.
+
+Isto **muda a regra 6.1**, que reservava a publicação do Trade Binder ao
+Premium, com token explícito. Fica registrado como mudança, e não como
+acréscimo.
+
+## Decisão 1 — nome de usuário, único e trocável uma vez por semana
+
+Escolhido pela pessoa, único em toda a rede. É a **única** identidade que outros
+veem: nome real e e-mail continuam invisíveis.
+
+O limite de uma troca por semana não é anti-abuso genérico: o nome é como as
+pessoas se reconhecem entre trocas. Trocar à vontade permitiria assumir a
+aparência de alguém logo depois de ela mudar, e apagaria o rastro de quem se
+comportou mal.
+
+**Escolher pela primeira vez não gasta a cota.** Cobrar uma semana de espera de
+quem acabou de chegar — e talvez errou uma letra — seria punir o começo.
+
+### As regras de forma, e o que cada uma fecha
+
+Um alfabeto só: letras latinas, números, ponto e sublinhado. `pedrо` com um `о`
+cirílico é indistinguível de `pedro` na tela e seria outra conta — o ataque mais
+barato que existe contra identidade escrita.
+
+Comparação sem caixa, porque quem lê não distingue `Pedro` de `pedro` com
+confiança. O banco guarda a forma minúscula, e um `CHECK` garante isso mesmo por
+caminho que não passe pela aplicação.
+
+Nem começa nem termina em separador, e não repete separador. E uma lista curta
+de nomes reservados: um usuário chamado `suporte` pode pedir senha a estranhos e
+ser acreditado.
+
+**A unicidade é do índice do banco, não de uma consulta antes de gravar.** Duas
+pessoas pedindo o mesmo nome ao mesmo tempo passariam as duas pela consulta.
+
+## Decisão 2 — o Trade Binder é visível obrigatoriamente
+
+Sem opção de desligar. Estar nele já significa disponível para troca (regra
+4.2); esconder de quem poderia trocar seria disponibilizar para ninguém.
+
+**Quem não quer aparecer tira as cartas do local de troca** — o mesmo gesto que
+já governa o que está disponível. Vale dizer isso em voz alta na interface: sem
+um botão de "sair da rede", a saída existe mas não é óbvia.
+
+**A want list não aparece.** Ela diz o que a pessoa *não tem*, que é informação
+sobre ela, e não sobre o que ela oferece.
+
+## Decisão 3 — Premium primeiro, e o desempate é interesse
+
+A ordem em que as pessoas aparecem:
+
+1. Assinantes Premium.
+2. Desempate: quantas cartas do binder interessam a quem está olhando.
+
+É a vantagem do plano, e ela substitui a que a decisão 008 dava — o Trade Binder
+público deixou de ser diferencial quando todo binder passou a ser visível.
+
+Buscar por carta devolve as pessoas que a têm, na mesma apresentação. Sem
+ninguém, a tela diz que ninguém na rede tem aquela carta — e não devolve uma
+lista vazia sem explicação.
+
+### O custo do desempate, medido antes de prometer
+
+A interseção sai de uma consulta só, indexada por `card_variant_id`:
+
+```
+want_items (meus) ⋈ collection_items ⋈ collection_item_locations
+  ⋈ storage_locations com purpose 'TRADE'
+GROUP BY dono
+```
+
+O custo cresce com o tamanho da minha want list vezes o número de cópias
+daqueles códigos na rede. É indexável e paginável, mas **não é constante**: numa
+rede grande, com uma want list de duzentas cartas populares, vira a consulta
+mais cara do produto. Fica registrado para ser medida antes de ir ao ar, e não
+depois.
+
+## Decisão 4 — bloquear e denunciar
+
+Bloquear: quem está bloqueado não aparece na rede para quem bloqueou, e não
+consegue iniciar conversa. A lista fica nas configurações da conta, com
+desbloquear ao lado de cada nome.
+
+Denunciar: as denúncias vão para um endereço próprio do domínio. O tratamento
+delas é processo, e o dono do produto tratará em separado.
+
+**Sem telefone.** A conversa acontece na plataforma, então não há motivo para
+pedir nem exibir número — e era o único dado sensível de terceiro que o desenho
+original exporia.
+
+## Decisão 5 — a exposição, que é o que me foi delegado
+
+O dono do produto pediu a avaliação técnica. Ela é esta.
+
+### O que a rede passa a expor
+
+O inventário de troca de **toda** a base, indexado por carta, com um nome para
+cada pessoa. É uma mudança de natureza: até aqui, todo dado de usuário era
+privado por padrão.
+
+### Os três riscos, do mais provável ao mais grave
+
+**Raspagem do inventário.** Alguém percorre a rede e monta uma cópia de quem tem
+o quê. É o mais fácil e o menos danoso — o dado é público por decisão.
+
+**Busca de alvo.** Procurar uma carta cara devolve **a lista de quem a tem**.
+Junto com o chat, é um canal pronto para golpe dirigido: a pessoa certa, com a
+carta certa, abordada por quem sabe o que ela tem. Este é o risco que o desenho
+cria e que não existia antes.
+
+**Enumeração de nomes.** Nomes únicos e públicos formam um diretório. É inerente
+ao desenho, e o preço de ter identidade.
+
+### As contenções que recomendo, e por quê
+
+1. **A rede exige sessão.** É o controle mais forte: sem conta, não há raspagem.
+   Com conta, há uma pessoa a bloquear e denunciar.
+2. **Cota por usuário na listagem e na busca**, com o limitador que já existe.
+   Ele conta na memória do processo — com mais de uma instância, o limite
+   efetivo é o limite vezes o número de instâncias. Isso segura abuso acidental
+   e script ingênuo; **não segura alguém determinado**, e isso precisa estar
+   escrito.
+3. **Profundidade máxima de paginação.** Sem teto, paginar é raspar devagar.
+4. **A cota da busca é mais apertada que a da listagem.** Buscar é o gesto que
+   endereça uma carta específica, e é o que serve à busca de alvo.
+
+### O que eu não recomendo esconder
+
+Quantidades. Saber que alguém tem três de uma carta é o que torna a troca
+possível de propor, e esconder isso quebra o produto para conter um risco que as
+cotas contêm melhor.
+
+## O que fica para o dono do produto
+
+Termos de Uso e Política de Privacidade **precisam** cobrir a exposição antes de
+a rede ir ao ar, e hoje não existem — já é bloqueio de lançamento. Ele informou
+que está contratando advogada e que pedirá uma revisão técnica das
+implementações perto do fim.
+
+Idade mínima não foi definida. Expor perfil de menor de idade a estranhos é
+assunto sério sob a LGPD, e é a pergunta que sobrou desta rodada.
+
+## Data
+
+2026-09-09
