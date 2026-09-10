@@ -355,12 +355,27 @@ unitários, o total de cada lado e a diferença. O valor é indicativo.
 
 ### 6.1 Trade Binder público
 
-Um usuário Premium pode publicar um Trade Binder em `/trade/<token>`. O token é
+Um usuário pode publicar o seu Trade Binder em `/trade/<token>`. O token é
 aleatório, não sequencial, nunca derivado de um id interno, e pode ser revogado
-e regerado.
+e regerado. Regerar derruba o link anterior.
 
-A página pública expõe **somente** aquele Trade Binder. Nunca expõe a coleção,
-outros armazenamentos, decks, wants ou qualquer dado pessoal.
+**O que se publica é o conjunto** (decisão 064): todas as cópias em locais de
+finalidade `TRADE` aparecem somadas, como uma coleção só. A divisão entre binder
+e caixa é organização de quem guarda, e não diz nada a quem abre o link
+procurando uma carta. Por isso o token é da pessoa, e não do local — isto
+**altera a decisão 008**.
+
+Publicar exige **nome de usuário**, porque é ele que a página mostra (6.1.1).
+
+A página pública expõe **somente** o nome de usuário e aquele Trade Binder.
+Nunca expõe a coleção, outros armazenamentos, decks, wants, nome real, e-mail,
+nem quantas cópias a pessoa possui ao todo. Token inexistente e token revogado
+dão a mesma resposta.
+
+A regra reserva o recurso ao **Premium**. A trava está pendente por decisão do
+dono do produto (064): não existe caminho para alguém virar Premium enquanto não
+houver pagamento, e gatear antes entregaria um recurso inalcançável. Quando o
+pagamento existir, a trava entra em `publishTradeBinder`.
 
 ### 6.1.1 Nome de usuário
 

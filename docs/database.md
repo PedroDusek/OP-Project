@@ -61,14 +61,34 @@ serializa `BigInt`: toda resposta de API precisa converter id para string. Isso
 | `name` | varchar(100) | not null |
 | `email` | varchar(255) | not null, **único** |
 | `auth_user_id` | varchar(64) | nulo permitido, **único** |
+| `username` | varchar(20) | nulo permitido, **único** |
+| `username_changed_at` | timestamptz | nulo permitido |
+| `trade_binder_token` | varchar(64) | nulo permitido, **único** |
+| `trade_binder_token_created_at` | timestamptz | nulo permitido |
 | `plan` | varchar(20) | not null, default `FREE`, check em (`FREE`, `PREMIUM`) |
 | `trial_started_at` | timestamptz | nulo permitido |
 | `premium_until` | timestamptz | nulo permitido |
 | `deleted_at` | timestamptz | nulo permitido |
 | `created_at` / `updated_at` | timestamptz | not null |
 
+```sql
+CHECK ((trade_binder_token IS NULL) = (trade_binder_token_created_at IS NULL))
+```
+
 `plan`, `trial_started_at` e `premium_until` são a adição aprovada na decisão
 009. `deleted_at` é a adição aprovada na decisão 015.
+
+`username` e `username_changed_at` são a adição da decisão 060. O nome é
+guardado **em minúsculas**: é sobre essa forma que a unicidade vale, e guardar
+como a pessoa digitou criaria dois nomes que o banco aceita e o olho não
+distingue. Anulável porque a conta existe antes de a pessoa escolher.
+
+`trade_binder_token` e `trade_binder_token_created_at` são a adição da decisão
+064, que **altera a 008**: o token do Trade Binder público passou de
+`storage_locations` para cá, porque o que se publica é o **conjunto** de tudo o
+que está em local de troca, e não um móvel. O `CHECK` obriga os dois a andarem
+juntos — publicar grava ambos, revogar apaga ambos, e divergirem produziria
+"publicado em <nada>" ou uma data sem link.
 
 Não existe coluna de senha. A credencial vive no provedor de autenticação
 (decisão 025) e nunca chega ao nosso banco; `auth_user_id` apenas amarra a conta
@@ -205,8 +225,6 @@ Quantidade zero é representada pela ausência da linha, o que mantém "cartas
 | `image` | varchar(500) | nulo permitido |
 | `type` | varchar(20) | not null, check em (`BINDER`, `BOX`, `DECK`) |
 | `purpose` | varchar(20) | nulo permitido, check em (`COLLECTION`, `TRADE`) |
-| `public_token` | varchar(64) | nulo permitido, **único** |
-| `public_token_created_at` | timestamptz | nulo permitido |
 | `created_at` / `updated_at` | timestamptz | not null |
 
 `description` é a adição aprovada no Checkpoint 10: as telas 22 e 24 mostram o
@@ -217,13 +235,16 @@ jeitos de dizer "não tem".
 `image` guarda **URL**, e não bytes. O arquivo vive no Supabase Storage, num
 bucket público para leitura, sob um prefixo por usuário (decisão 042).
 
-`public_token` e `public_token_created_at` são a adição aprovada na decisão 008.
-Revogar define o token como `NULL`; regerar grava outro valor aleatório.
+O token do Trade Binder público **não mora mais aqui**. A decisão 008 o colocava
+nesta tabela; a 064 o moveu para `users`, porque o que se publica é o conjunto de
+tudo o que está em local de troca, e não um móvel. As duas colunas foram
+removidas na migration `trade_binder_publico` — nunca chegaram a ser usadas por
+linha nenhuma de código.
 
-O índice único é simples, não parcial: no PostgreSQL um índice único trata cada
-`NULL` como distinto, então qualquer número de armazenamentos sem token convive
-sem conflito. Um índice parcial só economizaria espaço, ao custo de sair do
-controle do Prisma.
+O índice único sobre o token, agora em `users`, é simples e não parcial: no
+PostgreSQL um índice único trata cada `NULL` como distinto, então qualquer número
+de contas sem token convive sem conflito. Um índice parcial só economizaria
+espaço, ao custo de sair do controle do Prisma.
 
 A combinação de tipo e propósito é imposta por um check de tabela:
 
@@ -530,7 +551,8 @@ seja rápida.
 | `collection_item_locations (collection_item_id, storage_location_id)` único | consulta de alocação e regra de unicidade |
 | `collection_item_locations (storage_location_id)` | listar o conteúdo de um armazenamento |
 | `storage_locations (user_id)` | listar armazenamentos do usuário |
-| `storage_locations (public_token)` único | busca do Trade Binder público |
+| `users (trade_binder_token)` único | busca do Trade Binder público (decisão 064) |
+| `users (username)` único | identidade na rede (decisão 060) |
 | `want_items (user_id, card_variant_id)` único | consulta de want |
 | `want_items (card_variant_id)` | matching, pelo lado da disponibilidade |
 | `card_prices (card_variant_id, captured_at)` único | uma captura por instante; serve o preço atual varrido para trás |

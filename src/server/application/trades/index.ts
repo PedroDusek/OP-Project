@@ -21,6 +21,12 @@ import {
   withdrawExchange as withdrawExchangeWith,
   type OriginChoice,
 } from './complete-trade'
+import {
+  getTradeBinderShare as getTradeBinderShareWith,
+  publishTradeBinder as publishTradeBinderWith,
+  readPublicTradeBinder as readPublicTradeBinderWith,
+  revokeTradeBinder as revokeTradeBinderWith,
+} from './public-binder'
 
 /**
  * Ponto de composicao dos casos de uso de troca.
@@ -76,7 +82,33 @@ export function withdrawExchange(user: AuthenticatedUser, tradeId: bigint) {
   return withdrawExchangeWith(prisma, user, tradeId)
 }
 
+export function getTradeBinderShare(user: AuthenticatedUser) {
+  return getTradeBinderShareWith(prisma, user)
+}
+
+export function publishTradeBinder(user: AuthenticatedUser) {
+  return publishTradeBinderWith(prisma, user)
+}
+
+export function revokeTradeBinder(user: AuthenticatedUser) {
+  return revokeTradeBinderWith(prisma, user)
+}
+
+/**
+ * Le um Trade Binder publicado. **Sem usuario**, de proposito: a pagina e
+ * publica, e quem tem o link entra (regra 6.1).
+ */
+export function readPublicTradeBinder(token: string) {
+  return readPublicTradeBinderWith(prisma, token)
+}
+
 export { countCopies } from './read-trade-binder'
+export { USERNAME_REQUIRED } from './public-binder'
+export type {
+  PublicBinder,
+  PublicBinderCard,
+  TradeBinderShare,
+} from './public-binder'
 export { ORIGIN_CHOICE_REQUIRED } from './complete-trade'
 export type { TradeBinderCard } from './read-trade-binder'
 export type { StartedTrade } from './start-trade'

@@ -50,3 +50,18 @@ export type ExchangeState =
   | { status: 'error'; message: string }
 
 export const EXCHANGE_IDLE: ExchangeState = { status: 'idle' }
+
+/**
+ * O estado de publicar ou revogar o Trade Binder.
+ *
+ * `published` carrega o token porque a tela precisa montar o link logo depois,
+ * sem uma segunda ida ao servidor — e porque publicar sem mostrar o link
+ * deixaria a pessoa com um endereco que ela nao sabe qual e.
+ */
+export type ShareState =
+  | { status: 'idle' }
+  | { status: 'published'; token: string }
+  | { status: 'revoked' }
+  | { status: 'error'; message: string }
+
+export const SHARE_IDLE: ShareState = { status: 'idle' }

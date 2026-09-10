@@ -5,6 +5,8 @@ import {
   cancelTrade,
   confirmTrade,
   joinTrade,
+  publishTradeBinder,
+  revokeTradeBinder,
   markExchange,
   ORIGIN_CHOICE_REQUIRED,
   setOfferItem,
@@ -15,7 +17,7 @@ import {
 import type { OriginChoice, OriginQuestion } from '@/server/application/trades'
 import { ConflictError, isAppError } from '@/server/domain/errors'
 import { currentViewer } from '@/server/http/viewer'
-import type { ExchangeState, StartTradeState, TradeActionState } from './state'
+import type { ExchangeState, ShareState, StartTradeState, TradeActionState } from './state'
 
 /**
  * As acoes da negociacao.
@@ -246,6 +248,47 @@ async function comATroca(
     revalidatePath('/trocas')
     revalidatePath(`/trocas/${tradeId}`)
     return { status: 'done' }
+  } catch (error) {
+    if (isAppError(error)) return { status: 'error', message: error.message }
+    throw error
+  }
+}
+
+/**
+ * Publica o Trade Binder, ou troca o link por um novo.
+ *
+ * Camada: `app`. Le a sessao, chama **um** caso de uso e traduz o resultado. O
+ * token nasce no servidor e nunca vem do formulario — um token escolhido por
+ * quem chama seria adivinhavel por quem quisesse.
+ */
+export async function publishTradeBinderAction(
+  _previous: ShareState,
+  _data: FormData,
+): Promise<ShareState> {
+  const viewer = await currentViewer()
+  if (!viewer) return { status: 'error', message: SESSAO_EXPIRADA }
+
+  try {
+    const { token } = await publishTradeBinder(viewer)
+    revalidatePath('/trocas')
+    return { status: 'published', token: token ?? '' }
+  } catch (error) {
+    if (isAppError(error)) return { status: 'error', message: error.message }
+    throw error
+  }
+}
+
+export async function revokeTradeBinderAction(
+  _previous: ShareState,
+  _data: FormData,
+): Promise<ShareState> {
+  const viewer = await currentViewer()
+  if (!viewer) return { status: 'error', message: SESSAO_EXPIRADA }
+
+  try {
+    await revokeTradeBinder(viewer)
+    revalidatePath('/trocas')
+    return { status: 'revoked' }
   } catch (error) {
     if (isAppError(error)) return { status: 'error', message: error.message }
     throw error
