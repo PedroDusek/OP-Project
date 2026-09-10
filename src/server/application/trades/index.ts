@@ -1,7 +1,10 @@
 import { prisma } from '@/server/infrastructure/prisma'
 import type { AuthenticatedUser } from '@/server/application/auth'
 import { listTradeBinder as listTradeBinderWith } from './read-trade-binder'
-import { getTrade as getTradeWith } from './read-trade'
+import {
+  getOpenTrade as getOpenTradeWith,
+  getTrade as getTradeWith,
+} from './read-trade'
 import {
   joinTrade as joinTradeWith,
   startTrade as startTradeWith,
@@ -32,6 +35,10 @@ export function joinTrade(user: AuthenticatedUser, inviteToken: string) {
   return joinTradeWith(prisma, user, inviteToken)
 }
 
+export function getOpenTrade(user: AuthenticatedUser) {
+  return getOpenTradeWith(prisma, user)
+}
+
 export function getTrade(user: AuthenticatedUser, tradeId: bigint) {
   return getTradeWith(prisma, user, tradeId)
 }
@@ -56,4 +63,4 @@ export { countCopies } from './read-trade-binder'
 export type { TradeBinderCard } from './read-trade-binder'
 export type { StartedTrade } from './start-trade'
 export type { OfferChange } from './edit-offer'
-export type { TradeView, TradeSideView, TradeCardOffer } from './read-trade'
+export type { TradeView, TradeSideView, TradeCardOffer, OpenTrade } from './read-trade'
