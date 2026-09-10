@@ -1,7 +1,7 @@
 import { execFileSync, spawn } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:net'
-import { networkInterfaces } from 'node:os'
+import { hostname, networkInterfaces } from 'node:os'
 import { join } from 'node:path'
 
 /**
@@ -55,8 +55,24 @@ function enderecosLocais(): string[] {
   return [...achados].sort()
 }
 
+/**
+ * O nome mDNS desta máquina, que o iPhone resolve sozinho.
+ *
+ * O Safari lida muito melhor com nome do que com IP nu, e o iOS resolve `.local`
+ * nativamente por Bonjour, sem configurar nada. O `next.config.ts` já aceita
+ * `*.local` em `allowedDevOrigins` — este caminho estava previsto.
+ */
+function nomeLocal(): string {
+  return `${hostname().replace(/\.local$/i, '')}.local`
+}
+
 function nomesAlternativos(ips: readonly string[]): string {
-  const entradas = ['DNS:localhost', 'IP:127.0.0.1', ...ips.map((ip) => `IP:${ip}`)]
+  const entradas = [
+    'DNS:localhost',
+    `DNS:${nomeLocal()}`,
+    'IP:127.0.0.1',
+    ...ips.map((ip) => `IP:${ip}`),
+  ]
   return entradas.join(',')
 }
 
@@ -68,7 +84,7 @@ function nomesAlternativos(ips: readonly string[]): string {
  * a ninguém — nem a quem desenvolve.
  */
 function garantirCertificado(ips: readonly string[]): void {
-  const alternativos = nomesAlternativos(ips)
+  const alternativos = `v2 ${nomesAlternativos(ips)}`
 
   const atual =
     existsSync(CHAVE) && existsSync(CERTIFICADO) && existsSync(REGISTRO)
@@ -83,18 +99,31 @@ function garantirCertificado(ips: readonly string[]): void {
   mkdirSync(PASTA, { recursive: true })
   console.log(`[dev:https] gerando certificado para ${alternativos}`)
 
+  /*
+   * As extensoes nao sao enfeite: sem `extendedKeyUsage=serverAuth` o iOS
+   * **recusa por politica** desde a versao 13, e nesse caso o Safari nem oferece
+   * o "visitar mesmo assim" — a pagina simplesmente nao abre, sem dizer por que.
+   *
+   * O resto tambem sai das exigencias da Apple para certificado de servidor:
+   * RSA de 2048 ou mais, SHA-256, validade curta (o teto la e 825 dias) e nome
+   * alternativo preenchido. Faltando qualquer uma, o desfecho e o mesmo.
+   */
   execFileSync(
     'openssl',
     [
       'req',
       '-x509',
       '-newkey', 'rsa:2048',
+      '-sha256',
       '-nodes',
       '-keyout', CHAVE,
       '-out', CERTIFICADO,
       '-days', '365',
       '-subj', '/CN=ColeXa desenvolvimento',
-      '-addext', `subjectAltName=${alternativos}`,
+      '-addext', `subjectAltName=${nomesAlternativos(ips)}`,
+      '-addext', 'basicConstraints=critical,CA:true',
+      '-addext', 'keyUsage=critical,digitalSignature,keyCertSign,keyEncipherment',
+      '-addext', 'extendedKeyUsage=serverAuth',
     ],
     { stdio: 'inherit' },
   )
@@ -140,15 +169,23 @@ async function main(): Promise<void> {
   garantirCertificado(ips)
 
   console.log('')
-  console.log('[dev:https] no celular, abra um destes e siga o aviso do Safari:')
+  console.log('[dev:https] no celular, abra e siga o aviso do Safari:')
+  console.log(`             https://${nomeLocal()}:${porta}`)
   for (const ip of ips) console.log(`             https://${ip}:${porta}`)
   console.log('')
 
+  /*
+   * `--experimental-https` vai junto, e nao e redundante: sozinhos, `-key` e
+   * `-cert` nao ligam o HTTPS. O servidor sobe em `http://` sem reclamar de
+   * nada, e o unico sinal e a linha "Local: http://" no meio do log — que e
+   * facil de ler por cima quando se esta esperando o endereco.
+   */
   const next = spawn(
     'npx',
     [
       'next',
       'dev',
+      '--experimental-https',
       '--experimental-https-key', CHAVE,
       '--experimental-https-cert', CERTIFICADO,
     ],
