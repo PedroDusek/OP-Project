@@ -11,6 +11,7 @@ import type {
   KnownCardNames,
   PriceProvider,
   SourceArtProduct,
+  SourceCommonArt,
   SourcePrice,
 } from '@/server/http/price-provider'
 import { createVariant, disconnect, resetDatabase, testPrisma } from '../helpers'
@@ -32,6 +33,7 @@ function fakeProvider(
   prices: SourcePrice[],
   sourceUpdatedAt: Date | null = null,
   arts: SourceArtProduct[] = [],
+  commonArts: SourceCommonArt[] = [],
 ) {
   const recebido: KnownCardNames[] = []
 
@@ -39,7 +41,7 @@ function fakeProvider(
     name: 'falsa',
     fetchSnapshot: async (knownNames) => {
       recebido.push(knownNames)
-      return { prices, arts, sourceUpdatedAt }
+      return { prices, arts, commonArts, sourceUpdatedAt }
     },
   }
 

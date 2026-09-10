@@ -5,6 +5,7 @@ import type {
   PriceProvider,
   PriceSnapshot,
   SourceArtProduct,
+  SourceCommonArt,
   SourcePrice,
 } from '@/server/http/price-provider'
 
@@ -97,6 +98,7 @@ export class TcgCsvPriceProvider implements PriceProvider {
     const sourceUpdatedAt = await this.sourceUpdatedAt()
     const groups = await this.get<{ results: Group[] }>(`${BASE}/${CATEGORY_ID}/groups`)
     const prices = new Map<string, SourcePrice>()
+    const commonArts = new Map<string, SourceCommonArt>()
     const arts = new Map<string, SourceArtProduct>()
 
     for (const group of groups.results) {
@@ -110,6 +112,15 @@ export class TcgCsvPriceProvider implements PriceProvider {
       const common = commonArtByNumber(cards, knownNames)
 
       for (const [number, product] of common) {
+        /*
+         * A arte comum entra aqui tenha preço ou não: sem cotação ela ainda
+         * serve de referência de imagem, e o primeiro grupo que a identifica
+         * manda, como no preço.
+         */
+        if (!commonArts.has(number)) {
+          commonArts.set(number, { cardCode: number, productId: String(product.productId) })
+        }
+
         const value = market.get(product.productId)
         if (value === undefined) continue
 
@@ -150,10 +161,15 @@ export class TcgCsvPriceProvider implements PriceProvider {
     }
 
     this.logger.info(
-      `[precos] ${prices.size} artes comuns com preço e ${arts.size} outras artes ` +
-        `em ${groups.results.length} grupos`,
+      `[precos] ${commonArts.size} artes comuns (${prices.size} com preço) e ` +
+        `${arts.size} outras artes em ${groups.results.length} grupos`,
     )
-    return { prices: [...prices.values()], arts: [...arts.values()], sourceUpdatedAt }
+    return {
+      prices: [...prices.values()],
+      commonArts: [...commonArts.values()],
+      arts: [...arts.values()],
+      sourceUpdatedAt,
+    }
   }
 
   /**

@@ -5,6 +5,7 @@ import { getMarketPrice } from '@/server/application/prices/read-prices'
 import type {
   PriceProvider,
   SourceArtProduct,
+  SourceCommonArt,
   SourcePrice,
 } from '@/server/http/price-provider'
 import { createVariant, disconnect, resetDatabase, testPrisma } from '../helpers'
@@ -23,10 +24,14 @@ import { createVariant, disconnect, resetDatabase, testPrisma } from '../helpers
 
 const silent = { info: () => {}, warn: () => {} }
 
-function fonte(arts: SourceArtProduct[], prices: SourcePrice[] = []): PriceProvider {
+function fonte(
+  arts: SourceArtProduct[],
+  prices: SourcePrice[] = [],
+  commonArts: SourceCommonArt[] = [],
+): PriceProvider {
   return {
     name: 'falsa',
-    fetchSnapshot: async () => ({ prices, arts, sourceUpdatedAt: null }),
+    fetchSnapshot: async () => ({ prices, arts, commonArts, sourceUpdatedAt: null }),
   }
 }
 

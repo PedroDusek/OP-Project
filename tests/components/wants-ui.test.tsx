@@ -41,6 +41,7 @@ const want = (overrides: Partial<WantView> = {}): WantView => ({
   rarity: 'SR',
   variantType: 'Normal',
   imageUrl: null,
+  sheetImageUrl: null,
   wanted: 4,
   owned: 1,
   remaining: 3,

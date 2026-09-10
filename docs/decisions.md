@@ -3290,3 +3290,84 @@ da especificação permite: forma própria da marca, nunca arte de franquia.
 ## Data
 
 2026-09-09
+
+---
+
+# Decisão: 058 — A folha em JPEG, e a segunda origem de imagem
+
+## Contexto
+
+O dono do produto pediu a folha da want list como imagem em vez de PDF — imagem
+se manda em grupo sem ninguém abrir nada.
+
+A resposta imediata era "não dá": desenhar num `canvas` uma imagem servida sem
+`Access-Control-Allow-Origin` contamina o canvas, e o `toBlob` passa a falhar.
+Não é limitação de biblioteca, é o navegador impedindo. E servir as imagens pelo
+nosso domínio é o que a decisão 026 proíbe.
+
+**A resposta estava errada por um teste mal feito.** A primeira verificação
+consultou os cabeçalhos **sem mandar `Origin`**, e muitos servidores só
+respondem CORS quando ele vem. Refeito com `Origin`: a Bandai continua sem
+mandar nada — mas o CDN do TCGplayer manda `Access-Control-Allow-Origin: *`.
+
+## Decisão 1 — a folha usa a imagem da fonte de preço
+
+É a única referência de imagem que autoriza leitura cruzada. Verificado de
+ponta a ponta no navegador: carrega com `crossOrigin`, desenha, e o `toBlob`
+devolve um JPEG de verdade. O canvas não contamina.
+
+A imagem **continua sendo referência, nunca cópia** — pedido explícito do dono
+do produto. O que o banco guarda é o número do produto; a imagem é buscada pelo
+aparelho de quem usa, direto da origem, e nunca passa pelo nosso servidor. A
+mesma regra que já vale para a da Bandai.
+
+O nome da URL diz `1000x1000` e o que ela entrega é **600×838** — medido, não
+suposto. Serve para a folha.
+
+## Decisão 2 — a arte comum passou a ser vinculada
+
+A decisão 053 deixou a arte comum de fora do vínculo: o preço dela é derivado
+por regra a cada importação, e materializar o derivável cria uma segunda
+verdade.
+
+O motivo mudou. A folha precisa do id do produto **na hora de desenhar**, no
+navegador, e ali não dá para rodar a regra — ela exige ler os 87 arquivos da
+fonte. O vínculo deixou de ser atalho de preço e virou referência de imagem.
+
+Cobertura depois de vincular: **3.175 das 4.431 variantes (71,7%)**, e
+**2.697 das 2.785 artes comuns (96,8%)** — que é o que a maioria de uma want
+list é.
+
+## Decisão 3 — carta sem vínculo não some da folha
+
+Entra com o código no lugar da arte, e a tela diz quantas serão assim antes de
+gerar. Sumir seria pior: a pessoa levaria ao grupo uma lista incompleta sem
+saber, e é a lista inteira que faz a folha valer a ida.
+
+## Decisão 4 — canvas à mão, sem biblioteca
+
+Nós desenhamos o layout: é uma grade de cartas com um número em cima. Uma
+biblioteca de "HTML para imagem" existe para o caso oposto — capturar um DOM que
+você não desenhou — e traria um pacote grande, um passo de clonagem de estilos e
+um resultado que muda quando o CSS muda.
+
+`crossOrigin = 'anonymous'` é obrigatório em cada imagem. Sem ele o navegador
+carrega e **contamina em silêncio**: a falha só apareceria no `toBlob`, longe da
+causa.
+
+## Decisão 5 — imprimir continua, e não é redundância
+
+São saídas diferentes. O JPEG baixa direto e usa a imagem da fonte de preço, que
+falta em 3,2% das artes comuns. A impressão usa a do catálogo, que existe para
+**todas** — e o preço dela é passar pelo diálogo.
+
+## O risco que o dono do produto assumiu
+
+Usar o CDN de imagens do TCGplayer. Já dependíamos deles para **dados** de preço
+via tcgcsv (decisão 050); usar as **imagens** é um passo diferente, e os termos
+deles sobre isso não foram lidos. Foi apresentado como risco e aceito, do mesmo
+jeito que a decisão 020 foi.
+
+## Data
+
+2026-09-09

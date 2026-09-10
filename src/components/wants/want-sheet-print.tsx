@@ -1,14 +1,28 @@
 'use client'
 
-import { Printer } from 'lucide-react'
+import { useState } from 'react'
+import { Download, Printer } from 'lucide-react'
 import { CardArt } from '@/components/catalog/card-art'
 import { Logotype, Symbol } from '@/components/brand/logo'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/states'
+import { useToast } from '@/components/ui/toast'
+import { renderWantSheet } from '@/lib/want-sheet-image'
 import type { WantView } from '@/server/application/wants'
 
 /**
  * A want list em folha, para virar PDF.
+ *
+ * ## Duas saídas, e elas servem a coisas diferentes
+ *
+ * **JPEG** é o caminho normal: baixa direto, e imagem se manda em grupo sem
+ * ninguém precisar abrir nada. Ele é desenhado aqui no aparelho, com as
+ * imagens da fonte de preço — as únicas que o navegador deixa exportar
+ * (decisão 058).
+ *
+ * **Imprimir** continua, e não é redundância: a folha impressa usa as imagens
+ * do catálogo, que existem para **todas** as cartas. No JPEG, quem ainda não
+ * tem vínculo com a fonte de preço sai com o código no lugar da arte.
  *
  * ## Por que impressão do navegador, e não um PDF gerado por nós
  *
@@ -36,8 +50,48 @@ import type { WantView } from '@/server/application/wants'
  * 4% some no papel.
  */
 export function WantSheetPrint({ wants }: { wants: WantView[] }) {
+  const [gerando, setGerando] = useState(false)
+  const { toast } = useToast()
+
   const faltando = wants.filter((want) => want.status !== 'satisfied')
   const copias = faltando.reduce((total, want) => total + want.remaining, 0)
+  const semArte = faltando.filter((want) => want.sheetImageUrl === null).length
+
+  /**
+   * Desenha e entrega o arquivo.
+   *
+   * O `<a download>` é criado e descartado na hora: um link permanente na tela
+   * precisaria de um endereço válido antes de alguém pedir a imagem, e gerar a
+   * folha inteira só para o caso de talvez clicarem é trabalho jogado fora.
+   */
+  const baixar = async () => {
+    setGerando(true)
+    try {
+      const blob = await renderWantSheet(
+        faltando.map((want) => ({
+          cardCode: want.cardCode,
+          cardName: want.cardName,
+          sheetImageUrl: want.sheetImageUrl,
+          remaining: want.remaining,
+        })),
+      )
+
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'want-list-colexa.jpg'
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      toast({
+        title: 'Não foi possível gerar a imagem',
+        description: error instanceof Error ? error.message : 'Tente imprimir a folha.',
+        tone: 'error',
+      })
+    } finally {
+      setGerando(false)
+    }
+  }
 
   if (faltando.length === 0) {
     return (
@@ -55,14 +109,21 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
         Some na impressão: um botão "imprimir" impresso na folha é ruído, e é o
         primeiro sinal de que a folha foi feita para a tela e não para o papel.
       */}
-      <div className="flex flex-wrap items-center gap-3 print:hidden">
-        <Button onClick={() => window.print()}>
-          <Printer className="size-4" aria-hidden />
-          Baixar PDF
-        </Button>
+      <div className="flex flex-col gap-2 print:hidden">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button onClick={() => void baixar()} loading={gerando}>
+            <Download className="size-4" aria-hidden />
+            Baixar imagem
+          </Button>
+          <Button variant="secondary" onClick={() => window.print()}>
+            <Printer className="size-4" aria-hidden />
+            Imprimir
+          </Button>
+        </div>
         <p className="text-sm text-text-muted">
-          No diálogo de impressão, escolha <strong>Salvar como PDF</strong>. O arquivo fica no seu
-          aparelho.
+          {semArte > 0
+            ? `A imagem baixa direto. ${semArte} ${semArte === 1 ? 'carta sai' : 'cartas saem'} com o código no lugar da arte; imprimindo, todas saem com a arte.`
+            : 'A imagem baixa direto. Imprimindo, escolha “Salvar como PDF” no diálogo.'}
         </p>
       </div>
 
