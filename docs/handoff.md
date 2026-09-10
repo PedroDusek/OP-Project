@@ -322,18 +322,25 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     funcionou. Aumentar o intervalo entre os cliques é chutar um número que
     depende do tamanho do arquivo. A saída é um toque por arquivo, ou
     `navigator.share` com vários `files` (decisão 063).
-45. **A ativação do toque não sobrevive a trabalho assíncrono.** `navigator.share`
-    exige ativação, e ela é gasta enquanto o código carrega imagens da rede — o
-    compartilhamento é recusado com `NotAllowedError` depois de um `await` longo.
-    Quem precisa compartilhar arquivo prepara o arquivo **antes** do toque, e
-    deixa o toque só chamar `share`. Foi a parte não óbvia da decisão 063, e
-    corrigir sem ela teria trocado um defeito por outro mais difícil de achar.
 44. **A tabela nova precisa entrar em três listas, não numa.** `schema.prisma` é
     só a primeira: `tests/integration/schema.test.ts` guarda a lista de tabelas
     aprovadas **e** a política de exclusão, e `tests/helpers.ts` guarda a ordem
     de truncação. Esquecer a terceira deixa lixo entre testes; esquecer a
     segunda quebra a CI, que é o desfecho bom — o guarda existe para que tabela
     nova não entre sem uma decisão que diga por que ela existe.
+45. **A ativação do toque não sobrevive a trabalho assíncrono.** `navigator.share`
+    exige ativação, e ela é gasta enquanto o código carrega imagens da rede — o
+    compartilhamento é recusado com `NotAllowedError` depois de um `await` longo.
+    Quem precisa compartilhar arquivo prepara o arquivo **antes** do toque, e
+    deixa o toque só chamar `share`. Foi a parte não óbvia da decisão 063, e
+    corrigir sem ela teria trocado um defeito por outro mais difícil de achar.
+46. **`break-inside: avoid` em item de grade não segura a impressão.** O
+    navegador fatia a **linha** da grade na borda da página, e não o item — a
+    arte sai cortada ao meio. Aparece só da terceira página em diante, quando o
+    acúmulo faz uma linha cair em cima da borda, e por isso passa numa lista
+    curta. Conteúdo que precisa caber por página vira um bloco por página, com
+    `break-after: page`. E a margem tem de ser nossa: com a margem padrão de cada
+    navegador, o mesmo bloco cabe num e transborda no outro.
 
 ## Pendências
 
@@ -477,15 +484,27 @@ A saída principal passou a ser **Compartilhar**: um toque, a folha do sistema, 
 todas as imagens vão de uma vez para o grupo. Onde não há compartilhamento de
 arquivo, cada folha tem o próprio botão de baixar — **nunca um laço**.
 
-Duas coisas para não desfazer sem querer:
+No celular é **um botão só**. Baixar folha a folha existe apenas onde não há
+compartilhamento de arquivo — computador, quase sempre.
+
+A impressão foi corrigida junto, no mesmo relato: a arte saía **cortada ao meio a
+partir da terceira página**, porque a lista inteira era uma grade única e o
+navegador fatia a linha da grade, não o item. Agora cada folha é um bloco que
+termina em quebra de página, de doze em doze, e o número de páginas sai da
+divisão — nunca é presumido.
+
+Três coisas para não desfazer sem querer:
 
 - As folhas são desenhadas **quando a tela abre**, e não ao toque. Não é
   otimização: `navigator.share` exige ativação do toque, e ela não sobrevive ao
   carregamento das imagens (armadilha 45).
 - Nenhum caminho dispara mais de um download por toque (armadilha 43).
+- A margem de impressão sai do nosso `@page` em `globals.css`, e não do diálogo
+  do navegador (armadilha 46).
 
-**Falta a confirmação no aparelho de verdade.** Não é reproduzível no jsdom, e o
-dono do produto confere no iPhone dele.
+**Falta a confirmação no aparelho de verdade** — o compartilhamento no iPhone e a
+impressão de uma lista com mais de 24 cartas. Nada disso é reproduzível no jsdom,
+e o dono do produto confere.
 
 ## Onde a troca está hoje
 

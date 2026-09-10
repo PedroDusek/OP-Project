@@ -67,7 +67,8 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
   const faltando = wants.filter((want) => want.status !== 'satisfied')
   const copias = faltando.reduce((total, want) => total + want.remaining, 0)
   const semArte = faltando.filter((want) => want.sheetImageUrl === null).length
-  const folhas = Math.max(1, Math.ceil(faltando.length / CARDS_PER_SHEET))
+  const folhasDeDoze = emFolhas(faltando)
+  const folhas = Math.max(1, folhasDeDoze.length)
 
   /*
    * A assinatura da lista, e nao a lista: `faltando` e um array novo a cada
@@ -209,25 +210,20 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
         </div>
 
         {/*
-          Uma folha, um botão, um toque. Um laço de downloads programáticos não
-          sobrevive ao Safari — ver o comentário no topo do arquivo.
+          Baixar folha a folha e **so** onde nao ha compartilhamento de arquivo —
+          computador, quase sempre. Onde ha, um clique resolve, e oferecer os dois
+          caminhos lado a lado fazia o principal parecer o secundario.
 
-          Quem compartilha também ganha esses botões, discretos: guardar a imagem
-          no aparelho é um caminho legítimo, e some da folha do sistema em alguns
-          aplicativos.
+          Um botao por folha, nunca um laco: no Safari um download programatico e
+          uma navegacao para o `blob:`, e a seguinte cancela a anterior que ainda
+          nao terminou. Foi esse o defeito.
         */}
-        {!preparando && arquivos !== null && (arquivos.length > 1 || compartilhavel) ? (
+        {!preparando && !compartilhavel && arquivos !== null && arquivos.length > 1 ? (
           <div className="flex flex-wrap items-center gap-2">
             {arquivos.map((arquivo, indice) => (
-              <Button
-                key={arquivo.name}
-                variant={compartilhavel ? 'ghost' : 'secondary'}
-                onClick={() => baixarArquivo(arquivo)}
-              >
+              <Button key={arquivo.name} variant="secondary" onClick={() => baixarArquivo(arquivo)}>
                 <Download className="size-4" aria-hidden />
-                {arquivos.length === 1
-                  ? 'Baixar imagem'
-                  : `Baixar folha ${indice + 1} de ${arquivos.length}`}
+                Baixar folha {indice + 1} de {arquivos.length}
               </Button>
             ))}
           </div>
@@ -246,55 +242,82 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
         </p>
       </div>
 
-      <article className="relative overflow-hidden rounded-card border border-border bg-white p-6 text-black print:rounded-none print:border-0 print:p-0">
-        <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-          <Symbol
-            label={null}
-            className="absolute -top-[10%] -right-[22%] h-[120%] w-auto -rotate-12 opacity-[0.06]"
-          />
-        </div>
+      {/*
+        Uma folha por bloco de doze, e nao uma grade unica com tudo dentro.
 
-        <header className="relative mb-5 flex items-end justify-between gap-4 border-b border-black/10 pb-4">
-          <div className="min-w-0">
-            <h2 className="text-xl font-bold tracking-tight">Procuro estas cartas</h2>
-            <p className="mt-1 text-sm text-black/60 tabular-nums">
-              {faltando.length} {faltando.length === 1 ? 'carta' : 'cartas'} ·{' '}
-              {copias} {copias === 1 ? 'cópia' : 'cópias'}
-            </p>
+        A grade unica era o defeito: `break-inside: avoid` num item de grade nao
+        e respeitado de forma confiavel, e o navegador fatia a **linha** da grade
+        na borda da pagina. Cortava a arte no meio, e so aparecia a partir da
+        terceira folha, quando o acumulo faz a linha cair em cima da borda.
+
+        Cada folha e um bloco que termina em quebra de pagina, entao a conta e a
+        mesma da imagem e da mesma constante: doze cabem, doze vao. Nao ha numero
+        de paginas presumido em lugar nenhum — ele sai da divisao.
+
+        Na tela isso tambem e melhor: a pessoa ve exatamente o que sai em cada
+        folha, do mesmo jeito que sai em cada imagem.
+      */}
+      {folhasDeDoze.map((folha, indice) => (
+        <article
+          key={indice}
+          className="relative overflow-hidden rounded-card border border-border bg-white p-6 text-black print:break-inside-avoid print:rounded-none print:border-0 print:p-0 print:not-last:break-after-page"
+        >
+          <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+            <Symbol
+              label={null}
+              className="absolute -top-[10%] -right-[22%] h-[120%] w-auto -rotate-12 opacity-[0.06]"
+            />
           </div>
-          <Logotype label="ColeXa" className="h-6 w-auto shrink-0 text-black" />
-        </header>
 
-        <ul className="relative grid grid-cols-3 gap-4 sm:grid-cols-4 print:grid-cols-4">
-          {faltando.map((want) => (
-            <li key={want.variantId} className="flex break-inside-avoid flex-col gap-1">
-              <span className="relative block">
-                <CardArt
-                  src={want.imageUrl}
-                  alt={`${want.cardCode} — ${want.cardName}`}
-                  fallback={want.cardCode}
-                  sizes="(max-width: 639px) 33vw, 25vw"
-                />
+          <header className="relative mb-5 flex items-end justify-between gap-4 border-b border-black/10 pb-4">
+            <div className="min-w-0">
+              <h2 className="text-xl font-bold tracking-tight">Procuro estas cartas</h2>
+              <p className="mt-1 text-sm text-black/60 tabular-nums">
+                {faltando.length} {faltando.length === 1 ? 'carta' : 'cartas'} ·{' '}
+                {copias} {copias === 1 ? 'cópia' : 'cópias'}
                 {/*
-                  A quantidade é o dado que a folha existe para carregar: quem
-                  olha precisa saber quantas, não só quais.
+                  Quem recebe a terceira folha precisa saber que ha uma primeira e
+                  uma segunda, senao le uma lista truncada como se fosse inteira.
                 */}
-                <span className="absolute right-1 bottom-1 rounded-md bg-black px-1.5 py-0.5 text-xs font-bold text-white tabular-nums">
-                  {want.remaining}x
-                </span>
-              </span>
-              <span className="truncate text-[11px] font-semibold tabular-nums">
-                {want.cardCode}
-              </span>
-              <span className="truncate text-[11px] text-black/60">{want.cardName}</span>
-            </li>
-          ))}
-        </ul>
+                {folhasDeDoze.length > 1
+                  ? ` · folha ${indice + 1} de ${folhasDeDoze.length}`
+                  : ''}
+              </p>
+            </div>
+            <Logotype label="ColeXa" className="h-6 w-auto shrink-0 text-black" />
+          </header>
 
-        <footer className="relative mt-6 border-t border-black/10 pt-3 text-[10px] text-black/50">
-          Lista gerada no ColeXa · colexa.com.br
-        </footer>
-      </article>
+          <ul className="relative grid grid-cols-3 gap-4 sm:grid-cols-4 print:grid-cols-4">
+            {folha.map((want) => (
+              <li key={want.variantId} className="flex break-inside-avoid flex-col gap-1">
+                <span className="relative block">
+                  <CardArt
+                    src={want.imageUrl}
+                    alt={`${want.cardCode} — ${want.cardName}`}
+                    fallback={want.cardCode}
+                    sizes="(max-width: 639px) 33vw, 25vw"
+                  />
+                  {/*
+                    A quantidade é o dado que a folha existe para carregar: quem
+                    olha precisa saber quantas, não só quais.
+                  */}
+                  <span className="absolute right-1 bottom-1 rounded-md bg-black px-1.5 py-0.5 text-xs font-bold text-white tabular-nums">
+                    {want.remaining}x
+                  </span>
+                </span>
+                <span className="truncate text-[11px] font-semibold tabular-nums">
+                  {want.cardCode}
+                </span>
+                <span className="truncate text-[11px] text-black/60">{want.cardName}</span>
+              </li>
+            ))}
+          </ul>
+
+          <footer className="relative mt-6 border-t border-black/10 pt-3 text-[10px] text-black/50">
+            Lista gerada no ColeXa · colexa.com.br
+          </footer>
+        </article>
+      ))}
     </div>
   )
 }
@@ -333,6 +356,20 @@ function explicacao({
   return folhas > 1
     ? `São ${quantas}, ${cada}. Baixe uma por vez.`
     : 'A imagem baixa direto.'
+}
+
+/**
+ * A lista em folhas de doze — a mesma conta da imagem, da mesma constante.
+ *
+ * O numero de folhas nunca e presumido: ele sai da divisao. Uma lista de uma
+ * carta da uma folha, e uma de cem da nove.
+ */
+function emFolhas(wants: readonly WantView[]): WantView[][] {
+  const folhas: WantView[][] = []
+  for (let i = 0; i < wants.length; i += CARDS_PER_SHEET) {
+    folhas.push(wants.slice(i, i + CARDS_PER_SHEET))
+  }
+  return folhas
 }
 
 function nomeDaFolha(indice: number, total: number): string {

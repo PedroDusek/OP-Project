@@ -178,3 +178,29 @@
     height: env(safe-area-inset-bottom, 0px);
   }
 }
+
+/*
+ * A folha impressa.
+ *
+ * A margem sai daqui e nao do dialogo do navegador porque a folha da want list
+ * garante **doze cartas por pagina** (decisao 063), e essa conta depende de
+ * quanto sobra de altura. Com a margem padrao de cada navegador, o mesmo bloco
+ * cabe num e transborda no outro — e transbordar aqui significa a decima
+ * segunda carta sozinha na pagina seguinte.
+ */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  /*
+   * Fundo branco de verdade em toda a arvore. Impressora nao imprime o fundo do
+   * tema escuro: ela ignora, e o texto claro sai quase invisivel no papel.
+   */
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+}

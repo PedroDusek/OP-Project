@@ -349,3 +349,78 @@ describe('compartilhar', () => {
     expect(await screen.findByText(/não foi possível compartilhar/i)).toBeInTheDocument()
   })
 })
+
+/**
+ * A folha impressa, e o defeito que ela corrige.
+ *
+ * A versao anterior punha tudo numa **grade unica**. `break-inside: avoid` num
+ * item de grade nao e respeitado de forma confiavel, e o navegador fatiava a
+ * linha da grade na borda da pagina — a arte saia cortada no meio, e so a partir
+ * da terceira folha, quando o acumulo faz a linha cair em cima da borda.
+ *
+ * Agora cada folha e um bloco proprio que termina em quebra de pagina. O numero
+ * de folhas nunca e presumido: sai da divisao por `CARDS_PER_SHEET`.
+ *
+ * O jsdom nao avalia media query nem pagina nada (armadilha 10), entao o que se
+ * verifica aqui e a **estrutura** que torna a quebra possivel. Que o Tailwind
+ * emite `break-after: page` dentro de `@media print` foi conferido no CSS
+ * compilado.
+ */
+describe('a folha impressa', () => {
+  const lista = (quantas: number) =>
+    Array.from({ length: quantas }, (_, i) =>
+      want({ variantId: String(i), cardCode: `OP01-${String(i).padStart(3, '0')}` }),
+    )
+
+  const folhas = (container: HTMLElement) => [...container.querySelectorAll('article')]
+
+  it('divide de doze em doze, sem presumir quantas paginas', () => {
+    for (const [cartas, esperado] of [
+      [1, 1],
+      [12, 1],
+      [13, 2],
+      [24, 2],
+      [25, 3],
+      [100, 9],
+    ] as const) {
+      const { container, unmount } = render(<WantSheetPrint wants={lista(cartas)} />)
+
+      expect(folhas(container)).toHaveLength(esperado)
+      unmount()
+    }
+  })
+
+  it('poe no maximo doze cartas em cada folha', () => {
+    const { container } = render(<WantSheetPrint wants={lista(25)} />)
+    const contagens = folhas(container).map((folha) => folha.querySelectorAll('li').length)
+
+    expect(contagens).toEqual([12, 12, 1])
+  })
+
+  /* Sem a quebra, o bloco seguinte comeca no meio da pagina e a arte e fatiada. */
+  it('quebra a pagina entre as folhas, e nao depois da ultima', () => {
+    const { container } = render(<WantSheetPrint wants={lista(25)} />)
+
+    for (const folha of folhas(container)) {
+      expect(folha.className).toContain('print:not-last:break-after-page')
+      expect(folha.className).toContain('print:break-inside-avoid')
+    }
+  })
+
+  /*
+   * Quem recebe a terceira folha precisa saber que ha uma primeira e uma
+   * segunda, senao le uma lista truncada como se fosse a lista inteira.
+   */
+  it('numera as folhas quando ha mais de uma', () => {
+    render(<WantSheetPrint wants={lista(25)} />)
+
+    expect(screen.getByText(/folha 1 de 3/)).toBeInTheDocument()
+    expect(screen.getByText(/folha 3 de 3/)).toBeInTheDocument()
+  })
+
+  it('nao numera quando cabe numa folha so', () => {
+    render(<WantSheetPrint wants={lista(12)} />)
+
+    expect(screen.queryByText(/folha \d+ de/)).not.toBeInTheDocument()
+  })
+})

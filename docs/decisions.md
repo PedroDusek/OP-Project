@@ -3922,6 +3922,41 @@ ignora clique em elemento que nunca esteve na árvore.
 `navigator.share` rejeita com `AbortError` quando a pessoa desiste. Avisar ali
 transformaria uma escolha dela num problema. Só falha de verdade vira aviso.
 
+## Decisão 5 — a folha impressa se divide de doze em doze
+
+Segundo defeito relatado na mesma rodada: **a arte saía cortada ao meio a partir
+da terceira página**.
+
+A causa era a lista inteira numa **grade única**. `break-inside: avoid` num item
+de grade não é respeitado de forma confiável — o navegador fatia a **linha** da
+grade na borda da página, e não o item. Só aparecia da terceira folha em diante
+porque é onde o acúmulo faz uma linha cair em cima da borda.
+
+Cada folha passou a ser um bloco próprio que termina em quebra de página, com a
+mesma constante da imagem: doze cabem, doze vão. **O número de páginas nunca é
+presumido** — sai da divisão. Uma carta dá uma folha; cem dão nove.
+
+A margem da página passou a sair do nosso CSS (`@page { margin: 10mm }`) e não do
+diálogo do navegador: a garantia de doze por página depende de quanto sobra de
+altura, e com a margem padrão de cada navegador o mesmo bloco cabe num e
+transborda no outro — transbordar aqui significa a décima segunda carta sozinha
+na página seguinte.
+
+Na tela a divisão também aparece, e isso é melhorar de quebra: a pessoa vê
+exatamente o que sai em cada folha, do mesmo jeito que vê o que vai em cada
+imagem.
+
+## Sobre a área de transferência
+
+O pedido do dono do produto falava em "copiar para a área de transferência e
+abrir a tela de enviar para". São dois mecanismos diferentes, e só um faz o que
+ele descreve.
+
+`navigator.share` é o que abre o seletor de aplicativo, e leva **todos** os
+arquivos. A área de transferência não abre seletor nenhum, carrega **uma** imagem
+por vez e, na maioria dos navegadores, só em PNG. Usá-la aqui daria menos do que
+o pedido, não mais.
+
 ## O que a cobertura passou a proteger
 
 O teste antigo olhava o **desenho** — quais cartas entram na folha — e nunca a
@@ -3932,6 +3967,11 @@ Agora há teste para o `navigator` ser consultado sobre os **arquivos** e não
 sobre a API, para a queda em baixar quando o aparelho não compartilha, para
 nunca existir um botão que baixe várias de uma vez, e para o `AbortError` não
 virar aviso.
+
+A paginação da impressão também não tinha teste nenhum, e é o que deixou o
+segundo defeito passar. Agora a divisão é verificada em seis tamanhos de lista —
+1, 12, 13, 24, 25 e 100 cartas —, junto com o teto de doze por folha e a quebra
+de página entre elas.
 
 Isso não substitui o teste num aparelho real, e o dono do produto confirma no
 iPhone dele.
