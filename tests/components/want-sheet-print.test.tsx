@@ -591,3 +591,83 @@ describe('quando nao da para compartilhar, a tela diz por que', () => {
     expect(screen.queryByText(/não manda arquivo/i)).not.toBeInTheDocument()
   })
 })
+
+/**
+ * O pacote que vai no compartilhamento.
+ *
+ * O iOS recusa `files` junto de `text` em varias versoes: `canShare` devolve
+ * `false` para o pacote inteiro, e o botao sumiria num aparelho que compartilha
+ * imagem sem dificuldade nenhuma. Por isso pergunta-se pelo completo e, se ele
+ * nao passar, pelos arquivos sozinhos.
+ *
+ * E o que for aprovado tem de ser o que e enviado — conferir um pacote e mandar
+ * outro e a forma mais direta de o iOS recusar sem dizer por que.
+ */
+describe('o pacote do compartilhamento', () => {
+  async function comNavegador(canShare: (d: ShareData) => boolean, share = vi.fn()) {
+    vi.doMock('@/lib/want-sheet-image', () => ({
+      CARDS_PER_SHEET: 12,
+      renderWantSheets: vi.fn().mockResolvedValue([new Blob(['x'], { type: 'image/jpeg' })]),
+    }))
+    vi.resetModules()
+
+    const { WantSheetPrint: Componente } = await import('@/components/wants/want-sheet-print')
+    const { ToastProvider: Provider } = await import('@/components/ui/toast')
+
+    Object.defineProperty(navigator, 'share', { value: share, configurable: true, writable: true })
+    Object.defineProperty(navigator, 'canShare', {
+      value: canShare,
+      configurable: true,
+      writable: true,
+    })
+
+    renderRaw(
+      <Provider>
+        <Componente wants={[want()]} />
+      </Provider>,
+    )
+
+    return share
+  }
+
+  afterEach(() => {
+    for (const chave of ['share', 'canShare']) {
+      if (chave in navigator) {
+        Reflect.deleteProperty(navigator as unknown as Record<string, unknown>, chave)
+      }
+    }
+    vi.doUnmock('@/lib/want-sheet-image')
+    vi.resetModules()
+  })
+
+  it('manda a legenda junto quando o aparelho aceita', async () => {
+    const share = await comNavegador(() => true)
+
+    await userEvent.click(await screen.findByRole('button', { name: /compartilhar/i }))
+
+    const enviado = share.mock.calls[0][0] as ShareData
+    expect(enviado.files).toHaveLength(1)
+    expect(enviado.text).toMatch(/procuro 1 carta/i)
+  })
+
+  /* O caso do iOS: imagem sim, imagem com texto nao. O botao tem de continuar. */
+  it('manda so os arquivos quando o aparelho recusa a legenda junto', async () => {
+    const share = await comNavegador((dados) => dados.text === undefined)
+
+    await userEvent.click(await screen.findByRole('button', { name: /compartilhar/i }))
+
+    const enviado = share.mock.calls[0][0] as ShareData
+    expect(enviado.files).toHaveLength(1)
+    expect(enviado.text).toBeUndefined()
+    expect(enviado.title).toBeUndefined()
+  })
+
+  it('so desiste quando o aparelho recusa ate os arquivos sozinhos', async () => {
+    await comNavegador(() => false)
+
+    expect(
+      await screen.findByText(/este navegador não manda arquivo para outro aplicativo/i),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /compartilhar/i })).not.toBeInTheDocument()
+  })
+})

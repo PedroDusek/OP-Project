@@ -350,10 +350,17 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 48. **`navigator.share` não existe fora de contexto seguro.** Ele é gated em
     HTTPS, e o app aberto no celular pelo **IP da rede local em `http://`** — que
     é como se testa aqui — não é contexto seguro. O mesmo aparelho, no mesmo
-    navegador, compartilha sem problema em `https://`. Isso custou uma rodada
-    inteira: a tela caía em silêncio nos botões de baixar, e parecia que o
-    compartilhamento não tinha sido implementado. Para testar de verdade existe
-    `npm run dev:https`.
+    navegador, compartilha sem problema em `https://`. Isso custou **três
+    rodadas**: a tela caía em silêncio nos botões de baixar, cada rodada parecia
+    um defeito novo no compartilhamento, e a causa nunca esteve no código dele.
+    Para testar de verdade existe `npm run dev:https`, e a tela agora diz o
+    motivo em vez de calar.
+49. **O iOS recusa `files` junto de `text` no compartilhamento.** `canShare`
+    devolve `false` para o pacote inteiro, e o botão some num aparelho que
+    compartilha imagem sem dificuldade nenhuma. Pergunte pelo pacote completo e,
+    se ele não passar, pelos arquivos sozinhos — e mande **exatamente** o que foi
+    aprovado: conferir um pacote e enviar outro é a forma mais direta de o iOS
+    recusar sem dizer por quê.
 
 ## Pendências
 
@@ -524,10 +531,19 @@ Três coisas para não desfazer sem querer:
 contexto seguro, e ali o `navigator.share` **não existe** — a tela mostra os
 botões de baixar e explica o motivo (armadilha 48).
 
-Use **`npm run dev:https`**. O Next gera um certificado próprio; o Safari vai
-avisar que ele não é confiável e deixa seguir em "Mostrar detalhes". Depois de
-seguir, a página é HTTPS, o botão de compartilhar aparece e a folha do iOS abre
-com todas as imagens.
+Use **`npm run dev:https`**, e **pare o `npm run dev` antes** — o Next recusa
+subir dois servidores, e o script para com essa instrução em vez de mudar de
+porta às escondidas.
+
+Ele gera um certificado cobrindo os IPs **desta máquina**, lidos das interfaces
+de rede. Isso é o que o `next dev --experimental-https` puro não faz: ele emite
+para `localhost`, e o celular chega por `192.168.x.y` — um certificado que não
+cobre o endereço usado é recusado antes de qualquer pergunta, sem saída.
+
+O Safari vai avisar que não confia no certificado, porque ele é assinado por ele
+mesmo. Em "Mostrar detalhes" dá para seguir. Depois disso a página é HTTPS de
+verdade, `isSecureContext` é `true`, o botão de compartilhar aparece e a folha do
+iOS abre com todas as imagens.
 
 **Falta a confirmação no aparelho de verdade** — o compartilhamento no iPhone e a
 impressão de uma lista com mais de 24 cartas. Nada disso é reproduzível no jsdom,

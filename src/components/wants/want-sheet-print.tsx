@@ -144,18 +144,19 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
    * cair em silencio nos downloads fazia o caminho principal parecer nao existir,
    * e o motivo mais comum nem e do navegador: e o endereco.
    */
-  const semCompartilhar = arquivos === null ? 'sem-suporte' : motivoSemCompartilhar(arquivos)
-  const compartilhavel = arquivos !== null && semCompartilhar === null
+  const legenda = `Procuro ${faltando.length} ${faltando.length === 1 ? 'carta' : 'cartas'} · ${copias} ${copias === 1 ? 'cópia' : 'cópias'}`
+
+  const carga = arquivos === null ? null : cargaParaCompartilhar(arquivos, legenda)
+  const semCompartilhar = carga === null ? 'sem-suporte' : carga.ok ? null : carga.motivo
+  const compartilhavel = carga !== null && carga.ok
 
   const compartilhar = async () => {
-    if (!arquivos) return
+    if (carga === null || !carga.ok) return
 
     try {
-      await navigator.share({
-        files: arquivos,
-        title: 'Procuro estas cartas',
-        text: `Procuro ${faltando.length} ${faltando.length === 1 ? 'carta' : 'cartas'} · ${copias} ${copias === 1 ? 'cópia' : 'cópias'}`,
-      })
+      // O pacote enviado e **exatamente** o que `canShare` aprovou. Montar um
+      // aqui e conferir outro ali e como o iOS recusa sem dizer por que.
+      await navigator.share(carga.dados)
     } catch (error) {
       // Fechar a folha do sistema nao e erro: e a pessoa desistindo, e um aviso
       // aqui transformaria uma escolha dela num problema.
@@ -445,44 +446,69 @@ function nomeDaFolha(indice: number, total: number): string {
 }
 
 /**
- * Por que este aparelho não manda os arquivos, ou `null` quando manda.
+ * O pacote que este aparelho aceita compartilhar, ou o motivo de não aceitar.
  *
  * ## O motivo mais comum não é o navegador, é o endereço
  *
  * `navigator.share` só existe em **contexto seguro**. Aberto pelo IP da rede
  * local em `http://`, como se testa no celular durante o desenvolvimento, a API
- * simplesmente não está lá — e o mesmo aparelho, no mesmo navegador, compartilha
- * sem problema em `https://`.
+ * simplesmente não está lá — e o mesmo aparelho, no mesmo navegador,
+ * compartilha sem problema em `https://`. Ver a armadilha 48 no handoff.
  *
- * Isso custou uma rodada: a tela caía em silêncio nos downloads, e parecia que o
- * compartilhamento não tinha sido feito.
+ * ## Por que dois pacotes, e não um
  *
- * ## As três checagens, e por que são três
+ * O iOS recusa `files` junto de `text` em várias versões: `canShare` devolve
+ * `false` para o pacote inteiro, e o botão sumiria mesmo num aparelho que
+ * compartilha imagem sem dificuldade nenhuma.
+ *
+ * Então pergunta-se pelo pacote completo e, se ele não passar, pelos arquivos
+ * sozinhos. A legenda é enfeite; as imagens são o assunto, e perder a legenda é
+ * muito melhor que perder o botão.
+ *
+ * O que for aprovado é o que vai ser enviado — conferir um pacote e mandar
+ * outro é a forma mais direta de o iOS recusar sem dizer por quê.
+ *
+ * ## As checagens, e por que são separadas
  *
  * `share` sozinho existe em navegadores que só mandam texto e link; `canShare`
  * sem argumento responde sobre a API, não sobre estes arquivos. Só
  * `canShare({ files })` responde a pergunta que importa, e ele precisa de
  * `File` — com `Blob` devolve `false` sem dizer por quê.
  */
-function motivoSemCompartilhar(
+type CargaDeCompartilhamento =
+  | { ok: true; dados: ShareData }
+  | { ok: false; motivo: 'inseguro' | 'sem-suporte' }
+
+function cargaParaCompartilhar(
   arquivos: readonly File[],
-): 'inseguro' | 'sem-suporte' | null {
-  if (arquivos.length === 0) return 'sem-suporte'
-  if (typeof window === 'undefined' || typeof navigator === 'undefined') return 'sem-suporte'
-
-  if (window.isSecureContext === false) return 'inseguro'
-
-  if (typeof navigator.share !== 'function') {
-    // Sem `share` num contexto seguro, e o navegador mesmo que nao tem.
-    return 'sem-suporte'
+  legenda: string,
+): CargaDeCompartilhamento {
+  if (arquivos.length === 0) return { ok: false, motivo: 'sem-suporte' }
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    return { ok: false, motivo: 'sem-suporte' }
   }
-  if (typeof navigator.canShare !== 'function') return 'sem-suporte'
 
-  try {
-    return navigator.canShare({ files: [...arquivos] }) ? null : 'sem-suporte'
-  } catch {
-    return 'sem-suporte'
+  if (window.isSecureContext === false) return { ok: false, motivo: 'inseguro' }
+
+  if (typeof navigator.share !== 'function' || typeof navigator.canShare !== 'function') {
+    return { ok: false, motivo: 'sem-suporte' }
   }
+
+  const files = [...arquivos]
+  const candidatos: ShareData[] = [
+    { files, title: 'Procuro estas cartas', text: legenda },
+    { files },
+  ]
+
+  for (const dados of candidatos) {
+    try {
+      if (navigator.canShare(dados)) return { ok: true, dados }
+    } catch {
+      // Pacote recusado por este navegador. Tenta o proximo.
+    }
+  }
+
+  return { ok: false, motivo: 'sem-suporte' }
 }
 
 /**
