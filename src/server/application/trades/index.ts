@@ -16,6 +16,11 @@ import {
   withdrawConfirmation as withdrawConfirmationWith,
   type OfferChange,
 } from './edit-offer'
+import {
+  markExchange as markExchangeWith,
+  withdrawExchange as withdrawExchangeWith,
+  type OriginChoice,
+} from './complete-trade'
 
 /**
  * Ponto de composicao dos casos de uso de troca.
@@ -59,8 +64,27 @@ export function cancelTrade(user: AuthenticatedUser, tradeId: bigint) {
   return cancelTradeWith(prisma, user, tradeId)
 }
 
+export function markExchange(
+  user: AuthenticatedUser,
+  tradeId: bigint,
+  choices: readonly OriginChoice[] = [],
+) {
+  return markExchangeWith(prisma, user, tradeId, choices)
+}
+
+export function withdrawExchange(user: AuthenticatedUser, tradeId: bigint) {
+  return withdrawExchangeWith(prisma, user, tradeId)
+}
+
 export { countCopies } from './read-trade-binder'
+export { ORIGIN_CHOICE_REQUIRED } from './complete-trade'
 export type { TradeBinderCard } from './read-trade-binder'
 export type { StartedTrade } from './start-trade'
 export type { OfferChange } from './edit-offer'
+export type {
+  MarkExchangeResult,
+  OriginChoice,
+  OriginLocation,
+  OriginQuestion,
+} from './complete-trade'
 export type { TradeView, TradeSideView, TradeCardOffer, OpenTrade } from './read-trade'

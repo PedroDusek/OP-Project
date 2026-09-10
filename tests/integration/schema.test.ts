@@ -19,6 +19,7 @@ import { disconnect, testPrisma } from '../helpers'
  * Fora do modelo logico:
  * - `exchange_rates` e `price_imports` (decisao 051).
  * - `variant_source_products` (decisao 053).
+ * - `trade_item_origins` (decisao 062).
  */
 const EXPECTED_TABLES = [
   'attributes',
@@ -40,6 +41,7 @@ const EXPECTED_TABLES = [
   'price_imports',
   'sets',
   'storage_locations',
+  'trade_item_origins',
   'trade_items',
   'trade_participants',
   'trades',
@@ -69,6 +71,12 @@ const EXPECTED_DELETE_ACTIONS: Record<string, 'CASCADE' | 'RESTRICT'> = {
   'card_effects.card_id': 'CASCADE',
   'trade_participants.trade_id': 'CASCADE',
   'trade_items.trade_participant_id': 'CASCADE',
+  // A origem descreve o item da oferta: sem o item, ela nao quer dizer nada.
+  'trade_item_origins.trade_item_id': 'CASCADE',
+  // Apagar um local de troca leva junto a origem que apontava para ele. Ela
+  // e uma intencao sobre onde as copias estao, e nao historico: o historico
+  // do trade concluido vive em trade_items.
+  'trade_item_origins.storage_location_id': 'CASCADE',
 
   'card_variants.card_id': 'RESTRICT',
   'variant_printings.set_id': 'RESTRICT',

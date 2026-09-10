@@ -321,8 +321,27 @@ porque o valor histórico do trade é resolvido a partir de `completed_at`.
 | `user_id` | bigint | not null, FK users |
 | `role` | varchar(30) | not null |
 | `confirmed_at` | timestamptz | nulo permitido |
+| `review_requested_at` | timestamptz | nulo permitido |
+| `exchanged_at` | timestamptz | nulo permitido |
 
 `UNIQUE (trade_id, user_id)`.
+
+```sql
+CHECK (review_requested_at IS NULL OR confirmed_at IS NULL)
+CHECK (exchanged_at IS NULL OR confirmed_at IS NOT NULL)
+```
+
+`review_requested_at` guarda que a **outra** pessoa alterou a troca depois desta
+ter confirmado. Sem ele o aviso da regra 4.6.3 seria impossível: a alteração
+revoga as confirmações, e depois disso nada no estado lembraria que houve o que
+revogar. O primeiro check é o outro lado do mesmo fato — quem espera revisão não
+está confirmado.
+
+`exchanged_at` guarda que esta pessoa marcou que as cartas trocaram de mão
+(decisão 062). Não é `confirmed_at`: confirmar é concordar com a oferta, marcar é
+dizer que o encontro aconteceu, e entre os dois a troca descansa em `CONFIRMED`.
+O segundo check impede uma troca marcada e não confirmada, que concluiria sozinha
+na confirmação seguinte.
 
 **trade_items**
 
@@ -337,6 +356,30 @@ porque o valor histórico do trade é resolvido a partir de `completed_at`.
 
 A ligação pelo participante, em vez de pelo trade, é o que registra quem oferece
 cada carta.
+
+**trade_item_origins**
+
+| Coluna | Tipo | Restrições |
+|---|---|---|
+| `id` | bigint | PK |
+| `trade_item_id` | bigint | not null, FK trade_items |
+| `storage_location_id` | bigint | not null, FK storage_locations |
+| `quantity` | int | not null, check `> 0` |
+
+`UNIQUE (trade_item_id, storage_location_id)`.
+
+De qual local de troca saem quantas cópias daquele item da oferta (regra 4.6).
+
+Existe por causa de uma janela de tempo: a conclusão é uma transação só (regra
+4.7), mas os dois participantes marcam em momentos diferentes, e a resposta de
+quem marcou primeiro precisa sobreviver até o outro marcar. Uma coluna só não
+serviria — quem oferece duas cópias com uma em cada binder precisa dizer "uma
+daqui, uma dali", que é um para N.
+
+Fica **vazia quando a origem se deduz**, que é a maioria dos casos. Ausência aqui
+significa "deduza", e não "sem origem".
+
+O formato espelha `collection_item_locations` de propósito: é a mesma pergunta.
 
 ---
 
@@ -432,6 +475,8 @@ Analisada relação a relação, e não aplicada uniformemente.
 | `trade_items.card_variant_id` | RESTRICT | idem, para o histórico de trades |
 | `trade_participants.trade_id` | CASCADE | participantes pertencem ao trade |
 | `trade_items.trade_participant_id` | CASCADE | itens pertencem ao participante |
+| `trade_item_origins.trade_item_id` | CASCADE | a origem pertence ao item da oferta |
+| `trade_item_origins.storage_location_id` | CASCADE | apagar o local apaga a origem que apontava para ele |
 | `trade_participants.user_id` | RESTRICT | protege o histórico; nunca dispara, porque contas são anonimizadas e não excluídas |
 
 ### 4.1 Exclusão de conta
@@ -492,6 +537,8 @@ seja rápida.
 | `trade_participants (trade_id, user_id)` único | consulta de participação |
 | `trade_participants (user_id)` | histórico de trades e checagem de trade ativo |
 | `trade_items (trade_participant_id, card_variant_id)` único | consulta de item |
+| `trade_item_origins (trade_item_id, storage_location_id)` único | uma origem por local, por item |
+| `trade_item_origins (storage_location_id)` | apagar um local alcança as origens dele |
 | `users (lower(email))` único | autenticação |
 
 Toda listagem de catálogo e de coleção é paginada e filtrada no servidor. O

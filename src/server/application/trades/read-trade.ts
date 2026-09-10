@@ -44,6 +44,14 @@ export interface TradeSideView {
    * alterou sabe o que fez.
    */
   reviewRequested: boolean
+  /**
+   * Esta pessoa marcou que as cartas trocaram de mão.
+   *
+   * Diferente de `confirmed`: confirmar é concordar com a oferta, marcar é dizer
+   * que o encontro aconteceu. A troca só conclui quando os dois marcam
+   * (decisão 062).
+   */
+  exchanged: boolean
   /** O que esta pessoa colocou na oferta. */
   offer: TradeCardOffer[]
 }
@@ -75,6 +83,8 @@ export interface TradeView {
   theyCanOffer: TradeSuggestion[]
   /** Os dois confirmaram: a troca está validada. */
   validated: boolean
+  /** Quando a troca foi concluída. Nulo enquanto ela não foi. */
+  completedAt: Date | null
 }
 
 export async function getTrade(
@@ -88,12 +98,14 @@ export async function getTrade(
       id: true,
       status: true,
       inviteToken: true,
+      completedAt: true,
       participants: {
         select: {
           id: true,
           userId: true,
           confirmedAt: true,
           reviewRequestedAt: true,
+          exchangedAt: true,
           user: { select: { name: true } },
           items: {
             select: {
@@ -154,6 +166,7 @@ export async function getTrade(
     iCanOffer: withCards(crossing.fromFirst, cartas),
     theyCanOffer: withCards(crossing.fromSecond, cartas),
     validated: isValidated(participants),
+    completedAt: trade.completedAt,
   }
 }
 
@@ -204,6 +217,7 @@ type ParticipantRow = {
   userId: bigint
   confirmedAt: Date | null
   reviewRequestedAt: Date | null
+  exchangedAt: Date | null
   user: { name: string }
   items: {
     quantity: number
@@ -223,6 +237,7 @@ function toSideView(participant: ParticipantRow): TradeSideView {
     name: participant.user.name,
     confirmed: participant.confirmedAt !== null,
     reviewRequested: participant.reviewRequestedAt !== null,
+    exchanged: participant.exchangedAt !== null,
     offer: participant.items.map((item) => ({
       variantId: String(item.cardVariant.id),
       cardCode: item.cardVariant.card.code,
@@ -287,6 +302,8 @@ export interface OpenTrade {
   inviteToken: string | null
   /** A outra pessoa alterou depois de eu confirmar. */
   reviewRequested: boolean
+  /** Eu já marquei que as cartas trocaram de mão. */
+  exchanged: boolean
 }
 
 /**
@@ -310,6 +327,7 @@ export async function getOpenTrade(
     },
     select: {
       reviewRequestedAt: true,
+      exchangedAt: true,
       trade: {
         select: {
           id: true,
@@ -333,5 +351,6 @@ export async function getOpenTrade(
     otherName: outro?.user.name ?? null,
     inviteToken: escolhida.trade.inviteToken,
     reviewRequested: escolhida.reviewRequestedAt !== null,
+    exchanged: escolhida.exchangedAt !== null,
   }
 }

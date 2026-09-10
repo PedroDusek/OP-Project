@@ -8,6 +8,7 @@ import { createPrisma } from '@/server/infrastructure/prisma'
  * acrescentar uma tabela sem pensar na limpeza.
  */
 const TABLES_IN_TRUNCATION_ORDER = [
+  'trade_item_origins',
   'trade_items',
   'trade_participants',
   'trades',

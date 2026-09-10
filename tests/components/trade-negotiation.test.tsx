@@ -13,6 +13,8 @@ vi.mock('@/app/(app)/trocas/actions', () => ({
   confirmTradeAction: vi.fn(),
   withdrawConfirmationAction: vi.fn(),
   cancelTradeAction: vi.fn(),
+  markExchangeAction: vi.fn(),
+  withdrawExchangeAction: vi.fn(),
 }))
 
 /**
@@ -39,13 +41,38 @@ const troca = (over: Partial<TradeView> = {}): TradeView => ({
   tradeId: '7',
   status: 'NEGOTIATING',
   inviteToken: null,
-  me: { userId: '1', name: 'Ana', confirmed: false, reviewRequested: false, offer: [] },
-  other: { userId: '2', name: 'Bruno', confirmed: false, reviewRequested: false, offer: [] },
+  me: {
+    userId: '1',
+    name: 'Ana',
+    confirmed: false,
+    reviewRequested: false,
+    exchanged: false,
+    offer: [],
+  },
+  other: {
+    userId: '2',
+    name: 'Bruno',
+    confirmed: false,
+    reviewRequested: false,
+    exchanged: false,
+    offer: [],
+  },
   iCanOffer: [],
   theyCanOffer: [],
   validated: false,
+  completedAt: null,
   ...over,
 })
+
+/** Uma troca confirmada pelos dois: o estado de onde a conclusao parte. */
+const combinada = (over: Partial<TradeView> = {}): TradeView =>
+  troca({
+    status: 'CONFIRMED',
+    validated: true,
+    me: { ...troca().me, confirmed: true },
+    other: { ...troca().other!, confirmed: true },
+    ...over,
+  })
 
 describe('cada um mexe so na propria oferta', () => {
   it('da controles na minha oferta', () => {
@@ -188,6 +215,84 @@ describe('troca encerrada', () => {
     )
 
     expect(screen.queryByRole('button', { name: /confirmar esta troca/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /cancelar a troca/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /acrescentar uma cópia/i })).not.toBeInTheDocument()
+  })
+})
+
+describe('marcar que as cartas trocaram de mao', () => {
+  /*
+   * Antes de os dois confirmarem, a troca ainda se negocia. "Ja trocamos" ali
+   * seria um gesto sobre um combinado que ninguem fechou (regra 4.5).
+   */
+  it('nao aparece enquanto a troca nao esta confirmada pelos dois', () => {
+    render(<TradeNegotiation trade={troca({ me: { ...troca().me, confirmed: true } })} />)
+
+    expect(screen.queryByRole('button', { name: /já trocamos/i })).not.toBeInTheDocument()
+  })
+
+  it('aparece depois que os dois confirmaram', () => {
+    render(<TradeNegotiation trade={combinada()} />)
+
+    expect(screen.getByRole('button', { name: /já trocamos as cartas/i })).toBeInTheDocument()
+    expect(screen.getByText(/quando trocarem as cartas, marquem aqui/i)).toBeInTheDocument()
+  })
+
+  /** Concluir mexe na colecao dos dois, e a tela precisa dizer isso antes. */
+  it('avisa o que marcar provoca', () => {
+    render(<TradeNegotiation trade={combinada()} />)
+
+    expect(screen.getByText(/só depois de as cartas terem mudado de mão/i)).toBeInTheDocument()
+    expect(screen.getByText(/entram na coleção de quem recebeu/i)).toBeInTheDocument()
+  })
+
+  it('troca marcar por retirar depois que eu marquei', () => {
+    render(<TradeNegotiation trade={combinada({ me: { ...combinada().me, exchanged: true } })} />)
+
+    expect(screen.getByRole('button', { name: /retirar minha marcação/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /já trocamos/i })).not.toBeInTheDocument()
+    expect(screen.getByText(/falta bruno marcar/i)).toBeInTheDocument()
+  })
+
+  it('diz quando foi o outro que marcou', () => {
+    render(
+      <TradeNegotiation trade={combinada({ other: { ...combinada().other!, exchanged: true } })} />,
+    )
+
+    // O painel de status e o unico lugar que diz quem marcou: a mesma frase
+    // repetida junto do botao daria dois avisos iguais empilhados.
+    expect(screen.getByText(/bruno marcou que vocês trocaram\. falta você/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /já trocamos as cartas/i })).toBeInTheDocument()
+  })
+})
+
+describe('troca concluida', () => {
+  const concluida = combinada({ status: 'COMPLETED', completedAt: new Date('2026-09-10') })
+
+  /*
+   * "Voce oferece" descreve uma proposta em aberto. Ler isso numa troca que ja
+   * aconteceu faz duvidar se ela aconteceu mesmo.
+   */
+  it('fala no passado, e do que cada um levou', () => {
+    render(
+      <TradeNegotiation
+        trade={{
+          ...concluida,
+          me: { ...concluida.me, offer: [oferta()] },
+          other: { ...concluida.other!, offer: [oferta({ variantId: '2', cardCode: 'OP01-016' })] },
+        }}
+      />,
+    )
+
+    expect(screen.getByText('Você entregou')).toBeInTheDocument()
+    expect(screen.getByText('Você recebeu')).toBeInTheDocument()
+    expect(screen.getByText(/já estão nas coleções de vocês dois/i)).toBeInTheDocument()
+  })
+
+  it('nao deixa mexer em nada', () => {
+    render(<TradeNegotiation trade={{ ...concluida, me: { ...concluida.me, offer: [oferta()] } }} />)
+
+    expect(screen.queryByRole('button', { name: /já trocamos/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /cancelar a troca/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /acrescentar uma cópia/i })).not.toBeInTheDocument()
   })

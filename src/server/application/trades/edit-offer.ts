@@ -150,6 +150,14 @@ export async function withdrawConfirmation(
       throw new ConflictError('TROCA_ENCERRADA', 'Esta troca não aceita mais alterações.')
     }
 
+    /*
+     * As duas marcacoes caem, e nao so a de quem retirou. Sem isto, retirar a
+     * confirmacao e confirmar de novo concluiria a troca no mesmo instante,
+     * usando uma marcacao que o outro deu para um combinado que voce acabou de
+     * desfazer e refazer.
+     */
+    await clearExchangeMarks(tx, tradeId)
+
     await tx.tradeParticipant.update({
       where: { id: participantId },
       data: { confirmedAt: null },
@@ -233,6 +241,8 @@ async function revokeAll(
 ): Promise<void> {
   const agora = new Date()
 
+  await clearExchangeMarks(tx, tradeId)
+
   await tx.tradeParticipant.updateMany({
     where: { tradeId, userId: { not: changedBy }, confirmedAt: { not: null } },
     data: { confirmedAt: null, reviewRequestedAt: agora },
@@ -247,4 +257,34 @@ async function revokeAll(
   if (next !== status) {
     await tx.trade.update({ where: { id: tradeId }, data: { status: next } })
   }
+}
+
+/**
+ * Apaga as marcações de "já trocamos" e as origens que vieram com elas.
+ *
+ * É a regra 4.6.3 levada até o fim. Uma marcação diz "as cartas que estão na
+ * tela mudaram de dono"; se o combinado deixou de valer, ela fala de uma troca
+ * que não existe mais — exatamente como a confirmação que ela sucede.
+ *
+ * Vale para as **duas**, e não só para a de quem não mexeu, pelo mesmo motivo
+ * que a confirmação: quem marcou e em seguida alterou não marcou esta troca.
+ *
+ * As origens vão junto porque descrevem a oferta anterior. Deixá-las seria
+ * guardar "estas duas cópias saem do Binder A" sobre um item que agora tem
+ * outra quantidade — e a conclusão as revalidaria contra a oferta errada.
+ *
+ * O `CHECK` do banco garante que isto nunca seja esquecido: marcação sem
+ * confirmação é recusada na escrita.
+ */
+async function clearExchangeMarks(
+  tx: Prisma.TransactionClient,
+  tradeId: bigint,
+): Promise<void> {
+  await tx.tradeItemOrigin.deleteMany({
+    where: { tradeItem: { tradeParticipant: { tradeId } } },
+  })
+  await tx.tradeParticipant.updateMany({
+    where: { tradeId, exchangedAt: { not: null } },
+    data: { exchangedAt: null },
+  })
 }
