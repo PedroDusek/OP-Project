@@ -361,6 +361,13 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     se ele não passar, pelos arquivos sozinhos — e mande **exatamente** o que foi
     aprovado: conferir um pacote e enviar outro é a forma mais direta de o iOS
     recusar sem dizer por quê.
+50. **Certificado sem `extendedKeyUsage=serverAuth` o iOS recusa por política.**
+    Desde o iOS 13 é exigência da Apple, e quando falta o Safari **não oferece o
+    "visitar mesmo assim"** — a página simplesmente não abre, sem dizer por quê,
+    e parece problema de rede ou de firewall. A mesma lista pede SHA-256, RSA de
+    2048 ou mais, validade até 825 dias e nome alternativo preenchido. E conferir
+    o arquivo em disco não basta: o que vale é o certificado servido na conexão,
+    que é onde se vê o que o aparelho realmente recebe.
 
 ## Pendências
 
@@ -535,8 +542,10 @@ Use **`npm run dev:https`**, e **pare o `npm run dev` antes** — o Next recusa
 subir dois servidores, e o script para com essa instrução em vez de mudar de
 porta às escondidas.
 
-Ele gera um certificado cobrindo os IPs **desta máquina**, lidos das interfaces
-de rede. Isso é o que o `next dev --experimental-https` puro não faz: ele emite
+Ele gera um certificado cobrindo o **nome mDNS** e os **IPs desta máquina**,
+lidos das interfaces de rede. Prefira `https://<maquina>.local:3000` — o iOS
+resolve `.local` sozinho por Bonjour, e o Safari lida melhor com nome do que com
+IP nu. Isso é o que o `next dev --experimental-https` puro não faz: ele emite
 para `localhost`, e o celular chega por `192.168.x.y` — um certificado que não
 cobre o endereço usado é recusado antes de qualquer pergunta, sem saída.
 
@@ -545,9 +554,12 @@ mesmo. Em "Mostrar detalhes" dá para seguir. Depois disso a página é HTTPS de
 verdade, `isSecureContext` é `true`, o botão de compartilhar aparece e a folha do
 iOS abre com todas as imagens.
 
-**Falta a confirmação no aparelho de verdade** — o compartilhamento no iPhone e a
-impressão de uma lista com mais de 24 cartas. Nada disso é reproduzível no jsdom,
-e o dono do produto confere.
+**Confirmado no iPhone em 10/09**: com o servidor em HTTPS, o botão de
+compartilhar aparece e a folha de envio do iOS abre com as imagens.
+
+O que ainda vale conferir é a **impressão de uma lista com mais de 24 cartas** —
+que a arte saia em todas as páginas, e não só na primeira. Foi o que o PDF de
+41 cartas denunciou, e a correção não é reproduzível no jsdom.
 
 ## Onde a troca está hoje
 

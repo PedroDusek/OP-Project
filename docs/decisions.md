@@ -4008,6 +4008,42 @@ Agora a tela distingue os dois motivos e diz qual é:
 
 E existe `npm run dev:https` para testar o caminho de verdade antes de publicar.
 
+## Decisão 9 — o `next dev` não escreve no nosso `CLAUDE.md`
+
+Decisão técnica, tomada no fim desta rodada.
+
+O Next 16 acrescenta um bloco próprio ao `CLAUDE.md` toda vez que o servidor
+sobe, e o reescreve se for removido. O `CLAUDE.md` daqui é o **acordo de
+trabalho do dono do produto** — texto autoral, com voz e ordem própria —, e uma
+ferramenta acrescentando parágrafos a ele sem pedir é o oposto do que o próprio
+acordo estabelece.
+
+`agentRules: false` no `next.config.ts` desliga. O conteúdo do bloco não se
+perde por isso: o que vale sobre este projeto está em `docs/`, e o que vale sobre
+o Next está na documentação do Next.
+
+## Como isto foi confirmado, e o que custou
+
+O compartilhamento foi confirmado **no iPhone do dono do produto** em
+10/09/2026, com o servidor em HTTPS.
+
+Chegar lá custou três rodadas em que eu disse "corrigido" e não estava, e vale
+registrar por quê: **a causa nunca esteve no código do compartilhamento**. Ele
+estava certo desde o primeiro commit. O que faltava era contexto seguro, e o
+caminho até poder testar tinha três obstáculos empilhados, cada um invisível
+atrás do anterior:
+
+1. O app aberto pelo IP em `http://` não expõe `navigator.share` (armadilha 48).
+2. `--experimental-https-key` e `-cert` **sozinhos não ligam o HTTPS** — o Next
+   sobe em `http://` sem reclamar, e o único sinal é uma linha no meio do log.
+3. O certificado sem `extendedKeyUsage=serverAuth` é recusado pelo iOS **por
+   política**, sem oferecer o "visitar mesmo assim" (armadilha 50).
+
+A lição que fica é a mesma nos três: **conferir o efeito, não o artefato**. O
+arquivo do certificado em disco parecia correto; o que importava era o
+certificado servido na conexão. O comando parecia certo; o que importava era o
+protocolo que o servidor anunciou.
+
 ## Sobre a área de transferência
 
 O pedido do dono do produto falava em "copiar para a área de transferência e
