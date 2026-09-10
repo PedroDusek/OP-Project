@@ -65,7 +65,7 @@ export default async function CatalogoPage({ searchParams }: PageProps<'/catalog
       <p className="mt-8 text-xs text-text-subtle">
         Dados de cartas do site oficial do One Piece Card Game, da Bandai. O ColeXa não tem
         vínculo, parceria ou endosso da Bandai.{' '}
-        <Link href="/mais" className="underline underline-offset-2">
+        <Link href="/conta" className="underline underline-offset-2">
           Mais informações
         </Link>
         .

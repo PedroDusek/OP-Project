@@ -60,11 +60,12 @@ test.describe('rota protegida', () => {
     for (const path of [
       '/inicio',
       '/colecao',
-      '/colecao/quero',
       '/catalogo',
-      '/trocas',
-      '/mais',
       '/binders',
+      '/quero',
+      '/trocas',
+      '/social',
+      '/conta',
     ]) {
       await page.goto(path)
       await expect(page).toHaveURL(`/entrar?next=${encodeURIComponent(path)}`)

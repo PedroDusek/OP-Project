@@ -96,7 +96,7 @@ export async function setWantAction(
     const result = await setWantQuantity(viewer, BigInt(variantId), quantity)
 
     revalidatePath('/colecao')
-    revalidatePath('/colecao/quero')
+    revalidatePath('/quero')
     revalidatePath(`/catalogo/carta/${variantId}`)
 
     return { status: 'saved', quantity: result.quantity, removed: result.removed }
@@ -157,8 +157,8 @@ export async function bulkWantAction(
     const result = await bulkAddWants(viewer, entries)
 
     // A leva mexe na lista e no resumo dela, nos dois lugares que a mostram.
-    revalidatePath('/colecao/quero')
-    revalidatePath('/mais')
+    revalidatePath('/quero')
+    revalidatePath('/conta')
 
     return { status: 'added', cards: result.variants, copies: result.copies }
   } catch (error) {

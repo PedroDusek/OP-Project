@@ -3620,3 +3620,90 @@ assunto sério sob a LGPD, e é a pergunta que sobrou desta rodada.
 ## Data
 
 2026-09-09
+
+---
+
+# Decisão: 061 — A navegação em gaveta, e o fim do teto de cinco
+
+## Contexto
+
+Pedido do dono do produto: no computador, não limitar os destinos — há espaço de
+sobra; no celular, trocar a barra inferior por um menu que abre e fecha, com
+tudo dentro. E a troca de nome de usuário passa a morar em "Minha conta", junto
+dos dados cadastrais e das preferências.
+
+Isto **muda as decisões 044 e 048**, e fica registrado como mudança.
+
+## Decisão 1 — o teto de cinco era da barra, não do produto
+
+A decisão 044 fixou cinco destinos porque seis alvos a 360 px dão 60 px cada,
+abaixo do confortável para o polegar. Esse limite vinha da **barra**.
+
+Numa gaveta, cada linha tem a altura inteira de uma lista, e cabem quantas forem
+precisas. Com isso Trocas voltou para a navegação, e Want list e Social
+entraram. São sete destinos e a conta.
+
+## Decisão 2 — a coluna do desktop abre de vez
+
+Ela tinha duas larguras: só ícone no `md`, rótulo a partir do `lg`. Agora começa
+com rótulo. Ícone sem palavra ao lado é um enigma que a pessoa resolve por
+tentativa, e no computador o espaço para a palavra existe.
+
+## Decisão 3 — a gaveta sobe de baixo
+
+A gaveta lateral é o gesto do desktop, onde o ponteiro alcança qualquer canto
+sem custo. No celular a mão segura o aparelho por baixo, e um painel que nasce
+embaixo cai onde o polegar já está.
+
+É também o mesmo objeto que o produto já usa para filtros e para editar
+quantidade — reaproveitando foco preso, `Esc`, rolagem travada e o resto da
+página marcado como inerte. Uma gaveta nova só para navegar ensinaria um segundo
+gesto para dizer a mesma coisa.
+
+Ela fecha ao navegar. Sem isso ficaria aberta sobre a tela nova, e a pessoa
+teria de fechar o menu que acabou de usar.
+
+## Decisão 4 — a want list virou destino próprio
+
+A decisão 048 a pôs como aba da Coleção — ela é a coleção pelo avesso, e não
+havia vaga na barra. Com a gaveta, a vaga existe, e ela é uma tarefa inteira:
+anotar o que falta, levar ao grupo, riscar o que conseguiu.
+
+As ferramentas — acrescentar em leva, gerar a folha — foram para junto da lista,
+e saíram da página de conta. São o que se faz **com** ela.
+
+A faixa "Tenho / Quero" da Coleção deixou de existir: com os dois como destinos
+próprios, ela seria um terceiro jeito de ir ao mesmo lugar.
+
+## Decisão 5 — "Mais" virou "Minha conta"
+
+"Mais" era uma gaveta do que não coubera na barra. Sem barra, não há o que não
+caiba.
+
+A lista de seções saiu de lá pelo mesmo motivo: ela existia porque a barra de
+cinco escondia destinos. Repeti-la agora seria um segundo lugar para navegar,
+que discordaria do primeiro no dia em que alguém acrescentasse um destino e
+esquecesse deste.
+
+`/mais` virou `/conta`.
+
+## Decisão 6 — Social existe como destino antes de existir como rede
+
+O destino está na navegação por escolha do dono do produto, e a rede ainda não
+foi construída. Um destino que não leva a nada é pior que um que explica: a
+página diz o que a Social vai ser, e faz uma coisa útil hoje — cobra o nome de
+usuário de quem ainda não escolheu, sem o qual ninguém aparece quando a rede
+abrir. E aponta para Trocas, que já funciona com quem você conhece.
+
+## O que os testes ponta a ponta passaram a verificar
+
+Eles medem o que o jsdom não enxerga: `md:hidden` ali é só uma string.
+
+Dois viraram o **oposto** do que eram. "No celular, apenas a barra inferior"
+passou a ser "nenhuma navegação ocupa a tela até alguém pedir". E o que media o
+respiro embaixo — a barra fixa flutuava sobre o conteúdo — passou a conferir que
+o conteúdo chega até o fim da tela, porque não há mais nada por cima.
+
+## Data
+
+2026-09-10

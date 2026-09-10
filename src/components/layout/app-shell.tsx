@@ -1,5 +1,4 @@
 import { cn } from '@/lib/cn'
-import { BottomNav } from './bottom-nav'
 import { SideNav } from './side-nav'
 import { TopBar, type Viewer } from './top-bar'
 
@@ -54,13 +53,13 @@ export function AppShell({ viewer, hasUnread, children, className }: AppShellPro
         lateral a esquerda, sem a reserva da barra inferior embaixo, e sem o
         limite de largura, que na folha vira margem branca de sobra.
       */}
-      <div className="md:pl-16 lg:pl-56 print:pl-0">
+      <div className="md:pl-56 print:pl-0">
         <TopBar viewer={viewer} hasUnread={hasUnread} />
         <main
           id="conteudo"
           className={cn(
             'mx-auto w-full max-w-6xl px-4 pt-4',
-            'pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-8',
+            'pb-[calc(2rem+env(safe-area-inset-bottom,0px))] md:pb-8',
             'print:max-w-none print:px-0 print:pt-0 print:pb-0',
             className,
           )}
@@ -69,7 +68,6 @@ export function AppShell({ viewer, hasUnread, children, className }: AppShellPro
         </main>
       </div>
 
-      <BottomNav />
     </div>
   )
 }

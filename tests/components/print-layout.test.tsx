@@ -5,7 +5,6 @@ import { render } from '@testing-library/react'
 // `usePathname` devolve nulo, e elas quebram antes de renderizar.
 vi.mock('next/navigation', () => ({ usePathname: () => '/inicio' }))
 
-import { BottomNav } from '@/components/layout/bottom-nav'
 import { SideNav } from '@/components/layout/side-nav'
 import { TopBar } from '@/components/layout/top-bar'
 
@@ -13,8 +12,11 @@ import { TopBar } from '@/components/layout/top-bar'
  * A impressao e do conteudo, nao do aplicativo.
  *
  * A folha da want list saia com a barra inferior atravessada por cima das
- * cartas. Nao e detalhe estetico: a barra e `fixed`, entao ela imprime em
- * **toda** pagina, sobre o conteudo, e come uma faixa de cada folha.
+ * cartas. Nao e detalhe estetico: barra `fixed` imprime em **toda** pagina,
+ * sobre o conteudo, e come uma faixa de cada folha.
+ *
+ * A barra inferior deixou de existir (decisao 061); a gaveta que a substituiu
+ * so aparece aberta, e fechada nao poe nada na folha.
  *
  * O teste olha a classe, e nao o estilo aplicado: o jsdom nao avalia media
  * query, entao pintar em `print` e invisivel para ele. Que o Tailwind emite a
@@ -22,7 +24,6 @@ import { TopBar } from '@/components/layout/top-bar'
  */
 
 const chrome: [string, () => React.ReactElement][] = [
-  ['barra inferior', () => <BottomNav />],
   ['barra lateral', () => <SideNav />],
   ['barra superior', () => <TopBar />],
 ]

@@ -119,7 +119,7 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
       <EmptyState
         title="Nada faltando"
         description="Quando houver carta na sua want list que você ainda não tem, ela aparece aqui pronta para imprimir."
-        action={{ label: 'Adicionar cartas', href: '/colecao/quero/adicionar' }}
+        action={{ label: 'Adicionar cartas', href: '/quero/adicionar' }}
       />
     )
   }
