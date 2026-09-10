@@ -1,6 +1,17 @@
-# Handoff — estado em 09/09/2026
+# Handoff — estado em 10/09/2026
 
 Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
+
+## Para retomar
+
+1. `npm run dev` — **sempre reinicie**. O servidor guarda o cliente Prisma que
+   carregou ao subir, e três migrations entraram depois da última sessão
+   (armadilha 40).
+2. `npm run supabase status` — mostra o que produção tem e o que falta. Hoje
+   ela está **três migrations atrás**.
+3. Leia "Produção, em 10/09/2026" e "Próximo passo", abaixo.
+
+O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 
 ## Onde as coisas estão
 
@@ -8,7 +19,7 @@ Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 18 PRs mergeados, CI verde em todos |
+| Branch | `main`, 63 PRs mergeados, CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -24,15 +35,15 @@ Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
 | `.env` | 8 variáveis, todas preenchidas, ignorado pelo Git |
 
 **Produção nunca é alvo padrão.** `DATABASE_URL` é sempre o banco local; o
-Supabase só é alcançado por `npm run supabase <migrate|import|status>`, que
+Supabase só é alcançado por `npm run supabase <migrate|import|prices|status|storage>`, que
 imprime o destino antes de agir e recusa se a URL apontar para `localhost`. Não
 existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 11 concluídos**, e o 12 começou pela want list. 984 testes
-de unidade, integração e componente, mais 30 ponta a ponta. Lint, typecheck e
-build passando.
+**Checkpoints 0 a 11 concluídos**, e o 12 inteiro menos concluir a troca. 984
+testes de unidade, integração e componente, mais 31 ponta a ponta. Lint,
+typecheck e build passando.
 
 | # | Entregue |
 |---|---|
@@ -49,30 +60,43 @@ build passando.
 | 10 | Binders: locais, alocação, upload de imagem, resolução da decisão 007 |
 | — | Binders ganhou a direção inversa: organizar as cópias sem lugar (decisão 045) |
 | 11 | Edição em massa: adicionar uma leva a um local, e transferir entre locais |
-| 12 | Want list (29 e 30), Trade Binder (31) e a negociação inteira em aplicação. Falta a interface dela |
+| 12 | Want list (29 e 30), Trade Binder (31) e a negociação com interface. **Falta concluir a troca** |
 | — | Preço de mercado das artes comuns, 96,7% do catálogo, pelo tcgcsv (decisão 050) |
 | — | Preço em real pelo PTAX, e o aviso de quando foi conferido (decisão 051) |
 | — | Reimpressão virou impressão, não variante (decisão 052) |
-| — | Vínculo arte ↔ produto: 478 paralelas com preço automático (decisão 053) |
+| — | Vínculo arte ↔ produto, e preço nas paralelas vinculadas (decisão 053) |
+| — | Want list: adição em massa, revisão e a folha em imagem ou papel (057, 058) |
+| — | Convite, cruzamento e negociação: servidor (055, 056) e interface (059) |
+| — | Nome de usuário e as regras da rede escritas (decisão 060) |
+| — | Navegação em gaveta: sete destinos e a conta, sem teto de cinco (decisão 061) |
 
-**Banco de produção populado e conferido**, idêntico ao local em 09/09/2026:
-2.785 cartas, 4.431 variantes, 60 sets, 4.834 impressões, **3.170 variantes com
-preço** — 2.692 artes comuns por regra e 478 paralelas por vínculo.
+### Produção, em 10/09/2026
 
-Confira com `npm run supabase status` — ele compara as migrations com o
-repositório e mostra o estado dos preços, que é o único dado que muda sozinho.
+> **Produção está TRÊS migrations atrás: 9 de 12.** Faltam
+> `convite_de_troca`, `revisao_apos_alteracao` e `nome_de_usuario`. **Publicar o
+> `main` atual sem rodar `npm run supabase migrate` derruba a tela de Trocas e a
+> de conta**, com `Cannot read properties of undefined`. É a primeira coisa a
+> resolver antes de qualquer publicação.
 
-**Migrations em produção: 7 de 7**, alinhadas em 09/09/2026. Estiveram duas
-atrás sem ninguém notar, e o custo disso seria alto — publicar código que usa
-uma tabela ausente derruba a tela inteira, não só a parte nova.
+Catálogo e preços estão certos e iguais ao local: 2.785 cartas, 4.431 variantes,
+60 sets, 4.834 impressões, **3.170 variantes com preço** — 2.692 artes comuns
+por regra e 478 paralelas por vínculo. Cotação PTAX de 08/09 (USD/BRL 5,0856).
 
-Por isso `npm run supabase status` agora compara com o repositório em vez de só
-contar, e diz em voz alta quais faltam. É o comando a rodar antes de publicar.
+`npm run supabase status` compara as migrations com o repositório, diz quais
+faltam e mostra o estado dos preços. **É o comando a rodar antes de publicar** —
+produção já ficou duas migrations atrás sem ninguém notar, e o custo é a tela
+inteira, não só a parte nova.
 
-**Preços em produção: 2.692 variantes**, importados em 09/09/2026, com a cotação
-PTAX de 08/09 (USD/BRL 5,0856). O `status` também mostra isso, porque preço é o
-único dado que muda sozinho — e o modo de falha é silencioso: a tela não quebra
-sem preço novo, só para de envelhecer sem ninguém perceber.
+### O agendamento de preços está vivo
+
+O workflow disparou **sozinho** em 09/09 e concluiu com sucesso, gravando zero —
+o que é o esperado: só grava o que muda.
+
+Ele rodou às **11:59 UTC**, e não às 07:00 do `cron`. O agendador do GitHub
+atrasa sob carga, e horas de atraso são normais. Isso não quebra a tela porque
+ela mostra o horário **real** da importação, lido de `price_imports`, e não o
+horário configurado — mas significa que "atualizado hoje às 04:00" pode dizer
+outra hora, e isso é verdade, não defeito.
 
 ## As decisões que mais restringem o que vem depois
 
@@ -402,34 +426,45 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 
 ## Próximo passo
 
-**Trade Binder e matches** — telas 31 e 32, o resto do Checkpoint 12. A want
-list (29 e 30) já está de pé, como aba da Coleção (decisão 048).
+**Concluir a troca.** É o que falta do Checkpoint 12. Confirmada pelos dois, a
+troca para em `CONFIRMED`: mover as cópias de verdade depende da regra 4.6 — de
+onde as cartas saem —, e a decisão 049 já diz que só se pergunta quando há
+escolha real. `deducibleReduction` no domínio já resolve o caso sem escolha.
 
-O que já existe e será usado: `holdsTradeStock` no domínio, que diz quais locais
-abastecem o Trade Binder; `matchQuantity`, já testado, que é a regra 4.3
-inteira; e `trades`, `trade_participants` e `trade_items` no banco desde o
-Checkpoint 2.
+Depois disso, a **aba Social**, que tem as regras escritas (decisão 060) e a
+identidade construída, e falta tudo o mais: listagem ordenada, busca por carta,
+bloquear, denunciar e o chat.
 
-Nenhum dos dois depende de preço, e a negociação (telas 33 a 35) deixou de
-depender: `card_prices` está populada (decisão 050). O valor de um trade sai de
-lá, e sai em dólar — a conversão para real é decisão em aberto.
+## Onde a troca está hoje
 
-Depois: negociação, Trade Binder público (Premium) e pagamento.
+Dá para testar entre duas contas. `/trocas` → **Começar uma troca** → copiar o
+link → abrir na outra conta → **Entrar nesta troca** → os dois veem o
+cruzamento, cada um monta a própria oferta, os dois confirmam.
 
-## O que falta em preços
+O que existe: convite, entrada, cruzamento nas duas direções, edição da própria
+oferta, confirmar, retirar a confirmação, cancelar, e o aviso de revisão quando
+o outro altera. O que não existe: concluir.
 
-- **O segredo do agendamento.** `.github/workflows/precos.yml` roda todo dia às
-  07:00 UTC (04:00 em Brasília), mas fica inerte até `SUPABASE_DATABASE_URL`
-  existir nos secrets do repositório. Só o dono da conta pode criá-lo.
-- **Produção ainda sem preço.** O banco local está populado; produção espera
-  `npm run supabase prices` ou o primeiro disparo do workflow.
-- **Mapear as 351 paralelas ambíguas.** O automático já cobriu 478 (decisão
-  053); sobram as cartas com duas ou mais artes dos dois lados, onde é preciso
-  dizer qual é a *Alternate Art* e qual é a *Manga*. Entram com
-  `origin = 'manual'`, que nenhuma rederivação sobrescreve.
-  `npx tsx scripts/levantar-paralelas.ts` gera a lista.
+## O que falta em preços e no vínculo
+
+- **Mapear as 351 paralelas ambíguas.** O automático cobriu as que tinham uma
+  arte de cada lado; sobram as com duas ou mais, onde é preciso dizer qual é a
+  *Alternate Art* e qual é a *Manga*. Entram com `origin = 'manual'`, que
+  nenhuma rederivação sobrescreve. `npx tsx scripts/levantar-paralelas.ts` gera
+  a lista por set — os sets recentes fecham quase perfeito.
 - **168 cartas com paralela que a fonte não oferece.** Não há produto para
-  vincular; ficam sem preço até a fonte listá-las.
+  vincular; ficam sem preço e sem arte na folha em JPEG até a fonte listá-las.
+
+## O que espera resposta do dono do produto
+
+- **Idade mínima.** Expor perfil de menor de idade a estranhos é assunto sério
+  sob a LGPD, e a rede depende disso. Foi perguntado e não respondido.
+- **Termos de Uso e Política de Privacidade.** Já eram bloqueio de lançamento; a
+  rede os torna mais urgentes, porque ela expõe o Trade Binder de todo mundo.
+  Ele informou que está contratando advogada e que pedirá uma revisão técnica
+  das implementações perto do fim.
+- **A ordem de construção da Social**, e se o chat entra no primeiro corte — é
+  o maior pedaço, e traz moderação junto.
 
 O protocolo continua: uma branch e um PR por checkpoint, o assistente merge
 quando estiver completo e sem pendência, e para antes de iniciar o próximo
