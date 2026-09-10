@@ -341,6 +341,12 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     curta. Conteúdo que precisa caber por página vira um bloco por página, com
     `break-after: page`. E a margem tem de ser nossa: com a margem padrão de cada
     navegador, o mesmo bloco cabe num e transborda no outro.
+47. **Imagem preguiçosa não existe na hora de imprimir.** `next/image` só busca
+    o que passou pela tela, e `window.print()` dispara na hora, sem esperar
+    nada. O PDF sai com a primeira página completa e as seguintes **em branco** —
+    e o defeito parece corte ou quebra de página, que é onde se perde tempo
+    procurando. São duas metades: `eager` na arte, e esperar o `decode()` de cada
+    uma antes de chamar a impressão.
 
 ## Pendências
 
@@ -501,6 +507,9 @@ Três coisas para não desfazer sem querer:
 - Nenhum caminho dispara mais de um download por toque (armadilha 43).
 - A margem de impressão sai do nosso `@page` em `globals.css`, e não do diálogo
   do navegador (armadilha 46).
+- A arte da folha carrega com `eager`, e **imprimir espera** o desenho de cada
+  uma. Sem as duas, o PDF sai com a primeira página completa e as seguintes em
+  branco (armadilha 47).
 
 **Falta a confirmação no aparelho de verdade** — o compartilhamento no iPhone e a
 impressão de uma lista com mais de 24 cartas. Nada disso é reproduzível no jsdom,

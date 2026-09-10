@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Download, Printer, Share2 } from 'lucide-react'
 import { CardArt } from '@/components/catalog/card-art'
 import { Logotype, Symbol } from '@/components/brand/logo'
@@ -90,6 +90,9 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
     null,
   )
 
+  const folhaRef = useRef<HTMLDivElement>(null)
+  const [imprimindo, setImprimindo] = useState(false)
+
   const pronto = preparo !== null && preparo.assinatura === assinatura
   const preparando = faltando.length > 0 && !pronto
   const arquivos = pronto ? preparo.arquivos : null
@@ -160,6 +163,23 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
     }
   }
 
+  /**
+   * Espera a arte chegar e so entao chama a impressao.
+   *
+   * `window.print()` dispara na hora, e imagem a caminho nao entra no papel:
+   * era isso que mandava para o PDF paginas inteiras sem arte. Carregar cedo
+   * (`eager`) resolve metade — a outra metade e nao imprimir antes de terminar.
+   */
+  const imprimir = async () => {
+    setImprimindo(true)
+    try {
+      await imagensProntas(folhaRef.current)
+    } finally {
+      setImprimindo(false)
+    }
+    window.print()
+  }
+
   if (faltando.length === 0) {
     return (
       <EmptyState
@@ -203,7 +223,7 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
             </Button>
           ) : null}
 
-          <Button variant="secondary" onClick={() => window.print()}>
+          <Button variant="secondary" loading={imprimindo} onClick={() => void imprimir()}>
             <Printer className="size-4" aria-hidden />
             Imprimir
           </Button>
@@ -257,6 +277,7 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
         Na tela isso tambem e melhor: a pessoa ve exatamente o que sai em cada
         folha, do mesmo jeito que sai em cada imagem.
       */}
+      <div ref={folhaRef} className="flex flex-col gap-4">
       {folhasDeDoze.map((folha, indice) => (
         <article
           key={indice}
@@ -269,7 +290,7 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
             />
           </div>
 
-          <header className="relative mb-5 flex items-end justify-between gap-4 border-b border-black/10 pb-4">
+          <header className="relative mb-5 flex items-end justify-between gap-4 border-b border-black/10 pb-4 print:mb-3 print:pb-2">
             <div className="min-w-0">
               <h2 className="text-xl font-bold tracking-tight">Procuro estas cartas</h2>
               <p className="mt-1 text-sm text-black/60 tabular-nums">
@@ -291,11 +312,16 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
             {folha.map((want) => (
               <li key={want.variantId} className="flex break-inside-avoid flex-col gap-1">
                 <span className="relative block">
+                  {/*
+                    `eager`: sem isto, o que nunca passou pela tela nunca e
+                    buscado, e a folha 2 em diante sai em branco no PDF.
+                  */}
                   <CardArt
                     src={want.imageUrl}
                     alt={`${want.cardCode} — ${want.cardName}`}
                     fallback={want.cardCode}
                     sizes="(max-width: 639px) 33vw, 25vw"
+                    eager
                   />
                   {/*
                     A quantidade é o dado que a folha existe para carregar: quem
@@ -305,19 +331,20 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
                     {want.remaining}x
                   </span>
                 </span>
-                <span className="truncate text-[11px] font-semibold tabular-nums">
+                <span className="truncate text-[11px] font-semibold tabular-nums print:text-[10px]">
                   {want.cardCode}
                 </span>
-                <span className="truncate text-[11px] text-black/60">{want.cardName}</span>
+                <span className="truncate text-[11px] text-black/60 print:text-[10px]">{want.cardName}</span>
               </li>
             ))}
           </ul>
 
-          <footer className="relative mt-6 border-t border-black/10 pt-3 text-[10px] text-black/50">
+          <footer className="relative mt-6 border-t border-black/10 pt-3 text-[10px] text-black/50 print:mt-3 print:pt-2">
             Lista gerada no ColeXa · colexa.com.br
           </footer>
         </article>
       ))}
+      </div>
     </div>
   )
 }
@@ -364,6 +391,31 @@ function explicacao({
  * O numero de folhas nunca e presumido: ele sai da divisao. Uma lista de uma
  * carta da uma folha, e uma de cem da nove.
  */
+/**
+ * Resolve quando toda arte da folha estiver desenhada.
+ *
+ * Erro de carregamento tambem resolve: uma carta que nao veio sai com o codigo
+ * no lugar da arte, e travar a impressao inteira por causa dela seria trocar uma
+ * folha imperfeita por nenhuma folha.
+ */
+async function imagensProntas(raiz: HTMLElement | null): Promise<void> {
+  if (!raiz) return
+
+  const imagens = [...raiz.querySelectorAll('img')]
+
+  await Promise.all(
+    imagens.map(async (img) => {
+      try {
+        // `decode` espera o desenho, e nao so o download — que e a diferenca
+        // entre a imagem existir e a imagem aparecer no papel.
+        await img.decode()
+      } catch {
+        // Falhou ou nao ha o que decodificar. Segue.
+      }
+    }),
+  )
+}
+
 function emFolhas(wants: readonly WantView[]): WantView[][] {
   const folhas: WantView[][] = []
   for (let i = 0; i < wants.length; i += CARDS_PER_SHEET) {

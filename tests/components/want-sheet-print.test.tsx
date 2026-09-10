@@ -424,3 +424,81 @@ describe('a folha impressa', () => {
     expect(screen.queryByText(/folha \d+ de/)).not.toBeInTheDocument()
   })
 })
+
+/**
+ * A arte tem de existir na hora de imprimir.
+ *
+ * Este e o defeito do PDF relatado em 10/09: quatro folhas, e da segunda em
+ * diante **nenhuma arte**. A causa nao era corte nem quebra de pagina — era o
+ * carregamento preguicoso do `next/image`. O que nunca passou pela tela nunca
+ * foi buscado, e `window.print()` dispara na hora, sem esperar nada.
+ *
+ * Sao duas metades, e as duas precisam estar de pe: carregar cedo, e nao
+ * imprimir antes de terminar.
+ */
+describe('a arte na folha impressa', () => {
+  /* Com arte de verdade: sem `imageUrl` o componente desenha o codigo, e nao uma
+     imagem — e nao haveria nada para carregar nem esperar. */
+  const lista = (quantas: number) =>
+    Array.from({ length: quantas }, (_, i) =>
+      want({
+        variantId: String(i),
+        cardCode: `OP01-${String(i).padStart(3, '0')}`,
+        imageUrl: `https://cdn/arte-${i}.png`,
+      }),
+    )
+
+  it('pede a arte de todas as cartas sem esperar a rolagem', () => {
+    const { container } = render(<WantSheetPrint wants={lista(25)} />)
+    const imagens = [...container.querySelectorAll('img')]
+
+    expect(imagens).toHaveLength(25)
+    expect(imagens.every((img) => img.getAttribute('loading') === 'eager')).toBe(true)
+  })
+
+  /*
+   * Sem a espera, a impressao sai com o que ja estava desenhado — que na
+   * primeira folha e tudo, e da segunda em diante e nada.
+   */
+  it('espera a arte antes de chamar a impressao', async () => {
+    const print = vi.fn()
+    vi.stubGlobal('print', print)
+
+    const { container } = render(<WantSheetPrint wants={lista(13)} />)
+
+    const decodificadas: string[] = []
+    for (const img of container.querySelectorAll('img')) {
+      const src = img.getAttribute('src') ?? ''
+      img.decode = () =>
+        new Promise<void>((resolve) =>
+          setTimeout(() => {
+            decodificadas.push(src)
+            resolve()
+          }, 0),
+        )
+    }
+
+    await userEvent.click(screen.getByRole('button', { name: /imprimir/i }))
+
+    expect(decodificadas).toHaveLength(13)
+    expect(print).toHaveBeenCalledTimes(1)
+
+    vi.unstubAllGlobals()
+  })
+
+  /* Uma carta que nao veio sai com o codigo; travar tudo por ela seria pior. */
+  it('imprime mesmo quando uma arte falha', async () => {
+    const print = vi.fn()
+    vi.stubGlobal('print', print)
+
+    const { container } = render(<WantSheetPrint wants={lista(3)} />)
+    for (const img of container.querySelectorAll('img')) {
+      img.decode = () => Promise.reject(new Error('nao carregou'))
+    }
+
+    await userEvent.click(screen.getByRole('button', { name: /imprimir/i }))
+
+    expect(print).toHaveBeenCalledTimes(1)
+    vi.unstubAllGlobals()
+  })
+})

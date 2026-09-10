@@ -3946,6 +3946,44 @@ Na tela a divisão também aparece, e isso é melhorar de quebra: a pessoa vê
 exatamente o que sai em cada folha, do mesmo jeito que vê o que vai em cada
 imagem.
 
+## Decisão 6 — a arte é carregada cedo, e a impressão espera por ela
+
+O PDF que o dono do produto mandou tinha quatro folhas, paginação correta — e da
+**segunda em diante, nenhuma arte**. Página 1 com doze imagens, página 2 com
+três, páginas 3 e 4 vazias.
+
+Não era corte nem quebra de página: era o **carregamento preguiçoso** do
+`next/image`. O que nunca passou pela tela nunca foi buscado, e imprimir não
+força busca nenhuma. As três da página 2 eram as que estavam logo abaixo da
+dobra.
+
+São duas metades, e uma sem a outra não resolve:
+
+- **`eager` na arte da folha.** `CardArt` ganhou a opção, separada de
+  `priority` — `priority` também emite dica de pré-carregamento no `<head>`, o
+  que serve para **uma** imagem e faz o Next avisar quando são quarenta.
+- **Imprimir espera.** `window.print()` dispara na hora, e imagem a caminho não
+  entra no papel. O botão agora aguarda o `decode()` de cada arte antes de
+  chamar a impressão. Falha de uma não trava as outras: a carta sai com o código
+  no lugar da arte, que é o comportamento já previsto na decisão 058.
+
+O rodapé da folha 1 também estava caindo no topo da página 2, sinal de que o
+bloco passava alguns pixels da altura útil. A margem foi para 8 mm e o
+cabeçalho, o rodapé e as legendas encolheram na impressão. A folga passou a ser
+de cerca de cem pixels, que absorve o cabeçalho que o navegador desenha quando
+está ligado.
+
+## Decisão 7 — as folhas são desenhadas em paralelo
+
+Sequencial, uma lista de quarenta cartas esperava quatro rodadas de rede uma
+depois da outra — e isso é tempo com o botão de compartilhar desabilitado, na
+frente de quem só queria mandar a lista no grupo.
+
+Isto **não** esbarra na mitigação da decisão 020. As requisições serializadas de
+lá são as do nosso servidor contra a Bandai, na importação do catálogo. Estas
+saem do navegador de quem usa, contra o CDN da fonte de preço, e a mesma tela já
+carrega essas imagens para desenhar a folha na página.
+
 ## Sobre a área de transferência
 
 O pedido do dono do produto falava em "copiar para a área de transferência e
@@ -3972,6 +4010,11 @@ A paginação da impressão também não tinha teste nenhum, e é o que deixou o
 segundo defeito passar. Agora a divisão é verificada em seis tamanhos de lista —
 1, 12, 13, 24, 25 e 100 cartas —, junto com o teto de doze por folha e a quebra
 de página entre elas.
+
+E a **arte** da folha impressa não tinha teste nenhum, que é o que deixou o
+terceiro defeito passar. Agora há teste para toda carta ser pedida sem esperar a
+rolagem, para a impressão esperar o desenho de cada arte antes de disparar, e
+para uma arte que falha não travar a folha inteira.
 
 Isso não substitui o teste num aparelho real, e o dono do produto confirma no
 iPhone dele.
