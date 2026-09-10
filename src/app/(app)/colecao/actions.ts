@@ -2,12 +2,13 @@
 
 import { revalidatePath } from 'next/cache'
 import { setCollectionQuantity, QUANTITY_BELOW_ALLOCATED } from '@/server/application/collection'
-import { setWantQuantity } from '@/server/application/wants'
+import { bulkAddWants, setWantQuantity } from '@/server/application/wants'
+import type { BulkWantEntry } from '@/server/application/wants'
 import { ConflictError, isAppError } from '@/server/domain/errors'
 import { formErrorFrom } from '@/server/http/form-state'
 import { currentViewer } from '@/server/http/viewer'
 import type { AllocationSnapshot, Removal } from '@/server/application/collection'
-import type { QuantityState, WantState } from './state'
+import type { BulkWantState, QuantityState, WantState } from './state'
 
 /**
  * Definir quantas copias a pessoa possui.
@@ -125,4 +126,43 @@ function readRemovals(data: FormData): Removal[] | null {
   }
 
   return removals
+}
+
+/**
+ * Acrescentar uma leva de cartas a want list.
+ *
+ * Camada: `app`. Le a sessao, chama **um** caso de uso e traduz o resultado. O
+ * `user_id` vem da sessao e nunca do formulario (`architecture.md` 3.1).
+ *
+ * As escolhas chegam como campos `carta` repetidos, no formato
+ * `<variantId>:<copias>` — o mesmo arranjo da leva de armazenamento, e pelo
+ * mesmo motivo: um formulario nativo manda repetidos sem depender de JavaScript
+ * ter subido.
+ */
+export async function bulkWantAction(
+  _previous: BulkWantState,
+  data: FormData,
+): Promise<BulkWantState> {
+  const viewer = await currentViewer()
+  if (!viewer) return { status: 'error', message: 'Sua sessão expirou. Entre de novo.' }
+
+  const entries: BulkWantEntry[] = []
+  for (const raw of data.getAll('carta')) {
+    const match = /^(\d+):(\d+)$/.exec(String(raw))
+    if (!match) return { status: 'error', message: 'Escolha invalida.' }
+    entries.push({ cardVariantId: BigInt(match[1]), copies: Number(match[2]) })
+  }
+
+  try {
+    const result = await bulkAddWants(viewer, entries)
+
+    // A leva mexe na lista e no resumo dela, nos dois lugares que a mostram.
+    revalidatePath('/colecao/quero')
+    revalidatePath('/mais')
+
+    return { status: 'added', cards: result.variants, copies: result.copies }
+  } catch (error) {
+    if (isAppError(error)) return { status: 'error', message: error.message }
+    throw error
+  }
 }

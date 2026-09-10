@@ -3199,3 +3199,84 @@ aplicação, com autorização, e 27 testes de integração.
 ## Data
 
 2026-09-09
+
+---
+
+# Decisão: 057 — As ferramentas da want list, e a folha para levar ao grupo
+
+## Contexto
+
+Pedido do dono do produto: uma entrada da want list dentro de "Mais", com adição
+em massa e revisão, e um PDF com imagem e quantidade das cartas procuradas —
+com a marca, para divulgação.
+
+## Decisão 1 — a lista fica na Coleção; as ferramentas, em "Mais"
+
+A decisão 048 pôs a want list na Coleção, porque quem a abre está pensando na
+própria coleção. Isso não muda.
+
+O que entra em "Mais" é o trabalho **sobre** ela: acrescentar em leva, revisar,
+levar para o grupo. É o mesmo arranjo que a decisão 044 pediu para binders —
+navega-se onde se navega, administra-se onde se administra —, e evita duas telas
+mostrando a mesma lista.
+
+## Decisão 2 — a leva acrescenta, nunca substitui
+
+Quem já quer duas e marca mais uma passa a querer três. O gesto que a tela
+atende é "achei mais uma que eu quero", e substituir apagaria em silêncio o que
+a pessoa anotou carta a carta.
+
+A soma acontece no banco (`increment`), e não num número calculado antes: duas
+levas simultâneas somam as duas em vez de uma sobrescrever a outra.
+
+Reduzir continua sendo carta a carta, na revisão. Uma leva que também tirasse
+exigiria um controle capaz de dizer "menos que zero" e um jeito de distinguir
+"não mexi" de "quero zero".
+
+## Decisão 3 — o seletor de cartas virou um componente só
+
+A leva da want list é o mesmo gesto da leva de armazenamento: percorrer o
+catálogo com filtros marcando quantas de cada. Em vez de copiar 400 linhas, o
+seletor saiu para `catalog/card-picker` e as duas telas viraram cascas.
+
+O que estava em jogo não era tamanho, e sim duplicar decisões sutis — a corrida
+entre buscas quando se troca de filtro depressa, o ajuste de estado durante a
+renderização em vez de num efeito, o formulário nativo escondido — que só se
+lembraria de consertar num lugar.
+
+Os 53 testes da tela de armazenamento passaram sem alteração. Foi essa a
+verificação da refatoração.
+
+## Decisão 4 — o PDF sai pela impressão do navegador
+
+**E não de um gerador nosso**, por causa da decisão 026: as imagens de carta são
+referenciadas na origem e **nunca copiadas nem rearmazenadas**. É mitigação
+jurídica, não de performance.
+
+Gerar o arquivo por JavaScript exigiria desenhar cada imagem num `canvas`. O
+host da Bandai não manda `Access-Control-Allow-Origin` — conferido nos
+cabeçalhos —, então o `canvas` ficaria contaminado e o navegador recusaria
+exportar. O contorno seria servir as imagens pelo nosso domínio, que é
+exatamente o que a decisão proíbe.
+
+Na impressão do navegador nada disso acontece: as imagens são carregadas pelo
+aparelho de quem usa, direto da origem. O arquivo sai pelo "Salvar como PDF" do
+diálogo, fica no aparelho, e não passa pelo nosso servidor nem pelo nosso banco
+— que era o pedido.
+
+**Custa um passo**: em vez de baixar direto, a pessoa escolhe "Salvar como PDF"
+no diálogo. A tela diz isso, porque sem a instrução o diálogo de impressão
+parece o botão errado.
+
+## Decisão 5 — só o que falta entra na folha
+
+Uma folha com o que a pessoa já conseguiu faria alguém oferecer carta que ela
+não quer mais, que é o oposto do motivo de levar a lista.
+
+A marca vai no topo e o X apagado ao fundo, com opacidade maior que na tela —
+impresso a jato de tinta, 4% some no papel. É o tipo de ornamento que a seção 19
+da especificação permite: forma própria da marca, nunca arte de franquia.
+
+## Data
+
+2026-09-09

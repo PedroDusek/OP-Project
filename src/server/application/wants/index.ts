@@ -7,6 +7,10 @@ import {
   type WantQuery,
 } from './read-wants'
 import { setWantQuantity as setWantQuantityWith } from './set-want'
+import {
+  bulkAddWants as bulkAddWantsWith,
+  type BulkWantEntry,
+} from './bulk-wants'
 
 /**
  * Ponto de composicao dos casos de uso de want.
@@ -37,6 +41,12 @@ export function setWantQuantity(
   return setWantQuantityWith(prisma, user, cardVariantId, quantity)
 }
 
+export function bulkAddWants(user: AuthenticatedUser, entries: BulkWantEntry[]) {
+  return bulkAddWantsWith(prisma, user, entries)
+}
+
+export { MAX_BULK_WANTS } from './bulk-wants'
+export type { BulkWantEntry, BulkWantResult } from './bulk-wants'
 export type { WantQuery }
 export type { WantSummary, WantView } from './read-wants'
 export type { SetWantResult } from './set-want'
