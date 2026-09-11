@@ -63,9 +63,9 @@ export interface SourceArtProduct {
  * A arte comum de uma carta, identificada na fonte.
  *
  * Separada dos preços porque nem toda arte comum tem cotação — e a que não tem
- * continua servindo para uma coisa: **a imagem**. O produto da fonte é a única
- * referência de imagem que autoriza leitura cruzada, e é dela que sai a folha
- * em JPEG (decisão 058).
+ * continua servindo para uma coisa: **a imagem**. A do produto da fonte é a
+ * preferida da folha em JPEG, porque é limpa (decisão 058); sem ela, a folha usa
+ * a do catálogo pelo nosso domínio, que traz a marca "SAMPLE" (decisão 067).
  */
 export interface SourceCommonArt {
   cardCode: string
