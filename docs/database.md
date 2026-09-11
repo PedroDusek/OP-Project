@@ -324,6 +324,7 @@ trás, então ele já atende "preço mais recente desta variante". Verificado po
 | `status` | varchar(30) | not null, check nos seis estados |
 | `created_at` / `updated_at` | timestamptz | not null |
 | `completed_at` | timestamptz | nulo permitido |
+| `offer_changed_at` | timestamptz | nulo permitido |
 
 ```sql
 CHECK (status IN ('DRAFT','PROPOSED','NEGOTIATING','CONFIRMED','COMPLETED','CANCELLED'))
@@ -332,6 +333,12 @@ CHECK ((status = 'COMPLETED') = (completed_at IS NOT NULL))
 
 O segundo check impede que `completed_at` e o status divirjam, o que importa
 porque o valor histórico do trade é resolvido a partir de `completed_at`.
+
+`offer_changed_at` é a adição da decisão 065: é dela que sai a espera de cinco
+segundos antes de poder confirmar. Não reaproveita `updated_at` porque ele sobe
+também ao confirmar, e a contagem reiniciaria no gesto errado; nem sai dos itens,
+porque **tirar** uma carta é uma alteração e a linha desaparece junto com a data.
+Nulo enquanto ninguém mexeu na oferta, e aí não há o que esperar.
 
 **trade_participants**
 

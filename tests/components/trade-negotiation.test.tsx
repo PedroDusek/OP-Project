@@ -8,6 +8,19 @@ import type { TradeView } from '@/server/application/trades'
  * ficam no servidor; aqui o arquivo e importado inteiro, e sem o dublê o teste
  * tentaria abrir conexao com o banco para renderizar um botao.
  */
+/*
+ * A negociacao ficou ao vivo (decisao 065): ela pergunta ao servidor a cada dois
+ * segundos e pede `router.refresh()` quando algo muda. Fora do App Router o
+ * `useRouter` lanca, e sem o dublê nenhum teste desta tela renderiza.
+ */
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+}))
+
+// A consulta nao tem servidor aqui. O `useLiveTrade` engole a falha de rede, mas
+// dublar evita ruido de rede recusada no meio da suite.
+vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('sem servidor no teste')))
+
 vi.mock('@/app/(app)/trocas/actions', () => ({
   setOfferAction: vi.fn(),
   confirmTradeAction: vi.fn(),
@@ -61,6 +74,8 @@ const troca = (over: Partial<TradeView> = {}): TradeView => ({
   theyCanOffer: [],
   validated: false,
   completedAt: null,
+  // Sem alteracao recente: a espera dos 5s nao se aplica por padrao.
+  offerChangedAt: null,
   ...over,
 })
 
@@ -295,5 +310,54 @@ describe('troca concluida', () => {
     expect(screen.queryByRole('button', { name: /já trocamos/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /cancelar a troca/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /acrescentar uma cópia/i })).not.toBeInTheDocument()
+  })
+})
+
+/**
+ * A espera de cinco segundos, na tela (decisao 065).
+ *
+ * O que se protege aqui e a **aparencia** da regra: o botao trava e conta. Quem
+ * recusa confirmar cedo demais e o servidor, e esta tela nao e fonte de verdade
+ * — ela so evita que a pessoa toque num botao que seria recusado.
+ */
+describe('a espera antes de confirmar', () => {
+  it('trava o botao e conta os segundos depois de a oferta mudar', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-09-10T12:00:00.000Z'))
+
+    render(
+      <TradeNegotiation
+        trade={troca({ offerChangedAt: new Date('2026-09-10T12:00:00.000Z') })}
+      />,
+    )
+
+    const botao = screen.getByRole('button', { name: /confirmar em 5s/i })
+    expect(botao).toBeDisabled()
+    expect(screen.getByText(/a oferta acabou de mudar/i)).toBeInTheDocument()
+
+    vi.useRealTimers()
+  })
+
+  it('libera o botao quando a espera ja passou', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-09-10T12:00:10.000Z'))
+
+    render(
+      <TradeNegotiation
+        trade={troca({ offerChangedAt: new Date('2026-09-10T12:00:00.000Z') })}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: /confirmar esta troca/i })).not.toBeDisabled()
+    expect(screen.queryByText(/a oferta acabou de mudar/i)).not.toBeInTheDocument()
+
+    vi.useRealTimers()
+  })
+
+  /* Troca em que ninguem mexeu na oferta nao tem o que esperar. */
+  it('nao trava quando a oferta nunca mudou', () => {
+    render(<TradeNegotiation trade={troca()} />)
+
+    expect(screen.getByRole('button', { name: /confirmar esta troca/i })).not.toBeDisabled()
   })
 })

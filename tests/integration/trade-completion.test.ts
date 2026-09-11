@@ -61,9 +61,35 @@ async function confirmedTrade(a: Person, b: Person) {
   return tradeId
 }
 
+/**
+ * Confirma pelos dois, cumprindo a espera de cinco segundos.
+ *
+ * A regra mudou no Checkpoint 13 (decisao 065): alterar a oferta trava a
+ * confirmacao por cinco segundos. Todo teste daqui monta a oferta e confirma em
+ * seguida, o que antes era instantaneo e agora seria recusado.
+ *
+ * A espera e cumprida no relogio do banco, e nao contornada: e a mesma coisa
+ * que acontece quando a pessoa espera de verdade. Dormir cinco segundos por
+ * teste custaria mais de um minuto nesta suite, sem provar nada a mais.
+ */
 async function confirmBoth(tradeId: bigint, a: Person, b: Person) {
+  await cumprirEspera(tradeId)
   await confirmTrade(testPrisma(), a.user, tradeId)
   await confirmTrade(testPrisma(), b.user, tradeId)
+}
+
+/** Recua a marca da ultima alteracao, como se a espera ja tivesse passado. */
+async function cumprirEspera(tradeId: bigint) {
+  const trade = await testPrisma().trade.findUniqueOrThrow({
+    where: { id: tradeId },
+    select: { offerChangedAt: true },
+  })
+  if (!trade.offerChangedAt) return
+
+  await testPrisma().trade.update({
+    where: { id: tradeId },
+    data: { offerChangedAt: new Date(trade.offerChangedAt.getTime() - 10_000) },
+  })
 }
 
 async function quantityOf(collectionId: bigint, cardVariantId: bigint) {
@@ -245,6 +271,8 @@ describe('marcar tem hora', () => {
       cardVariantId: dela.variant.id,
       quantity: 1,
     })
+    // Este confirma so de um lado, entao nao passa pelo `confirmBoth`.
+    await cumprirEspera(tradeId)
     await confirmTrade(testPrisma(), ana.user, tradeId)
 
     await expect(markExchange(testPrisma(), ana.user, tradeId)).rejects.toThrow(

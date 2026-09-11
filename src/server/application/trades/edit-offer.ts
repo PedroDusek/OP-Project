@@ -1,6 +1,7 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
 import type { AuthenticatedUser } from '@/server/application/auth'
 import { AuthorizationError, ConflictError, NotFoundError } from '@/server/domain/errors'
+import { canConfirmNow, secondsUntilConfirm } from '@/server/domain/trades/cooldown'
 import {
   acceptsChanges,
   isValidated,
@@ -32,6 +33,9 @@ import {
  * instante em que a troca está alterada e ainda confirmada — e é justamente
  * nesse instante que alguém poderia concluí-la.
  */
+
+/** Confirmar antes de a espera acabar (decisao 065). */
+export const CONFIRMATION_TOO_SOON = 'CONFIRMACAO_CEDO_DEMAIS'
 
 export interface OfferChange {
   cardVariantId: bigint
@@ -109,6 +113,19 @@ export async function confirmTrade(
       throw new ConflictError(
         'TROCA_INCOMPLETA',
         'A troca precisa das duas pessoas para ser confirmada.',
+      )
+    }
+
+    /*
+     * A espera dos cinco segundos, aplicada **aqui** e nao no botao. O botao
+     * desabilitado e aparencia; esta acao pode ser chamada direto, e sem esta
+     * linha a trava nao existiria (decisao 065).
+     */
+    if (!canConfirmNow(trade.offerChangedAt)) {
+      const faltam = secondsUntilConfirm(trade.offerChangedAt)
+      throw new ConflictError(
+        CONFIRMATION_TOO_SOON,
+        `A troca mudou agora. Espere ${faltam} ${faltam === 1 ? 'segundo' : 'segundos'} e confirme de novo.`,
       )
     }
 
@@ -201,12 +218,20 @@ async function requireParticipant(
   user: AuthenticatedUser,
   tradeId: bigint,
 ): Promise<{
-  trade: { status: TradeStatus; participants: { userId: bigint }[] }
+  trade: {
+    status: TradeStatus
+    offerChangedAt: Date | null
+    participants: { userId: bigint }[]
+  }
   participantId: bigint
 }> {
   const trade = await tx.trade.findUnique({
     where: { id: tradeId },
-    select: { status: true, participants: { select: { id: true, userId: true } } },
+    select: {
+      status: true,
+      offerChangedAt: true,
+      participants: { select: { id: true, userId: true } },
+    },
   })
   if (!trade) throw new NotFoundError('Troca não encontrada.')
 
@@ -216,6 +241,7 @@ async function requireParticipant(
   return {
     trade: {
       status: trade.status as TradeStatus,
+      offerChangedAt: trade.offerChangedAt,
       participants: trade.participants.map((p) => ({ userId: p.userId })),
     },
     participantId: mine.id,
@@ -253,10 +279,16 @@ async function revokeAll(
     data: { confirmedAt: null },
   })
 
-  const next = statusAfterChange(status)
-  if (next !== status) {
-    await tx.trade.update({ where: { id: tradeId }, data: { status: next } })
-  }
+  /*
+   * A marca da alteracao e o status vao na mesma escrita. E dela que sai a
+   * espera antes de confirmar, e grava-la fora desta transacao deixaria um
+   * instante com a oferta ja mudada e o botao ainda liberado — que e exatamente
+   * o instante que a espera existe para fechar.
+   */
+  await tx.trade.update({
+    where: { id: tradeId },
+    data: { offerChangedAt: agora, status: statusAfterChange(status) },
+  })
 }
 
 /**

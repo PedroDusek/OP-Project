@@ -458,8 +458,8 @@ model PriceImport {
 // -------------------------------------------------------------------- trocas
 
 model Trade {
-  id          BigInt    @id @default(autoincrement())
-  status      String    @db.VarChar(30)
+  id             BigInt    @id @default(autoincrement())
+  status         String    @db.VarChar(30)
   // O convite que deixa a segunda pessoa entrar (decisao 056).
   //
   // E o consentimento dela que abre o dado privado dos dois (regra 4.6.1),
@@ -470,10 +470,25 @@ model Trade {
   //
   // Nulo depois que a segunda pessoa entra: o convite serviu, e um link que
   // continua valendo e um link que ainda pode vazar.
-  inviteToken String?   @unique @map("invite_token") @db.VarChar(64)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
-  completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
+  inviteToken    String?   @unique @map("invite_token") @db.VarChar(64)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  completedAt    DateTime? @map("completed_at") @db.Timestamptz(6)
+  // Quando a **oferta** mudou pela ultima vez (decisao 065).
+  //
+  // E daqui que sai a espera de cinco segundos antes de poder confirmar: a
+  // trava classica das trocas de jogo, que da tempo de ver o que o outro acabou
+  // de mexer antes de dizer que esta pronto.
+  //
+  // Nao da para reaproveitar `updated_at`: ele sobe tambem quando alguem
+  // confirma ou retira a confirmacao, e a contagem reiniciaria no gesto errado —
+  // o botao ficaria travado cinco segundos depois de confirmar, sem motivo.
+  //
+  // Nem da para tirar dos itens: **tirar** uma carta e uma alteracao, e a linha
+  // desaparece junto com qualquer data que estivesse nela.
+  //
+  // Nulo enquanto ninguem mexeu na oferta, e nesse caso nao ha o que esperar.
+  offerChangedAt DateTime? @map("offer_changed_at") @db.Timestamptz(6)
 
   participants TradeParticipant[]
 

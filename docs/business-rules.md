@@ -264,6 +264,24 @@ diz respeito a uma troca que não existe mais.
 Sem isso, o valor da confirmação seria ambíguo: ninguém saberia se o outro
 concordou com o que está na tela ou com uma versão anterior dela.
 
+**Confirmar só é possível cinco segundos depois da última alteração da oferta**
+(decisão 065). A espera conta a partir da alteração de **qualquer um dos dois**,
+e trava o botão dos dois.
+
+Ela existe contra um golpe específico: mudar a oferta no instante exato em que o
+outro toca em confirmar. Cinco segundos não impedem a tentativa — impedem que
+ela funcione sem que a pessoa veja. Quem aplica a espera é o servidor; o botão
+desabilitado é aparência.
+
+Confirmar e retirar a confirmação **não** reiniciam a espera: nenhum dos dois
+altera a oferta.
+
+### 4.6.4 A negociação acontece ao vivo
+
+Os dois lados veem a oferta do outro mudando sem recarregar a página. A tela
+pergunta ao servidor a cada dois segundos e se redesenha quando algo muda
+(decisão 065), e pausa enquanto a aba não está visível.
+
 ### 4.7 Conclusão
 
 **Os dois participantes marcam que as cartas trocaram de mão**, e a troca conclui
