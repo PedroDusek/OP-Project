@@ -19,7 +19,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 67 PRs mergeados, CI verde em todos |
+| Branch | `main`, 68 PRs mergeados, CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -521,6 +521,13 @@ foi construída.
 
 Construída em 10/09 (decisão 065). Os dois lados veem a oferta do outro mudando
 sem recarregar, e confirmar só libera cinco segundos depois da última alteração.
+
+**Confirmado pelo dono do produto em 10/09, com duas contas**: a carta posta de
+um lado aparece na tela do outro, e o botão trava e conta.
+
+Para testar de novo: a oferta só aceita cartas que aparecem no cruzamento. A
+conta B precisa ter na **want list** uma carta que a conta A tenha num **local de
+troca** — sem isso não há o que oferecer, e parece defeito sem ser.
 
 Três coisas para não desfazer sem querer:
 
