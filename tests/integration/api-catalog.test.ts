@@ -233,3 +233,37 @@ describe('filtros repetidos na API', () => {
     expect(response.status).toBe(400)
   })
 })
+
+/**
+ * O filtro de counter pela API, que e por onde a rolagem infinita pede as
+ * paginas seguintes. Um filtro que valesse na primeira pagina e sumisse nas
+ * outras so apareceria para quem rolasse.
+ */
+describe('GET /api/catalog com counter', () => {
+  it('aceita a lista de valores e so devolve personagem', async () => {
+    const response = await catalogSearch(
+      new Request(url('?counter=0&counter=2000&pageSize=100')),
+      undefined,
+    )
+    expect(response.status).toBe(200)
+
+    const payload = (await body(response)) as unknown as {
+      items: { type: string; counter: number | null }[]
+    }
+    for (const item of payload.items) {
+      expect(item.type).toBe('Character')
+      expect([null, 2000]).toContain(item.counter)
+    }
+  })
+
+  /* So os tres valores do jogo passam. Qualquer outro e erro, e nao silencio. */
+  it('rejeita valor que nao e do jogo, apontando o campo', async () => {
+    const response = await catalogSearch(new Request(url('?counter=500')), undefined)
+    expect(response.status).toBe(400)
+
+    const payload = (await body(response)) as unknown as {
+      error: { fields: Record<string, string[]> }
+    }
+    expect(Object.keys(payload.error.fields)).toContain('counter')
+  })
+})

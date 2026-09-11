@@ -1,4 +1,5 @@
 import type { CatalogQuery } from '@/server/application/catalog/search-cards'
+import { parseCounterValue, type CounterValue } from '@/server/domain/catalog/counter'
 
 /**
  * A tradução entre a query string e os filtros do catálogo.
@@ -25,6 +26,7 @@ export const PARAM = {
   atributo: 'atributo',
   mecanica: 'mecanica',
   trait: 'trait',
+  contador: 'contador',
   custoMin: 'custoMin',
   custoMax: 'custoMax',
   poderMin: 'poderMin',
@@ -65,6 +67,19 @@ const number = (value: string | string[] | undefined): number | undefined => {
   return Number.isFinite(parsed) ? Math.trunc(parsed) : undefined
 }
 
+/**
+ * Os valores de counter da URL, descartando o que não é um dos três.
+ *
+ * `undefined` quando não sobra nenhum: `?contador=500` é "sem filtro", e não
+ * "personagens sem counter".
+ */
+const counters = (value: string | string[] | undefined): CounterValue[] | undefined => {
+  const valid = (list(value) ?? [])
+    .map(parseCounterValue)
+    .filter((item): item is CounterValue => item !== undefined)
+  return valid.length > 0 ? valid : undefined
+}
+
 /** Converte a query string no que o caso de uso entende. */
 export function toCatalogQuery(
   params: CatalogSearchParams,
@@ -82,6 +97,7 @@ export function toCatalogQuery(
     attribute: list(params[PARAM.atributo]),
     mechanic: list(params[PARAM.mecanica]),
     trait: list(params[PARAM.trait]),
+    counter: counters(params[PARAM.contador]),
     costMin: number(params[PARAM.custoMin]),
     costMax: number(params[PARAM.custoMax]),
     powerMin: number(params[PARAM.poderMin]),
@@ -107,6 +123,7 @@ export function countActiveFilters(params: CatalogSearchParams): number {
     PARAM.atributo,
     PARAM.mecanica,
     PARAM.trait,
+    PARAM.contador,
   ]
   const singleKeys = [PARAM.set, PARAM.custoMin, PARAM.custoMax, PARAM.poderMin, PARAM.poderMax]
 
@@ -179,6 +196,12 @@ export function toApiQuery(query: CatalogQuery): string {
   put('attribute', query.attribute)
   put('mechanic', query.mechanic)
   put('trait', query.trait)
+  put(
+    'counter',
+    query.counter === undefined
+      ? undefined
+      : ([] as CounterValue[]).concat(query.counter).map(String),
+  )
   put('costMin', query.costMin)
   put('costMax', query.costMax)
   put('powerMin', query.powerMin)
