@@ -5,6 +5,7 @@ import { importExchangeRate } from '@/server/application/prices/import-exchange-
 import { TcgCsvPriceProvider } from '@/server/infrastructure/prices/tcgcsv-price-provider'
 import { BcbPtaxProvider } from '@/server/infrastructure/prices/bcb-ptax-provider'
 import { oncePerRun } from '@/server/infrastructure/prices/once-per-run'
+import { loadManualLinks } from '@/server/infrastructure/prices/manual-links-file'
 import { createPrisma } from '@/server/infrastructure/prisma'
 
 /**
@@ -46,7 +47,9 @@ async function main(): Promise<void> {
     // Uma passada pela fonte serve os dois: sem isto, sao 348 requisicoes
     // onde 174 bastam.
     const provider = oncePerRun(new TcgCsvPriceProvider())
-    await linkArtProducts(prisma, provider)
+    // O arquivo manual e lido aqui, antes de tocar no banco: se ele estiver
+    // invalido, a importacao para com o motivo em vez de rodar sem ele.
+    await linkArtProducts(prisma, provider, { manualLinks: loadManualLinks() })
 
     const result = await importPrices(prisma, provider)
     console.log(

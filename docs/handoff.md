@@ -75,6 +75,7 @@ componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 | 13 | Troca ao vivo: consulta a cada 2s e a espera de 5s antes de confirmar (decisão 065) |
 | — | Filtro de counter — 0, +1000, +2000 — em toda tela que filtra carta (decisão 066) |
 | — | Folha em JPEG com a arte do catálogo quando falta vínculo com a fonte (decisão 067) |
+| — | Vínculo por raridade e o arquivo de vínculos manuais: 478 → 623 paralelas com preço (decisão 068) |
 
 ### Produção, em 10/09/2026
 
@@ -108,7 +109,7 @@ outra hora, e isso é verdade, não defeito.
 
 ## As decisões que mais restringem o que vem depois
 
-As 67 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 68 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
@@ -677,11 +678,14 @@ Duas coisas que valem saber ao testar:
 
 ## O que falta em preços e no vínculo
 
-- **Mapear as 351 paralelas ambíguas.** O automático cobriu as que tinham uma
-  arte de cada lado; sobram as com duas ou mais, onde é preciso dizer qual é a
-  *Alternate Art* e qual é a *Manga*. Entram com `origin = 'manual'`, que
-  nenhuma rederivação sobrescreve. `npx tsx scripts/levantar-paralelas.ts` gera
-  a lista por set — os sets recentes fecham quase perfeito.
+- **Mapear as 287 cartas ambíguas.** Eram 351; a dedução por raridade (decisão
+  068) resolveu parte, e as paralelas com preço foram de 478 para 623 no banco
+  local. O que sobra só o olho resolve — qual é a *Alternate Art* e qual é a
+  *Manga*. O resultado vai para `data/vinculos-manuais.json`, versionado, que a
+  importação de preço aplica como `manual` em qualquer ambiente. A tela
+  `/dev/paralelas`, fora de produção, é a entrega seguinte.
+  **Produção ainda não tem os 145 vínculos novos**: chegam na próxima
+  `npm run supabase prices`.
 - **168 cartas com paralela que a fonte não oferece.** Não há produto para
   vincular; ficam sem preço e sem arte na folha em JPEG até a fonte listá-las.
 

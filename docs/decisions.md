@@ -4427,3 +4427,101 @@ duas; o gerador do JPEG não sabe de onde a imagem veio, e não precisa saber.
 ## Data
 
 2026-09-10
+
+---
+
+# Decisão: 068 — A raridade desempata, e o vínculo manual mora no repositório
+
+**Amplia a decisão 053.**
+
+## Contexto
+
+Pedido do dono do produto: resolver os links quebrados de preço. Das 1.646
+paralelas, 1.168 não tinham vínculo com a fonte, e por isso nem preço. A decisão
+053 vinculava só o caso sem escolha — uma paralela nossa, uma arte na fonte — e
+deixava para o olho humano as cartas com duas ou mais de cada lado.
+
+## Decisão 1 — a raridade desempata quando não sobra escolha
+
+**Aprovada pelo dono do produto.** Nós temos a raridade de cada paralela; a fonte
+tem o tratamento de cada produto. Duas correspondências não deixam dúvida:
+
+| nossa raridade | tratamento na fonte |
+|---|---|
+| `SP CARD` | `SP` |
+| `TR` | `TR` |
+
+Quando só uma paralela nossa é `SP CARD` e só um produto é `SP`, os dois são a
+mesma arte — não por semelhança, mas porque não existe outro candidato. Casados
+esses, se sobrar exatamente uma de cada lado, ela também casa: é o caso sem
+escolha da 053, alcançado depois da eliminação.
+
+Em `EB03-003`: nós `SR | SP CARD`, a fonte `Alternate Art | SP`. A `SP CARD` é o
+`SP`, e a `SR` que sobra é a `Alternate Art`.
+
+**Igualdade exata do rótulo, e não prefixo.** `SP + Gold` e `SP + Silver` são duas
+artes SP da mesma carta, e a raridade não distingue uma da outra. No campo de
+dinheiro, casar pelo parecido é o erro que a 053 existe para não cometer.
+
+Continua `origin = 'automatic'`: sai de uma regra, e a próxima passada refaz.
+
+## Decisão 2 — o vínculo manual mora num arquivo versionado
+
+**Escolha do dono do produto.** `data/vinculos-manuais.json`, aplicado pela
+importação de preço antes de qualquer regra, como `origin = 'manual'`.
+
+A 053 protegia o vínculo manual de ser sobrescrito por regra. Faltava protegê-lo
+do resto:
+
+- de um banco local recriado, que o apagaria;
+- de produção, que não o receberia sem um comando à parte;
+- da falta de revisão — uma linha no banco não passa por PR.
+
+No repositório ele é versionado, revisado junto do código, e aplicado pelos dois
+caminhos que já existem: `npm run prices:import` e `npm run supabase prices`.
+
+**Indexado pelo `source_id` da Bandai** (`OP01-016_p3`), e não pelo id do banco,
+que muda quando o catálogo é reimportado num banco limpo (decisão 019).
+
+**`produto: null` é uma resposta** — "olhei, e a fonte não tem esta arte". Sem ela,
+uma carta revisada seria indistinguível de uma não revisada.
+
+**O arquivo vence tudo.** Aplicado primeiro; um produto que ele reivindica sai da
+mesa antes de a regra rodar, e quem o segurava por regra o solta.
+
+**Linha que não fecha é recusada com aviso, e não aplicada no escuro**: arte que
+não existe no catálogo, ou produto que a fonte não lista para aquela carta. Um
+produto trocado daria à carta uma imagem que não carrega na folha, pior que a
+arte do catálogo que ela teria sem vínculo (067). Recusar a linha, e não a
+importação: um erro de digitação não deixa produção sem preço naquela noite.
+
+**Arquivo que falta ou está inválido para a importação**, com o motivo, antes de
+tocar no banco. Arquivo sumido virando "nenhum vínculo manual" apagaria o
+trabalho do dono do produto em silêncio (armadilha 5).
+
+## Medido, no banco local, em 11/09/2026
+
+Uma passada da importação de preço, com a fonte real e o arquivo manual vazio:
+
+| | antes | depois |
+|---|---:|---:|
+| Paralelas com vínculo e preço | 478 | **623** |
+| Vínculos novos | — | **145** — 114 pela raridade, 31 pelo que sobrou |
+| Cartas ainda ambíguas | 351 | **287** |
+| Cartas que a fonte não oferece | 168 | 168 |
+
+A estimativa feita sobre o levantamento, antes de escrever o código, era 146.
+
+Produção recebe esses vínculos na próxima `npm run supabase prices`.
+
+## O que fica para a tela de mapeamento
+
+As 287 cartas ambíguas são o que só o olho resolve — casos como `SR | SR | SR`
+contra `Manga | Alternate Art | Alternate Art + Manga`, onde nada no dado
+distingue qual é qual. A tela `/dev/paralelas`, que só existe fora de produção, é
+a entrega seguinte: as nossas artes de um lado, os produtos da fonte do outro, com
+imagem, e o resultado gravado neste arquivo.
+
+## Data
+
+2026-09-11

@@ -127,6 +127,9 @@ async function main(): Promise<void> {
         '@/server/infrastructure/prices/tcgcsv-price-provider'
       )
       const { oncePerRun } = await import('@/server/infrastructure/prices/once-per-run')
+      const { loadManualLinks } = await import(
+        '@/server/infrastructure/prices/manual-links-file'
+      )
       const { BcbPtaxProvider } = await import(
         '@/server/infrastructure/prices/bcb-ptax-provider'
       )
@@ -147,7 +150,9 @@ async function main(): Promise<void> {
       // O vinculo antes do preco, para um vinculo novo ja render preco na
       // mesma passada. `oncePerRun` faz os dois lerem a fonte uma vez so.
       const provider = oncePerRun(new TcgCsvPriceProvider())
-      await linkArtProducts(prisma, provider)
+      // O arquivo manual e o que leva o trabalho do dono do produto a producao
+      // (decisao 068). Invalido, ele para a importacao antes de tocar no banco.
+      await linkArtProducts(prisma, provider, { manualLinks: loadManualLinks() })
 
       const result = await importPrices(prisma, provider)
       console.log(
