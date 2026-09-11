@@ -1,3 +1,4 @@
+import type { CounterValue } from '@/server/domain/catalog/counter'
 import type { Prisma, PrismaClient } from '@prisma/client'
 import type { CardType } from '@/server/domain/catalog/types'
 import { compareSetsForCatalog } from '@/server/domain/catalog/sets'
@@ -62,7 +63,15 @@ export interface CatalogFilters {
   costMax?: number
   powerMin?: number
   powerMax?: number
-  counter?: number
+  /**
+   * Counter, como lista: `0`, `1000`, `2000`, somados por **ou**.
+   *
+   * O zero é **personagem sem counter**, e não `counter = 0`, que não casaria com
+   * nada — a fonte publica `-` e o banco guarda nulo. Com qualquer valor marcado
+   * o resultado fica só em personagens. Ver `domain/catalog/counter.ts`.
+   */
+  // Nao usa `Many`, que so aceita string: o counter e numero ate o fim.
+  counter?: CounterValue | readonly CounterValue[]
   hasTrigger?: boolean
   blockIcon?: string
 }
@@ -141,7 +150,22 @@ export function buildCatalogWhere(filters: CatalogFilters): Prisma.CardVariantWh
   }
   const types = many(filters.type)
   if (types) card.type = { in: types }
-  if (filters.counter !== undefined) card.counter = filters.counter
+  /*
+   * O filtro de counter vai num `AND` proprio, e nao em `card.type` nem em
+   * `card.counter` direto: o tipo pode ja estar filtrado pela faceta de tipo, e
+   * escrever por cima apagaria a escolha da pessoa. Com `AND`, "Evento" mais
+   * "+1000" devolve vazio, que e literalmente o que foi pedido — as duas coisas
+   * juntas nao existem.
+   */
+  const counters = filters.counter === undefined ? [] : ([] as CounterValue[]).concat(filters.counter)
+  if (counters.length > 0) {
+    const alternativas: Prisma.CardWhereInput[] = []
+    if (counters.includes(0)) alternativas.push({ counter: null })
+    const comCounter = counters.filter((value) => value !== 0)
+    if (comCounter.length > 0) alternativas.push({ counter: { in: comCounter } })
+
+    card.AND = [{ type: 'Character' }, { OR: alternativas }]
+  }
 
   const cost = range(filters.costMin, filters.costMax)
   if (cost) card.cost = cost

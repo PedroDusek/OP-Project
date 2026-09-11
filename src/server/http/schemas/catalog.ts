@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { COUNTER_TOKENS, parseCounterValue } from '@/server/domain/catalog/counter'
 import { CARD_TYPES } from '@/server/domain/catalog/types'
 
 /**
@@ -58,7 +59,14 @@ export const catalogQuerySchema = z.object({
   costMax: integer('costMax').optional(),
   powerMin: integer('powerMin').optional(),
   powerMax: integer('powerMax').optional(),
-  counter: integer('counter').optional(),
+  /*
+   * Lista, e nao um numero exato: "0 ou +2000" e uma pergunta de quem monta a
+   * curva de counter. So os tres valores do jogo passam; qualquer outro e 400,
+   * pelo mesmo motivo do `strict` abaixo.
+   */
+  counter: multi(z.enum(COUNTER_TOKENS))
+    .transform((values) => values.map((value) => parseCounterValue(value)!))
+    .optional(),
   hasTrigger: booleanish.optional(),
   blockIcon: nonEmpty(20).optional(),
   page: integer('page').pipe(z.number().int().min(1)).optional(),

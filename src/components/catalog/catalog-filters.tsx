@@ -9,6 +9,7 @@ import { FilterSection, FilterSheet } from '@/components/ui/filter-sheet'
 import { Field, Input } from '@/components/ui/field'
 import { SearchBar } from '@/components/ui/search-bar'
 import { Select } from '@/components/ui/select'
+import { COUNTER_LABELS, COUNTER_TOKENS } from '@/server/domain/catalog/counter'
 import { SET_KIND_LABEL } from '@/server/domain/catalog/sets'
 import { buildCatalogHref, PARAM, type CatalogSearchParams } from '@/lib/catalog-params'
 import type { CatalogVocabulary } from '@/server/application/catalog/vocabulary'
@@ -74,6 +75,7 @@ const MULTI_KEYS = [
   PARAM.atributo,
   PARAM.mecanica,
   PARAM.trait,
+  PARAM.contador,
 ] as const
 
 /** As que aceitam um só: o set e os limites das faixas. */
@@ -267,6 +269,21 @@ export function CatalogFilters({
           onToggle={toggle}
         />
 
+        {/*
+          Os três valores do jogo, fixos, e não do vocabulário importado: o
+          catálogo tem exatamente 1000, 2000 e personagens sem counter — medido
+          —, e o zero não existe como valor no banco para o vocabulário achar.
+          Qualquer opção marcada restringe o resultado a personagens.
+        */}
+        <ChipSection
+          title="Counter"
+          param={PARAM.contador}
+          values={[...COUNTER_TOKENS]}
+          labels={COUNTER_LABELS}
+          selected={selected(PARAM.contador)}
+          onToggle={toggle}
+        />
+
         <FilterSection title="Cor">
           <ChipRow>
             {vocabulary.colors.map((value) => (
@@ -393,12 +410,15 @@ function ChipSection({
   title,
   param,
   values,
+  labels,
   selected,
   onToggle,
 }: {
   title: string
   param: string
   values: string[]
+  /** Rótulo por valor, quando o valor da URL não é o que a pessoa lê. */
+  labels?: Record<string, string>
   selected: string[]
   onToggle: (key: string, value: string) => void
 }) {
@@ -411,7 +431,7 @@ function ChipSection({
             selected={selected.includes(value)}
             onClick={() => onToggle(param, value)}
           >
-            {value}
+            {labels?.[value] ?? value}
           </Chip>
         ))}
       </ChipRow>

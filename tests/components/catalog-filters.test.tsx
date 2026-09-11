@@ -305,3 +305,40 @@ describe('filtro por set', () => {
     expect(within(painel).queryByRole('combobox', { name: 'Set' })).not.toBeInTheDocument()
   })
 })
+
+/**
+ * O filtro de counter no painel.
+ *
+ * Tres valores fixos do jogo, e nao do vocabulario importado: o zero nao existe
+ * como valor no banco — personagem sem counter e nulo —, entao o vocabulario
+ * nunca o acharia.
+ */
+describe('counter', () => {
+  it('oferece 0, +1000 e +2000', async () => {
+    const dialog = await abrir()
+
+    for (const rotulo of ['0', '+1000', '+2000']) {
+      expect(within(dialog).getByRole('button', { name: rotulo })).toBeInTheDocument()
+    }
+  })
+
+  it('manda os valores na URL como parametro repetido', async () => {
+    const dialog = await abrir()
+
+    await userEvent.click(within(dialog).getByRole('button', { name: '0' }))
+    await userEvent.click(within(dialog).getByRole('button', { name: '+2000' }))
+    await userEvent.click(within(dialog).getByRole('button', { name: /Aplicar/ }))
+
+    expect(pushed().getAll('contador')).toEqual(['0', '2000'])
+  })
+
+  it('reabre com o counter escolhido marcado', async () => {
+    search.value = new URLSearchParams('contador=1000')
+    const dialog = await abrir(1)
+
+    expect(within(dialog).getByRole('button', { name: '+1000' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+  })
+})

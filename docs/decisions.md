@@ -4295,3 +4295,74 @@ O que ele protege continua o mesmo.
 ## Data
 
 2026-09-10
+
+---
+
+# Decisão: 066 — O filtro de counter, e o que "counter 0" quer dizer
+
+## Contexto
+
+Pedido do dono do produto: filtrar a carta por counter — 0, +1000 ou +2000.
+
+Já existia um filtro `counter` escondido no servidor, aceitando **um número
+exato**, sem nenhuma tela que o usasse. Nesse formato ele não servia: não dava
+para pedir "0 ou +2000", e o zero não casaria com carta nenhuma.
+
+## O que o catálogo tem, medido antes de decidir
+
+Em 10/09/2026, no catálogo importado: 1.333 personagens com +1000, 364 com
++2000, e **488 personagens sem counter**. Eventos, Leaders e Stages não têm
+counter. **Nenhuma carta tem counter `0` guardado** — a fonte publica um `-`, e
+o importador o lê como nulo.
+
+Os 488 foram conferidos contra falha de importação (armadilha 5): concentram-se
+nos custos altos — 180 deles custam de 7 a 10 —, e os de custo baixo batem com o
+jogo, como o ST01-004 Sanji, que de fato não tem counter.
+
+## Decisão 1 — "counter 0" é personagem sem counter
+
+**Escolha do dono do produto.** Counter é atributo de personagem, e é assim que
+quem joga pensa ao montar a curva de counter do deck. Eventos, Leaders e Stages
+também não têm counter, mas não por serem "counter 0" — eles não têm o atributo,
+e no resultado de quem monta a curva seriam ruído.
+
+Com **qualquer** valor marcado, o resultado fica só em personagens. Isso deixa as
+três opções coerentes, porque +1000 e +2000 só existem em personagem.
+
+## Decisão 2 — uma lista, somada por "ou"
+
+Como as outras facetas: marcar 0 e +2000 pede "sem counter ou +2000". O filtro
+de um número exato que existia foi substituído — a API é interna, nunca exposta
+publicamente (decisão 020), então mudar o formato dela é decisão técnica.
+
+## Decisão 3 — o filtro não escreve por cima do tipo
+
+A condição de counter vai num `AND` próprio, e não em `card.type` direto. O tipo
+pode já estar filtrado pela faceta de tipo, e escrever por cima apagaria a
+escolha da pessoa. Com `AND`, "Evento" mais "+1000" devolve vazio — que é
+literalmente o que foi pedido, porque as duas coisas juntas não existem.
+
+## Decisão 4 — os três valores são fixos, e não do vocabulário
+
+As outras facetas saem do catálogo importado, para o painel não oferecer o que
+não existe. O counter não pode seguir esse caminho: o zero **não existe como
+valor no banco**, então o vocabulário nunca o acharia. Os três valores do jogo
+são fixos, e batem exatamente com o que o catálogo tem, medido.
+
+Moram em `domain/catalog/counter.ts`, em duas listas — números para a busca,
+strings para o schema da API, que precisa de literais. Um teste garante que as
+duas não divergem.
+
+## Onde ele vale
+
+Em toda tela que filtra carta, de uma vez: catálogo, coleção, want list, binders
+e o seletor de cartas. Todas passam por `buildCatalogWhere` e `toCatalogQuery`,
+e é por isso que um filtro novo não precisa ser repetido tela a tela.
+
+Valor que não é um dos três — `contador=500` numa URL editada à mão — vira
+"sem filtro" na tela e **400** na API. Nunca vira zero: seria devolver
+personagens sem counter, que ninguém pediu.
+
+## Data
+
+2026-09-10

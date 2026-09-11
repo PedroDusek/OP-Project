@@ -8,7 +8,7 @@ Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
    carregou ao subir, e a migration `concluir_a_troca` entrou nesta sessão
    (armadilha 40).
 2. `npm run supabase status` — mostra o que produção tem e o que falta. Hoje
-   ela está **quatro migrations atrás**.
+   ela está **seis migrations atrás**.
 3. Leia "Produção, em 10/09/2026" e "Próximo passo", abaixo.
 
 O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
@@ -72,16 +72,17 @@ componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 | — | A folha da want list se compartilha num toque (decisão 063) |
 | — | Trade Binder público: um conjunto, e o link é da pessoa (decisão 064) |
 | 13 | Troca ao vivo: consulta a cada 2s e a espera de 5s antes de confirmar (decisão 065) |
+| — | Filtro de counter — 0, +1000, +2000 — em toda tela que filtra carta (decisão 066) |
 
 ### Produção, em 10/09/2026
 
-> **Produção está QUATRO migrations atrás: 9 de 13.** Faltam
-> `convite_de_troca`, `revisao_apos_alteracao`, `nome_de_usuario` e
-> `concluir_a_troca`. **Publicar o `main` atual sem rodar
-> `npm run supabase migrate` derruba a tela de Trocas e a de conta**, com
-> `Cannot read properties of undefined`. É a primeira coisa a resolver antes de
-> qualquer publicação. Produção tem **zero usuários**, então o atraso ainda não
-> quebrou a tela de ninguém.
+> **Produção está SEIS migrations atrás: 9 de 15** (medido em 10/09). Faltam
+> `convite_de_troca`, `revisao_apos_alteracao`, `nome_de_usuario`,
+> `concluir_a_troca`, `trade_binder_publico` e `troca_ao_vivo`. **Publicar o
+> `main` atual sem rodar `npm run supabase migrate` derruba Trocas, a conta e o
+> link público do Trade Binder**, com `Cannot read properties of undefined`. É a
+> primeira coisa a resolver antes de qualquer publicação. Produção tem **zero
+> usuários**, então o atraso ainda não quebrou a tela de ninguém.
 
 Catálogo e preços estão certos e iguais ao local: 2.785 cartas, 4.431 variantes,
 60 sets, 4.834 impressões, **3.170 variantes com preço** — 2.692 artes comuns
@@ -105,7 +106,7 @@ outra hora, e isso é verdade, não defeito.
 
 ## As decisões que mais restringem o que vem depois
 
-As 65 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 66 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
