@@ -245,3 +245,138 @@ describe('o preco chega na arte vinculada', () => {
     expect(segunda).toMatchObject({ written: 0, unchanged: 1 })
   })
 })
+
+/** Uma paralela com raridade e id da Bandai, que os testes abaixo precisam. */
+async function paralela(cardId: bigint, rarity: string, sourceId: string) {
+  return testPrisma().cardVariant.create({
+    data: { cardId, variantType: 'Parallel', rarity, sourceId },
+  })
+}
+
+async function cartaVazia(code: string) {
+  return testPrisma().card.create({ data: { code, name: 'Carta', type: 'Character' } })
+}
+
+/**
+ * A deducao por raridade (decisao 068), contra o banco.
+ *
+ * `SP CARD` so pode ser o `SP`, quando cada um e o unico do seu lado; e o que
+ * sobra, se for uma de cada lado, casa tambem.
+ */
+describe('a deducao por raridade', () => {
+  it('vincula SP CARD ao SP e a outra paralela ao que sobra', async () => {
+    const card = await cartaVazia('EB03-003')
+    const sr = await paralela(card.id, 'SR', 'EB03-003_p1')
+    const sp = await paralela(card.id, 'SP CARD', 'EB03-003_p2')
+
+    const resultado = await linkArtProducts(
+      testPrisma(),
+      fonte([arte('EB03-003', '901', 'Alternate Art'), arte('EB03-003', '902', 'SP')]),
+      { logger: silent },
+    )
+
+    expect(resultado).toMatchObject({ created: 2, deducedByRarity: 1, ambiguous: 0 })
+    const porVariante = new Map((await vinculos()).map((v) => [v.cardVariantId, v]))
+    expect(porVariante.get(sp.id)).toMatchObject({ sourceProductId: '902', origin: 'automatic' })
+    expect(porVariante.get(sr.id)).toMatchObject({ sourceProductId: '901', origin: 'automatic' })
+  })
+
+  it('continua ambigua quando a raridade nao distingue', async () => {
+    const card = await cartaVazia('EB01-006')
+    await paralela(card.id, 'SR', 'EB01-006_p1')
+    await paralela(card.id, 'SR', 'EB01-006_p2')
+
+    const resultado = await linkArtProducts(
+      testPrisma(),
+      fonte([arte('EB01-006', '1', 'Manga'), arte('EB01-006', '2', 'Alternate Art')]),
+      { logger: silent },
+    )
+
+    expect(resultado).toMatchObject({ created: 0, ambiguous: 1 })
+    expect(await vinculos()).toEqual([])
+  })
+})
+
+/**
+ * O arquivo de vinculos manuais (decisao 068).
+ *
+ * Aplicado primeiro, e vence tudo: nenhuma regra roda sobre uma arte que ele
+ * respondeu, e nenhuma regra pode dar a outra arte um produto que ele
+ * reivindicou.
+ */
+describe('o arquivo manual', () => {
+  it('grava o vinculo como manual', async () => {
+    const card = await cartaVazia('OP01-016')
+    const a = await paralela(card.id, 'SR', 'OP01-016_p1')
+    await paralela(card.id, 'SR', 'OP01-016_p2')
+
+    const resultado = await linkArtProducts(
+      testPrisma(),
+      fonte([arte('OP01-016', '11', 'Alternate Art'), arte('OP01-016', '12', 'Manga')]),
+      { logger: silent, manualLinks: [{ variante: 'OP01-016_p1', produto: '12' }] },
+    )
+
+    expect(resultado.manualApplied).toBe(1)
+    const v = (await vinculos()).find((x) => x.cardVariantId === a.id)
+    expect(v).toMatchObject({ sourceProductId: '12', origin: 'manual' })
+  })
+
+  /*
+   * Com uma arte resolvida a mao, a outra fica sozinha contra o produto que
+   * sobrou — e o caso sem escolha a vincula. O manual destrava o automatico.
+   */
+  it('deixa a regra casar o que sobra depois do manual', async () => {
+    const card = await cartaVazia('OP01-017')
+    await paralela(card.id, 'SR', 'OP01-017_p1')
+    const b = await paralela(card.id, 'SR', 'OP01-017_p2')
+
+    await linkArtProducts(
+      testPrisma(),
+      fonte([arte('OP01-017', '21', 'Alternate Art'), arte('OP01-017', '22', 'Manga')]),
+      { logger: silent, manualLinks: [{ variante: 'OP01-017_p1', produto: '21' }] },
+    )
+
+    const v = (await vinculos()).find((x) => x.cardVariantId === b.id)
+    expect(v).toMatchObject({ sourceProductId: '22', origin: 'automatic' })
+  })
+
+  /* O arquivo vence o automatico que ja existia. */
+  it('tira o produto de quem o tinha por regra', async () => {
+    const card = await cartaVazia('OP01-018')
+    const unica = await paralela(card.id, 'SR', 'OP01-018_p1')
+    await linkArtProducts(testPrisma(), fonte([arte('OP01-018', '31', 'Alternate Art')]), {
+      logger: silent,
+    })
+    expect((await vinculos())[0]).toMatchObject({ cardVariantId: unica.id, origin: 'automatic' })
+
+    await linkArtProducts(testPrisma(), fonte([arte('OP01-018', '31', 'Alternate Art')]), {
+      logger: silent,
+      manualLinks: [{ variante: 'OP01-018_p1', produto: null }],
+    })
+
+    expect(await vinculos()).toEqual([])
+  })
+
+  /* Recusar a linha, e nao a importacao: um typo nao deixa producao sem preco. */
+  it('recusa com aviso a arte que nao existe e o produto de outra carta', async () => {
+    const card = await cartaVazia('OP01-019')
+    await paralela(card.id, 'SR', 'OP01-019_p1')
+    const avisos: string[] = []
+
+    const resultado = await linkArtProducts(
+      testPrisma(),
+      fonte([arte('OP01-019', '41', 'Alternate Art'), arte('OP09-001', '99', 'Manga')]),
+      {
+        logger: { info: () => {}, warn: (m: string) => avisos.push(m) },
+        manualLinks: [
+          { variante: 'NAO-EXISTE_p1', produto: '41' },
+          { variante: 'OP01-019_p1', produto: '99' },
+        ],
+      },
+    )
+
+    expect(resultado.manualSkipped).toBe(2)
+    expect(avisos.join(' ')).toMatch(/NAO-EXISTE_p1 nao existe/)
+    expect(avisos.join(' ')).toMatch(/99 nao e uma arte de OP01-019/)
+  })
+})
