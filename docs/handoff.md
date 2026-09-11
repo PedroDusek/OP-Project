@@ -5,8 +5,8 @@ Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
 ## Para retomar
 
 1. `npm run dev` — **sempre reinicie**. O servidor guarda o cliente Prisma que
-   carregou ao subir, e a migration `concluir_a_troca` entrou nesta sessão
-   (armadilha 40).
+   carregou ao subir, e três migrations entraram em 10/09 —
+   `concluir_a_troca`, `trade_binder_publico` e `troca_ao_vivo` (armadilha 40).
 2. `npm run supabase status` — mostra o que produção tem e o que falta. Hoje
    ela está **seis migrations atrás**.
 3. Leia "Produção, em 10/09/2026" e "Próximo passo", abaixo.
@@ -19,11 +19,12 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 68 PRs mergeados, CI verde em todos |
+| Branch | `main`, 69 PRs mergeados, CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
 | Especificação de marca e UI | `docs/marca/COLEXA_Especificacao_Oficial_UI_Design_Marca_v1.2.docx` |
+| Dossiê para a advogada | Artifact `claude.ai/code/artifact/7cd1938f-1bf1-455b-bab2-81fb9c48d8d1` — compartilhado por link com **versão fixada**: republicar não chega a quem tem o link até o pin ser movido |
 
 ## Ambiente
 
@@ -41,7 +42,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 13 concluídos.** 1.030 testes de unidade, integração e
+**Checkpoints 0 a 13 concluídos.** 1.117 testes de unidade, integração e
 componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -470,6 +471,24 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
   alternativa, e é caminho de tomada de conta se algum provedor entregar e-mail
   não verificado. **Aguarda decisão**, e o Google ainda não está habilitado.
 
+### Desenhado, e não construído
+
+Duas coisas que os documentos descrevem como se existissem. Conferido no código
+em 10/09.
+
+- **Excluir a conta.** A decisão 015 desenha a anonimização — nome e e-mail
+  trocados, vínculo com o provedor desfeito, coleção apagada, trocas
+  preservadas —, e **nenhum gesto no produto a executa**. O único pedaço que
+  existe é a recusa de autenticar conta com `deleted_at`. Hoje ninguém consegue
+  excluir a própria conta. Quando for construída, precisa apagar também
+  `trade_binder_token`, senão um link publicado sobrevive à saída da pessoa. A
+  anonimização foi levada à advogada no dossiê como pergunta.
+- **O Premium não limita nada.** O plano é lido e mostrado em Minha conta, mas
+  nenhum recurso é bloqueado por ele, e não existe caminho para alguém virar
+  Premium — `trial_started_at` nunca é usado, e não há pagamento. A regra 6.1
+  reserva o Trade Binder público ao Premium; a trava está pendente por decisão
+  do dono do produto (064).
+
 ### Pendências que não bloqueiam
 
 - **Foto de perfil.** O envio de imagem existe desde o Checkpoint 10 e serve
@@ -546,6 +565,10 @@ banco — que é o que acontece quando a pessoa espera de verdade. Dormir cinco
 segundos por teste custaria mais de um minuto na suíte sem provar nada a mais.
 
 ## Próximo passo
+
+**A escolha está aberta**, em 10/09: o dono do produto pediu para deixar tudo
+atualizado antes de definir. A ordem combinada é a passada de Claude Design nos
+componentes antes da Social, mas qual das duas começa é decisão dele.
 
 **A aba Social**, desenhada pelo dono do produto em 10/09: prévia de 6 ou 7
 cartas rolando na horizontal dentro de uma caixa, com o nome público do dono em
