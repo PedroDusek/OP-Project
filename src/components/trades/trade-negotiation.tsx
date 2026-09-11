@@ -1,11 +1,13 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import { ArrowRight, Check, Handshake, Minus, Plus, TriangleAlert, X } from 'lucide-react'
 import { CardArt } from '@/components/catalog/card-art'
 import { Button } from '@/components/ui/button'
 import { Panel, PanelList, ListRow } from '@/components/ui/surface'
 import { ExchangeControls } from '@/components/trades/trade-exchange'
+import { useLiveTrade } from '@/components/trades/use-live-trade'
+import { secondsUntilConfirm } from '@/server/domain/trades/cooldown'
 import {
   cancelTradeAction,
   confirmTradeAction,
@@ -47,6 +49,13 @@ export function TradeNegotiation({ trade }: { trade: TradeView }) {
   const concluida = trade.status === 'COMPLETED'
   const encerrada = concluida || trade.status === 'CANCELLED'
   const outro = trade.other?.name ?? 'A outra pessoa'
+
+  /*
+   * A negociacao e a duas maos: quem monta uma oferta precisa ver a do outro
+   * mudando. Para de perguntar quando a troca termina — nao ha mais o que
+   * mudar, e continuar seria cota gasta a toa.
+   */
+  useLiveTrade(trade.tradeId, !encerrada)
 
   return (
     <div className="flex flex-col gap-5">
@@ -341,6 +350,47 @@ function SuggestionRow({
   )
 }
 
+/**
+ * Quantos segundos faltam para poder confirmar.
+ *
+ * A conta é do domínio; isto aqui só a repete a cada segundo para o número
+ * andar na tela. Quem **recusa** confirmar cedo demais é o servidor — um relógio
+ * adiantado aqui libera o botão antes, e a ação volta com o motivo.
+ */
+function useConfirmCountdown(offerChangedAt: Date | null): number {
+  const [faltam, setFaltam] = useState(() => secondsUntilConfirm(offerChangedAt))
+
+  /*
+   * A contagem reinicia quando a oferta muda, e a comparacao e pelo **instante**
+   * e nao pelo objeto: cada redesenho do servidor traz uma `Date` nova, e comparar
+   * referencias reiniciaria a cada volta da consulta.
+   *
+   * Comparar durante a renderizacao, e nao num efeito, e o padrao ja usado na
+   * folha de quantidade — num efeito, `setState` dispara renderizacao em cascata
+   * e o lint do React recusa.
+   */
+  const instante = offerChangedAt?.getTime() ?? null
+  const [ultimo, setUltimo] = useState(instante)
+  if (instante !== ultimo) {
+    setUltimo(instante)
+    setFaltam(secondsUntilConfirm(offerChangedAt))
+  }
+
+  useEffect(() => {
+    if (instante === null) return
+
+    const timer = setInterval(() => {
+      const restante = secondsUntilConfirm(new Date(instante))
+      setFaltam(restante)
+      if (restante === 0) clearInterval(timer)
+    }, 250)
+
+    return () => clearInterval(timer)
+  }, [instante])
+
+  return faltam
+}
+
 /** Confirmar, retirar a confirmação, cancelar. */
 function TradeControls({ trade }: { trade: TradeView }) {
   const [, confirmar, confirmando] = useActionState(confirmTradeAction, TRADE_ACTION_IDLE)
@@ -348,6 +398,8 @@ function TradeControls({ trade }: { trade: TradeView }) {
   const [, cancelar, cancelando] = useActionState(cancelTradeAction, TRADE_ACTION_IDLE)
 
   const semOutro = trade.other === null
+  const faltam = useConfirmCountdown(trade.offerChangedAt)
+  const esperando = faltam > 0
 
   return (
     <div className="flex flex-col gap-2">
@@ -361,9 +413,9 @@ function TradeControls({ trade }: { trade: TradeView }) {
       ) : (
         <form action={confirmar}>
           <input type="hidden" name="tradeId" value={trade.tradeId} />
-          <Button type="submit" block loading={confirmando} disabled={semOutro}>
+          <Button type="submit" block loading={confirmando} disabled={semOutro || esperando}>
             <Check className="size-4" aria-hidden />
-            Confirmar esta troca
+            {esperando ? `Confirmar em ${faltam}s` : 'Confirmar esta troca'}
           </Button>
         </form>
       )}
@@ -371,6 +423,10 @@ function TradeControls({ trade }: { trade: TradeView }) {
       {semOutro ? (
         <p className="text-xs text-text-muted">
           A troca só pode ser confirmada depois que alguém entrar pelo convite.
+        </p>
+      ) : esperando ? (
+        <p className="text-xs text-text-muted" aria-live="polite">
+          A oferta acabou de mudar. Confira o que está combinado antes de confirmar.
         </p>
       ) : null}
 

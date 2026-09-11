@@ -85,6 +85,14 @@ export interface TradeView {
   validated: boolean
   /** Quando a troca foi concluída. Nulo enquanto ela não foi. */
   completedAt: Date | null
+  /**
+   * Quando a oferta mudou pela última vez (decisão 065).
+   *
+   * A tela conta os cinco segundos a partir daqui. Quem **aplica** a espera é o
+   * servidor, em `confirmTrade` — este campo existe para a pessoa ver quanto
+   * falta, e não para decidir.
+   */
+  offerChangedAt: Date | null
 }
 
 export async function getTrade(
@@ -99,6 +107,7 @@ export async function getTrade(
       status: true,
       inviteToken: true,
       completedAt: true,
+      offerChangedAt: true,
       participants: {
         select: {
           id: true,
@@ -167,6 +176,7 @@ export async function getTrade(
     theyCanOffer: withCards(crossing.fromSecond, cartas),
     validated: isValidated(participants),
     completedAt: trade.completedAt,
+    offerChangedAt: trade.offerChangedAt,
   }
 }
 

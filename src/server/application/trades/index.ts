@@ -103,6 +103,7 @@ export function readPublicTradeBinder(token: string) {
 }
 
 export { countCopies } from './read-trade-binder'
+export { CONFIRMATION_TOO_SOON } from './edit-offer'
 export { USERNAME_REQUIRED } from './public-binder'
 export type {
   PublicBinder,

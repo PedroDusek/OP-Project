@@ -19,7 +19,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 66 PRs mergeados, CI verde em todos |
+| Branch | `main`, 67 PRs mergeados, CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -41,7 +41,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 12 concluídos.** 1.030 testes de unidade, integração e
+**Checkpoints 0 a 13 concluídos.** 1.030 testes de unidade, integração e
 componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -71,6 +71,7 @@ componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 | — | Concluir a troca: os dois marcam, e de onde as cartas saem (decisão 062) |
 | — | A folha da want list se compartilha num toque (decisão 063) |
 | — | Trade Binder público: um conjunto, e o link é da pessoa (decisão 064) |
+| 13 | Troca ao vivo: consulta a cada 2s e a espera de 5s antes de confirmar (decisão 065) |
 
 ### Produção, em 10/09/2026
 
@@ -104,7 +105,7 @@ outra hora, e isso é verdade, não defeito.
 
 ## As decisões que mais restringem o que vem depois
 
-As 64 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 65 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
@@ -516,10 +517,39 @@ Hoje `readPublicTradeBinder` recusa conta com `deleted_at`, que é a rede de
 segurança — mas a limpeza pertence à anonimização (decisão 015), que ainda não
 foi construída.
 
+## A troca ao vivo, e o que ela impõe a quem mexer nela
+
+Construída em 10/09 (decisão 065). Os dois lados veem a oferta do outro mudando
+sem recarregar, e confirmar só libera cinco segundos depois da última alteração.
+
+Três coisas para não desfazer sem querer:
+
+- **A espera é aplicada em `confirmTrade`**, e não no botão. O botão desabilitado
+  é aparência; a Server Action pode ser chamada direto.
+- **A consulta devolve marcas, não a troca.** Montá-la também ali daria dois
+  lugares capazes de discordar sobre a mesma troca.
+- **`offer_changed_at` é preenchida na mesma escrita que derruba as
+  confirmações.** Fora dela existiria um instante com a oferta mudada e o botão
+  liberado — o instante que a espera existe para fechar.
+
+**Todo teste que confirma uma troca precisa cumprir a espera.** Os do Checkpoint
+12 quebraram por isso, e a saída foi recuar `offer_changed_at` no relógio do
+banco — que é o que acontece quando a pessoa espera de verdade. Dormir cinco
+segundos por teste custaria mais de um minuto na suíte sem provar nada a mais.
+
 ## Próximo passo
 
-**A passada de Claude Design nos componentes compartilhados**, combinada para
-acontecer **antes da Social**: botão, painel, linha de lista e estado vazio são o
+**A aba Social**, desenhada pelo dono do produto em 10/09: prévia de 6 ou 7
+cartas rolando na horizontal dentro de uma caixa, com o nome público do dono em
+cima; clicar abre o Trade Binder inteiro; rolar para baixo traz mais gente.
+Mantém filtros e mensagem dentro do app. As regras de ordem já existem
+(decisão 060): Premium primeiro, desempate por quantas cartas interessam a quem
+olha.
+
+O **chat** é peça separada, e traz moderação junto.
+
+Antes dela, **a passada de Claude Design nos componentes compartilhados**,
+combinada para acontecer **antes da Social**: botão, painel, linha de lista e estado vazio são o
 vocabulário de toda tela, e a Social é o maior pedaço que falta. Mexer neles
 depois dela seria refazer todas as telas dela. A revisão visual e textual tela a
 tela, e os links das cartas, ficam para o fim.

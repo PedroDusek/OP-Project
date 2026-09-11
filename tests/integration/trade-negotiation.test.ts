@@ -374,6 +374,14 @@ describe('confirmar e revogar', () => {
     expect(paraBruno.other?.reviewRequested).toBe(true)
   })
 
+  /*
+   * A regra mudou: alterar a oferta passou a travar a confirmacao por cinco
+   * segundos (decisao 065). Este teste confirmava no mesmo instante da
+   * alteracao, que e exatamente o que a trava existe para impedir.
+   *
+   * O que ele protege continua sendo o mesmo — reconfirmar encerra o pedido de
+   * revisao —, e por isso a espera e cumprida em vez de contornada.
+   */
   it('confirmar de novo encerra o pedido de revisao', async () => {
     const ana = await person('Ana')
     const bruno = await person('Bruno')
@@ -385,6 +393,17 @@ describe('confirmar e revogar', () => {
       cardVariantId: variant.id,
       quantity: 1,
     })
+
+    // A espera de cinco segundos, cumprida no relogio do banco.
+    const mudou = await testPrisma().trade.findUniqueOrThrow({
+      where: { id: tradeId },
+      select: { offerChangedAt: true },
+    })
+    await testPrisma().trade.update({
+      where: { id: tradeId },
+      data: { offerChangedAt: new Date(mudou.offerChangedAt!.getTime() - 5_000) },
+    })
+
     await confirmTrade(testPrisma(), ana.user, tradeId)
 
     const view = await getTrade(testPrisma(), ana.user, tradeId)
@@ -483,5 +502,129 @@ describe('cancelar', () => {
     await cancelTrade(testPrisma(), ana.user, tradeId)
 
     await expect(startTrade(testPrisma(), ana.user)).resolves.toBeTruthy()
+  })
+})
+
+/**
+ * A espera de cinco segundos antes de confirmar (decisao 065).
+ *
+ * A trava vale **no servidor**. O botao desabilitado e aparencia: a acao pode
+ * ser chamada direto, e sem esta recusa a trava nao existiria.
+ */
+describe('a espera antes de confirmar', () => {
+  /** Volta a marca de alteracao no tempo, como se ela tivesse ocorrido ha `ms`. */
+  async function envelhecerAlteracao(tradeId: bigint, ms: number) {
+    const trade = await testPrisma().trade.findUniqueOrThrow({
+      where: { id: tradeId },
+      select: { offerChangedAt: true },
+    })
+    await testPrisma().trade.update({
+      where: { id: tradeId },
+      data: { offerChangedAt: new Date(trade.offerChangedAt!.getTime() - ms) },
+    })
+  }
+
+  it('recusa confirmar no instante em que a oferta muda', async () => {
+    const ana = await person('Ana')
+    const bruno = await person('Bruno')
+    const variant = await availableForTrade(ana, 2)
+
+    const tradeId = await tradeBetween(ana, bruno)
+    await setOfferItem(testPrisma(), ana.user, tradeId, {
+      cardVariantId: variant.id,
+      quantity: 1,
+    })
+
+    await expect(confirmTrade(testPrisma(), ana.user, tradeId)).rejects.toThrow(
+      /espere \d+ segundos?/i,
+    )
+  })
+
+  it('deixa confirmar depois que a espera fecha', async () => {
+    const ana = await person('Ana')
+    const bruno = await person('Bruno')
+    const variant = await availableForTrade(ana, 2)
+
+    const tradeId = await tradeBetween(ana, bruno)
+    await setOfferItem(testPrisma(), ana.user, tradeId, {
+      cardVariantId: variant.id,
+      quantity: 1,
+    })
+    await envelhecerAlteracao(tradeId, 5_000)
+
+    await expect(confirmTrade(testPrisma(), ana.user, tradeId)).resolves.toBeTruthy()
+  })
+
+  /*
+   * O ponto todo da trava: a alteracao de um trava o botao do outro. Sem isso
+   * ela nao daria tempo de ver o que o outro acabou de mexer.
+   */
+  it('a alteracao de um lado trava o outro', async () => {
+    const ana = await person('Ana')
+    const bruno = await person('Bruno')
+    const dela = await availableForTrade(ana, 2)
+    const dele = await availableForTrade(bruno, 2)
+
+    const tradeId = await tradeBetween(ana, bruno)
+    await setOfferItem(testPrisma(), ana.user, tradeId, {
+      cardVariantId: dela.id,
+      quantity: 1,
+    })
+    await envelhecerAlteracao(tradeId, 5_000)
+
+    // Bruno mexe agora: o botao de Ana trava junto.
+    await setOfferItem(testPrisma(), bruno.user, tradeId, {
+      cardVariantId: dele.id,
+      quantity: 1,
+    })
+
+    await expect(confirmTrade(testPrisma(), ana.user, tradeId)).rejects.toThrow(/espere/i)
+  })
+
+  /* Confirmar nao e alterar: a espera nao pode reiniciar no proprio gesto. */
+  it('confirmar nao reinicia a espera para o outro', async () => {
+    const ana = await person('Ana')
+    const bruno = await person('Bruno')
+    const variant = await availableForTrade(ana, 2)
+
+    const tradeId = await tradeBetween(ana, bruno)
+    await setOfferItem(testPrisma(), ana.user, tradeId, {
+      cardVariantId: variant.id,
+      quantity: 1,
+    })
+    await envelhecerAlteracao(tradeId, 5_000)
+
+    await confirmTrade(testPrisma(), ana.user, tradeId)
+
+    // Bruno confirma em seguida, sem nova espera.
+    await expect(confirmTrade(testPrisma(), bruno.user, tradeId)).resolves.toEqual({
+      validated: true,
+    })
+  })
+
+  it('retirar a confirmacao tambem nao reinicia a espera', async () => {
+    const ana = await person('Ana')
+    const bruno = await person('Bruno')
+    const variant = await availableForTrade(ana, 2)
+
+    const tradeId = await tradeBetween(ana, bruno)
+    await setOfferItem(testPrisma(), ana.user, tradeId, {
+      cardVariantId: variant.id,
+      quantity: 1,
+    })
+    await envelhecerAlteracao(tradeId, 5_000)
+    await confirmTrade(testPrisma(), ana.user, tradeId)
+    await withdrawConfirmation(testPrisma(), ana.user, tradeId)
+
+    await expect(confirmTrade(testPrisma(), ana.user, tradeId)).resolves.toBeTruthy()
+  })
+
+  /* Troca em que ninguem mexeu na oferta nao tem o que esperar. */
+  it('nao exige espera numa troca sem alteracao nenhuma', async () => {
+    const ana = await person('Ana')
+    const bruno = await person('Bruno')
+    const tradeId = await tradeBetween(ana, bruno)
+
+    await expect(confirmTrade(testPrisma(), ana.user, tradeId)).resolves.toBeTruthy()
   })
 })

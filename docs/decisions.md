@@ -4196,3 +4196,102 @@ Nenhum teste pegaria isso: o jsdom não avalia estilo. Foi visto abrindo a pági
 ## Data
 
 2026-09-10
+
+---
+
+# Decisão: 065 — A troca ao vivo, e a espera de cinco segundos
+
+## Contexto
+
+Pedido do dono do produto, com a referência explícita: *"a mecânica clássica de
+trocas em jogos implementada no nosso webapp, só que com as cartas como itens"*.
+Cada um vai pondo itens do seu lado, **os dois vendo em tempo real**, e o botão
+de confirmar só libera cinco segundos depois da última alteração.
+
+Boa parte disso já existia. Cada um mexe só na própria oferta (4.6.2), nada é
+posto à troca automaticamente (4.3), e qualquer alteração derruba a confirmação
+dos dois (4.6.3). Faltavam duas coisas: **ver a mudança sem recarregar** e **a
+espera antes de confirmar**.
+
+## Decisão 1 — perguntar a cada dois segundos, e não manter conexão aberta
+
+**Escolha do dono do produto**, entre as três apresentadas.
+
+São **duas pessoas** numa troca, não uma multidão, e a conversa dura minutos. O
+custo de perguntar é pequeno; o de manter uma conexão longa por pessoa não é — e
+com mais de uma instância do servidor uma não saberia do que aconteceu na outra,
+a mesma limitação que o limite de taxa já carrega.
+
+O Realtime do Supabase foi descartado por um motivo mais forte que custo: hoje
+**não existe SDK do Supabase no navegador**, por decisão (025 e 031). Usá-lo
+abriria o banco ao cliente e exigiria regras de acesso que o projeto não tem.
+
+Dois segundos é o atraso de quem está montando uma oferta olhando para a tela.
+Ninguém percebe, e ninguém precisa de menos.
+
+## Decisão 2 — a consulta devolve marcas, e não a troca
+
+O endereço `/api/trocas/[id]/estado` responde datas e booleanos. Quando alguma
+muda, a tela pede `router.refresh()` e quem monta a negociação é o componente de
+servidor que já existe.
+
+Montá-la também na consulta daria **dois lugares capazes de discordar** sobre a
+mesma troca, e o segundo estaria sempre um passo atrás do primeiro.
+
+A consulta **pausa com a aba escondida**. Perguntar a cada dois segundos para
+desenhar o que ninguém está vendo é cota de leitura gasta à toa (decisão 039). Ao
+voltar, a primeira pergunta é imediata: quem volta para a aba quer ver o agora.
+
+## Decisão 3 — cinco segundos depois da última alteração
+
+A trava clássica, e ela existe contra um golpe específico: mudar a oferta no
+instante exato em que o outro toca em confirmar. Não depende de defeito nenhum —
+depende só de os dois gestos caberem no mesmo instante.
+
+Cinco segundos não impedem alguém de tentar. Impedem que a tentativa funcione
+**sem que a pessoa veja**: a alteração aparece, o botão trava e conta, e quem ia
+confirmar tem tempo de reler.
+
+**Conta de qualquer um dos dois** (escolha do dono do produto). A alteração de
+quem quer que seja trava o botão dos dois — é o ponto todo, porque a espera
+existe para dar tempo de ver o que o outro mexeu.
+
+Travar a própria também é deliberado. A alternativa — "você sabe o que fez" —
+abriria a brecha de mexer na oferta e confirmar no mesmo instante, contando com o
+atraso do outro para ele não ver.
+
+## Decisão 4 — quem aplica a espera é o servidor
+
+O botão desabilitado é **aparência**. A recusa mora em `confirmTrade`, contra o
+cálculo do domínio. Sem ela a trava não existiria: a Server Action pode ser
+chamada direto, e a regra do projeto é que o frontend nunca é fonte de verdade.
+
+Um relógio adiantado no cliente libera o botão antes; o servidor recusa com a
+mesma conta, e a mensagem diz quantos segundos faltam. A aparência erra por
+segundos; a regra, não.
+
+## Decisão 5 — uma coluna nova, aprovada antes de escrita
+
+`trades.offer_changed_at`. Aprovada pelo dono do produto.
+
+Não deu para reaproveitar nada:
+
+- **`trades.updated_at`** sobe também ao confirmar e ao retirar a confirmação. A
+  contagem reiniciaria no gesto errado, e o botão ficaria travado cinco segundos
+  depois de confirmar, sem motivo.
+- **Uma data nos itens** não cobre o caso mais simples: **tirar** uma carta é uma
+  alteração, e a linha desaparece junto com a data que estivesse nela.
+
+Ela é preenchida em `setOfferItem`, na **mesma escrita** que derruba as
+confirmações. Fora dela existiria um instante com a oferta já mudada e o botão
+ainda liberado — que é exatamente o instante que a espera existe para fechar.
+
+## Um teste que ficou obsoleto, e foi atualizado
+
+`confirmar de novo encerra o pedido de revisão` confirmava no mesmo instante da
+alteração. A regra mudou, e ele passou a cumprir a espera em vez de contorná-la.
+O que ele protege continua o mesmo.
+
+## Data
+
+2026-09-10
