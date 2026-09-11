@@ -7,6 +7,7 @@ import { Logotype, Symbol } from '@/components/brand/logo'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/states'
 import { useToast } from '@/components/ui/toast'
+import { catalogImageForCanvas } from '@/lib/catalog-image'
 import { CARDS_PER_SHEET, renderWantSheets } from '@/lib/want-sheet-image'
 import type { WantView } from '@/server/application/wants'
 
@@ -24,7 +25,8 @@ import type { WantView } from '@/server/application/wants'
  *
  * **Imprimir** continua, e não é redundância: a folha impressa usa as imagens do
  * catálogo, que existem para **todas** as cartas. Na imagem, quem ainda não tem
- * vínculo com a fonte de preço sai com o código no lugar da arte.
+ * vínculo com a fonte de preço sai com a imagem do catálogo, que traz a marca
+ * "SAMPLE" (decisão 067).
  *
  * ## Por que as folhas são preparadas quando a tela abre
  *
@@ -49,11 +51,13 @@ import type { WantView } from '@/server/application/wants'
  * tamanho do arquivo e da velocidade do aparelho. Um toque por arquivo não
  * depende de número nenhum.
  *
- * ## Por que a imagem vem do TCGplayer, e não da Bandai
+ * ## De onde vem a imagem de cada carta
  *
- * Porque é a única que o navegador deixa exportar. Desenhar num `canvas` uma
- * imagem servida sem `Access-Control-Allow-Origin` **contamina** o canvas, e o
- * `toBlob` passa a falhar (decisão 058).
+ * Do TCGplayer quando a carta tem vínculo com a fonte de preço, porque ela é
+ * limpa (decisão 058). Quando não tem, da Bandai **pelo nosso domínio**, pelo
+ * otimizador: pedida direto, a imagem da Bandai contamina o `canvas` e o `toBlob`
+ * falha; pelo mesmo domínio, não (decisão 067). Ela traz a marca "SAMPLE", e por
+ * isso é o que sobra, e não a primeira escolha. Ver `lib/catalog-image.ts`.
  *
  * ## O que a folha carrega da marca
  *
@@ -66,7 +70,18 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
 
   const faltando = wants.filter((want) => want.status !== 'satisfied')
   const copias = faltando.reduce((total, want) => total + want.remaining, 0)
-  const semArte = faltando.filter((want) => want.sheetImageUrl === null).length
+  /*
+   * Duas contas, porque sao dois avisos diferentes. Sem vinculo mas com imagem
+   * no catalogo, a carta sai com a arte da Bandai e a marca "SAMPLE"; sem nenhuma
+   * das duas, sai com o codigo escrito no lugar. Hoje toda variante tem imagem
+   * no catalogo — medido —, mas o aviso nao pode prometer isso.
+   */
+  const comAmostra = faltando.filter(
+    (want) => want.sheetImageUrl === null && want.imageUrl !== null,
+  ).length
+  const semArte = faltando.filter(
+    (want) => want.sheetImageUrl === null && want.imageUrl === null,
+  ).length
   const folhasDeDoze = emFolhas(faltando)
   const folhas = Math.max(1, folhasDeDoze.length)
 
@@ -109,7 +124,7 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
           faltando.map((want) => ({
             cardCode: want.cardCode,
             cardName: want.cardName,
-            sheetImageUrl: want.sheetImageUrl,
+            sheetImageUrl: want.sheetImageUrl ?? catalogImageForCanvas(want.imageUrl),
             remaining: want.remaining,
           })),
         )
@@ -271,9 +286,7 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
             compartilhavel,
             folhas: arquivos?.length ?? folhas,
           })}{' '}
-          {semArte > 0
-            ? `${semArte} ${semArte === 1 ? 'carta sai' : 'cartas saem'} com o código no lugar da arte; imprimindo, todas saem com a arte.`
-            : 'Imprimindo, escolha “Salvar como PDF” no diálogo.'}
+          {avisoDeArte({ comAmostra, semArte })}
         </p>
       </div>
 
@@ -437,6 +450,27 @@ function emFolhas(wants: readonly WantView[]): WantView[][] {
     folhas.push(wants.slice(i, i + CARDS_PER_SHEET))
   }
   return folhas
+}
+
+/**
+ * O que a pessoa precisa saber sobre a arte da imagem, antes de mandar no grupo.
+ *
+ * A marca "SAMPLE" é dita em voz alta: quem manda a lista no grupo vai ver a marca
+ * nas cartas, e descobrir depois de enviar é pior do que saber antes.
+ */
+function avisoDeArte({ comAmostra, semArte }: { comAmostra: number; semArte: number }): string {
+  const partes: string[] = []
+  if (comAmostra > 0) {
+    partes.push(
+      `${comAmostra} ${comAmostra === 1 ? 'carta sai' : 'cartas saem'} com a imagem do catálogo, que traz a marca SAMPLE.`,
+    )
+  }
+  if (semArte > 0) {
+    partes.push(
+      `${semArte} ${semArte === 1 ? 'carta sai' : 'cartas saem'} com o código no lugar da arte; imprimindo, todas saem com a arte.`,
+    )
+  }
+  return partes.length > 0 ? partes.join(' ') : 'Imprimindo, escolha “Salvar como PDF” no diálogo.'
 }
 
 function nomeDaFolha(indice: number, total: number): string {

@@ -4366,3 +4366,64 @@ personagens sem counter, que ninguém pediu.
 ## Data
 
 2026-09-10
+
+---
+
+# Decisão: 067 — A folha em JPEG usa a arte do catálogo quando falta o vínculo
+
+**Altera a decisão 058**, e corrige duas afirmações dela.
+
+## Contexto
+
+Pedido do dono do produto: resolver os links quebrados de imagem e de preço.
+
+Medido em 10/09/2026, as imagens das cartas **no app** não estavam quebradas —
+todas respondem 200, pelo otimizador e na origem. O que quebrava era a **arte da
+folha em JPEG**: ela só existia para carta vinculada a um produto da fonte de
+preço, e 1.168 das 1.646 paralelas não têm vínculo. Essas saíam com o código
+escrito no lugar da arte.
+
+## Duas afirmações da decisão 058 que não se sustentavam
+
+A 058 descartou desenhar a imagem da Bandai porque *"servir as imagens pelo nosso
+domínio é o que a decisão 026 proíbe"*. Mas **a 026 tinha sido revogada pela
+038** dois dias antes: desde então a imagem da carta **é** servida pelo nosso
+domínio, pelo otimizador.
+
+E a 058 afirma que a imagem da folha "nunca passa pelo nosso servidor — a mesma
+regra que já vale para a da Bandai". A primeira metade continua verdadeira para o
+TCGplayer; a segunda deixou de ser com a 038.
+
+## Decisão — TCGplayer quando houver, Bandai pelo nosso domínio quando faltar
+
+**Escolha do dono do produto**, entre três.
+
+Imagem do mesmo domínio não contamina o `canvas`. Verificado no navegador, no
+domínio do app: a paralela `OP01-016_p1` pelo otimizador carregou, foi desenhada e
+**exportou um JPEG de 600×838** — o mesmo tamanho que o TCGplayer entrega. A mesma
+imagem pedida direto na Bandai **não carregou**.
+
+A do TCGplayer continua sendo a primeira escolha porque é limpa: **a da Bandai
+traz a marca "SAMPLE"** atravessada na arte. A da Bandai entra só quando falta a
+outra — e nenhuma carta com imagem no catálogo sai mais sem arte.
+
+A tela avisa, antes de enviar, quantas cartas vão sair com a marca. Quem manda a
+lista no grupo vai ver a marca nas cartas, e descobrir depois de enviar é pior do
+que saber antes.
+
+## O que muda de exposição
+
+A folha em JPEG passa a poder sair do nosso domínio com arte da Bandai dentro, e
+não só com a do TCGplayer. A folha impressa já fazia isso desde o começo, porque
+usa as imagens do catálogo. O caminho do byte é o mesmo que a 038 autorizou para
+exibir.
+
+## Onde mora
+
+`lib/catalog-image.ts` monta o endereço pelo otimizador, com largura 640 — uma das
+que ele aceita, conferida no pedido real. O componente da folha escolhe entre as
+duas; o gerador do JPEG não sabe de onde a imagem veio, e não precisa saber.
+
+## Data
+
+2026-09-10

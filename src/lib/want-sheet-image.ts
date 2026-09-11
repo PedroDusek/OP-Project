@@ -10,20 +10,26 @@ import { SYMBOL, LOGOTYPE } from './marca'
  * um DOM que você não desenhou —, e traria um pacote grande, um passo de
  * clonagem de estilos e um resultado que muda quando o CSS muda.
  *
- * ## Por que a imagem vem do TCGplayer, e não da Bandai
+ * ## De onde vem a imagem, e por que não direto da Bandai
  *
- * Porque é a única que o navegador deixa exportar. Desenhar num `canvas` uma
- * imagem servida sem `Access-Control-Allow-Origin` **contamina** o canvas, e o
- * `toBlob` passa a falhar — não é limitação de biblioteca, é o navegador
- * impedindo. O host da Bandai não manda o cabeçalho; o CDN do TCGplayer manda
- * `*` (decisão 058).
+ * Desenhar num `canvas` uma imagem servida por outro domínio sem
+ * `Access-Control-Allow-Origin` **contamina** o canvas, e o `toBlob` passa a
+ * falhar — não é limitação de biblioteca, é o navegador impedindo. O host da
+ * Bandai não manda o cabeçalho; o CDN do TCGplayer manda `*`, e a imagem dele é
+ * limpa, então é a preferida (decisão 058).
  *
  * O que o nosso banco guarda é o número do produto. A imagem é buscada aqui,
- * pelo aparelho de quem usa, e nunca passa pelo nosso servidor.
+ * pelo aparelho de quem usa, direto no CDN do TCGplayer.
+ *
+ * Quando a carta não tem vínculo, quem chama passa a imagem **do catálogo pelo
+ * nosso domínio**, pelo otimizador — mesma origem, e o `canvas` não contamina
+ * (decisão 067, ver `lib/catalog-image.ts`). Ela traz a marca "SAMPLE", e por
+ * isso só entra quando falta a do TCGplayer.
  *
  * ## Carta sem vínculo não some da folha
  *
- * Ela entra com o código no lugar da arte. Sumir seria pior: a pessoa levaria
+ * Sem vínculo ela entra com a imagem do catálogo; sem imagem nenhuma, com o
+ * código no lugar da arte. Sumir seria pior: a pessoa levaria
  * ao grupo uma lista incompleta sem saber, e é a lista inteira que faz a folha
  * valer a ida.
  *
@@ -42,7 +48,10 @@ import { SYMBOL, LOGOTYPE } from './marca'
 export interface SheetCard {
   cardCode: string
   cardName: string
-  /** A imagem que autoriza leitura cruzada. Nulo quando não há vínculo. */
+  /**
+   * Uma imagem que o `canvas` pode exportar: a do TCGplayer, ou a do catálogo
+   * pelo nosso domínio. Nula quando não há nenhuma — aí a carta sai com o código.
+   */
   sheetImageUrl: string | null
   /** Quantas faltam. É o dado que a folha existe para carregar. */
   remaining: number

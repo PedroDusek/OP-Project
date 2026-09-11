@@ -74,6 +74,7 @@ componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 | — | Trade Binder público: um conjunto, e o link é da pessoa (decisão 064) |
 | 13 | Troca ao vivo: consulta a cada 2s e a espera de 5s antes de confirmar (decisão 065) |
 | — | Filtro de counter — 0, +1000, +2000 — em toda tela que filtra carta (decisão 066) |
+| — | Folha em JPEG com a arte do catálogo quando falta vínculo com a fonte (decisão 067) |
 
 ### Produção, em 10/09/2026
 
@@ -107,7 +108,7 @@ outra hora, e isso é verdade, não defeito.
 
 ## As decisões que mais restringem o que vem depois
 
-As 66 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 67 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do

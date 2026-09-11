@@ -671,3 +671,56 @@ describe('o pacote do compartilhamento', () => {
     expect(screen.queryByRole('button', { name: /compartilhar/i })).not.toBeInTheDocument()
   })
 })
+
+/**
+ * A arte do catalogo quando falta o vinculo (decisao 067).
+ *
+ * Carta sem vinculo com a fonte de preco saia com o codigo escrito no lugar da
+ * arte — hoje sao 1.168 paralelas. Agora ela sai com a imagem da Bandai pelo nosso
+ * dominio, pelo otimizador, que e o unico jeito de a imagem da Bandai nao
+ * contaminar o canvas. Carta sem imagem nenhuma continua saindo com o codigo.
+ */
+describe('a arte quando falta o vinculo', () => {
+  const BANDAI = 'https://en.onepiece-cardgame.com/images/cardlist/card/OP01-016_p1.png'
+
+  it('desenha a imagem do catalogo pelo nosso dominio', async () => {
+    const render_ = vi.fn().mockResolvedValue([new Blob(['x'], { type: 'image/jpeg' })])
+    vi.doMock('@/lib/want-sheet-image', () => ({
+      CARDS_PER_SHEET: 12,
+      renderWantSheets: render_,
+    }))
+    vi.resetModules()
+
+    const { WantSheetPrint: Componente } = await import('@/components/wants/want-sheet-print')
+    const { ToastProvider: Provider } = await import('@/components/ui/toast')
+
+    renderRaw(
+      <Provider>
+        <Componente wants={[want({ sheetImageUrl: null, imageUrl: BANDAI })]} />
+      </Provider>,
+    )
+
+    await screen.findByRole('button', { name: /baixar imagem/i })
+    const enviado = render_.mock.calls[0][0] as { sheetImageUrl: string | null }[]
+    expect(enviado[0].sheetImageUrl).toBe(
+      `/_next/image?url=${encodeURIComponent(BANDAI)}&w=640&q=75`,
+    )
+
+    vi.doUnmock('@/lib/want-sheet-image')
+    vi.resetModules()
+  })
+
+  /* Quem vai mandar no grupo precisa saber da marca antes de enviar. */
+  it('avisa que a imagem do catalogo traz a marca SAMPLE', () => {
+    render(<WantSheetPrint wants={[want({ sheetImageUrl: null, imageUrl: BANDAI })]} />)
+
+    expect(screen.getByText(/1 carta sai com a imagem do catálogo, que traz a marca SAMPLE/i)).toBeInTheDocument()
+    expect(screen.queryByText(/código no lugar da arte/i)).not.toBeInTheDocument()
+  })
+
+  it('prefere a imagem do TCGplayer quando ha vinculo', () => {
+    render(<WantSheetPrint wants={[want({ imageUrl: BANDAI })]} />)
+
+    expect(screen.queryByText(/SAMPLE/)).not.toBeInTheDocument()
+  })
+})

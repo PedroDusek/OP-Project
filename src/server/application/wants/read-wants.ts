@@ -28,8 +28,10 @@ export interface WantView {
   /**
    * A mesma carta na fonte de preco, ou nulo quando nao ha vinculo.
    *
-   * Existe por um motivo so: e a unica imagem que o navegador consegue desenhar
-   * num `canvas` para exportar (decisao 058). Na tela quem vale e `imageUrl`.
+   * E a imagem preferida da folha em JPEG, porque e limpa (decisao 058). Quando
+   * ela falta, a folha usa `imageUrl` pelo otimizador do nosso dominio, que
+   * tambem se exporta de um `canvas` mas traz a marca "SAMPLE" (decisao 067). Na
+   * tela quem vale e sempre `imageUrl`.
    */
   sheetImageUrl: string | null
   /** Quantas a pessoa quer. */

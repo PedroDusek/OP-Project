@@ -12,15 +12,21 @@
  * requisição —, então o navegador recusa exportar um `canvas` que a tenha
  * desenhado.
  *
- * O CDN do TCGplayer manda `Access-Control-Allow-Origin: *`. É a única
- * referência de imagem que autoriza leitura cruzada, e é dela que sai a folha
- * em JPEG (decisão 058).
+ * O CDN do TCGplayer manda `Access-Control-Allow-Origin: *`, e a imagem dele é
+ * limpa. É a preferida da folha em JPEG (decisão 058).
+ *
+ * Não é mais a única que a folha consegue usar. Desde a decisão 038 a imagem do
+ * catálogo é servida pelo nosso domínio, pelo otimizador, e imagem do mesmo
+ * domínio não contamina o `canvas`. A folha usa essa quando a carta não tem
+ * vínculo — ela traz a marca "SAMPLE" (decisão 067).
  *
  * ## Continua sendo referência, nunca cópia
  *
  * O que o nosso banco guarda é o **número do produto**. A imagem é buscada pelo
  * aparelho de quem usa, direto da origem, e nunca passa pelo nosso servidor —
- * a mesma regra que vale para a da Bandai, escolha do dono do produto.
+ * escolha do dono do produto. (A decisão 058 dizia que a da Bandai seguia a
+ * mesma regra; desde a 038 ela passa pelo otimizador, e a 067 registra a
+ * correção.)
  */
 
 const CDN = 'https://tcgplayer-cdn.tcgplayer.com/product'
