@@ -42,7 +42,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 13 concluídos.** 1.198 testes de unidade, integração e
+**Checkpoints 0 a 13 concluídos.** 1.204 testes de unidade, integração e
 componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -78,6 +78,7 @@ componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 | — | Vínculo por raridade e o arquivo de vínculos manuais: 478 → 623 paralelas com preço (decisão 068) |
 | — | Tela `/dev/paralelas`, fora de produção, para mapear à mão as 287 cartas ambíguas (decisão 068) |
 | — | Ordem de código dentro de cada filtro, com a carta reimpressa no lugar do código (decisão 069) |
+| — | Link direto da Liga para a paralela do próprio set, na OP01 (decisão 070) |
 
 ### Produção, em 10/09/2026
 
@@ -111,7 +112,7 @@ outra hora, e isso é verdade, não defeito.
 
 ## As decisões que mais restringem o que vem depois
 
-As 69 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 70 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
@@ -748,9 +749,14 @@ ela põe no nome.
 - **52 cartas** têm duas ou mais paralelas no próprio set, quase todas SEC. Na
   `OP01-120` Shanks, `_p1` é a `-PAR`; a `_p2` (Manga) está sendo comparada.
 
-**Não aplicado.** Mudar o `liga.ts` altera um comportamento decidido e espera
-aprovação, depois de conferir uma coleção além da OP01. As paralelas de outros
-produtos (PROMO, PRB, GC, ST) ficam para quando a conferência chegar nesses sets.
+**Aplicado só na OP01** (decisão 070, escolha do dono do produto): as 12 cartas
+com uma única paralela no próprio set ganharam link direto. A Shanks fica de fora
+até a `_p2` ser resolvida.
+
+**Para liberar outra coleção**: o dono do produto confere algumas cartas contra a
+Liga, e a edição entra em `PAR_CONFERIDA`, em `src/server/domain/catalog/liga.ts`
+(formato da Liga: `OP-02`). As paralelas de outros produtos (PROMO, PRB, GC, ST)
+continuam na busca — o sufixo delas na Liga ainda não foi levantado.
 
 ## O que espera resposta do dono do produto
 

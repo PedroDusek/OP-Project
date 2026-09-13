@@ -2288,6 +2288,9 @@ começa: trocar de filtro duas vezes depressa deixaria a mais lenta chegar por
 
 # Decisão: 047 — Preço vem do TCGplayer; da Liga vem só o link
 
+**A decisão 2 foi alterada pela 070**: nas coleções conferidas, a paralela única
+do próprio set vai direto para a `-PAR`.
+
 ## Contexto
 
 O mercado brasileiro é volátil, e a cadência semanal cogitada não serve. A
@@ -4582,6 +4585,65 @@ espalhou por todas as telas de uma vez.
 
 Os três grupos da 040 — coleções, starter decks, promocionais — e onde a
 ordenação acontece: em memória, com o limite que a 040 já registra.
+
+## Data
+
+2026-09-13
+
+---
+
+# Decisão: 070 — A paralela do próprio set é a `-PAR` da Liga, nas coleções conferidas
+
+**Altera a decisão 2 da 047.**
+
+## Contexto
+
+A 047 manda para a busca da Liga toda carta com mais de uma paralela: `-PAR`
+sozinho não diz qual, e o catálogo não guardava o que as distingue. Eram 406
+cartas. O dono do produto notou que a Zoro `OP01-001` não tinha link direto para
+a paralela, embora só exista **uma** paralela dela na OP01 — a outra é da
+*One Piece Promotion Cards*.
+
+Desde a decisão 052 o catálogo guarda em que set cada arte foi impressa, e isso
+distingue o que a 047 não conseguia.
+
+## O que foi conferido
+
+O dono do produto abriu na Liga, carta a carta, as 13 cartas da OP01 que têm
+paralela impressa na própria OP01 e outras em outros produtos: `OP01-001`, `013`,
+`016`, `024`, `025`, `047`, `051`, `060`, `070`, `073`, `078`, `120` e `121`. Em
+todas, a paralela da OP01 é a `-PAR`.
+
+A Liga localiza a carta pelo `num`: o link do Kid abre sem o `(Parallel)` que ela
+põe no nome dele.
+
+Medido no catálogo inteiro, sem conferência: quando a carta tem **uma** paralela
+impressa no próprio set, ela é a `_p1` em 569 de 569 cartas, e a regra daria link
+direto a 170 cartas. A leitura inversa não vale — em 316 cartas a `_p1` é de
+outro produto.
+
+## Decisão
+
+**Escolha do dono do produto: só a OP01 por enquanto.**
+
+A paralela leva direto à `-PAR` quando, ao mesmo tempo:
+
+1. a carta tem mais de uma paralela;
+2. esta foi impressa no set do próprio código;
+3. é a **única** paralela da carta impressa nele;
+4. a edição está em `PAR_CONFERIDA`, em `src/server/domain/catalog/liga.ts`.
+
+O item 4 é o que faz a regra valer por conferência, e não por dedução. As outras
+coleções continuam na busca até alguém conferi-las contra a Liga; conferir uma é
+acrescentar uma linha.
+
+**A Shanks `OP01-120` fica de fora**: tem duas SEC impressas na OP01, e o set não
+desempata. A `_p1` é a `-PAR`, mas a `_p2` (Manga) ainda está sendo comparada.
+
+## Medido
+
+No catálogo local: link direto em 3.236 artes antes, **3.248 depois** — as 12
+conferidas, e nenhuma arte perdeu o link.
 
 ## Data
 

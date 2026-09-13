@@ -124,6 +124,64 @@ describe('quando não dá para ter certeza, vai para a busca', () => {
   })
 })
 
+describe('a paralela do próprio set é a -PAR (decisão 070)', () => {
+  /**
+   * Conferido pelo dono do produto contra a Liga, nas 13 cartas da OP01: com
+   * várias paralelas e uma só impressa no set do código, é essa a `-PAR`.
+   */
+  const zoroOP01 = {
+    ...ZORO,
+    variantType: 'Parallel',
+    parallelCount: 2,
+    ownSetParallelCount: 1,
+  }
+
+  it('leva direto à paralela da OP01 quando a outra é promo', () => {
+    expect(ligaCardLink({ ...zoroOP01, setCodes: ['OP01'] })).toEqual({
+      exact: true,
+      href:
+        'https://www.ligaonepiece.com.br/?view=cards/card' +
+        '&card=Roronoa%20Zoro%20(OP01-001-PAR)&ed=OP-01&num=OP01-001-PAR',
+    })
+  })
+
+  /* A paralela da promo continua sem sufixo conhecido: a -PAR e a outra. */
+  it('a paralela de outro produto continua indo para a busca', () => {
+    expect(ligaCardLink({ ...zoroOP01, setCodes: ['PROMO'] }).exact).toBe(false)
+  })
+
+  /* A Shanks OP01-120 tem duas SEC na OP01: o set nao desempata. */
+  it('duas paralelas no próprio set continuam indo para a busca', () => {
+    const link = ligaCardLink({
+      cardCode: 'OP01-120',
+      cardName: 'Shanks',
+      variantType: 'Parallel',
+      parallelCount: 3,
+      setCodes: ['OP01'],
+      ownSetParallelCount: 2,
+    })
+    expect(link.exact).toBe(false)
+  })
+
+  /* So nas colecoes conferidas: fora da OP01 a leitura e projecao. */
+  it('não vale em coleção que ainda não foi conferida', () => {
+    const link = ligaCardLink({
+      cardCode: 'OP02-013',
+      cardName: 'Portgas.D.Ace',
+      variantType: 'Parallel',
+      parallelCount: 2,
+      setCodes: ['OP02'],
+      ownSetParallelCount: 1,
+    })
+    expect(link.exact).toBe(false)
+  })
+
+  /* A carta da OP01 reimpressa no ST-17 e impressa na OP01: o set composto nao atrapalha. */
+  it('reconhece o próprio set entre várias impressões', () => {
+    expect(ligaCardLink({ ...zoroOP01, setCodes: ['ST-17', 'OP01'] }).exact).toBe(true)
+  })
+})
+
 describe('a busca', () => {
   it('procura pelo código', () => {
     expect(ligaSearchLink('OP01-001')).toBe(

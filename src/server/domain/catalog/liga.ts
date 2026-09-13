@@ -1,3 +1,5 @@
+import { isOwnSet } from './order'
+
 /**
  * O endereço de uma carta na LigaOnePiece.
  *
@@ -30,9 +32,28 @@
  *
  * Nesses casos o link vai para a busca da Liga pelo código. Cai numa lista em
  * vez da carta, mas nunca numa carta errada nem numa página que não existe.
+ *
+ * ## A paralela do próprio set é a `-PAR` (decisão 070)
+ *
+ * Conferido pelo dono do produto, carta a carta, contra a Liga: quando a carta
+ * tem várias paralelas mas **uma só impressa no set do próprio código**, é essa
+ * que a Liga chama de `-PAR`. As outras são de promo, PRB, starter deck.
+ *
+ * Vale **só nas coleções conferidas**, e não por dedução: a leitura bateu nas
+ * 13 cartas da OP01, e fora dela é projeção. Nas outras coleções a carta com
+ * várias paralelas continua indo para a busca até alguém conferir. Conferir uma
+ * coleção nova é acrescentar a edição em `PAR_CONFERIDA`.
  */
 
 const BASE = 'https://www.ligaonepiece.com.br/'
+
+/**
+ * As edições, no formato da Liga, em que a regra da paralela do próprio set foi
+ * conferida contra o site.
+ *
+ * - `OP-01` — 13/09/2026, 13 cartas, todas batendo.
+ */
+export const PAR_CONFERIDA: ReadonlySet<string> = new Set(['OP-01'])
 
 export interface LigaLink {
   href: string
@@ -46,6 +67,10 @@ export interface LigaCardInput {
   variantType: string
   /** Quantas artes paralelas esta carta tem ao todo. */
   parallelCount: number
+  /** Os sets em que **esta** arte foi impressa. */
+  setCodes?: readonly string[]
+  /** Quantas paralelas desta carta foram impressas no set do próprio código. */
+  ownSetParallelCount?: number
 }
 
 /**
@@ -66,25 +91,29 @@ export function ligaEdition(cardCode: string): string | null {
 /**
  * O sufixo da arte, ou `null` quando não dá para saber qual é.
  *
- * A paralela só é identificável quando a carta tem **uma**: com várias, o
- * catálogo importado não guarda o que as distingue (decisão 023 — a fonte só
- * separa Normal de Parallel), e o sufixo seria um chute.
+ * A paralela é identificável em dois casos. Quando a carta tem **uma** só. E,
+ * nas edições conferidas, quando esta é a **única impressa no próprio set**
+ * (decisão 070). Fora disso o catálogo importado não guarda o que distingue uma
+ * paralela da outra (decisão 023), e o sufixo seria um chute.
  */
-function artSuffix(variantType: string, parallelCount: number): string | null {
+function artSuffix(input: LigaCardInput, edition: string | null): string | null {
+  const { cardCode, variantType, parallelCount, setCodes = [], ownSetParallelCount = 0 } = input
   if (variantType === 'Normal') return ''
-  if (variantType === 'Parallel' && parallelCount === 1) return '-PAR'
+  if (variantType !== 'Parallel') return null
+  if (parallelCount === 1) return '-PAR'
+
+  const doProprioSet = setCodes.some((code) => isOwnSet(cardCode, code))
+  if (edition !== null && PAR_CONFERIDA.has(edition) && doProprioSet && ownSetParallelCount === 1) {
+    return '-PAR'
+  }
   return null
 }
 
-export function ligaCardLink({
-  cardCode,
-  cardName,
-  variantType,
-  parallelCount,
-}: LigaCardInput): LigaLink {
+export function ligaCardLink(input: LigaCardInput): LigaLink {
+  const { cardCode, cardName } = input
   const code = cardCode.trim()
   const edition = ligaEdition(code)
-  const suffix = artSuffix(variantType, parallelCount)
+  const suffix = artSuffix(input, edition)
 
   if (edition === null || suffix === null) return { href: ligaSearchLink(code), exact: false }
 
