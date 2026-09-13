@@ -42,7 +42,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 13 concluídos.** 1.117 testes de unidade, integração e
+**Checkpoints 0 a 13 concluídos.** 1.183 testes de unidade, integração e
 componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -76,6 +76,7 @@ componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 | — | Filtro de counter — 0, +1000, +2000 — em toda tela que filtra carta (decisão 066) |
 | — | Folha em JPEG com a arte do catálogo quando falta vínculo com a fonte (decisão 067) |
 | — | Vínculo por raridade e o arquivo de vínculos manuais: 478 → 623 paralelas com preço (decisão 068) |
+| — | Tela `/dev/paralelas`, fora de produção, para mapear à mão as 287 cartas ambíguas (decisão 068) |
 
 ### Produção, em 10/09/2026
 
@@ -566,51 +567,42 @@ Três coisas para não desfazer sem querer:
 banco — que é o que acontece quando a pessoa espera de verdade. Dormir cinco
 segundos por teste custaria mais de um minuto na suíte sem provar nada a mais.
 
-## EM ANDAMENTO — a tela de mapeamento das paralelas (decisão 068)
+## A tela de mapeamento das paralelas (decisão 068)
 
-Branch **`feat/tela-de-mapeamento`**, criada a partir da `main`. **Nada
-commitado**; os arquivos abaixo estão no disco, sem verificação nenhuma — não
-rodei typecheck, lint nem a suíte neles.
+Construída em 13/09. **`/dev/paralelas`**, só fora de produção: as nossas artes
+(Bandai, via `CardArt`) numa linha, os produtos da fonte ao lado — miniatura,
+tratamento e preço —, mais "não tem na fonte" e "deixar para depois". Gravar
+escreve `data/vinculos-manuais.json`; **a tela não escreve no banco**, quem
+aplica é a importação de preço.
 
-### O que já está escrito
+Para usar:
 
-| Arquivo | Papel |
-|---|---|
-| `src/server/domain/prices/parallel-candidates.ts` | `pendingParallels()`: pendente é quando sobra arte sem par **dos dois lados** |
-| `tests/domain/parallel-candidates.test.ts` | 6 casos da regra acima |
-| `src/server/infrastructure/prices/parallel-candidates-file.ts` | lê/grava `paralelas-candidatas.json` (derivado, fora do Git) |
-| `src/server/application/prices/parallel-mapping.ts` | `readMapping()` e `recordCardMapping()`, que conferem cada par contra o levantamento |
-| `scripts/levantar-candidatos.ts` | `npm run paralelas:candidatos` — roda o vínculo e gera o levantamento do mesmo snapshot |
-| `.gitignore` / `package.json` | ignora o levantamento; registra o script |
+1. `npm run paralelas:candidatos` — ~2 min, 174 pedidos ao tcgcsv. Roda o vínculo
+   no banco **local** e grava `paralelas-candidatas.json` (derivado, fora do Git).
+2. `npm run dev` e abra `/dev/paralelas`. O filtro "Faltam" esconde a carta cujas
+   artes já têm todas resposta no arquivo.
+3. Commit do `data/vinculos-manuais.json` num PR. `npm run prices:import` aplica
+   no local; `npm run supabase prices` leva a produção.
 
-### O que falta
+**Levantamento de 13/09**: **287 cartas pendentes, 753 artes nossas sem par** —
+batendo com as 287 ambíguas da decisão 068. O arquivo manual continua vazio: o
+mapeamento em si é julgamento do dono do produto.
 
-1. `src/app/dev/paralelas/page.tsx` — componente de servidor, `notFound()` fora
-   de desenvolvimento.
-2. A ação de servidor que chama `recordCardMapping`, com a mesma recusa.
-3. O componente cliente do pareamento: as nossas artes (Bandai, via `CardArt`) de
-   um lado; os produtos da fonte do outro, com rótulo e preço.
-4. Testes dos três, `npm test`, lint, typecheck, build, e o PR.
+Coisas para não desfazer sem querer:
 
-### Decisões técnicas já tomadas, para não redecidir
-
-- **A tela só existe fora de produção.** A recusa está na aplicação
-  (`mappingAvailable()`), e não só na página: ação de servidor pode ser chamada
-  direto.
-- **O CDN do TCGplayer não está em `images.remotePatterns`**, então o lado da
-  fonte usa `<img>` puro, com
-  `{/* eslint-disable-next-line @next/next/no-img-element */}` — é o padrão que
-  `src/components/storage/location-form.tsx` já usa.
-- **A miniatura da fonte** sai de `sourceImageUrl(productId, 'thumb')`.
-- **A tela não escreve no banco.** Ela grava `data/vinculos-manuais.json`; quem
-  aplica é a importação de preço, que é o que leva o resultado a produção.
-
-### Os números de onde partimos
-
-Medido no banco local em 10/09, depois do PR #72: **623 paralelas com preço**
-(eram 478), **287 cartas ambíguas** (eram 351) e **168 cartas que a fonte não
-oferece**. O levantamento ainda não foi gerado — rode
-`npm run paralelas:candidatos` (leva ~2 min, 174 pedidos ao tcgcsv).
+- **A recusa fora de desenvolvimento está no caso de uso** (`mappingAvailable()`),
+  e não só na página: a ação pode ser chamada direto. Ela é `NotFoundError`, o
+  mesmo que a página responde.
+- **O caso de uso lança erro da taxonomia**, e não `Error` puro: a ação só mostra
+  mensagem de `AppError`, e "produto 100 dado a duas artes" viraria "erro interno".
+- **A tela volta preenchida com as respostas gravadas** (`readMapping().answers`).
+  O levantamento é um retrato de quando foi gerado; sem isso, regravar uma carta
+  apagaria a resposta anterior sem a pessoa vê-la.
+- **A miniatura da fonte é `<img>` puro.** O CDN do TCGplayer não está em
+  `images.remotePatterns`, e abrir o otimizador de produção a um host novo por
+  uma tela de desenvolvimento não compensa.
+- **Sem sessão**: não há dado de pessoa, e o que ela grava só chega a algum lugar
+  passando por PR.
 
 ## Próximo passo
 
@@ -729,7 +721,7 @@ Duas coisas que valem saber ao testar:
   local. O que sobra só o olho resolve — qual é a *Alternate Art* e qual é a
   *Manga*. O resultado vai para `data/vinculos-manuais.json`, versionado, que a
   importação de preço aplica como `manual` em qualquer ambiente. A tela
-  `/dev/paralelas`, fora de produção, é a entrega seguinte.
+  `/dev/paralelas` existe desde 13/09; falta usá-la.
   **Produção ainda não tem os 145 vínculos novos**: chegam na próxima
   `npm run supabase prices`.
 - **168 cartas com paralela que a fonte não oferece.** Não há produto para

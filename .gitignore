@@ -62,5 +62,7 @@ $RECYCLE.BIN/
 
 # Saida do levantamento de paralelas: derivada, regeravel pelo script.
 paralelas-*.tsv
+# Levantamento da tela /dev/paralelas: derivado, regeravel com npm run paralelas:candidatos.
+paralelas-candidatas.json
 
 certificates
