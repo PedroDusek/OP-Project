@@ -42,7 +42,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 13 concluídos.** 1.204 testes de unidade, integração e
+**Checkpoints 0 a 13 concluídos.** 1.237 testes de unidade, integração e
 componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -78,7 +78,7 @@ componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 | — | Vínculo por raridade e o arquivo de vínculos manuais: 478 → 623 paralelas com preço (decisão 068) |
 | — | Tela `/dev/paralelas`, fora de produção, para mapear à mão as 287 cartas ambíguas (decisão 068) |
 | — | Ordem de código dentro de cada filtro, com a carta reimpressa no lugar do código (decisão 069) |
-| — | Link direto da Liga para a paralela do próprio set, na OP01 (decisão 070) |
+| — | Link da Liga por tabela conferida coleção a coleção, e a tela `/dev/liga` (decisão 071) |
 
 ### Produção, em 10/09/2026
 
@@ -112,7 +112,7 @@ outra hora, e isso é verdade, não defeito.
 
 ## As decisões que mais restringem o que vem depois
 
-As 70 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 71 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
@@ -729,34 +729,43 @@ Duas coisas que valem saber ao testar:
 - **168 cartas com paralela que a fonte não oferece.** Não há produto para
   vincular; ficam sem preço e sem arte na folha em JPEG até a fonte listá-las.
 
-## O link da Liga para a paralela — conferência em andamento
+## O link da Liga — conferência coleção a coleção (decisão 071)
 
-Em 13/09 o dono do produto conferiu a OP01, carta a carta, contra a Liga. O
-`liga.ts` manda para a busca toda carta com mais de uma paralela, e 406 cartas
-caem lá.
+Pedido do dono do produto em 13/09: mapear como a LigaOnePiece identifica cada
+carta e cada variante, **sem assumir padrão único** — a OP01 usa `-PAR`, a OP02
+usa `-E`. A 070 (deduzir `-PAR`) foi revogada no mesmo dia por isso.
 
-**Confirmado nas 13 cartas da OP01 com paralela no próprio set:** a paralela
-impressa no set da carta é a `-PAR` da Liga — `OP01-001`, `013`, `016`, `024`,
-`025`, `047`, `051`, `060`, `070`, `073`, `078`, `120` e `121`. Em todas ela é a
-`_p1`. A Liga acha a carta pelo `num`: o link do Kid abre sem o `(Parallel)` que
-ela põe no nome.
+**Como o link sai hoje:**
 
-**Medido no catálogo inteiro**, e ainda não conferido fora da OP01:
+- arte na tabela `data/liga-cartas.json` → o endereço conferido, como a Liga o
+  produziu (`url: null` = "a Liga não tem página", vai para a busca);
+- normal fora da tabela → o endereço montado sem sufixo;
+- **paralela fora da tabela → busca.** Nenhum sufixo é deduzido.
 
-- quando a carta tem **uma** paralela impressa no próprio set, ela é a `_p1` em
-  569 de 569 cartas — e o link direto passaria a existir em **170 cartas**;
-- a leitura inversa **não** vale: em 316 cartas a `_p1` é de outro produto;
-- **52 cartas** têm duas ou mais paralelas no próprio set, quase todas SEC. Na
-  `OP01-120` Shanks, `_p1` é a `-PAR`; a `_p2` (Manga) está sendo comparada.
+Isso corrigiu a `OP01-004_p1` (só existe na PROMO e ganhava `OP01-004-PAR`) e
+outras 157 paralelas apontando para arte de outro produto. Paralelas com link
+direto: 569 → **13**, todas conferidas.
 
-**Aplicado só na OP01** (decisão 070, escolha do dono do produto): as 12 cartas
-com uma única paralela no próprio set ganharam link direto. A Shanks fica de fora
-até a `_p2` ser resolvida.
+**Para conferir uma coleção:** `npm run dev`, abra `/dev/liga?set=OP02`. São três
+grupos — paralelas da coleção, normais (amostra por raridade: uma L, C, UC, R,
+SR, SEC) e artes com o código dela impressas em outro produto. "Procurar na Liga"
+abre a busca pelo código; cole o endereço da arte certa e grave. Depois, PR com o
+`data/liga-cartas.json`.
 
-**Para liberar outra coleção**: o dono do produto confere algumas cartas contra a
-Liga, e a edição entra em `PAR_CONFERIDA`, em `src/server/domain/catalog/liga.ts`
-(formato da Liga: `OP-02`). As paralelas de outros produtos (PROMO, PRB, GC, ST)
-continuam na busca — o sufixo delas na Liga ainda não foi levantado.
+**Onde a OP01 está:** conferidas as 13 paralelas com paralela no próprio set e a
+normal L (`OP01-001`). Faltam 20 paralelas da coleção, 5 raridades da amostra de
+normais e as 65 artes com código OP01 de outros produtos. A Shanks `_p2` (Manga)
+estava sendo comparada pelo dono do produto.
+
+Três coisas para não desfazer sem querer:
+
+- **O endereço é guardado inteiro**, e não remontado: o nome dentro dele nem
+  sempre é o nosso (o Kid da OP01 tem `(Parallel)` na Liga).
+- **A página da carta lê a tabela por import estático**; a tela `/dev/liga` lê do
+  disco. Mudar a primeira para ler do disco quebra em hospedagem que não copia
+  `data/`.
+- **Tabela inválida é erro**, e o teste `liga-cards-file` lê o arquivo do
+  repositório: um PR de conferência com JSON quebrado reprova na CI.
 
 ## O que espera resposta do dono do produto
 

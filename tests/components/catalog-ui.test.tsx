@@ -406,9 +406,15 @@ describe('VariantDetail', () => {
       mechanics: [],
       effects: [],
     },
+    liga: {
+      exact: true,
+      href:
+        'https://www.ligaonepiece.com.br/?view=cards/card' +
+        '&card=Roronoa%20Zoro%20(OP01-001)&ed=OP-01&num=OP01-001',
+    },
     siblings: [
-      { variantId: 1n, variantType: 'Normal', rarity: 'SR', imageUrl: null, setCodes: ['OP01'], current: true },
-      { variantId: 2n, variantType: 'Parallel', rarity: 'SR', imageUrl: null, setCodes: ['OP01'], current: false },
+      { variantId: 1n, variantType: 'Normal', rarity: 'SR', imageUrl: null, current: true },
+      { variantId: 2n, variantType: 'Parallel', rarity: 'SR', imageUrl: null, current: false },
     ],
   }
 
@@ -416,6 +422,9 @@ describe('VariantDetail', () => {
    * O preco ainda nao existe no produto, e a Liga e onde quem joga no Brasil
    * consulta o dele. Sai em aba nova: quem foi ver preco volta para registrar a
    * carta, e perder a pagina onde estava seria perder o motivo de ter ido.
+   *
+   * Desde a decisao 071 o endereco chega pronto do caso de uso, que e onde a
+   * regra e a tabela conferida moram; aqui so se verifica que a tela o usa.
    */
   it('leva à carta na Liga, em aba nova', () => {
     renderDetail({ variant: variant })
@@ -423,61 +432,24 @@ describe('VariantDetail', () => {
     const link = screen.getByRole('link', { name: /Veja na Liga/ })
     expect(link).toHaveAttribute('target', '_blank')
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
-    expect(link).toHaveAttribute(
-      'href',
-      'https://www.ligaonepiece.com.br/?view=cards/card' +
-        '&card=Roronoa%20Zoro%20(OP01-001)&ed=OP-01&num=OP01-001',
-    )
+    expect(link).toHaveAttribute('href', variant.liga.href)
   })
 
   /**
-   * Com varias artes paralelas **no mesmo set** nao da para saber qual e qual,
-   * entao o link vai para a busca — e o rotulo avisa, em vez de prometer a carta
-   * e entregar uma lista.
-   *
-   * A regra mudou com a decisao 070: antes bastavam duas paralelas quaisquer.
-   * Agora a paralela unica do proprio set vai direto, e este caso e o que sobra —
-   * como a Shanks OP01-120, com duas SEC na OP01.
+   * Quando o endereco nao e exato, o rotulo avisa, em vez de prometer a carta e
+   * entregar uma lista.
    */
   it('avisa quando só dá para buscar', () => {
     renderDetail({
       variant: {
         ...variant,
         variantType: 'Parallel',
-        siblings: [
-          { variantId: 1n, variantType: 'Normal', rarity: 'SR', imageUrl: null, setCodes: ['OP01'], current: false },
-          { variantId: 2n, variantType: 'Parallel', rarity: 'SR', imageUrl: null, setCodes: ['OP01'], current: true },
-          { variantId: 3n, variantType: 'Parallel', rarity: 'SR', imageUrl: null, setCodes: ['OP01'], current: false },
-        ],
+        liga: { exact: false, href: 'https://www.ligaonepiece.com.br/?view=cards/search&card=OP01-001' },
       },
     })
 
     const link = screen.getByRole('link', { name: /Buscar na Liga/ })
     expect(link).toHaveAttribute('href', expect.stringContaining('view=cards/search'))
-  })
-
-  /**
-   * O caso do relato: a Zoro OP01-001 tem a paralela da OP01 e outra da PROMO.
-   * A da OP01 e a `-PAR` da Liga, conferida pelo dono do produto (decisao 070).
-   */
-  it('leva direto à paralela do próprio set quando as outras são de outro produto', () => {
-    renderDetail({
-      variant: {
-        ...variant,
-        variantType: 'Parallel',
-        siblings: [
-          { variantId: 1n, variantType: 'Normal', rarity: 'L', imageUrl: null, setCodes: ['OP01'], current: false },
-          { variantId: 2n, variantType: 'Parallel', rarity: 'L', imageUrl: null, setCodes: ['OP01'], current: true },
-          { variantId: 3n, variantType: 'Parallel', rarity: 'L', imageUrl: null, setCodes: ['PROMO'], current: false },
-        ],
-      },
-    })
-
-    expect(screen.getByRole('link', { name: /Veja na Liga/ })).toHaveAttribute(
-      'href',
-      'https://www.ligaonepiece.com.br/?view=cards/card' +
-        '&card=Roronoa%20Zoro%20(OP01-001-PAR)&ed=OP-01&num=OP01-001-PAR',
-    )
   })
 
   it('é o h1, com o código acima', () => {

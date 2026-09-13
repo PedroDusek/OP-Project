@@ -63,7 +63,7 @@ function cardSetToken(cardCode: string): string | null {
 
 /**
  * Se o set é o que o código da carta nomeia: `OP01-073` e `OP01` sim, e `ST-17`
- * não. Serve à ordem e ao link da Liga, que precisam da mesma leitura.
+ * não. Serve à ordem e à conferência da Liga, que precisam da mesma leitura.
  */
 export function isOwnSet(cardCode: string, setCode: string): boolean {
   const proprio = cardSetToken(cardCode)

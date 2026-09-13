@@ -1,5 +1,5 @@
 import { ExternalLink } from 'lucide-react'
-import { ligaCardLink, type LigaCardInput } from '@/server/domain/catalog/liga'
+import type { LigaLink as LigaLinkData } from '@/server/domain/catalog/liga'
 import { cn } from '@/lib/cn'
 
 /**
@@ -12,20 +12,15 @@ import { cn } from '@/lib/cn'
  * `rel="noopener noreferrer"` porque a página destino não deve ganhar
  * referência à nossa janela nem o endereço de onde a pessoa veio.
  *
- * Quando o endereço exato não é derivável — carta com várias artes paralelas,
- * ou promo sem número de edição —, o link vai para a busca da Liga pelo código,
- * e o rótulo diz isso. Prometer "a carta" e entregar uma lista seria pior que
- * avisar antes.
+ * O endereço chega pronto do caso de uso (decisão 071). Quando ele não é exato
+ * — paralela ainda não conferida, promo sem número de edição —, vai para a busca
+ * da Liga pelo código, e o rótulo diz isso. Prometer "a carta" e entregar uma
+ * lista seria pior que avisar antes.
  */
-export function LigaLink({
-  className,
-  ...input
-}: LigaCardInput & { className?: string }) {
-  const { href, exact } = ligaCardLink(input)
-
+export function LigaLink({ link, className }: { link: LigaLinkData; className?: string }) {
   return (
     <a
-      href={href}
+      href={link.href}
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
@@ -36,7 +31,7 @@ export function LigaLink({
       )}
     >
       <ExternalLink className="size-4" aria-hidden />
-      {exact ? 'Veja na Liga' : 'Buscar na Liga'}
+      {link.exact ? 'Veja na Liga' : 'Buscar na Liga'}
       <span className="sr-only">(abre em uma nova aba)</span>
     </a>
   )

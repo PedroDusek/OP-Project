@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@prisma/client'
+import { ligaCardLink } from '@/server/domain/catalog/liga'
 import { NotFoundError } from '@/server/domain/errors'
 
 /**
@@ -7,12 +8,21 @@ import { NotFoundError } from '@/server/domain/errors'
  * Camada: application. Traz o que a tela da carta precisa numa consulta so:
  * dados da carta, vocabulario, as demais artes da mesma carta e os sets.
  * Sem isso a pagina faria uma consulta por bloco, que e o N+1 classico.
+ *
+ * O link da Liga sai daqui, e nao do componente, porque depende da tabela
+ * conferida (decisao 071), que mora num arquivo — e a tela nao fala com
+ * infraestrutura. A tabela chega por parametro, para o teste passar a sua.
  */
-export async function getCardVariant(prisma: PrismaClient, variantId: bigint) {
+export async function getCardVariant(
+  prisma: PrismaClient,
+  variantId: bigint,
+  ligaCards: ReadonlyMap<string, string | null> = new Map(),
+) {
   const variant = await prisma.cardVariant.findUnique({
     where: { id: variantId },
     select: {
       id: true,
+      sourceId: true,
       variantType: true,
       rarity: true,
       imageUrl: true,
@@ -40,9 +50,6 @@ export async function getCardVariant(prisma: PrismaClient, variantId: bigint) {
               variantType: true,
               rarity: true,
               imageUrl: true,
-              // O link da Liga precisa saber quais paralelas sao do proprio set
-              // (decisao 070).
-              printings: { select: { set: { select: { code: true } } } },
             },
             orderBy: { id: 'asc' },
           },
@@ -60,6 +67,12 @@ export async function getCardVariant(prisma: PrismaClient, variantId: bigint) {
     rarity: variant.rarity,
     imageUrl: variant.imageUrl,
     sets: variant.printings.map((p) => p.set),
+    liga: ligaCardLink({
+      cardCode: card.code,
+      cardName: card.name,
+      variantType: variant.variantType,
+      verified: variant.sourceId === null ? undefined : ligaCards.get(variant.sourceId),
+    }),
     card: {
       code: card.code,
       name: card.name,
@@ -82,7 +95,6 @@ export async function getCardVariant(prisma: PrismaClient, variantId: bigint) {
       variantType: v.variantType,
       rarity: v.rarity,
       imageUrl: v.imageUrl,
-      setCodes: v.printings.map((p) => p.set.code),
       current: v.id === variant.id,
     })),
   }

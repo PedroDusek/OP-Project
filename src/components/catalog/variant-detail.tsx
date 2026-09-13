@@ -10,7 +10,6 @@ import { Panel } from '@/components/ui/surface'
 import type { getCardVariant } from '@/server/application/catalog/get-card-variant'
 import type { VariantAllocations } from '@/server/application/storage'
 import type { MarketPrice, PriceFreshness } from '@/server/application/prices'
-import { isOwnSet } from '@/server/domain/catalog/order'
 import { displaySetCode, displaySetName } from '@/server/domain/catalog/sets'
 import { cn } from '@/lib/cn'
 
@@ -114,18 +113,7 @@ export function VariantDetail({
           freshness={priceFreshness}
         />
 
-        <LigaLink
-          cardCode={card.code}
-          cardName={card.name}
-          variantType={variant.variantType}
-          parallelCount={variant.siblings.filter((s) => s.variantType === 'Parallel').length}
-          setCodes={variant.sets.map((set) => set.code)}
-          ownSetParallelCount={
-            variant.siblings.filter(
-              (s) => s.variantType === 'Parallel' && s.setCodes.some((code) => isOwnSet(card.code, code)),
-            ).length
-          }
-        />
+        <LigaLink link={variant.liga} />
 
         {allocations ? (
           <VariantAllocationsPanel

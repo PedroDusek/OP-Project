@@ -2288,8 +2288,8 @@ começa: trocar de filtro duas vezes depressa deixaria a mais lenta chegar por
 
 # Decisão: 047 — Preço vem do TCGplayer; da Liga vem só o link
 
-**A decisão 2 foi alterada pela 070**: nas coleções conferidas, a paralela única
-do próprio set vai direto para a `-PAR`.
+**A decisão 2 foi alterada pela 070, e depois pela 071**: a paralela só vai
+direto com o endereço conferido na Liga; o `-PAR` deixou de ser deduzido.
 
 ## Contexto
 
@@ -4594,7 +4594,9 @@ ordenação acontece: em memória, com o limite que a 040 já registra.
 
 # Decisão: 070 — A paralela do próprio set é a `-PAR` da Liga, nas coleções conferidas
 
-**Altera a decisão 2 da 047.**
+**Altera a decisão 2 da 047. Revogada pela 071** no mesmo dia: a regra deduzia o
+sufixo, e a Liga não usa o mesmo em toda coleção. As 13 paralelas conferidas
+aqui passaram para a tabela da 071.
 
 ## Contexto
 
@@ -4644,6 +4646,92 @@ desempata. A `_p1` é a `-PAR`, mas a `_p2` (Manga) ainda está sendo comparada.
 
 No catálogo local: link direto em 3.236 artes antes, **3.248 depois** — as 12
 conferidas, e nenhuma arte perdeu o link.
+
+## Data
+
+2026-09-13
+
+---
+
+# Decisão: 071 — O link da paralela sai de uma tabela conferida, coleção a coleção
+
+**Revoga a 070 e altera a decisão 2 da 047.**
+
+## Contexto
+
+Pedido do dono do produto, depois de conferir a OP01: mapear como a Liga
+identifica cada carta e cada variante, **sem assumir padrão único** — a OP01 usa
+`-PAR`, a OP02 usa `-E` —, e descobrir coleção a coleção.
+
+Junto veio o defeito: a `OP01-004` tem uma paralela só, impressa **só na PROMO**,
+e o link dela era `OP01-004-PAR` — a arte da OP01, que não é ela. A 047 dava
+`-PAR` a toda carta com uma paralela. Medido no catálogo local:
+
+- **569 paralelas** tinham link direto, e só as 13 da OP01 foram conferidas;
+- **158** delas apontavam para arte de outro produto, 9 só na OP01;
+- as outras vinham de coleções cujo sufixo na Liga ninguém conferiu.
+
+A 070, do mesmo dia, deduzia `-PAR` para a paralela única do próprio set. Com a
+OP02 usando `-E`, deduzir o sufixo é o que não se pode fazer.
+
+## O sistema não descobre; quem descobre é gente
+
+A Liga recusa acesso programático, e contornar isso é o que a 047 fecha. A
+descoberta é abrir a página e registrar o endereço. O sistema organiza,
+confere a forma e aplica.
+
+## Decisões — escolhas do dono do produto
+
+**1. De onde sai o link.**
+
+- **A arte está na tabela**: vale o endereço conferido, exatamente como a Liga o
+  produziu. `url: null` é "conferido: a Liga não tem página", e vai para a busca.
+- **Arte normal fora da tabela**: continua com o endereço montado sem sufixo.
+- **Paralela fora da tabela**: vai para a busca. Nenhum sufixo é deduzido.
+
+**2. A tabela mora num arquivo versionado**, `data/liga-cartas.json`, indexado
+pelo `source_id` da Bandai — pelos motivos do arquivo de vínculos manuais (068):
+julgamento de gente, revisado em PR, sobrevive a banco recriado. Não muda o
+modelo de dados. Guarda o endereço inteiro, e não as partes: o Kid da OP01 está
+na Liga como `Eustass"Captain"Kid (Parallel)`, e remontar seria apostar que a
+Liga ignora a diferença.
+
+**3. As normais de uma coleção são conferidas por amostra de raridade** — uma L,
+uma C, uma UC, uma R, uma SR, uma SEC. A exceção que aparecer entra na tabela e
+vence a montagem.
+
+**4. A entrada é uma tela, `/dev/liga`**, só fora de produção: cada arte da
+coleção com a imagem da Bandai, a busca da Liga pelo código a um toque, e um
+campo para colar o endereço. A tela lê do endereço a edição (`ed`), o código
+interno (`num`) e o sufixo, e avisa quando o `num` não começa pelo código da
+carta — sem recusar, porque cadastrar promo com outro código pode ser justamente
+o que a Liga faz.
+
+A planilha de uma coleção tem três grupos: as paralelas impressas nela, as
+normais com a amostra por raridade, e **as artes com o código dela impressas em
+outro produto** — que é onde o link da `OP01-004_p1` errava.
+
+## Como o link chega à tela
+
+O caso de uso da carta monta o link com a tabela; o componente só o desenha. A
+tabela vem por **import estático do JSON**, que entra no pacote em qualquer
+hospedagem — nenhum alvo de deploy está definido (architecture.md), e ler do
+disco em tempo de execução dependeria de o arquivo ser copiado junto. A tela de
+conferência lê e grava no disco, porque precisa ver o que acabou de gravar.
+
+## Medido
+
+No catálogo local, com a tabela inicial (as 13 paralelas da OP01 e a normal
+`OP01-001` da 047):
+
+| | antes | depois |
+|---|---:|---:|
+| Normais com link direto | 2.679 | 2.679 |
+| Paralelas com link direto | 569 | **13** |
+| Paralelas apontando para arte de outro produto | 158 | **0** |
+
+As 556 que saíram vão para a busca da Liga, e voltam a ir direto conforme cada
+coleção for conferida.
 
 ## Data
 

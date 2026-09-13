@@ -1,5 +1,11 @@
 import { prisma } from '@/server/infrastructure/prisma'
+import { bundledLigaCards } from '@/server/infrastructure/catalog/liga-cards-file'
+import { ligaLookup } from '@/server/domain/catalog/liga-cards'
 import { getCardVariant as getCardVariantWith } from './get-card-variant'
+import {
+  readLigaWorksheet as readLigaWorksheetWith,
+  recordLigaCard as recordLigaCardWith,
+} from './liga-mapping'
 import { searchCatalog as searchCatalogWith, type CatalogQuery } from './search-cards'
 import { listSets as listSetsWith, getSet as getSetWith } from './list-sets'
 import { getCatalogVocabulary as getCatalogVocabularyWith } from './vocabulary'
@@ -19,9 +25,28 @@ export function searchCatalog(query: CatalogQuery = {}) {
   return searchCatalogWith(prisma, query)
 }
 
+/*
+ * A tabela da Liga e conferida uma vez, na primeira carta aberta, e nao a cada
+ * visita: ela so muda com um deploy.
+ */
+let ligaCards: ReadonlyMap<string, string | null> | undefined
+
 export function getCardVariant(variantId: bigint) {
-  return getCardVariantWith(prisma, variantId)
+  ligaCards ??= ligaLookup(bundledLigaCards())
+  return getCardVariantWith(prisma, variantId, ligaCards)
 }
+
+/** A conferencia da Liga, fora de producao (decisao 071). */
+export function readLigaWorksheet(setCode: string) {
+  return readLigaWorksheetWith(prisma, setCode)
+}
+
+export function recordLigaCard(sourceId: string, url: string | null) {
+  return recordLigaCardWith(prisma, sourceId, url)
+}
+
+export { clearLigaCard, ligaMappingAvailable } from './liga-mapping'
+export type { LigaWorksheet, LigaWorksheetRow, NormalSample } from './liga-mapping'
 
 export function listSets() {
   return listSetsWith(prisma)
