@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client'
-import { compareSetsForCatalog } from '@/server/domain/catalog/sets'
+import { compareCatalogOrder, placementSet } from '@/server/domain/catalog/order'
 import { remainingToGet, wantStatus, type WantStatus } from '@/server/domain/wants/status'
 import { sourceImageUrl } from '@/server/domain/prices/source-image'
 import { buildCatalogWhere, type CatalogFilters } from '@/server/application/catalog/search-cards'
@@ -91,11 +91,12 @@ export async function listWants(
       cardVariant: {
         select: {
           id: true,
+          sourceId: true,
           variantType: true,
           rarity: true,
           imageUrl: true,
           card: { select: { code: true, name: true } },
-          printings: { select: { set: { select: { code: true } } }, take: 1 },
+          printings: { select: { set: { select: { code: true } } } },
           // O vinculo com a fonte de preco, que e a unica imagem que autoriza
           // leitura cruzada e por isso serve para desenhar a folha (decisao
           // 058). So o numero do produto: a imagem nunca entra no nosso banco.
@@ -131,19 +132,23 @@ export async function listWants(
         remaining: remainingToGet(have, want.quantity),
         status: wantStatus(have, want.quantity),
       } satisfies WantView,
-      setCode: variant.printings[0]?.set.code ?? null,
+      order: {
+        cardCode: variant.card.code,
+        sourceId: variant.sourceId,
+        setCode: placementSet(variant.card.code, variant.printings.map((p) => p.set.code), query.setCode),
+      },
     }
   })
 
   const scoped =
     query.scope === 'missing' ? views.filter((row) => row.view.status !== 'satisfied') : views
 
-  scoped.sort((a, b) => {
-    const set = compareSetsForCatalog(a.setCode, b.setCode)
-    if (set !== 0) return set
-    if (a.view.cardCode !== b.view.cardCode) return a.view.cardCode < b.view.cardCode ? -1 : 1
-    return a.view.variantId < b.view.variantId ? -1 : a.view.variantId > b.view.variantId ? 1 : 0
-  })
+  // A ordem de toda listagem (decisoes 040 e 069), com o id como ultimo desempate.
+  scoped.sort(
+    (a, b) =>
+      compareCatalogOrder(a.order, b.order) ||
+      (a.view.variantId < b.view.variantId ? -1 : a.view.variantId > b.view.variantId ? 1 : 0),
+  )
 
   return scoped.map(({ view }) => view)
 }

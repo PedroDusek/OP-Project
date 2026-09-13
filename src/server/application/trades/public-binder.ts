@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto'
 import type { PrismaClient } from '@prisma/client'
 import type { AuthenticatedUser } from '@/server/application/auth'
 import { ConflictError } from '@/server/domain/errors'
-import { compareSetsForCatalog } from '@/server/domain/catalog/sets'
+import { compareCatalogOrder, placementSet, type CatalogOrderKey } from '@/server/domain/catalog/order'
 
 /**
  * O Trade Binder publicado por link.
@@ -188,11 +188,12 @@ export async function readPublicTradeBinder(
           cardVariant: {
             select: {
               id: true,
+              sourceId: true,
               variantType: true,
               rarity: true,
               imageUrl: true,
               card: { select: { code: true, name: true } },
-              printings: { select: { set: { select: { code: true } } }, take: 1 },
+              printings: { select: { set: { select: { code: true } } } },
             },
           },
         },
@@ -200,7 +201,7 @@ export async function readPublicTradeBinder(
     },
   })
 
-  const porVariante = new Map<string, { card: PublicBinderCard; setCode: string | null }>()
+  const porVariante = new Map<string, { card: PublicBinderCard; order: CatalogOrderKey }>()
 
   for (const row of rows) {
     const variante = row.collectionItem.cardVariant
@@ -215,7 +216,11 @@ export async function readPublicTradeBinder(
     }
 
     porVariante.set(chave, {
-      setCode: variante.printings[0]?.set.code ?? null,
+      order: {
+        cardCode: variante.card.code,
+        sourceId: variante.sourceId,
+        setCode: placementSet(variante.card.code, variante.printings.map((p) => p.set.code)),
+      },
       card: {
         variantId: chave,
         cardCode: variante.card.code,
@@ -228,15 +233,14 @@ export async function readPublicTradeBinder(
     })
   }
 
-  // A mesma ordem do catalogo e da colecao — lancamento, promos no fim
-  // (decisao 040) —, porque e a ordem que quem joga ja aprendeu.
+  // A mesma ordem do catalogo e da colecao — lancamento, promos no fim, e o
+  // codigo dentro do set (decisoes 040 e 069) —, porque e a ordem que quem joga
+  // ja aprendeu.
   const cards = [...porVariante.values()]
-    .sort((a, b) => {
-      const set = compareSetsForCatalog(a.setCode, b.setCode)
-      if (set !== 0) return set
-      if (a.card.cardCode !== b.card.cardCode) return a.card.cardCode < b.card.cardCode ? -1 : 1
-      return a.card.variantId < b.card.variantId ? -1 : 1
-    })
+    .sort(
+      (a, b) =>
+        compareCatalogOrder(a.order, b.order) || (a.card.variantId < b.card.variantId ? -1 : 1),
+    )
     .map((entrada) => entrada.card)
 
   return {

@@ -1,6 +1,6 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
 import { countCollection, PLAYSET_SIZE, type OwnedVariant } from '@/server/domain/collection/counting'
-import { compareSetsForCatalog } from '@/server/domain/catalog/sets'
+import { compareCatalogOrder, placementSet } from '@/server/domain/catalog/order'
 import { buildCatalogWhere, type CatalogFilters } from '@/server/application/catalog/search-cards'
 import type { AuthenticatedUser } from '@/server/application/auth'
 
@@ -137,11 +137,12 @@ export async function searchCollection(
     select: {
       id: true,
       cardId: true,
+      sourceId: true,
       variantType: true,
       rarity: true,
       imageUrl: true,
       card: { select: { code: true, name: true, type: true } },
-      printings: { select: { set: { select: { code: true } } }, take: 1 },
+      printings: { select: { set: { select: { code: true } } } },
       collectionItems: { where: { collectionId }, select: { quantity: true } },
     },
   })
@@ -153,7 +154,7 @@ export async function searchCollection(
    */
   const perCard = await quantityPerCard(prisma, collectionId)
 
-  const views = matches.map((row): CollectionItemView & { setCode: string | null } => {
+  const views = matches.map((row): CollectionItemView & { setCode: string | null; sourceId: string | null } => {
     const quantity = row.collectionItems[0]?.quantity ?? 0
     const quantityForCard = perCard.get(String(row.cardId)) ?? quantity
 
@@ -168,7 +169,9 @@ export async function searchCollection(
       quantity,
       quantityForCard,
       playsetClosed: row.card.type !== 'Leader' && quantityForCard >= PLAYSET_SIZE,
-      setCode: row.printings[0]?.set.code ?? null,
+      // Os dois ultimos existem so para ordenar (decisao 069).
+      setCode: placementSet(row.card.code, row.printings.map((p) => p.set.code), query.setCode),
+      sourceId: row.sourceId,
     }
   })
 
@@ -179,18 +182,17 @@ export async function searchCollection(
         ? views.filter((view) => !view.playsetClosed && view.cardType !== 'Leader')
         : views
 
-  scoped.sort((a, b) => {
-    const set = compareSetsForCatalog(a.setCode, b.setCode)
-    if (set !== 0) return set
-    if (a.cardCode !== b.cardCode) return a.cardCode < b.cardCode ? -1 : 1
-    return a.variantId < b.variantId ? -1 : a.variantId > b.variantId ? 1 : 0
-  })
+  scoped.sort(
+    (a, b) =>
+      compareCatalogOrder(a, b) || (a.variantId < b.variantId ? -1 : a.variantId > b.variantId ? 1 : 0),
+  )
 
   const total = scoped.length
-  // `setCode` existe so para ordenar; nao faz parte do que a tela recebe.
+  // `setCode` e `sourceId` existem so para ordenar; nao fazem parte do que a tela recebe.
   const items = scoped.slice((page - 1) * pageSize, page * pageSize).map((view) => {
-    const { setCode, ...rest } = view
+    const { setCode, sourceId, ...rest } = view
     void setCode
+    void sourceId
     return rest
   })
 

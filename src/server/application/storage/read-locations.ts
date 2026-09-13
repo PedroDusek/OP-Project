@@ -3,7 +3,7 @@ import {
   PLAYSET_SIZE,
   isPlaysetClosed,
 } from '@/server/domain/collection/counting'
-import { compareSetsForCatalog } from '@/server/domain/catalog/sets'
+import { compareCatalogOrder, placementSet } from '@/server/domain/catalog/order'
 import {
   describeLocation,
   type StoragePurpose,
@@ -175,11 +175,12 @@ export async function listCardsInLocation(
           cardVariant: {
             select: {
               id: true,
+              sourceId: true,
               variantType: true,
               rarity: true,
               imageUrl: true,
               card: { select: { code: true, name: true, type: true } },
-              printings: { select: { set: { select: { code: true } } }, take: 1 },
+              printings: { select: { set: { select: { code: true } } } },
             },
           },
         },
@@ -201,16 +202,20 @@ export async function listCardsInLocation(
         ownedQuantity: row.collectionItem.quantity,
         playsetHere: isPlaysetClosed(variant.card.type, row.quantity),
       } satisfies StoredCardView,
-      setCode: variant.printings[0]?.set.code ?? null,
+      order: {
+        cardCode: variant.card.code,
+        sourceId: variant.sourceId,
+        setCode: placementSet(variant.card.code, variant.printings.map((p) => p.set.code), query.setCode),
+      },
     }
   })
 
-  views.sort((a, b) => {
-    const set = compareSetsForCatalog(a.setCode, b.setCode)
-    if (set !== 0) return set
-    if (a.view.cardCode !== b.view.cardCode) return a.view.cardCode < b.view.cardCode ? -1 : 1
-    return a.view.variantId < b.view.variantId ? -1 : a.view.variantId > b.view.variantId ? 1 : 0
-  })
+  // A ordem de toda listagem (decisoes 040 e 069), com o id como ultimo desempate.
+  views.sort(
+    (a, b) =>
+      compareCatalogOrder(a.order, b.order) ||
+      (a.view.variantId < b.view.variantId ? -1 : a.view.variantId > b.view.variantId ? 1 : 0),
+  )
 
   return views.map(({ view }) => view)
 }
