@@ -1,19 +1,28 @@
 import { describe, expect, it } from 'vitest'
-import { ligaCardLink, ligaEdition, ligaSearchLink } from '@/server/domain/catalog/liga'
+import {
+  ligaCardLink,
+  ligaEdition,
+  ligaSearchLink,
+  ligaSuffix,
+  parseLigaUrl,
+} from '@/server/domain/catalog/liga'
+import { ligaLookup, validateLigaCards } from '@/server/domain/catalog/liga-cards'
 
 /**
- * O endereço de uma carta na LigaOnePiece.
+ * O endereço de uma carta na LigaOnePiece (decisões 047 e 071).
  *
- * Os dois primeiros casos são **endereços reais**, conferidos pelo dono do
- * produto no site. São o contrato: se a montagem mudar de forma, estes dois
- * quebram antes de alguém descobrir pelo link torto.
+ * O primeiro caso é um **endereço real**, conferido pelo dono do produto no
+ * site. É o contrato da montagem da normal: se ela mudar de forma, ele quebra
+ * antes de alguém descobrir pelo link torto.
  */
 
 const ZORO = { cardCode: 'OP01-001', cardName: 'Roronoa Zoro' }
+const ZORO_PAR =
+  'https://www.ligaonepiece.com.br/?view=cards/card&card=Roronoa+Zoro%20(OP01-001-PAR)&ed=OP-01&num=OP01-001-PAR'
 
-describe('link direto para a carta', () => {
-  it('monta o endereço da arte normal exatamente como o site', () => {
-    expect(ligaCardLink({ ...ZORO, variantType: 'Normal', parallelCount: 1 })).toEqual({
+describe('a normal', () => {
+  it('monta o endereço exatamente como o site', () => {
+    expect(ligaCardLink({ ...ZORO, variantType: 'Normal' })).toEqual({
       exact: true,
       href:
         'https://www.ligaonepiece.com.br/?view=cards/card' +
@@ -21,22 +30,56 @@ describe('link direto para a carta', () => {
     })
   })
 
-  it('monta o endereço da arte paralela exatamente como o site', () => {
-    expect(ligaCardLink({ ...ZORO, variantType: 'Parallel', parallelCount: 1 })).toEqual({
-      exact: true,
-      href:
-        'https://www.ligaonepiece.com.br/?view=cards/card' +
-        '&card=Roronoa%20Zoro%20(OP01-001-PAR)&ed=OP-01&num=OP01-001-PAR',
-    })
-  })
-
   /** Espaço vira `%20` e o parêntese fica literal, como o site escreve. */
   it('escreve espaço como %20, e não como +', () => {
-    const { href } = ligaCardLink({ ...ZORO, variantType: 'Normal', parallelCount: 1 })
+    const { href } = ligaCardLink({ ...ZORO, variantType: 'Normal' })
 
     expect(href).toContain('Roronoa%20Zoro')
     expect(href).not.toContain('+')
-    expect(href).toContain('view=cards/card')
+  })
+
+  /* A exceção conferida vence a montagem. */
+  it('usa o endereço da tabela quando a normal foi conferida', () => {
+    const conferido = 'https://www.ligaonepiece.com.br/?view=cards/card&card=X&ed=OP-02&num=OP02-001-N'
+    expect(ligaCardLink({ ...ZORO, variantType: 'Normal', verified: conferido })).toEqual({
+      exact: true,
+      href: conferido,
+    })
+  })
+
+  it('promo sem número de edição cai na busca', () => {
+    const link = ligaCardLink({ cardCode: 'P-069', cardName: 'Monkey.D.Luffy', variantType: 'Normal' })
+
+    expect(link).toEqual({ exact: false, href: ligaSearchLink('P-069') })
+  })
+})
+
+describe('a paralela só vai direto conferida', () => {
+  it('usa o endereço conferido, como a Liga o produziu', () => {
+    expect(ligaCardLink({ ...ZORO, variantType: 'Parallel', verified: ZORO_PAR })).toEqual({
+      exact: true,
+      href: ZORO_PAR,
+    })
+  })
+
+  /*
+   * A regra mudou com a decisao 071. A 047 dava `-PAR` a toda carta com uma
+   * paralela so, e a `OP01-004_p1` — que so existe na PROMO — ganhava
+   * `OP01-004-PAR`, que e outra arte. Sem conferencia, vai para a busca.
+   */
+  it('a paralela única, sem conferência, vai para a busca', () => {
+    const link = ligaCardLink({ cardCode: 'OP01-004', cardName: 'Usopp', variantType: 'Parallel' })
+
+    expect(link).toEqual({ exact: false, href: ligaSearchLink('OP01-004') })
+  })
+
+  it('"não existe na Liga" vai para a busca', () => {
+    expect(ligaCardLink({ ...ZORO, variantType: 'Parallel', verified: null }).exact).toBe(false)
+  })
+
+  /** Um tipo de arte que o catálogo não conhece nunca vira palpite. */
+  it('variante desconhecida cai na busca', () => {
+    expect(ligaCardLink({ ...ZORO, variantType: 'Manga' }).exact).toBe(false)
   })
 })
 
@@ -66,130 +109,65 @@ describe('a edição sai do código da carta', () => {
   })
 })
 
-describe('quando não dá para ter certeza, vai para a busca', () => {
-  /**
-   * 501 cartas do catálogo têm mais de uma arte paralela — até dez. O sufixo
-   * `-PAR` sozinho não diz qual, e chutar levaria à arte errada.
-   */
-  it('carta com várias paralelas cai na busca', () => {
-    const link = ligaCardLink({
-      cardCode: 'OP01-016',
-      cardName: 'Nami',
-      variantType: 'Parallel',
-      parallelCount: 8,
-    })
-
-    expect(link.exact).toBe(false)
-    expect(link.href).toBe(ligaSearchLink('OP01-016'))
+describe('ler o endereço colado', () => {
+  it('tira edição e código, e guarda o endereço como veio', () => {
+    expect(parseLigaUrl(`  ${ZORO_PAR} `)).toEqual({ url: ZORO_PAR, ed: 'OP-01', num: 'OP01-001-PAR' })
   })
 
-  /** A arte normal continua direta, mesmo com muitas paralelas ao lado. */
-  it('a normal da mesma carta continua indo direto', () => {
-    const link = ligaCardLink({
-      cardCode: 'OP01-016',
-      cardName: 'Nami',
-      variantType: 'Parallel',
-      parallelCount: 8,
-    })
-    const normal = ligaCardLink({
-      cardCode: 'OP01-016',
-      cardName: 'Nami',
-      variantType: 'Normal',
-      parallelCount: 8,
-    })
-
-    expect(link.exact).toBe(false)
-    expect(normal.exact).toBe(true)
-    expect(normal.href).toContain('num=OP01-016')
+  it('recusa o que não é endereço, nem da Liga, nem de carta', () => {
+    expect(parseLigaUrl('OP01-001-PAR')).toEqual({ error: 'Não é um endereço.' })
+    expect(parseLigaUrl('https://example.com/?view=cards/card&ed=OP-01&num=OP01-001')).toHaveProperty('error')
+    expect(parseLigaUrl(ligaSearchLink('OP01-001'))).toHaveProperty('error')
   })
 
-  it('promo sem número de edição cai na busca', () => {
-    const link = ligaCardLink({
-      cardCode: 'P-069',
-      cardName: 'Monkey.D.Luffy',
-      variantType: 'Normal',
-      parallelCount: 0,
+  it('recusa sem edição ou sem código', () => {
+    expect(parseLigaUrl('https://www.ligaonepiece.com.br/?view=cards/card&num=OP01-001')).toEqual({
+      error: 'O endereço não tem a edição (ed).',
     })
-
-    expect(link.exact).toBe(false)
-    expect(link.href).toContain('view=cards/search')
-    expect(link.href).toContain('card=P-069')
-  })
-
-  /** Um tipo de arte que o catálogo não conhece nunca vira palpite. */
-  it('variante desconhecida cai na busca', () => {
-    const link = ligaCardLink({ ...ZORO, variantType: 'Manga', parallelCount: 1 })
-
-    expect(link.exact).toBe(false)
+    expect(parseLigaUrl('https://www.ligaonepiece.com.br/?view=cards/card&ed=OP-01')).toEqual({
+      error: 'O endereço não tem o código da carta (num).',
+    })
   })
 })
 
-describe('a paralela do próprio set é a -PAR (decisão 070)', () => {
-  /**
-   * Conferido pelo dono do produto contra a Liga, nas 13 cartas da OP01: com
-   * várias paralelas e uma só impressa no set do código, é essa a `-PAR`.
-   */
-  const zoroOP01 = {
-    ...ZORO,
-    variantType: 'Parallel',
-    parallelCount: 2,
-    ownSetParallelCount: 1,
-  }
-
-  it('leva direto à paralela da OP01 quando a outra é promo', () => {
-    expect(ligaCardLink({ ...zoroOP01, setCodes: ['OP01'] })).toEqual({
-      exact: true,
-      href:
-        'https://www.ligaonepiece.com.br/?view=cards/card' +
-        '&card=Roronoa%20Zoro%20(OP01-001-PAR)&ed=OP-01&num=OP01-001-PAR',
-    })
+describe('o sufixo da Liga', () => {
+  /* Cada colecao pode ter o seu: por isso ele e lido, e nunca deduzido. */
+  it('lê o que vem depois do código', () => {
+    expect(ligaSuffix('OP01-001-PAR', 'OP01-001')).toBe('PAR')
+    expect(ligaSuffix('OP02-004-E', 'OP02-004')).toBe('E')
+    expect(ligaSuffix('OP01-001', 'OP01-001')).toBe('')
   })
 
-  /* A paralela da promo continua sem sufixo conhecido: a -PAR e a outra. */
-  it('a paralela de outro produto continua indo para a busca', () => {
-    expect(ligaCardLink({ ...zoroOP01, setCodes: ['PROMO'] }).exact).toBe(false)
-  })
-
-  /* A Shanks OP01-120 tem duas SEC na OP01: o set nao desempata. */
-  it('duas paralelas no próprio set continuam indo para a busca', () => {
-    const link = ligaCardLink({
-      cardCode: 'OP01-120',
-      cardName: 'Shanks',
-      variantType: 'Parallel',
-      parallelCount: 3,
-      setCodes: ['OP01'],
-      ownSetParallelCount: 2,
-    })
-    expect(link.exact).toBe(false)
-  })
-
-  /* So nas colecoes conferidas: fora da OP01 a leitura e projecao. */
-  it('não vale em coleção que ainda não foi conferida', () => {
-    const link = ligaCardLink({
-      cardCode: 'OP02-013',
-      cardName: 'Portgas.D.Ace',
-      variantType: 'Parallel',
-      parallelCount: 2,
-      setCodes: ['OP02'],
-      ownSetParallelCount: 1,
-    })
-    expect(link.exact).toBe(false)
-  })
-
-  /* A carta da OP01 reimpressa no ST-17 e impressa na OP01: o set composto nao atrapalha. */
-  it('reconhece o próprio set entre várias impressões', () => {
-    expect(ligaCardLink({ ...zoroOP01, setCodes: ['ST-17', 'OP01'] }).exact).toBe(true)
+  it('devolve nulo quando a Liga usou outro código', () => {
+    expect(ligaSuffix('P-001', 'OP01-004')).toBeNull()
+    expect(ligaSuffix('OP01-0010', 'OP01-001')).toBeNull()
   })
 })
 
-describe('a busca', () => {
-  it('procura pelo código', () => {
-    expect(ligaSearchLink('OP01-001')).toBe(
-      'https://www.ligaonepiece.com.br/?view=cards/search&card=OP01-001',
+describe('a tabela conferida', () => {
+  it('ordena por arte e vira consulta', () => {
+    const tabela = validateLigaCards([
+      { arte: 'OP01-013_p1', url: null },
+      { arte: 'OP01-001_p1', url: ZORO_PAR },
+    ])
+    expect(tabela.map((entry) => entry.arte)).toEqual(['OP01-001_p1', 'OP01-013_p1'])
+
+    const consulta = ligaLookup(tabela)
+    expect(consulta.get('OP01-001_p1')).toBe(ZORO_PAR)
+    expect(consulta.get('OP01-013_p1')).toBeNull()
+    // Ausente e "nao conferida", e nao "sem pagina".
+    expect(consulta.get('OP01-004_p1')).toBeUndefined()
+  })
+
+  it('recusa arte repetida e endereço que não é de carta, dizendo qual', () => {
+    expect(() =>
+      validateLigaCards([
+        { arte: 'OP01-001_p1', url: ZORO_PAR },
+        { arte: 'OP01-001_p1', url: null },
+      ]),
+    ).toThrow(/a arte OP01-001_p1 aparece 2 vezes/)
+    expect(() => validateLigaCards([{ arte: 'OP01-004_p1', url: 'https://example.com' }])).toThrow(
+      /OP01-004_p1: O endereço não é da Liga/,
     )
-  })
-
-  it('ignora espaço em volta do código', () => {
-    expect(ligaSearchLink('  OP01-001 ')).toBe(ligaSearchLink('OP01-001'))
   })
 })

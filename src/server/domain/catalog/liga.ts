@@ -1,9 +1,7 @@
-import { isOwnSet } from './order'
-
 /**
  * O endereço de uma carta na LigaOnePiece.
  *
- * Camada: domain. Puro: monta texto, não acessa nada.
+ * Camada: domain. Puro: monta e lê texto, não acessa nada.
  *
  * ## Por que só um link
  *
@@ -11,49 +9,39 @@ import { isOwnSet } from './order'
  * e o navegador recebe uma verificação de segurança. Ler preço de lá exigiria
  * contornar isso, que é exatamente o que a proteção existe para impedir. O
  * preço virá de outra fonte; daqui sai apenas um link, que é tráfego chegando
- * e não dado saindo.
+ * e não dado saindo (decisão 047).
  *
- * ## O formato
+ * Pelo mesmo motivo **o sistema não descobre** como a Liga cadastrou uma carta:
+ * quem descobre é gente, abrindo o site. O que ela confere vira a tabela de
+ * `data/liga-cartas.json`.
+ *
+ * ## De onde sai o link (decisão 071)
+ *
+ *   1. **A arte está na tabela** — vale o endereço conferido, exatamente como a
+ *      Liga o produziu. `null` na tabela é "conferido: não existe página", e vai
+ *      para a busca.
+ *   2. **Arte normal** fora da tabela — o endereço é montado sem sufixo. É a
+ *      escolha do dono do produto, conferida por amostra de raridade coleção a
+ *      coleção; a exceção que aparecer entra na tabela e vence a montagem.
+ *   3. **Qualquer outra arte** — vai para a busca.
+ *
+ * A paralela **nunca** tem o sufixo deduzido. A 047 dava `-PAR` a toda carta com
+ * uma paralela só, e isso errava de dois jeitos: a `OP01-004_p1` só existe na
+ * PROMO e ganhava `OP01-004-PAR`, que é outra arte; e a Liga não usa o mesmo
+ * sufixo em toda coleção — na OP02 aparece `-E`. Medido: 158 paralelas apontavam
+ * para arte de outro produto.
+ *
+ * ## O formato montado
  *
  *     ?view=cards/card&card=<Nome> (<num>)&ed=<EE-NN>&num=<num>
  *
- * `num` é o código da carta, com sufixo por arte: nada para a normal, `-PAR`
- * para a paralela. `ed` sai do **código da carta**, e não do código do set —
- * `OP14-EB04` reúne cartas `OP14-…` e `EB04-…`, e o código de cada uma diz a
- * qual edição ela pertence lá.
- *
- * ## Quando não dá para ter certeza, vai para a busca
- *
- * Duas situações quebram a derivação, e as duas são comuns:
- *
- *   - **501 cartas têm mais de uma arte paralela** — até dez. `-PAR` sozinho
- *     não diz qual, e chutar levaria à arte errada.
- *   - **106 promos têm código `P-NNN`**, sem número de edição.
- *
- * Nesses casos o link vai para a busca da Liga pelo código. Cai numa lista em
- * vez da carta, mas nunca numa carta errada nem numa página que não existe.
- *
- * ## A paralela do próprio set é a `-PAR` (decisão 070)
- *
- * Conferido pelo dono do produto, carta a carta, contra a Liga: quando a carta
- * tem várias paralelas mas **uma só impressa no set do próprio código**, é essa
- * que a Liga chama de `-PAR`. As outras são de promo, PRB, starter deck.
- *
- * Vale **só nas coleções conferidas**, e não por dedução: a leitura bateu nas
- * 13 cartas da OP01, e fora dela é projeção. Nas outras coleções a carta com
- * várias paralelas continua indo para a busca até alguém conferir. Conferir uma
- * coleção nova é acrescentar a edição em `PAR_CONFERIDA`.
+ * `ed` sai do **código da carta**, e não do código do set — `OP14-EB04` reúne
+ * cartas `OP14-…` e `EB04-…`, e o código de cada uma diz a qual edição ela
+ * pertence lá.
  */
 
 const BASE = 'https://www.ligaonepiece.com.br/'
-
-/**
- * As edições, no formato da Liga, em que a regra da paralela do próprio set foi
- * conferida contra o site.
- *
- * - `OP-01` — 13/09/2026, 13 cartas, todas batendo.
- */
-export const PAR_CONFERIDA: ReadonlySet<string> = new Set(['OP-01'])
+const HOST = 'www.ligaonepiece.com.br'
 
 export interface LigaLink {
   href: string
@@ -65,12 +53,11 @@ export interface LigaCardInput {
   cardCode: string
   cardName: string
   variantType: string
-  /** Quantas artes paralelas esta carta tem ao todo. */
-  parallelCount: number
-  /** Os sets em que **esta** arte foi impressa. */
-  setCodes?: readonly string[]
-  /** Quantas paralelas desta carta foram impressas no set do próprio código. */
-  ownSetParallelCount?: number
+  /**
+   * O que a tabela conferida diz desta arte: o endereço, `null` para "não existe
+   * página na Liga", ou `undefined` quando ainda não foi conferida.
+   */
+  verified?: string | null
 }
 
 /**
@@ -88,41 +75,21 @@ export function ligaEdition(cardCode: string): string | null {
   return `${letters.toUpperCase()}-${digits.padStart(2, '0')}`
 }
 
-/**
- * O sufixo da arte, ou `null` quando não dá para saber qual é.
- *
- * A paralela é identificável em dois casos. Quando a carta tem **uma** só. E,
- * nas edições conferidas, quando esta é a **única impressa no próprio set**
- * (decisão 070). Fora disso o catálogo importado não guarda o que distingue uma
- * paralela da outra (decisão 023), e o sufixo seria um chute.
- */
-function artSuffix(input: LigaCardInput, edition: string | null): string | null {
-  const { cardCode, variantType, parallelCount, setCodes = [], ownSetParallelCount = 0 } = input
-  if (variantType === 'Normal') return ''
-  if (variantType !== 'Parallel') return null
-  if (parallelCount === 1) return '-PAR'
-
-  const doProprioSet = setCodes.some((code) => isOwnSet(cardCode, code))
-  if (edition !== null && PAR_CONFERIDA.has(edition) && doProprioSet && ownSetParallelCount === 1) {
-    return '-PAR'
-  }
-  return null
-}
-
-export function ligaCardLink(input: LigaCardInput): LigaLink {
-  const { cardCode, cardName } = input
+export function ligaCardLink({ cardCode, cardName, variantType, verified }: LigaCardInput): LigaLink {
   const code = cardCode.trim()
+
+  if (verified !== undefined) {
+    return verified === null ? { href: ligaSearchLink(code), exact: false } : { href: verified, exact: true }
+  }
+
   const edition = ligaEdition(code)
-  const suffix = artSuffix(input, edition)
+  if (variantType !== 'Normal' || edition === null) return { href: ligaSearchLink(code), exact: false }
 
-  if (edition === null || suffix === null) return { href: ligaSearchLink(code), exact: false }
-
-  const num = `${code}${suffix}`
   const query = [
     'view=cards/card',
-    `card=${encode(`${cardName} (${num})`)}`,
+    `card=${encode(`${cardName} (${code})`)}`,
     `ed=${encode(edition)}`,
-    `num=${encode(num)}`,
+    `num=${encode(code)}`,
   ].join('&')
 
   return { href: `${BASE}?${query}`, exact: true }
@@ -131,6 +98,61 @@ export function ligaCardLink(input: LigaCardInput): LigaLink {
 /** A busca da Liga pelo código, que serve de rede quando o direto não dá. */
 export function ligaSearchLink(cardCode: string): string {
   return `${BASE}?view=cards/search&card=${encode(cardCode.trim())}`
+}
+
+/** O que se lê de um endereço de carta da Liga. */
+export interface ParsedLigaUrl {
+  /** O endereço como foi colado, sem espaço em volta: é ele que vira o link. */
+  url: string
+  /** A edição como a Liga escreve: `OP-01`. */
+  ed: string
+  /** O código interno da Liga: `OP01-001-PAR`. */
+  num: string
+}
+
+/**
+ * Lê um endereço de carta da Liga, ou devolve o motivo de não ser um.
+ *
+ * Confere só a forma — host, `view=cards/card`, `ed` e `num` presentes. Se a
+ * página existe e é a arte certa, só quem abriu sabe.
+ */
+export function parseLigaUrl(text: string): ParsedLigaUrl | { error: string } {
+  const url = text.trim()
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch {
+    return { error: 'Não é um endereço.' }
+  }
+
+  if (parsed.hostname !== HOST) return { error: `O endereço não é da Liga (${HOST}).` }
+  if (parsed.searchParams.get('view') !== 'cards/card') {
+    return { error: 'O endereço não é da página de uma carta (view=cards/card).' }
+  }
+
+  const ed = parsed.searchParams.get('ed')?.trim()
+  const num = parsed.searchParams.get('num')?.trim()
+  if (!ed) return { error: 'O endereço não tem a edição (ed).' }
+  if (!num) return { error: 'O endereço não tem o código da carta (num).' }
+
+  return { url, ed, num }
+}
+
+/**
+ * O sufixo que a Liga pôs depois do código: `OP01-001-PAR` → `PAR`,
+ * `OP02-004-E` → `E`, `OP01-001` → vazio.
+ *
+ * `null` quando o `num` não começa pelo código da carta — a Liga cadastrou a
+ * arte com outro código, ou o endereço colado é de outra carta. A tela mostra;
+ * não recusa, porque cadastrar com outro código pode ser justamente o que a Liga
+ * faz com uma promo.
+ */
+export function ligaSuffix(num: string, cardCode: string): string | null {
+  const n = num.trim().toUpperCase()
+  const code = cardCode.trim().toUpperCase()
+  if (n === code) return ''
+  if (n.startsWith(`${code}-`)) return n.slice(code.length + 1)
+  return null
 }
 
 /**
