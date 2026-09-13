@@ -566,6 +566,52 @@ Três coisas para não desfazer sem querer:
 banco — que é o que acontece quando a pessoa espera de verdade. Dormir cinco
 segundos por teste custaria mais de um minuto na suíte sem provar nada a mais.
 
+## EM ANDAMENTO — a tela de mapeamento das paralelas (decisão 068)
+
+Branch **`feat/tela-de-mapeamento`**, criada a partir da `main`. **Nada
+commitado**; os arquivos abaixo estão no disco, sem verificação nenhuma — não
+rodei typecheck, lint nem a suíte neles.
+
+### O que já está escrito
+
+| Arquivo | Papel |
+|---|---|
+| `src/server/domain/prices/parallel-candidates.ts` | `pendingParallels()`: pendente é quando sobra arte sem par **dos dois lados** |
+| `tests/domain/parallel-candidates.test.ts` | 6 casos da regra acima |
+| `src/server/infrastructure/prices/parallel-candidates-file.ts` | lê/grava `paralelas-candidatas.json` (derivado, fora do Git) |
+| `src/server/application/prices/parallel-mapping.ts` | `readMapping()` e `recordCardMapping()`, que conferem cada par contra o levantamento |
+| `scripts/levantar-candidatos.ts` | `npm run paralelas:candidatos` — roda o vínculo e gera o levantamento do mesmo snapshot |
+| `.gitignore` / `package.json` | ignora o levantamento; registra o script |
+
+### O que falta
+
+1. `src/app/dev/paralelas/page.tsx` — componente de servidor, `notFound()` fora
+   de desenvolvimento.
+2. A ação de servidor que chama `recordCardMapping`, com a mesma recusa.
+3. O componente cliente do pareamento: as nossas artes (Bandai, via `CardArt`) de
+   um lado; os produtos da fonte do outro, com rótulo e preço.
+4. Testes dos três, `npm test`, lint, typecheck, build, e o PR.
+
+### Decisões técnicas já tomadas, para não redecidir
+
+- **A tela só existe fora de produção.** A recusa está na aplicação
+  (`mappingAvailable()`), e não só na página: ação de servidor pode ser chamada
+  direto.
+- **O CDN do TCGplayer não está em `images.remotePatterns`**, então o lado da
+  fonte usa `<img>` puro, com
+  `{/* eslint-disable-next-line @next/next/no-img-element */}` — é o padrão que
+  `src/components/storage/location-form.tsx` já usa.
+- **A miniatura da fonte** sai de `sourceImageUrl(productId, 'thumb')`.
+- **A tela não escreve no banco.** Ela grava `data/vinculos-manuais.json`; quem
+  aplica é a importação de preço, que é o que leva o resultado a produção.
+
+### Os números de onde partimos
+
+Medido no banco local em 10/09, depois do PR #72: **623 paralelas com preço**
+(eram 478), **287 cartas ambíguas** (eram 351) e **168 cartas que a fonte não
+oferece**. O levantamento ainda não foi gerado — rode
+`npm run paralelas:candidatos` (leva ~2 min, 174 pedidos ao tcgcsv).
+
 ## Próximo passo
 
 **A escolha está aberta**, em 10/09: o dono do produto pediu para deixar tudo
