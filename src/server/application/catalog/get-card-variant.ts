@@ -40,6 +40,9 @@ export async function getCardVariant(prisma: PrismaClient, variantId: bigint) {
               variantType: true,
               rarity: true,
               imageUrl: true,
+              // O link da Liga precisa saber quais paralelas sao do proprio set
+              // (decisao 070).
+              printings: { select: { set: { select: { code: true } } } },
             },
             orderBy: { id: 'asc' },
           },
@@ -79,6 +82,7 @@ export async function getCardVariant(prisma: PrismaClient, variantId: bigint) {
       variantType: v.variantType,
       rarity: v.rarity,
       imageUrl: v.imageUrl,
+      setCodes: v.printings.map((p) => p.set.code),
       current: v.id === variant.id,
     })),
   }

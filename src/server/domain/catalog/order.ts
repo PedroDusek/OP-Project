@@ -61,6 +61,15 @@ function cardSetToken(cardCode: string): string | null {
   return match ? canonical(`${match[1].toUpperCase()}${match[2]}`) : null
 }
 
+/**
+ * Se o set é o que o código da carta nomeia: `OP01-073` e `OP01` sim, e `ST-17`
+ * não. Serve à ordem e ao link da Liga, que precisam da mesma leitura.
+ */
+export function isOwnSet(cardCode: string, setCode: string): boolean {
+  const proprio = cardSetToken(cardCode)
+  return proprio !== null && setTokens(setCode).includes(proprio)
+}
+
 export function placementSet(
   cardCode: string,
   setCodes: readonly string[],
@@ -74,11 +83,8 @@ export function placementSet(
     if (filtrado) return filtrado
   }
 
-  const proprio = cardSetToken(cardCode)
-  if (proprio) {
-    const doCodigo = setCodes.find((code) => setTokens(code).includes(proprio))
-    if (doCodigo) return doCodigo
-  }
+  const doCodigo = setCodes.find((code) => isOwnSet(cardCode, code))
+  if (doCodigo) return doCodigo
 
   return [...setCodes].sort(compareSetsForCatalog)[0]
 }

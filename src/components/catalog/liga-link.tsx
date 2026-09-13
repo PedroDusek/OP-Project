@@ -1,5 +1,5 @@
 import { ExternalLink } from 'lucide-react'
-import { ligaCardLink } from '@/server/domain/catalog/liga'
+import { ligaCardLink, type LigaCardInput } from '@/server/domain/catalog/liga'
 import { cn } from '@/lib/cn'
 
 /**
@@ -18,19 +18,10 @@ import { cn } from '@/lib/cn'
  * avisar antes.
  */
 export function LigaLink({
-  cardCode,
-  cardName,
-  variantType,
-  parallelCount,
   className,
-}: {
-  cardCode: string
-  cardName: string
-  variantType: string
-  parallelCount: number
-  className?: string
-}) {
-  const { href, exact } = ligaCardLink({ cardCode, cardName, variantType, parallelCount })
+  ...input
+}: LigaCardInput & { className?: string }) {
+  const { href, exact } = ligaCardLink(input)
 
   return (
     <a

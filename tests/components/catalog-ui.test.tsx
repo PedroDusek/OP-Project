@@ -407,8 +407,8 @@ describe('VariantDetail', () => {
       effects: [],
     },
     siblings: [
-      { variantId: 1n, variantType: 'Normal', rarity: 'SR', imageUrl: null, current: true },
-      { variantId: 2n, variantType: 'Parallel', rarity: 'SR', imageUrl: null, current: false },
+      { variantId: 1n, variantType: 'Normal', rarity: 'SR', imageUrl: null, setCodes: ['OP01'], current: true },
+      { variantId: 2n, variantType: 'Parallel', rarity: 'SR', imageUrl: null, setCodes: ['OP01'], current: false },
     ],
   }
 
@@ -431,9 +431,13 @@ describe('VariantDetail', () => {
   })
 
   /**
-   * Com varias artes paralelas nao da para saber qual e qual, entao o link vai
-   * para a busca — e o rotulo avisa, em vez de prometer a carta e entregar uma
-   * lista.
+   * Com varias artes paralelas **no mesmo set** nao da para saber qual e qual,
+   * entao o link vai para a busca — e o rotulo avisa, em vez de prometer a carta
+   * e entregar uma lista.
+   *
+   * A regra mudou com a decisao 070: antes bastavam duas paralelas quaisquer.
+   * Agora a paralela unica do proprio set vai direto, e este caso e o que sobra —
+   * como a Shanks OP01-120, com duas SEC na OP01.
    */
   it('avisa quando só dá para buscar', () => {
     renderDetail({
@@ -441,15 +445,39 @@ describe('VariantDetail', () => {
         ...variant,
         variantType: 'Parallel',
         siblings: [
-          { variantId: 1n, variantType: 'Normal', rarity: 'SR', imageUrl: null, current: false },
-          { variantId: 2n, variantType: 'Parallel', rarity: 'SR', imageUrl: null, current: true },
-          { variantId: 3n, variantType: 'Parallel', rarity: 'SR', imageUrl: null, current: false },
+          { variantId: 1n, variantType: 'Normal', rarity: 'SR', imageUrl: null, setCodes: ['OP01'], current: false },
+          { variantId: 2n, variantType: 'Parallel', rarity: 'SR', imageUrl: null, setCodes: ['OP01'], current: true },
+          { variantId: 3n, variantType: 'Parallel', rarity: 'SR', imageUrl: null, setCodes: ['OP01'], current: false },
         ],
       },
     })
 
     const link = screen.getByRole('link', { name: /Buscar na Liga/ })
     expect(link).toHaveAttribute('href', expect.stringContaining('view=cards/search'))
+  })
+
+  /**
+   * O caso do relato: a Zoro OP01-001 tem a paralela da OP01 e outra da PROMO.
+   * A da OP01 e a `-PAR` da Liga, conferida pelo dono do produto (decisao 070).
+   */
+  it('leva direto à paralela do próprio set quando as outras são de outro produto', () => {
+    renderDetail({
+      variant: {
+        ...variant,
+        variantType: 'Parallel',
+        siblings: [
+          { variantId: 1n, variantType: 'Normal', rarity: 'L', imageUrl: null, setCodes: ['OP01'], current: false },
+          { variantId: 2n, variantType: 'Parallel', rarity: 'L', imageUrl: null, setCodes: ['OP01'], current: true },
+          { variantId: 3n, variantType: 'Parallel', rarity: 'L', imageUrl: null, setCodes: ['PROMO'], current: false },
+        ],
+      },
+    })
+
+    expect(screen.getByRole('link', { name: /Veja na Liga/ })).toHaveAttribute(
+      'href',
+      'https://www.ligaonepiece.com.br/?view=cards/card' +
+        '&card=Roronoa%20Zoro%20(OP01-001-PAR)&ed=OP-01&num=OP01-001-PAR',
+    )
   })
 
   it('é o h1, com o código acima', () => {
