@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client'
-import { compareSetsForCatalog } from '@/server/domain/catalog/sets'
+import { compareCatalogOrder, placementSet } from '@/server/domain/catalog/order'
 import { unallocatedCopies, type Allocation } from '@/server/domain/storage/allocation'
 import type { AuthenticatedUser } from '@/server/application/auth'
 
@@ -47,11 +47,12 @@ async function ownedWithAllocations(prisma: PrismaClient, user: AuthenticatedUse
       cardVariant: {
         select: {
           id: true,
+          sourceId: true,
           variantType: true,
           rarity: true,
           imageUrl: true,
           card: { select: { code: true, name: true } },
-          printings: { select: { set: { select: { code: true } } }, take: 1 },
+          printings: { select: { set: { select: { code: true } } } },
         },
       },
     },
@@ -121,17 +122,20 @@ export async function listUnallocated(
           allocated,
           loose: unallocatedCopies(item.quantity, allocations),
         } satisfies UnallocatedCard,
-        setCode: variant.printings[0]?.set.code ?? null,
+        order: {
+          cardCode: variant.card.code,
+          sourceId: variant.sourceId,
+          setCode: placementSet(variant.card.code, variant.printings.map((p) => p.set.code)),
+        },
       }
     })
     .filter((row) => row.card.loose > 0)
 
-  loose.sort((a, b) => {
-    const set = compareSetsForCatalog(a.setCode, b.setCode)
-    if (set !== 0) return set
-    if (a.card.cardCode !== b.card.cardCode) return a.card.cardCode < b.card.cardCode ? -1 : 1
-    return a.card.variantId < b.card.variantId ? -1 : a.card.variantId > b.card.variantId ? 1 : 0
-  })
+  loose.sort(
+    (a, b) =>
+      compareCatalogOrder(a.order, b.order) ||
+      (a.card.variantId < b.card.variantId ? -1 : a.card.variantId > b.card.variantId ? 1 : 0),
+  )
 
   return loose.map((row) => row.card)
 }

@@ -1,7 +1,7 @@
 import type { CounterValue } from '@/server/domain/catalog/counter'
 import type { Prisma, PrismaClient } from '@prisma/client'
 import type { CardType } from '@/server/domain/catalog/types'
-import { compareSetsForCatalog } from '@/server/domain/catalog/sets'
+import { compareCatalogOrder, placementSet } from '@/server/domain/catalog/order'
 
 /**
  * Busca no catalogo.
@@ -238,12 +238,13 @@ export async function searchCatalog(
     where,
     select: {
       id: true,
+      sourceId: true,
       card: { select: { code: true } },
-      printings: { select: { set: { select: { code: true } } }, take: 1 },
+      printings: { select: { set: { select: { code: true } } } },
     },
   })
 
-  matches.sort(byRelease)
+  matches.sort(byRelease(query.setCode))
 
   const total = matches.length
   const pageIds = matches.slice((page - 1) * pageSize, page * pageSize).map((row) => row.id)
@@ -303,28 +304,39 @@ export async function searchCatalog(
 
 interface Sortable {
   id: bigint
+  sourceId: string | null
   card: { code: string }
   printings: { set: { code: string } }[]
 }
 
 /**
- * Ordem de exibicao: set por lancamento, depois codigo da carta, depois id.
+ * Ordem de exibicao: a de `domain/catalog/order.ts` (decisoes 040 e 069), com o
+ * id como ultimo desempate.
  *
  * O desempate por id nao e zelo: sem ele, duas artes da mesma carta poderiam
  * trocar de lugar entre uma leva e a seguinte da rolagem, e a mesma carta
  * apareceria duas vezes ou nenhuma.
  *
- * Toda variante do catalogo tem exatamente uma impressao — foi conferido —, mas
- * o modelo permite mais de uma (decisao 006), entao a primeira e usada e a
- * ausencia e tratada em vez de presumida.
+ * Todas as impressoes vem na consulta, e nao so a primeira: desde a decisao 052
+ * uma variante pode ter duas ou tres, e a primeira que o banco devolvia mandava
+ * a `OP01-073` para o fim da OP01. A chave e calculada uma vez por linha, e nao a
+ * cada comparacao.
  */
-function byRelease(a: Sortable, b: Sortable): number {
-  const setDelta = compareSetsForCatalog(
-    a.printings[0]?.set.code ?? null,
-    b.printings[0]?.set.code ?? null,
-  )
-  if (setDelta !== 0) return setDelta
+function byRelease(filteredSet: string | undefined) {
+  const keys = new Map<bigint, { cardCode: string; sourceId: string | null; setCode: string | null }>()
+  const keyOf = (row: Sortable) => {
+    let key = keys.get(row.id)
+    if (!key) {
+      key = {
+        cardCode: row.card.code,
+        sourceId: row.sourceId,
+        setCode: placementSet(row.card.code, row.printings.map((p) => p.set.code), filteredSet),
+      }
+      keys.set(row.id, key)
+    }
+    return key
+  }
 
-  if (a.card.code !== b.card.code) return a.card.code < b.card.code ? -1 : 1
-  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
+  return (a: Sortable, b: Sortable): number =>
+    compareCatalogOrder(keyOf(a), keyOf(b)) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
 }

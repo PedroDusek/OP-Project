@@ -1,6 +1,6 @@
 import type { PrismaClient } from '@prisma/client'
 import type { AuthenticatedUser } from '@/server/application/auth'
-import { compareSetsForCatalog } from '@/server/domain/catalog/sets'
+import { compareCatalogOrder, placementSet, type CatalogOrderKey } from '@/server/domain/catalog/order'
 
 /**
  * O Trade Binder: o que esta pessoa tem disponível para troca.
@@ -61,11 +61,12 @@ export async function listTradeBinder(
           cardVariant: {
             select: {
               id: true,
+              sourceId: true,
               variantType: true,
               rarity: true,
               imageUrl: true,
               card: { select: { code: true, name: true } },
-              printings: { select: { set: { select: { code: true } } }, take: 1 },
+              printings: { select: { set: { select: { code: true } } } },
             },
           },
         },
@@ -73,7 +74,7 @@ export async function listTradeBinder(
     },
   })
 
-  const byVariant = new Map<string, { card: TradeBinderCard; setCode: string | null }>()
+  const byVariant = new Map<string, { card: TradeBinderCard; order: CatalogOrderKey }>()
 
   for (const row of rows) {
     const variant = row.collectionItem.cardVariant
@@ -87,7 +88,11 @@ export async function listTradeBinder(
     }
 
     byVariant.set(key, {
-      setCode: variant.printings[0]?.set.code ?? null,
+      order: {
+        cardCode: variant.card.code,
+        sourceId: variant.sourceId,
+        setCode: placementSet(variant.card.code, variant.printings.map((p) => p.set.code)),
+      },
       card: {
         variantId: key,
         cardCode: variant.card.code,
@@ -102,15 +107,14 @@ export async function listTradeBinder(
     })
   }
 
-  // A mesma ordem do catálogo e da coleção — lançamento, promos no fim
-  // (decisão 040) —, porque é a ordem que a pessoa já aprendeu nas outras telas.
+  // A mesma ordem do catálogo e da coleção — lançamento, promos no fim, e o
+  // código dentro do set (decisões 040 e 069) —, porque é a ordem que a pessoa
+  // já aprendeu nas outras telas.
   return [...byVariant.values()]
-    .sort((a, b) => {
-      const set = compareSetsForCatalog(a.setCode, b.setCode)
-      if (set !== 0) return set
-      if (a.card.cardCode !== b.card.cardCode) return a.card.cardCode < b.card.cardCode ? -1 : 1
-      return a.card.variantId < b.card.variantId ? -1 : 1
-    })
+    .sort(
+      (a, b) =>
+        compareCatalogOrder(a.order, b.order) || (a.card.variantId < b.card.variantId ? -1 : 1),
+    )
     .map((entry) => entry.card)
 }
 

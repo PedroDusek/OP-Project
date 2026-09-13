@@ -1703,6 +1703,9 @@ não volta é a posição exata na rolagem.
 
 # Decisão: 040 — Ordem padrão da listagem de cartas
 
+**Alterada pela decisão 069**: o set de uma arte impressa em mais de um, e o
+desempate pelo número da arte em vez do id.
+
 ## Contexto
 
 Sem filtro, a listagem vinha por código de carta em ordem alfabética: `EB01-…`
@@ -4525,3 +4528,61 @@ imagem, e o resultado gravado neste arquivo.
 ## Data
 
 2026-09-11
+
+---
+
+# Decisão: 069 — Ordem de código dentro de cada filtro
+
+**Altera a decisão 040.**
+
+## Contexto
+
+Relato do dono do produto ao conferir a OP01 contra a Liga: a `OP01-073` normal
+e a `OP01-086` não apareciam no lugar delas, e sim no fim da lista, depois da
+`OP01-121`.
+
+A 040 partia de "cada variante do catálogo tem exatamente uma impressão". A
+decisão 052 desfez isso ao tornar reimpressão uma impressão, e **372 variantes**
+passaram a ter duas ou três. Seis casos de uso — catálogo, coleção, local, cartas
+sem lugar, want list e os dois Trade Binders — pegavam a **primeira impressão
+que o banco devolvia**, sem ordem definida. A `OP01-073` e a `OP01-086` também
+foram impressas no ST-17, e a do ST-17 vinha primeiro.
+
+Medido junto: em **146 cartas** o id das artes não segue o número da arte — a
+`OP01-016` saía `_p3, _p9, normal, _p1…` —, porque a importação não as cria em
+ordem. O desempate por id da 040 embaralhava a carta por dentro.
+
+## Decisão
+
+**Pedido do dono do produto:** as cartas ficam em ordem de código dentro de cada
+filtro que a pessoa olhar, para quem confere uma coleção não precisar voltar
+atrás procurando a que esqueceu.
+
+A ordem passa a ser: set na ordem do catálogo (040), código da carta, **número
+da arte** — a normal antes, `_p1`, `_p2`, `_p10` em ordem numérica —, e o id só
+como último desempate, que continua sendo o que mantém a rolagem estável.
+
+O set que posiciona uma arte impressa em mais de um é, nesta ordem:
+
+1. **o set filtrado**, quando a tela filtra por um e a arte foi impressa nele;
+2. **o set do próprio código**, quando a arte foi impressa nele — a `OP01-073`
+   fica na OP01 mesmo sem filtro;
+3. **o primeiro na ordem do catálogo**, para a arte que só existe em outro
+   produto — a `OP01-016_p4`, impressa só na OP05, fica na OP05.
+
+**O item 2 não é "a impressão mais antiga".** A ordem do catálogo põe coleções
+antes de starter decks, e a `ST01-014`, reimpressa na PRB-01, sairia do ST-01
+para o meio das coleções. Medido: 65 variantes mudariam de grupo assim.
+
+A regra mora em `src/server/domain/catalog/order.ts`, e os seis casos de uso a
+chamam — antes eram seis cópias da mesma comparação, que foi como o defeito se
+espalhou por todas as telas de uma vez.
+
+## O que não muda
+
+Os três grupos da 040 — coleções, starter decks, promocionais — e onde a
+ordenação acontece: em memória, com o limite que a 040 já registra.
+
+## Data
+
+2026-09-13

@@ -42,7 +42,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 13 concluídos.** 1.183 testes de unidade, integração e
+**Checkpoints 0 a 13 concluídos.** 1.198 testes de unidade, integração e
 componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -77,6 +77,7 @@ componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 | — | Folha em JPEG com a arte do catálogo quando falta vínculo com a fonte (decisão 067) |
 | — | Vínculo por raridade e o arquivo de vínculos manuais: 478 → 623 paralelas com preço (decisão 068) |
 | — | Tela `/dev/paralelas`, fora de produção, para mapear à mão as 287 cartas ambíguas (decisão 068) |
+| — | Ordem de código dentro de cada filtro, com a carta reimpressa no lugar do código (decisão 069) |
 
 ### Produção, em 10/09/2026
 
@@ -110,7 +111,7 @@ outra hora, e isso é verdade, não defeito.
 
 ## As decisões que mais restringem o que vem depois
 
-As 68 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 69 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
@@ -726,6 +727,30 @@ Duas coisas que valem saber ao testar:
   `npm run supabase prices`.
 - **168 cartas com paralela que a fonte não oferece.** Não há produto para
   vincular; ficam sem preço e sem arte na folha em JPEG até a fonte listá-las.
+
+## O link da Liga para a paralela — conferência em andamento
+
+Em 13/09 o dono do produto conferiu a OP01, carta a carta, contra a Liga. O
+`liga.ts` manda para a busca toda carta com mais de uma paralela, e 406 cartas
+caem lá.
+
+**Confirmado nas 13 cartas da OP01 com paralela no próprio set:** a paralela
+impressa no set da carta é a `-PAR` da Liga — `OP01-001`, `013`, `016`, `024`,
+`025`, `047`, `051`, `060`, `070`, `073`, `078`, `120` e `121`. Em todas ela é a
+`_p1`. A Liga acha a carta pelo `num`: o link do Kid abre sem o `(Parallel)` que
+ela põe no nome.
+
+**Medido no catálogo inteiro**, e ainda não conferido fora da OP01:
+
+- quando a carta tem **uma** paralela impressa no próprio set, ela é a `_p1` em
+  569 de 569 cartas — e o link direto passaria a existir em **170 cartas**;
+- a leitura inversa **não** vale: em 316 cartas a `_p1` é de outro produto;
+- **52 cartas** têm duas ou mais paralelas no próprio set, quase todas SEC. Na
+  `OP01-120` Shanks, `_p1` é a `-PAR`; a `_p2` (Manga) está sendo comparada.
+
+**Não aplicado.** Mudar o `liga.ts` altera um comportamento decidido e espera
+aprovação, depois de conferir uma coleção além da OP01. As paralelas de outros
+produtos (PROMO, PRB, GC, ST) ficam para quando a conferência chegar nesses sets.
 
 ## O que espera resposta do dono do produto
 

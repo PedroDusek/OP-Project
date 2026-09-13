@@ -1,5 +1,6 @@
 import 'dotenv/config'
 import { linkArtProducts } from '@/server/application/prices/link-art-products'
+import { placementSet } from '@/server/domain/catalog/order'
 import { pendingParallels, type CandidateSourceArt } from '@/server/domain/prices/parallel-candidates'
 import { loadManualLinks } from '@/server/infrastructure/prices/manual-links-file'
 import { oncePerRun } from '@/server/infrastructure/prices/once-per-run'
@@ -50,7 +51,7 @@ async function main(): Promise<void> {
         rarity: true,
         imageUrl: true,
         card: { select: { code: true, name: true } },
-        printings: { select: { set: { select: { code: true } } }, take: 1 },
+        printings: { select: { set: { select: { code: true } } } },
       },
       orderBy: { sourceId: 'asc' },
     })
@@ -63,7 +64,12 @@ async function main(): Promise<void> {
       const atual = porCarta.get(v.card.code) ?? {
         code: v.card.code,
         name: v.card.name,
-        setCode: v.printings[0]?.set.code ?? null,
+        // O set da propria carta, e nao a primeira impressao que o banco devolve
+        // (decisao 069): a Nami OP01-016 tem artes em sete produtos.
+        setCode: placementSet(
+          v.card.code,
+          paralelas.filter((p) => p.card.code === v.card.code).flatMap((p) => p.printings.map((i) => i.set.code)),
+        ),
         parallels: [],
       }
       atual.parallels.push({ sourceId: v.sourceId!, rarity: v.rarity, imageUrl: v.imageUrl })
