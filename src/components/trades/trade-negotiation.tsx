@@ -4,7 +4,7 @@ import { useActionState, useEffect, useState } from 'react'
 import { ArrowRight, Check, Handshake, Minus, Plus, TriangleAlert, X } from 'lucide-react'
 import { CardArt } from '@/components/catalog/card-art'
 import { Button } from '@/components/ui/button'
-import { Panel, PanelList, ListRow } from '@/components/ui/surface'
+import { Panel } from '@/components/ui/surface'
 import { ExchangeControls } from '@/components/trades/trade-exchange'
 import { useLiveTrade } from '@/components/trades/use-live-trade'
 import { secondsUntilConfirm } from '@/server/domain/trades/cooldown'
@@ -25,6 +25,14 @@ import type { TradeCardOffer, TradeView } from '@/server/application/trades'
  * Nunca "participante 1" e "participante 2". Quem olha precisa saber o que
  * **está oferecendo** e o que **vai receber**, e essa orientação depende de quem
  * está olhando — por isso ela é resolvida no servidor, e não aqui.
+ *
+ * ## A oferta do outro ocupa a tela; as minhas cartas rolam de lado
+ *
+ * Pedido do dono do produto. O que se decide numa troca é **o que vou
+ * receber**, e isso pede a arte grande, em grade, para comparar de relance. As
+ * minhas cartas eu já conheço: elas ficam numa faixa que rola na horizontal —
+ * a minha oferta e, logo depois, as sugestões do cruzamento —, e não empurram a
+ * oferta do outro para baixo da dobra quando eu ofereço muitas.
  *
  * ## A oferta do outro é só leitura, e não por educação
  *
@@ -76,7 +84,13 @@ export function TradeNegotiation({ trade }: { trade: TradeView }) {
         uma proposta em aberto, e ler isso numa troca que ja aconteceu faz duvidar
         se ela aconteceu mesmo.
       */}
-      <OfferSection
+      <TheirOffer
+        title={concluida ? 'Você recebeu' : `${outro} oferece`}
+        offer={trade.other?.offer ?? []}
+        confirmed={!concluida && (trade.other?.confirmed ?? false)}
+      />
+
+      <MyOffer
         title={concluida ? 'Você entregou' : 'Você oferece'}
         offer={trade.me.offer}
         confirmed={!concluida && trade.me.confirmed}
@@ -93,14 +107,6 @@ export function TradeNegotiation({ trade }: { trade: TradeView }) {
           tradeId={trade.tradeId}
         />
       ) : null}
-
-      <OfferSection
-        title={concluida ? 'Você recebeu' : `${outro} oferece`}
-        offer={trade.other?.offer ?? []}
-        confirmed={!concluida && (trade.other?.confirmed ?? false)}
-        tradeId={trade.tradeId}
-        editable={false}
-      />
 
       {/*
         Marcar so aparece depois de os dois confirmarem. Antes disso a troca ainda
@@ -160,7 +166,135 @@ function TradeStatusPanel({ trade }: { trade: TradeView }) {
   )
 }
 
-function OfferSection({
+/** O título de uma oferta, com o "confirmou" de quem já confirmou. */
+function OfferHeader({ title, confirmed }: { title: string; confirmed: boolean }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <h2 className="text-sm font-semibold text-text">{title}</h2>
+      {confirmed ? (
+        <span className="inline-flex items-center gap-1 text-xs font-medium text-success">
+          <Check className="size-3.5" aria-hidden />
+          confirmou
+        </span>
+      ) : null}
+    </div>
+  )
+}
+
+function OfferTotal({ offer }: { offer: TradeCardOffer[] }) {
+  const copias = offer.reduce((total, item) => total + item.quantity, 0)
+  return (
+    <p className="text-xs text-text-muted tabular-nums">
+      {copias} {copias === 1 ? 'cópia' : 'cópias'} · {offer.length}{' '}
+      {offer.length === 1 ? 'carta' : 'cartas'}
+    </p>
+  )
+}
+
+function EmptyOffer() {
+  return (
+    <Panel className="px-4 py-3">
+      <p className="text-sm text-text-muted">Nada oferecido ainda.</p>
+    </Panel>
+  )
+}
+
+/** A arte, o código e o nome de uma carta — o miolo dos dois formatos. */
+function CardFace({
+  card,
+  sizes,
+  quantity,
+}: {
+  card: { cardCode: string; cardName: string; imageUrl: string | null }
+  sizes: string
+  /**
+   * Quando dita, aparece na linha do código: "2x". Não sobre a arte — os cantos
+   * de cima da carta são o custo e o poder, e um selo ali escondia o poder.
+   */
+  quantity?: number
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <CardArt src={card.imageUrl} alt="" fallback={card.cardCode} sizes={sizes} />
+      <p className="truncate text-sm font-medium text-text">{card.cardName}</p>
+      <p className="flex items-baseline justify-between gap-2 text-xs text-text-muted">
+        <span className="truncate">{card.cardCode}</span>
+        {quantity !== undefined ? (
+          <span className="shrink-0 font-semibold text-text tabular-nums">{quantity}x</span>
+        ) : null}
+      </p>
+    </div>
+  )
+}
+
+/**
+ * O que a outra pessoa oferece: em grade, com a arte grande.
+ *
+ * Só leitura (regra 4.6.2) — a quantidade aparece como texto, sem controle.
+ */
+function TheirOffer({
+  title,
+  offer,
+  confirmed,
+}: {
+  title: string
+  offer: TradeCardOffer[]
+  confirmed: boolean
+}) {
+  return (
+    <section className="flex flex-col gap-2">
+      <OfferHeader title={title} confirmed={confirmed} />
+      {offer.length === 0 ? (
+        <EmptyOffer />
+      ) : (
+        <>
+          <ul aria-label={title} className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+            {offer.map((item) => (
+              <li key={item.variantId}>
+                <CardFace
+                  card={item}
+                  quantity={item.quantity}
+                  sizes="(max-width: 639px) 30vw, (max-width: 1023px) 22vw, 15vw"
+                />
+              </li>
+            ))}
+          </ul>
+          <OfferTotal offer={offer} />
+        </>
+      )}
+    </section>
+  )
+}
+
+/**
+ * Uma faixa de cartas que rola na horizontal.
+ *
+ * Sai da margem da página (`-mx-4 px-4`) para a última carta cortada na borda
+ * dizer, sem texto, que há mais para o lado. A rolagem fica dentro da faixa —
+ * a página nunca rola de lado.
+ *
+ * `scroll-px-4` não é detalhe: o encaixe (`snap`) alinha a carta à borda da área
+ * de rolagem, e não ao recuo. Sem ele a primeira carta encostava na borda da
+ * tela, fora do alinhamento de tudo o mais.
+ */
+function CardStrip({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <ul
+      aria-label={label}
+      className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:thin]"
+    >
+      {children}
+    </ul>
+  )
+}
+
+function StripItem({ children }: { children: React.ReactNode }) {
+  // 128px: cabe o "- N +" com botoes de 44px, o alvo de toque minimo.
+  return <li className="flex w-32 shrink-0 snap-start flex-col gap-2">{children}</li>
+}
+
+/** A minha oferta, na faixa horizontal. */
+function MyOffer({
   title,
   offer,
   confirmed,
@@ -173,58 +307,22 @@ function OfferSection({
   tradeId: string
   editable: boolean
 }) {
-  const copias = offer.reduce((total, item) => total + item.quantity, 0)
-
   return (
     <section className="flex flex-col gap-2">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-sm font-semibold text-text">{title}</h2>
-        {confirmed ? (
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-success">
-            <Check className="size-3.5" aria-hidden />
-            confirmou
-          </span>
-        ) : null}
-      </div>
-
+      <OfferHeader title={title} confirmed={confirmed} />
       {offer.length === 0 ? (
-        <Panel className="px-4 py-3">
-          <p className="text-sm text-text-muted">Nada oferecido ainda.</p>
-        </Panel>
+        <EmptyOffer />
       ) : (
         <>
-          <PanelList>
+          <CardStrip label={title}>
             {offer.map((item) => (
-              <ListRow
-                key={item.variantId}
-                leading={
-                  <CardArt
-                    src={item.imageUrl}
-                    alt=""
-                    fallback={item.cardCode}
-                    sizes="44px"
-                    className="w-11 rounded-md"
-                  />
-                }
-                title={item.cardCode}
-                description={item.cardName}
-                trailing={
-                  editable ? (
-                    <OfferStepper tradeId={tradeId} item={item} />
-                  ) : (
-                    <span className="text-sm font-semibold text-text tabular-nums">
-                      {item.quantity}x
-                    </span>
-                  )
-                }
-                hideChevron
-              />
+              <StripItem key={item.variantId}>
+                <CardFace card={item} sizes="128px" quantity={editable ? undefined : item.quantity} />
+                {editable ? <OfferStepper tradeId={tradeId} item={item} /> : null}
+              </StripItem>
             ))}
-          </PanelList>
-          <p className="text-xs text-text-muted tabular-nums">
-            {copias} {copias === 1 ? 'cópia' : 'cópias'} · {offer.length}{' '}
-            {offer.length === 1 ? 'carta' : 'cartas'}
-          </p>
+          </CardStrip>
+          <OfferTotal offer={offer} />
         </>
       )}
     </section>
@@ -243,7 +341,7 @@ function OfferStepper({ tradeId, item }: { tradeId: string; item: TradeCardOffer
   const [state, submit, saving] = useActionState(setOfferAction, TRADE_ACTION_IDLE)
 
   return (
-    <form action={submit} className="flex items-center gap-1">
+    <form action={submit} className="flex items-center justify-between gap-1">
       <input type="hidden" name="tradeId" value={tradeId} />
       <input type="hidden" name="variantId" value={item.variantId} />
 
@@ -282,7 +380,7 @@ function OfferStepper({ tradeId, item }: { tradeId: string; item: TradeCardOffer
   )
 }
 
-/** O cruzamento: o que interessa ao outro e você tem disponível. */
+/** O cruzamento: o que interessa ao outro e você tem disponível, na mesma faixa. */
 function Suggestions({
   title,
   description,
@@ -304,16 +402,18 @@ function Suggestions({
     <section className="flex flex-col gap-2">
       <h2 className="text-sm font-semibold text-text">{title}</h2>
       <p className="text-xs text-text-muted">{description}</p>
-      <PanelList>
+      <CardStrip label={title}>
         {restantes.map((card) => (
-          <SuggestionRow key={card.variantId} card={card} tradeId={tradeId} />
+          <StripItem key={card.variantId}>
+            <SuggestionCard card={card} tradeId={tradeId} />
+          </StripItem>
         ))}
-      </PanelList>
+      </CardStrip>
     </section>
   )
 }
 
-function SuggestionRow({
+function SuggestionCard({
   card,
   tradeId,
 }: {
@@ -323,29 +423,19 @@ function SuggestionRow({
   const [, submit, saving] = useActionState(setOfferAction, TRADE_ACTION_IDLE)
 
   return (
-    <form action={submit}>
+    <form action={submit} className="flex flex-col gap-2">
       <input type="hidden" name="tradeId" value={tradeId} />
       <input type="hidden" name="variantId" value={card.variantId} />
       <input type="hidden" name="quantidade" value={card.quantity} />
-      <ListRow
-        leading={
-          <CardArt
-            src={card.imageUrl}
-            alt=""
-            fallback={card.cardCode}
-            sizes="44px"
-            className="w-11 rounded-md"
-          />
-        }
-        title={card.cardCode}
-        description={`${card.cardName} · ${card.available} disponíveis, procura ${card.stillWanted}`}
-        trailing={
-          <Button type="submit" variant="secondary" loading={saving}>
-            Oferecer {card.quantity}
-          </Button>
-        }
-        hideChevron
-      />
+      <CardFace card={card} sizes="128px" />
+      {/* Duas linhas: numa so, a faixa de 128px quebrava no meio e o numero ficava sozinho. */}
+      <p className="text-xs text-text-muted">
+        <span className="block">{card.available} disponíveis</span>
+        <span className="block">procura {card.stillWanted}</span>
+      </p>
+      <Button type="submit" variant="secondary" block loading={saving}>
+        Oferecer {card.quantity}
+      </Button>
     </form>
   )
 }

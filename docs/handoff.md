@@ -702,6 +702,12 @@ link → abrir na outra conta → **Entrar nesta troca** → os dois veem o
 cruzamento, cada um monta a própria oferta, os dois confirmam, e os dois marcam
 **"Já trocamos as cartas"** — aí as cópias mudam de dono de verdade.
 
+**A disposição da negociação mudou em 13/09**, a pedido do dono do produto: o que
+a outra pessoa oferece vem primeiro, em grade com a arte grande; as suas cartas —
+a sua oferta, com o − N +, e as sugestões do cruzamento — ficam numa faixa que
+rola na horizontal. A faixa usa `scroll-px-4`: sem ele o encaixe da rolagem
+colava a primeira carta na borda da tela.
+
 O ciclo está **inteiro**: convite, descartar o convite que ninguém aceitou,
 entrada, cruzamento nas duas direções, edição da própria oferta, confirmar,
 retirar a confirmação, marcar, retirar a marcação, cancelar, o aviso de revisão
