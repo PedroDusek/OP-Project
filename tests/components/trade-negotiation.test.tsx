@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { TradeNegotiation } from '@/components/trades/trade-negotiation'
 import type { TradeView } from '@/server/application/trades'
 
@@ -113,6 +113,53 @@ describe('cada um mexe so na propria oferta', () => {
   })
 })
 
+/**
+ * A disposicao pedida pelo dono do produto: o que eu vou receber ocupa a tela,
+ * em grade; as minhas cartas rolam de lado numa faixa.
+ *
+ * O jsdom nao desenha (armadilha 10), entao o que se prova aqui e a ordem e a
+ * estrutura — que a oferta do outro vem antes da minha e que as minhas cartas
+ * estao na faixa. A rolagem de verdade se ve no navegador.
+ */
+describe('a disposicao da tela', () => {
+  const comAsDuasOfertas = troca({
+    me: { ...troca().me, offer: [oferta({ variantId: '1', cardCode: 'OP01-001', cardName: 'Roronoa Zoro' })] },
+    other: {
+      ...troca().other!,
+      offer: [
+        oferta({ variantId: '2', cardCode: 'OP05-060', cardName: 'Monkey.D.Luffy', quantity: 1 }),
+        oferta({ variantId: '3', cardCode: 'OP01-120', cardName: 'Shanks', quantity: 3 }),
+      ],
+    },
+  })
+
+  it('mostra o que a outra pessoa oferece antes da minha oferta', () => {
+    render(<TradeNegotiation trade={comAsDuasOfertas} />)
+
+    const titulos = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
+    expect(titulos.indexOf('Bruno oferece')).toBeLessThan(titulos.indexOf('Você oferece'))
+  })
+
+  it('põe a oferta da outra pessoa em grade, com a quantidade de cada carta', () => {
+    render(<TradeNegotiation trade={comAsDuasOfertas} />)
+
+    const grade = screen.getByRole('list', { name: 'Bruno oferece' })
+    expect(within(grade).getAllByRole('listitem')).toHaveLength(2)
+    expect(within(grade).getByText('Shanks')).toBeInTheDocument()
+    expect(within(grade).getByText('3x')).toBeInTheDocument()
+  })
+
+  it('põe as minhas cartas na faixa horizontal, cada uma com o próprio controle', () => {
+    render(<TradeNegotiation trade={comAsDuasOfertas} />)
+
+    const faixa = screen.getByRole('list', { name: 'Você oferece' })
+    expect(faixa).toHaveClass('overflow-x-auto')
+    expect(
+      within(faixa).getByRole('button', { name: /acrescentar uma cópia de OP01-001/i }),
+    ).toBeInTheDocument()
+  })
+})
+
 describe('o aviso de revisao', () => {
   /**
    * Sem ele a tela pediria "confirme" como se fosse a primeira vez, e a pessoa
@@ -201,7 +248,12 @@ describe('as sugestoes', () => {
     // O codigo aparece duas vezes sem arte — texto e lugar da imagem —, entao
     // a espera e pelo botao, que existe uma vez so.
     expect(screen.getByRole('button', { name: /oferecer 2/i })).toBeInTheDocument()
-    expect(screen.getByText(/Nami · 3 disponíveis, procura 4/)).toBeInTheDocument()
+    // Desde a faixa horizontal, nome e disponibilidade sao linhas separadas no
+    // cartao; antes eram uma descricao so ("Nami · 3 disponiveis, procura 4").
+    const faixa = screen.getByRole('list', { name: /o que bruno procura e você tem/i })
+    expect(within(faixa).getByText('Nami')).toBeInTheDocument()
+    expect(within(faixa).getByText('3 disponíveis')).toBeInTheDocument()
+    expect(within(faixa).getByText('procura 4')).toBeInTheDocument()
     expect(screen.getByText(/enquanto não puser, nada está oferecido/i)).toBeInTheDocument()
   })
 
