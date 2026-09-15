@@ -4961,6 +4961,12 @@ separa por grupo (`OP05` e `PRB-01`).
    artes diferentes.** Cada uma só casa com o produto do grupo da sua edição; a
    edição sem grupo claro (`PC-01`) fica sem, e nunca leva o produto da irmã. A
    mesma página colada em duas artes continua repetida.
+3. **Os colchetes do nome da Liga separam a arte, e não o tratamento.** A
+   `ST04-011` tem `(Tournament Pack Vol. 2)` e `(Tournament Pack Vol. 2) [Winner]`;
+   a `P-001`, `[Participant]` e `[Winner]`. O `[Winner]` entra na identidade — as
+   duas deixam de ser repetidas —, mas nunca no nome que casa com o produto: o
+   TCGplayer dá o mesmo nome às duas, e só o preço difere. Por isso a regra não
+   vincula nenhuma delas; fica para o vínculo manual.
 
 ## Medido na tabela local, em 15/09/2026
 
@@ -4969,6 +4975,9 @@ artes em 15 grupos**: as duas do `-E-PAR` e treze cartas com a Alternate Art (ou
 SP) da coleção e a da reimpressão. As 30 já tinham vínculo manual conferido, e o
 preço delas não muda; o que muda é que a regra passa a vinculá-las sozinha, e a
 tela deixa de pedir revisão do que a Liga já distingue.
+
+Depois da revisão do dono do produto, os dois grupos que sobraram (`P-001` e
+`ST04-011`) eram os dos colchetes: com o item 3, a tela ficou vazia.
 
 ## Data
 
