@@ -64,5 +64,7 @@ $RECYCLE.BIN/
 paralelas-*.tsv
 # Levantamento da tela /dev/paralelas: derivado, regeravel com npm run paralelas:candidatos.
 paralelas-candidatas.json
+# Levantamento da tela /dev/liga/conflitos: derivado, regeravel com npm run liga:conflitos.
+liga-conflitos.json
 
 certificates

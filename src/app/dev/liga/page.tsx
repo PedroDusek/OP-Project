@@ -48,6 +48,9 @@ export default async function LigaPage({ searchParams }: { searchParams: Promise
           <Link href="/dev/liga/repetidas" className="text-accent-ink underline">
             Revisar artes repetidas
           </Link>
+          <Link href="/dev/liga/conflitos" className="text-accent-ink underline">
+            Revisar conflitos com o TCGplayer
+          </Link>
         </nav>
       </header>
 

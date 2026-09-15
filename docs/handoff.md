@@ -42,7 +42,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 13 concluídos.** 1.303 testes de unidade, integração e
+**Checkpoints 0 a 13 concluídos.** 1.319 testes de unidade, integração e
 componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -84,6 +84,7 @@ componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 | — | A edição da Liga desempata e a regra antiga não contradiz a Liga: 1.327 → 1.438 paralelas vinculadas (decisão 073) |
 | — | Tela `/dev/liga/repetidas`: as 86 artes (42 cartas) que a Liga deixa iguais e travam o vínculo (decisão 073) |
 | — | Sinônimos entre a Liga e o TCGplayer — SPR, Pandaman, Extended Art, Reprint PRB-01 (decisão 074) |
+| — | Tela `/dev/liga/conflitos`: os 15 vínculos que discordam da Liga, para decidir caso a caso (decisão 074) |
 
 ### Preços em produção, em 15/09/2026
 
