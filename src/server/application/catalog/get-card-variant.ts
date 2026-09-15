@@ -1,5 +1,6 @@
 import type { PrismaClient } from '@prisma/client'
 import { ligaCardLink } from '@/server/domain/catalog/liga'
+import { tcgplayerProductUrl } from '@/server/domain/prices/tcgplayer-link'
 import { NotFoundError } from '@/server/domain/errors'
 
 /**
@@ -12,6 +13,9 @@ import { NotFoundError } from '@/server/domain/errors'
  * O link da Liga sai daqui, e nao do componente, porque depende da tabela
  * conferida (decisao 071), que mora num arquivo — e a tela nao fala com
  * infraestrutura. A tabela chega por parametro, para o teste passar a sua.
+ *
+ * O do TCGplayer sai do vinculo da arte com a fonte de preco: o produto dela e o
+ * produto do TCGplayer (`domain/prices/tcgplayer-link.ts`).
  */
 export async function getCardVariant(
   prisma: PrismaClient,
@@ -27,6 +31,8 @@ export async function getCardVariant(
       rarity: true,
       imageUrl: true,
       printings: { select: { set: { select: { code: true, name: true } } } },
+      // So existe uma fonte de preco; o primeiro vinculo e o dela.
+      sourceProducts: { select: { sourceProductId: true }, take: 1 },
       card: {
         select: {
           id: true,
@@ -73,6 +79,7 @@ export async function getCardVariant(
       variantType: variant.variantType,
       verified: variant.sourceId === null ? undefined : ligaCards.get(variant.sourceId),
     }),
+    tcgplayerUrl: tcgplayerProductUrl(variant.sourceProducts[0]?.sourceProductId),
     card: {
       code: card.code,
       name: card.name,

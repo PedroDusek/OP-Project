@@ -4,7 +4,7 @@ import { CardArt } from './card-art'
 import { AddToCollection } from '@/components/collection/add-to-collection'
 import { VariantAllocationsPanel } from '@/components/storage/variant-allocations'
 import { WantButton } from '@/components/wants/want-sheet'
-import { LigaLink } from './liga-link'
+import { LigaLink, TcgplayerLink } from './liga-link'
 import { MarketPricePanel } from './market-price'
 import { Panel } from '@/components/ui/surface'
 import type { getCardVariant } from '@/server/application/catalog/get-card-variant'
@@ -113,7 +113,14 @@ export function VariantDetail({
           freshness={priceFreshness}
         />
 
-        <LigaLink link={variant.liga} />
+        {/*
+          Lado a lado quando ha os dois: sao a mesma pergunta — quanto vale — em
+          dois mercados. Sem vinculo com a fonte, fica so a Liga.
+        */}
+        <div className="grid gap-2 sm:grid-cols-2">
+          <LigaLink link={variant.liga} className={variant.tcgplayerUrl ? undefined : 'sm:col-span-2'} />
+          <TcgplayerLink href={variant.tcgplayerUrl} />
+        </div>
 
         {allocations ? (
           <VariantAllocationsPanel
