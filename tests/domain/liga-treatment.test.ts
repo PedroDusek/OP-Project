@@ -241,3 +241,45 @@ describe('a identidade que a Liga dá à arte', () => {
     ).toBeNull()
   })
 })
+
+describe('os sinônimos aprovados (decisão 074)', () => {
+  const chave = (card: string, num: string, ed: string, cardName: string, over: Partial<LigaArt> = {}) =>
+    ligaTreatmentKey(art({ variantId: '1', cardName, ligaUrl: liga(card, num, ed), ...over }))
+
+  it('SPR é SP, Pandaman é Pandaman Art, Extended Art é Full Art', () => {
+    expect(chave('Yamato (SPR) (OP06-022)', 'OP06-022', 'EB02', 'Yamato')).toBe('sp')
+    expect(chave('Kyo (Pandaman) (OP17-045-PA)', 'OP17-045-PA', 'OP-17', 'Kyo')).toBe('pandaman art')
+    expect(chave('Izo (033) (Extended Art) (OP01-033-EA)', 'OP01-033-EA', 'PRB', 'Izo')).toBe('full art')
+  })
+
+  /* So a parte inteira: SP + Gold nao vira outra coisa. */
+  it('não mexe em combinação', () => {
+    expect(chave('Nami (SP) (Gold) (OP01-016-SG)', 'OP01-016-SG', 'OP-05', 'Nami')).toBe('gold + sp')
+  })
+
+  it('a reimpressão da PRB-01 vale Jolly Roger Foil, e a da PRB-02, Pirate Foil', () => {
+    expect(
+      chave('Blast Breath (Reprint) (ST04-016-RE)', 'ST04-016-RE', 'PRB', 'Blast Breath', { parallelSets: ['PRB-01'], normalSets: ['ST-04', 'PRB-01'] }),
+    ).toBe('jolly roger foil')
+    expect(
+      chave('Mountain God (Reprint) (EB01-018-RE)', 'EB01-018-RE', 'PRB2', 'Mountain God', { parallelSets: ['PRB-02'], normalSets: ['EB-01', 'PRB-02'] }),
+    ).toBe('pirate foil')
+  })
+
+  it('o "(ST17)" diz de onde a carta é, e não o tratamento', () => {
+    expect(chave('Trafalgar Law (ST17) (Alternate Art) (ST17-002-AA)', 'ST17-002-AA', 'PRB2', 'Trafalgar Law')).toBe('alternate art')
+  })
+})
+
+describe('o tratamento do produto, sem o pedaço do nome', () => {
+  /* O TCGplayer escreve `Miss Doublefinger(Zala) (Full Art)`: o Zala e do nome. */
+  it('tira a parte que é pedaço do nome da carta', () => {
+    expect(sourceTreatmentKey('Zala + Full Art', 'Miss Doublefinger(Zala)')).toBe('full art')
+    expect(sourceTreatmentKey('Galdino + Alternate Art', 'Mr.3(Galdino)')).toBe('alternate art')
+  })
+
+  /* `Gol D. Roger` contem `gold`: palavra do vocabulario de arte nunca sai. */
+  it('nunca tira uma palavra do vocabulário de arte', () => {
+    expect(sourceTreatmentKey('SP + Gold', 'Gol.D.Roger Gold')).toBe('gold + sp')
+  })
+})

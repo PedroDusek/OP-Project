@@ -316,10 +316,11 @@ export async function linkArtProducts(
      * `OP09-078_p2` (Manga) ia para uma Alternate Art de US$ 923.
      */
     const chaveDaLiga = new Map(artesDaLiga.map((art) => [art.variantId, ligaTreatmentKey(art)]))
+    const nomeDaCarta = artesDaLiga[0]?.cardName
     const rotulo = new Map(daFonte.map((art) => [art.productId, art.label]))
     const coerentes = pairs.filter((pair) => {
       const chave = chaveDaLiga.get(pair.variantId)
-      return chave == null || sourceTreatmentKey(rotulo.get(pair.productId) ?? '') === chave
+      return chave == null || sourceTreatmentKey(rotulo.get(pair.productId) ?? '', nomeDaCarta) === chave
     })
     result.refusedByLiga += pairs.length - coerentes.length
 

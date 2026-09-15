@@ -42,7 +42,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 13 concluídos.** 1.297 testes de unidade, integração e
+**Checkpoints 0 a 13 concluídos.** 1.303 testes de unidade, integração e
 componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -83,6 +83,7 @@ componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 | — | "Veja no TCGplayer" na página da carta, a partir do vínculo: 2.697 normais e 1.327 paralelas |
 | — | A edição da Liga desempata e a regra antiga não contradiz a Liga: 1.327 → 1.438 paralelas vinculadas (decisão 073) |
 | — | Tela `/dev/liga/repetidas`: as 86 artes (42 cartas) que a Liga deixa iguais e travam o vínculo (decisão 073) |
+| — | Sinônimos entre a Liga e o TCGplayer — SPR, Pandaman, Extended Art, Reprint PRB-01 (decisão 074) |
 
 ### Preços em produção, em 15/09/2026
 
@@ -123,7 +124,7 @@ outra hora, e isso é verdade, não defeito.
 
 ## As decisões que mais restringem o que vem depois
 
-As 73 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 74 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
