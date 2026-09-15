@@ -176,6 +176,17 @@ function ligaEditionOf(ligaUrl: string | null | undefined): string | null {
   }
 }
 
+/** Os colchetes do nome da Liga — `[Participant]`, `[Winner]` —, na forma de comparar. */
+function ligaQualifierOf(ligaUrl: string | null | undefined): string | null {
+  if (!ligaUrl) return null
+  try {
+    const nome = new URL(ligaUrl).searchParams.get('card') ?? ''
+    return treatmentKey([...nome.matchAll(/\[([^\[\]]*)\]/g)].map((match) => match[1])) || null
+  } catch {
+    return null
+  }
+}
+
 /**
  * Os nomes que a Liga escreve diferente do TCGplayer, e que são o mesmo
  * tratamento. Aprovados pelo dono do produto em 15/09 (decisão 074), um a um.
@@ -281,7 +292,14 @@ export function ligaIdentity(art: Omit<LigaArt, 'variantId'>): {
 } {
   const tratamento = ligaTreatmentKey(art)
   const edicao = ligaEditionOf(art.ligaUrl)
-  if (tratamento !== null) return { tratamento, edicao, chave: tratamento }
+  if (tratamento !== null) {
+    // `[Participant]` e `[Winner]` separam a pagina, e nao o tratamento: o
+    // TCGplayer da `Tournament Pack Vol. 2` as duas, e so o preco difere. Entram
+    // na identidade, para as duas nao parecerem a mesma arte, e nunca no nome que
+    // casa com o produto.
+    const qualificador = ligaQualifierOf(art.ligaUrl)
+    return { tratamento, edicao, chave: qualificador ? `${tratamento} [${qualificador}]` : tratamento }
+  }
   // Sem tratamento, na colecao da propria carta, a pagina e a da normal: nao identifica.
   if (!edicao || isOwnSet(art.cardCode, edicao)) return { tratamento, edicao, chave: null }
   return { tratamento, edicao, chave: `sem tratamento em ${edicao}` }

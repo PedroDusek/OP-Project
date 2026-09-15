@@ -289,6 +289,18 @@ describe('a identidade que a Liga dá à arte', () => {
     expect(ligaTreatmentKey(shanks('OP01-120-E-PAR'))).toBeNull()
   })
 
+  /* A ST04-011: a mesma Tournament Pack, de participante e de vencedor. */
+  it('os colchetes separam a identidade, mas não o tratamento', () => {
+    const maria = (card: string, num: string) =>
+      art({ variantId: '1', cardCode: 'ST04-011', cardName: 'Black Maria', ligaUrl: liga(card, num, 'PC-01') })
+    const participante = maria('Black Maria (Tournament Pack Vol. 2) (ST04-011-TP)', 'ST04-011-TP')
+    const vencedor = maria('Black Maria (Tournament Pack Vol. 2) [Winner] (ST04-011-TW)', 'ST04-011-TW')
+
+    expect(ligaIdentity(participante).chave).toBe('tournament pack vol 2')
+    expect(ligaIdentity(vencedor).chave).toBe('tournament pack vol 2 [winner]')
+    expect(ligaTreatmentKey(vencedor)).toBe('tournament pack vol 2')
+  })
+
   /* Sem tratamento, so a edicao de outra colecao identifica; na propria, e a normal. */
   it('sem tratamento, é a edição de outra coleção, e nunca a da própria', () => {
     expect(
