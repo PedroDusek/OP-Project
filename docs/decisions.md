@@ -4816,3 +4816,67 @@ em produção.
 ## Data
 
 2026-09-15
+
+---
+
+# Decisão: 073 — A edição da Liga desempata, e a regra antiga não contradiz a Liga
+
+**Amplia a decisão 072.** Aprovado pelo dono do produto como o primeiro de três
+passos sobre as 319 paralelas que a 072 deixou sem vínculo.
+
+## Contexto
+
+Separadas por motivo, as 319 eram: nome da Liga sem produto de mesmo nome (109),
+duas artes nossas na mesma página da Liga (82), página da Liga sem tratamento (67),
+dois produtos com o mesmo nome (40) e nada a fazer (21). Parte disso é leitura que
+dá para automatizar sem julgamento novo.
+
+## Decisão
+
+1. **Pontuação não distingue tratamento.** `ST15 ST20 Release Event Pack` é
+   `ST15 - ST20 Release Event Pack`; as partes são comparadas só por letras e
+   números.
+2. **A edição da Liga desempata dois produtos de mesmo nome.** A `(Reprint)` que
+   saiu na PRB-02 e no ST-24 fica com o do grupo da edição que a Liga dá. A
+   correspondência edição ↔ grupo é por coleção (`PRB2` = `PRB-02`, `ST24` =
+   `ST-24`, `OP-14-RE` = `OP14 RE`, `OP-15` = `OP15-EB04` e não `OP15 RE`); as
+   edições sem par claro (`PC-01`, `LTDS`, `OP-13-TA`) não decidem nada.
+3. **A página sem tratamento de outra coleção** — a Nami `OP01-016` na edição
+   `ST31` — casa com o produto sem tratamento daquele grupo. **Nunca na coleção da
+   própria carta**: ali o produto sem tratamento é a normal. Medido na primeira
+   passada, sem esta restrição, a `OP01-008_p1` (Box Topper) trocou o vínculo certo
+   pelo da normal de US$ 0,10.
+4. **A raridade e o caso sem escolha não contradizem a Liga.** Um par em que a
+   Liga diz `Manga` e o produto é `Alternate Art` é recusado, mesmo que tenha
+   sobrado uma de cada lado. Medido: a `OP09-078_p2` (Manga) ia para uma Alternate
+   Art de US$ 923.
+5. **Leitura do nome da Liga**: o nome da carta sai comparando só letras e números
+   (`Mr. 1 (Daz.Bonez)` é `Mr.1(Daz.Bonez)`), e os números de desambiguação de 1 a
+   4 dígitos (`(60)`, `(0070)`) não viram tratamento.
+
+## Medido no banco local, em 15/09/2026
+
+| Paralelas | antes | depois |
+|---|---:|---:|
+| Com vínculo | 1.327 | **1.438** |
+| Vinculadas com preço | 1.257 | **1.366** |
+| Valor coberto (uma cópia de cada) | US$ 182 mil | **US$ 192 mil** |
+
+111 vínculos novos. Dois vínculos existentes **corrigidos** — `P-073_p1` e
+`P-074_p1`, Premium Card Collection que estavam numa Pirate Foil da PRB-02 de
+outra carta. Nenhum outro vínculo existente mudou. 52 pares da regra antiga
+recusados. A passada seguinte, com o mesmo código, não mudou nada.
+
+## O que fica para os passos seguintes
+
+**49 vínculos automáticos existentes contradizem o nome da Liga.** Recusar não
+apaga o que já está no banco, e em produção. Parte é sinônimo (`Pandaman` e
+`Pandaman Art`, `SPR` e `SP`, `Extended Art` e `Full Art`); parte é vínculo
+provavelmente errado, com valor alto — a Liga diz `Manga` e o vínculo está numa
+`Alternate Art` de US$ 297 a 380 (`OP09-020_p2`, `OP09-057_p2`, `OP09-096_p1`), a
+Liga diz `SP` e o vínculo está num `TR` de US$ 275 (`OP07-109_p2`). A lista de
+sinônimos e o que fazer com os conflitos são decisão do dono do produto.
+
+## Data
+
+2026-09-15

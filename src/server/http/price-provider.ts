@@ -45,6 +45,11 @@ export interface SourceArtProduct {
   /** O tratamento, como a fonte escreve: `Alternate Art`, `SP + Gold`. */
   label: string
   value: number | null
+  /**
+   * A abreviação do grupo onde o produto saiu: `PRB-02`, `ST-31`. É o que a
+   * edição da Liga desempata (decisão 072).
+   */
+  groupCode?: string | null
 }
 
 /**

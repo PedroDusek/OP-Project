@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   deduceByLigaTreatment,
+  editionMatchesGroup,
   ligaTreatmentKey,
   sourceTreatmentKey,
   type LigaArt,
@@ -18,6 +19,7 @@ const liga = (card: string, num: string, ed = 'OP-01') =>
   `https://www.ligaonepiece.com.br/?view=cards/card&card=${encodeURIComponent(card)}&ed=${ed}&num=${num}`
 
 const art = (over: Partial<LigaArt> & Pick<LigaArt, 'variantId' | 'ligaUrl'>): LigaArt => ({
+  cardCode: 'OP01-016',
   rarity: 'SR',
   cardName: 'Carta',
   parallelSets: ['OP01'],
@@ -135,5 +137,88 @@ describe('o endereço no TCGplayer', () => {
     expect(tcgplayerProductUrl(null)).toBeNull()
     expect(tcgplayerProductUrl(undefined)).toBeNull()
     expect(tcgplayerProductUrl('  ')).toBeNull()
+  })
+})
+
+describe('a edição da Liga e o grupo do TCGplayer', () => {
+  it('reconhece a mesma coleção escrita de outro jeito', () => {
+    expect(editionMatchesGroup('PRB2', 'PRB-02')).toBe(true)
+    expect(editionMatchesGroup('PRB', 'PRB-01')).toBe(true)
+    expect(editionMatchesGroup('ST24', 'ST-24')).toBe(true)
+    expect(editionMatchesGroup('OP-01', 'OP01')).toBe(true)
+    expect(editionMatchesGroup('EB03', 'EB-03-04')).toBe(true)
+    expect(editionMatchesGroup('OP-02-PR', 'OP02 PRE')).toBe(true)
+  })
+
+  /* `OP-15` e a colecao, e nao o evento de lancamento dela. */
+  it('não confunde a coleção com o evento dela', () => {
+    expect(editionMatchesGroup('OP-15', 'OP15-EB04')).toBe(true)
+    expect(editionMatchesGroup('OP-15', 'OP15 RE')).toBe(false)
+    expect(editionMatchesGroup('OP-14-RE', 'OP14 RE')).toBe(true)
+    expect(editionMatchesGroup('OP-14-RE', 'OP14')).toBe(false)
+  })
+
+  it('edição sem par claro não corresponde a nada', () => {
+    expect(editionMatchesGroup('PC-01', 'OP-PR')).toBe(false)
+    expect(editionMatchesGroup('LTDS', 'LT-01')).toBe(false)
+    expect(editionMatchesGroup(null, 'OP01')).toBe(false)
+  })
+})
+
+describe('o que a edição e a pontuação resolvem', () => {
+  const carta = (variantId: string, card: string, num: string, ed: string, over: Partial<LigaArt> = {}) =>
+    art({ variantId, cardName: 'Nami', ligaUrl: liga(card, num, ed), ...over })
+
+  it('pontuação não distingue tratamento', () => {
+    expect(
+      deduceByLigaTreatment(
+        [carta('1', 'Nami (ST15 ST20 Release Event Pack) (OP01-016-EP)', 'OP01-016-EP', 'PC-01')],
+        [{ productId: 'ep', label: 'ST15 - ST20 Release Event Pack' }],
+      ),
+    ).toEqual([{ variantId: '1', productId: 'ep' }])
+  })
+
+  /* A (Reprint) saiu na PRB-02 e no ST-24; a edicao da Liga diz qual. */
+  it('dois produtos com o mesmo nome: fica o do grupo da edição', () => {
+    expect(
+      deduceByLigaTreatment(
+        [carta('1', 'Nami (Reprint) (OP01-016-RE)', 'OP01-016-RE', 'ST24', { parallelSets: ['ST-24'], normalSets: ['OP01'] })],
+        [
+          { productId: 'prb', label: 'Reprint', groupCode: 'PRB-02' },
+          { productId: 'st', label: 'Reprint', groupCode: 'ST-24' },
+        ],
+      ),
+    ).toEqual([{ variantId: '1', productId: 'st' }])
+  })
+
+  it('a página sem tratamento de outra coleção casa com o produto sem tratamento daquele grupo', () => {
+    expect(
+      deduceByLigaTreatment(
+        [carta('1', 'Nami (OP01-016)', 'OP01-016', 'ST31', { cardCode: 'OP01-016' })],
+        [
+          { productId: 'st31', label: '', groupCode: 'ST-31' },
+          { productId: 'aa', label: 'Alternate Art', groupCode: 'OP01' },
+        ],
+      ),
+    ).toEqual([{ variantId: '1', productId: 'st31' }])
+  })
+
+  /* Na colecao da propria carta, o produto sem tratamento e a normal. */
+  it('nunca na coleção da própria carta', () => {
+    expect(
+      deduceByLigaTreatment(
+        [art({ variantId: '1', cardCode: 'OP01-008', cardName: 'Cavendish', ligaUrl: liga('Cavendish (OP01-008-BT)', 'OP01-008-BT', 'OP-01') })],
+        [{ productId: 'normal', label: '', groupCode: 'OP01' }],
+      ),
+    ).toEqual([])
+  })
+
+  it('o nome escrito de outro jeito e o número de quatro dígitos não viram tratamento', () => {
+    expect(
+      ligaTreatmentKey(art({ variantId: '1', cardName: 'Mr.1(Daz.Bonez)', ligaUrl: liga('Mr. 1 (Daz.Bonez) (Alternate Art) (EB01-027-AA)', 'EB01-027-AA', 'EB01') })),
+    ).toBe('alternate art')
+    expect(
+      ligaTreatmentKey(art({ variantId: '1', cardName: 'Tony Tony.Chopper', ligaUrl: liga('Tony Tony.Chopper (0070) (Parallel) (OP08-007-PA)', 'OP08-007-PA', 'OP-08') })),
+    ).toBe('parallel')
   })
 })

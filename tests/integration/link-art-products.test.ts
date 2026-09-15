@@ -549,6 +549,39 @@ describe('o tratamento conferido na Liga', () => {
     ])
   })
 
+  /*
+   * O caso sem escolha (053) nao sabe o nome da arte. Sobrou uma de cada lado, mas
+   * a Liga diz Manga e o produto e Alternate Art: nao casa. Medido: a OP09-078_p2
+   * ia para uma Alternate Art de US$ 923.
+   */
+  it('a regra antiga não casa o que a Liga diz ser outro tratamento', async () => {
+    await cartaComArtes('OP09-078', 'Gum-Gum Giant', ['OP09'], [
+      { sourceId: 'OP09-078_p2', rarity: 'C', sets: ['PRB-02'] },
+    ])
+
+    const resultado = await linkArtProducts(
+      testPrisma(),
+      fonte([arte('OP09-078', 'aa', 'Alternate Art', 923.38)]),
+      { logger: silent, ligaCards: [{ arte: 'OP09-078_p2', url: liga('Gum-Gum Giant (Manga) (OP09-078-MA)', 'OP09-078-MA', 'PRB2') }] },
+    )
+
+    expect(resultado).toMatchObject({ refusedByLiga: 1, created: 0 })
+    expect(await vinculos()).toEqual([])
+  })
+
+  /* Sem nome na Liga, a regra antiga segue como antes. */
+  it('sem página na tabela, o caso sem escolha continua valendo', async () => {
+    const ids = await cartaComArtes('OP09-079', 'Carta', ['OP09'], [
+      { sourceId: 'OP09-079_p1', rarity: 'C', sets: ['OP09'] },
+    ])
+
+    await linkArtProducts(testPrisma(), fonte([arte('OP09-079', 'aa', 'Alternate Art')]), { logger: silent, ligaCards: [] })
+
+    expect(await vinculos()).toEqual([
+      { cardVariantId: ids['OP09-079_p1'], sourceProductId: 'aa', origin: 'automatic' },
+    ])
+  })
+
   /* Duas artes na mesma pagina da Liga: nenhuma leva o produto. */
   it('não vincula as artes que dividem a página da Liga', async () => {
     await cartaComArtes('OP03-055', 'Carta', ['OP03'], [
