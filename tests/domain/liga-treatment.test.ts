@@ -5,6 +5,7 @@ import {
   sourceTreatmentKey,
   type LigaArt,
 } from '@/server/domain/prices/liga-treatment'
+import { tcgplayerProductUrl } from '@/server/domain/prices/tcgplayer-link'
 
 /**
  * O tratamento conferido na Liga casando com o produto do TCGplayer (decisão 072).
@@ -121,5 +122,18 @@ describe('os pares', () => {
     expect(
       deduceByLigaTreatment([nami('1', 'SP', 'OP01-016-SP')], [{ productId: 'gold', label: 'SP + Gold' }]),
     ).toEqual([])
+  })
+})
+
+describe('o endereço no TCGplayer', () => {
+  /* Conferido: o produto 454513 da fonte e a Zoro (001) (Parallel) no TCGplayer. */
+  it('sai do número do produto vinculado', () => {
+    expect(tcgplayerProductUrl('454513')).toBe('https://www.tcgplayer.com/product/454513')
+  })
+
+  it('sem vínculo, não há endereço', () => {
+    expect(tcgplayerProductUrl(null)).toBeNull()
+    expect(tcgplayerProductUrl(undefined)).toBeNull()
+    expect(tcgplayerProductUrl('  ')).toBeNull()
   })
 })

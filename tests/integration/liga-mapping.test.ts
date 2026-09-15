@@ -84,6 +84,19 @@ afterAll(async () => {
 const consulta = () => new Map([['OP01-001_p1', ZORO_PAR as string | null]])
 
 describe('o link na página da carta', () => {
+  /* O vinculo com a fonte de preco da o produto do TCGplayer; sem ele, nada. */
+  it('traz o produto do TCGplayer quando a arte tem vínculo', async () => {
+    await testPrisma().variantSourceProduct.create({
+      data: { cardVariantId: ids['OP01-001_p1'], source: 'tcgcsv', sourceProductId: '454513', origin: 'automatic' },
+    })
+
+    const vinculada = await getCardVariant(testPrisma(), ids['OP01-001_p1'], consulta())
+    expect(vinculada.tcgplayerUrl).toBe('https://www.tcgplayer.com/product/454513')
+
+    const semVinculo = await getCardVariant(testPrisma(), ids['OP01-004_p1'], consulta())
+    expect(semVinculo.tcgplayerUrl).toBeNull()
+  })
+
   it('a paralela conferida vai para o endereço da tabela', async () => {
     const v = await getCardVariant(testPrisma(), ids['OP01-001_p1'], consulta())
     expect(v.liga).toEqual({ exact: true, href: ZORO_PAR })

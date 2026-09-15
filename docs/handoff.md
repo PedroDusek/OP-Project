@@ -42,7 +42,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 13 concluídos.** 1.271 testes de unidade, integração e
+**Checkpoints 0 a 13 concluídos.** 1.276 testes de unidade, integração e
 componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -80,6 +80,14 @@ componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 | — | Ordem de código dentro de cada filtro, com a carta reimpressa no lugar do código (decisão 069) |
 | — | Link da Liga por tabela conferida coleção a coleção, e a tela `/dev/liga` (decisão 071) |
 | — | Vínculo com o TCGplayer pelo tratamento conferido na Liga: 623 → 1.327 paralelas, US$ 39 mil → 182 mil (decisão 072) |
+| — | "Veja no TCGplayer" na página da carta, a partir do vínculo: 2.697 normais e 1.327 paralelas |
+
+### Preços em produção, em 15/09/2026
+
+`npm run supabase prices` rodado a pedido do dono do produto, logo depois da
+decisão 072: **3.949 variantes com preço** (eram 3.315), 704 vínculos novos pela
+Liga. As migrations continuam **seis atrás** — o comando de preço não depende
+delas, e o agendamento diário vinha gravando normalmente com esse atraso.
 
 ### Produção, em 10/09/2026
 

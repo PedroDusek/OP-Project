@@ -412,11 +412,32 @@ describe('VariantDetail', () => {
         'https://www.ligaonepiece.com.br/?view=cards/card' +
         '&card=Roronoa%20Zoro%20(OP01-001)&ed=OP-01&num=OP01-001',
     },
+    tcgplayerUrl: null as string | null,
     siblings: [
       { variantId: 1n, variantType: 'Normal', rarity: 'SR', imageUrl: null, current: true },
       { variantId: 2n, variantType: 'Parallel', rarity: 'SR', imageUrl: null, current: false },
     ],
   }
+
+  /*
+   * O produto da fonte de preco e o produto do TCGplayer: com vinculo, o link e
+   * exato. Sem vinculo nao ha link — a busca do TCGplayer nao foi conferida.
+   */
+  it('leva ao produto no TCGplayer quando a arte tem vínculo, em aba nova', () => {
+    renderDetail({ variant: { ...variant, tcgplayerUrl: 'https://www.tcgplayer.com/product/454513' } })
+
+    const link = screen.getByRole('link', { name: /Veja no TCGplayer/ })
+    expect(link).toHaveAttribute('href', 'https://www.tcgplayer.com/product/454513')
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+    expect(screen.getByRole('link', { name: /Veja na Liga/ })).toBeInTheDocument()
+  })
+
+  it('não mostra o TCGplayer quando a arte não tem vínculo', () => {
+    renderDetail({ variant: variant })
+
+    expect(screen.queryByRole('link', { name: /TCGplayer/ })).not.toBeInTheDocument()
+  })
 
   /**
    * O preco ainda nao existe no produto, e a Liga e onde quem joga no Brasil
