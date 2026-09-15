@@ -1,9 +1,15 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { clearLigaCard, recordLigaCard } from '@/server/application/catalog'
+import { clearLigaCard, confirmReprint, recordLigaCard } from '@/server/application/catalog'
 import { isAppError } from '@/server/domain/errors'
 import type { LigaCardIntent, LigaCardState } from './state'
+
+/** As duas telas leem a mesma tabela: gravar numa desatualiza a outra. */
+function revalidar(): void {
+  revalidatePath('/dev/liga')
+  revalidatePath('/dev/liga/revisar')
+}
 
 /**
  * Grava, para uma arte, o que a pessoa conferiu na Liga.
@@ -27,8 +33,14 @@ export async function recordLigaCardAction(
   try {
     if (intent === 'limpar') {
       clearLigaCard(sourceId)
-      revalidatePath('/dev/liga')
+      revalidar()
       return { status: 'cleared' }
+    }
+
+    if (intent === 'confirmar-reprint') {
+      confirmReprint(sourceId)
+      revalidar()
+      return { status: 'confirmed' }
     }
 
     const url = intent === 'sem-pagina' ? null : String(data.get('url') ?? '')
@@ -37,7 +49,7 @@ export async function recordLigaCardAction(
     }
 
     const entry = await recordLigaCard(sourceId, url)
-    revalidatePath('/dev/liga')
+    revalidar()
     return { status: 'saved', url: entry.url }
   } catch (error) {
     if (isAppError(error)) return { status: 'error', message: error.message }

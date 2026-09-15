@@ -42,7 +42,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 13 concluídos.** 1.241 testes de unidade, integração e
+**Checkpoints 0 a 13 concluídos.** 1.255 testes de unidade, integração e
 componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -782,6 +782,14 @@ PRB — a normal da OP01 deve ter página própria em `OP-01`.
 
 A tela passou a recusar o endereço colado duas vezes: ele passava por válido e
 entrou assim na `OP06-093_p5`.
+
+**Revisão das reimpressões, `/dev/liga/revisar`** (15/09): as paralelas conferidas
+como `(Reprint)` cuja normal já saiu no mesmo set — eram 50, quase todas da PRB-02.
+A reimpressão igual é a própria normal (decisão 052), então a paralela deve ser a
+outra versão, quase sempre a Pirate Foil. Apareceram ao cruzar a tabela da Liga
+com os produtos do TCGplayer: as 30 divergências contra vínculos existentes eram
+todas este caso. A lista é calculada da tabela; "A reimpressão está certa" grava a
+nota que tira a arte dela.
 
 Três coisas para não desfazer sem querer:
 

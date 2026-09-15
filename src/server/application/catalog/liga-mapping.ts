@@ -1,7 +1,12 @@
 import type { PrismaClient } from '@prisma/client'
 import { NotFoundError, ValidationError } from '@/server/domain/errors'
 import { ligaCardLink, ligaSuffix, parseLigaUrl, type LigaLink } from '@/server/domain/catalog/liga'
-import { validateLigaCards, type LigaCardEntry } from '@/server/domain/catalog/liga-cards'
+import {
+  isReprintSuspect,
+  REPRINT_CONFIRMADA,
+  validateLigaCards,
+  type LigaCardEntry,
+} from '@/server/domain/catalog/liga-cards'
 import { compareCatalogOrder, isOwnSet, placementSet } from '@/server/domain/catalog/order'
 import { compareSetsForCatalog } from '@/server/domain/catalog/sets'
 import { LIGA_CARDS_PATH, loadLigaCards, saveLigaCards } from '@/server/infrastructure/catalog/liga-cards-file'
@@ -129,31 +134,139 @@ export async function readLigaWorksheet(
       })
       return compareCatalogOrder(chave(a), chave(b)) || (a.v.id < b.v.id ? -1 : 1)
     })
-    .map(({ v, setCodes, inSet }): LigaWorksheetRow => {
-      const sourceId = v.sourceId!
-      const entry = tabela.get(sourceId)
-      const verified = entry ? entry.url : undefined
-      const lido = entry?.url ? parseLigaUrl(entry.url) : null
-      return {
-        sourceId,
-        cardCode: v.card.code,
-        cardName: v.card.name,
-        variantType: v.variantType,
-        rarity: v.rarity,
-        imageUrl: v.imageUrl,
-        setCodes,
-        inSet,
-        verified,
-        ...(entry?.nota ? { nota: entry.nota } : {}),
-        link: ligaCardLink({ cardCode: v.card.code, cardName: v.card.name, variantType: v.variantType, verified }),
-        liga:
-          lido && !('error' in lido)
-            ? { ed: lido.ed, num: lido.num, suffix: ligaSuffix(lido.num, v.card.code) }
-            : null,
-      }
-    })
+    .map(({ v, setCodes, inSet }) => montarLinha(v, setCodes, inSet, tabela.get(v.sourceId!)))
 
   return { setCode, sets, rows, sample: normalSample(rows) }
+}
+
+interface VarianteDaLinha {
+  sourceId: string | null
+  variantType: string
+  rarity: string | null
+  imageUrl: string | null
+  card: { code: string; name: string }
+}
+
+function montarLinha(
+  v: VarianteDaLinha,
+  setCodes: string[],
+  inSet: boolean,
+  entry: LigaCardEntry | undefined,
+): LigaWorksheetRow {
+  const verified = entry ? entry.url : undefined
+  const lido = entry?.url ? parseLigaUrl(entry.url) : null
+  return {
+    sourceId: v.sourceId!,
+    cardCode: v.card.code,
+    cardName: v.card.name,
+    variantType: v.variantType,
+    rarity: v.rarity,
+    imageUrl: v.imageUrl,
+    setCodes,
+    inSet,
+    verified,
+    ...(entry?.nota ? { nota: entry.nota } : {}),
+    link: ligaCardLink({ cardCode: v.card.code, cardName: v.card.name, variantType: v.variantType, verified }),
+    liga:
+      lido && !('error' in lido)
+        ? { ed: lido.ed, num: lido.num, suffix: ligaSuffix(lido.num, v.card.code) }
+        : null,
+  }
+}
+
+export interface ReprintReviewRow extends LigaWorksheetRow {
+  /** A coleção que agrupa a arte no filtro: a do código da carta (`OP09`, `ST14`, `P`). */
+  setCode: string
+  /** Onde a normal da mesma carta foi impressa — é o que torna a `(Reprint)` suspeita. */
+  normalSets: string[]
+  /** O produto do TCGplayer que hoje dá o preço desta arte, quando há vínculo. */
+  tcgProductId: string | null
+}
+
+/**
+ * As paralelas conferidas como `(Reprint)` que provavelmente são outra arte
+ * (`isReprintSuspect`), para a tela `/dev/liga/revisar`.
+ *
+ * Calculada da tabela a cada visita: a arte corrigida — ou confirmada com a nota
+ * `REPRINT_CONFIRMADA` — sai da lista sozinha, e o que sobra é o que falta.
+ */
+export async function readReprintReview(
+  prisma: PrismaClient,
+  path: string = LIGA_CARDS_PATH,
+): Promise<ReprintReviewRow[]> {
+  exigirDesenvolvimento()
+
+  const tabela = new Map(loadLigaCards(path).map((entry) => [entry.arte, entry]))
+  // No endereco o parentese vem codificado (%28Reprint%29): le-se o nome ja decodificado.
+  const comReprint = [...tabela.values()].filter(
+    (entry) => entry.url && /\(reprint\)/i.test(new URL(entry.url).searchParams.get('card') ?? ''),
+  )
+  if (comReprint.length === 0) return []
+
+  const paralelas = await prisma.cardVariant.findMany({
+    where: { variantType: 'Parallel', sourceId: { in: comReprint.map((entry) => entry.arte) } },
+    select: {
+      id: true,
+      sourceId: true,
+      variantType: true,
+      rarity: true,
+      imageUrl: true,
+      cardId: true,
+      card: { select: { code: true, name: true } },
+      printings: { select: { set: { select: { code: true } } } },
+      sourceProducts: { where: { source: 'tcgcsv' }, select: { sourceProductId: true } },
+    },
+  })
+  const normais = await prisma.cardVariant.findMany({
+    where: { variantType: 'Normal', cardId: { in: [...new Set(paralelas.map((p) => p.cardId))] } },
+    select: { cardId: true, printings: { select: { set: { select: { code: true } } } } },
+  })
+  const setsDaNormal = new Map(normais.map((n) => [n.cardId, n.printings.map((p) => p.set.code)]))
+
+  return paralelas
+    .map((p) => {
+      const parallelSets = p.printings.map((x) => x.set.code)
+      const normalSets = setsDaNormal.get(p.cardId) ?? []
+      const entry = tabela.get(p.sourceId!)
+      return { p, parallelSets, normalSets, entry }
+    })
+    .filter(({ parallelSets, normalSets, entry }) =>
+      isReprintSuspect({ url: entry?.url, nota: entry?.nota, parallelSets, normalSets }),
+    )
+    .map(({ p, parallelSets, normalSets, entry }) => {
+      // Agrupa pela colecao do codigo da carta (OP09, ST14, P), e nao pelo set da
+      // paralela: as suspeitas sao quase todas da PRB-02, e esse filtro teria dois
+      // grupos. Onde a paralela saiu continua na linha, em "Impressa em".
+      const setCode = p.card.code.split('-')[0]
+      return {
+        ...montarLinha(p, parallelSets, true, entry),
+        setCode,
+        normalSets,
+        tcgProductId: p.sourceProducts[0]?.sourceProductId ?? null,
+      }
+    })
+    .sort((a, b) => {
+      const set = compareSetsForCatalog(a.setCode, b.setCode)
+      if (set !== 0) return set
+      return compareCatalogOrder(
+        { cardCode: a.cardCode, sourceId: a.sourceId, setCode: a.setCode },
+        { cardCode: b.cardCode, sourceId: b.sourceId, setCode: b.setCode },
+      )
+    })
+}
+
+/**
+ * "A reimpressão está certa": mantém o endereço e grava a nota que tira a arte
+ * da revisão.
+ */
+export function confirmReprint(sourceId: string, path: string = LIGA_CARDS_PATH): LigaCardEntry {
+  exigirDesenvolvimento()
+  const anteriores = loadLigaCards(path)
+  const antes = anteriores.find((entry) => entry.arte === sourceId)
+  if (!antes || !antes.url) throw new NotFoundError(`A arte ${sourceId} não tem endereço conferido para confirmar.`)
+  const nova: LigaCardEntry = { ...antes, nota: REPRINT_CONFIRMADA }
+  gravar([...anteriores.filter((entry) => entry.arte !== sourceId), nova], path)
+  return nova
 }
 
 function normalSample(rows: readonly LigaWorksheetRow[]): NormalSample[] {

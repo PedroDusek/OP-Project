@@ -4,6 +4,7 @@ import { ligaLookup } from '@/server/domain/catalog/liga-cards'
 import { getCardVariant as getCardVariantWith } from './get-card-variant'
 import {
   readLigaWorksheet as readLigaWorksheetWith,
+  readReprintReview as readReprintReviewWith,
   recordLigaCard as recordLigaCardWith,
 } from './liga-mapping'
 import { searchCatalog as searchCatalogWith, type CatalogQuery } from './search-cards'
@@ -45,8 +46,12 @@ export function recordLigaCard(sourceId: string, url: string | null) {
   return recordLigaCardWith(prisma, sourceId, url)
 }
 
-export { clearLigaCard, ligaMappingAvailable } from './liga-mapping'
-export type { LigaWorksheet, LigaWorksheetRow, NormalSample } from './liga-mapping'
+export function readReprintReview() {
+  return readReprintReviewWith(prisma)
+}
+
+export { clearLigaCard, confirmReprint, ligaMappingAvailable } from './liga-mapping'
+export type { LigaWorksheet, LigaWorksheetRow, NormalSample, ReprintReviewRow } from './liga-mapping'
 
 export function listSets() {
   return listSetsWith(prisma)

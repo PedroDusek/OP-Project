@@ -8,13 +8,14 @@ import { NotFoundError, ValidationError } from '@/server/domain/errors'
  * dubles: o que se testa e a traducao do formulario, e a regra esta testada em
  * `tests/integration/liga-mapping.test.ts`, contra arquivo temporario.
  */
-const { recordLigaCard, clearLigaCard, revalidatePath } = vi.hoisted(() => ({
+const { recordLigaCard, clearLigaCard, confirmReprint, revalidatePath } = vi.hoisted(() => ({
   recordLigaCard: vi.fn(),
   clearLigaCard: vi.fn(),
+  confirmReprint: vi.fn(),
   revalidatePath: vi.fn(),
 }))
 
-vi.mock('@/server/application/catalog', () => ({ recordLigaCard, clearLigaCard }))
+vi.mock('@/server/application/catalog', () => ({ recordLigaCard, clearLigaCard, confirmReprint }))
 vi.mock('next/cache', () => ({ revalidatePath }))
 
 const URL_ZORO = 'https://www.ligaonepiece.com.br/?view=cards/card&ed=OP-01&num=OP01-001-PAR'
@@ -28,6 +29,7 @@ const form = (campos: Record<string, string>) => {
 beforeEach(() => {
   recordLigaCard.mockReset()
   clearLigaCard.mockReset()
+  confirmReprint.mockReset()
   revalidatePath.mockReset()
 })
 
@@ -61,6 +63,20 @@ describe('recordLigaCardAction', () => {
     expect(clearLigaCard).toHaveBeenCalledWith('OP01-001_p1')
     expect(recordLigaCard).not.toHaveBeenCalled()
     expect(r).toEqual({ status: 'cleared' })
+  })
+
+  /* As duas telas leem a mesma tabela: gravar numa desatualiza a outra. */
+  it('confirma a reimpressão e atualiza as duas telas', async () => {
+    const r = await recordLigaCardAction(
+      LIGA_CARD_IDLE,
+      form({ arte: 'EB01-018_p1', url: 'sobrou', intencao: 'confirmar-reprint' }),
+    )
+
+    expect(confirmReprint).toHaveBeenCalledWith('EB01-018_p1')
+    expect(recordLigaCard).not.toHaveBeenCalled()
+    expect(revalidatePath).toHaveBeenCalledWith('/dev/liga')
+    expect(revalidatePath).toHaveBeenCalledWith('/dev/liga/revisar')
+    expect(r).toEqual({ status: 'confirmed' })
   })
 
   it('pede o endereço em vez de gravar vazio', async () => {
