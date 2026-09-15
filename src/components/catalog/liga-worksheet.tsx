@@ -141,7 +141,25 @@ function statusDe(row: LigaWorksheetRow) {
   return <Badge tone="success">Conferida</Badge>
 }
 
-export function LigaCardForm({ row, setCode }: { row: LigaWorksheetRow; setCode: string }) {
+/**
+ * O contexto de uma arte na revisão das reimpressões: onde a normal saiu, e qual
+ * produto do TCGplayer dá o preço hoje — que costuma ser a versão certa.
+ */
+export interface ReprintContext {
+  normalSets: string[]
+  tcgProductId: string | null
+}
+
+export function LigaCardForm({
+  row,
+  setCode,
+  reprint,
+}: {
+  row: LigaWorksheetRow
+  setCode: string
+  /** Na `/dev/liga/revisar`: mostra o porquê da suspeita e o botão de confirmar. */
+  reprint?: ReprintContext
+}) {
   const [state, action, pending] = useActionState(recordLigaCardAction, LIGA_CARD_IDLE)
   // Controlado: o React limpa o formulario quando a acao termina, inclusive em
   // erro, e o endereco colado sumiria a cada recusa (armadilha 12).
@@ -186,6 +204,14 @@ export function LigaCardForm({ row, setCode }: { row: LigaWorksheetRow; setCode:
           ) : null}
           {row.nota ? <p className="text-xs text-text-subtle">Nota: {row.nota}</p> : null}
 
+          {reprint ? (
+            <p className="text-xs text-warning">
+              Conferida como reimpressão, mas a normal de {row.cardCode} já saiu em{' '}
+              {reprint.normalSets.join(', ')} — a reimpressão igual desse set é a própria normal. Esta
+              paralela deve ser outra versão.
+            </p>
+          ) : null}
+
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
             <a
               href={ligaSearchLink(row.cardCode)}
@@ -198,6 +224,16 @@ export function LigaCardForm({ row, setCode }: { row: LigaWorksheetRow; setCode:
             {row.link.exact ? (
               <a href={row.link.href} target="_blank" rel="noopener noreferrer" className="text-accent-ink underline">
                 Abrir o link atual
+              </a>
+            ) : null}
+            {reprint?.tcgProductId ? (
+              <a
+                href={`https://www.tcgplayer.com/product/${reprint.tcgProductId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent-ink underline"
+              >
+                Ver o produto que dá o preço hoje (TCGplayer)
               </a>
             ) : null}
           </div>
@@ -224,6 +260,18 @@ export function LigaCardForm({ row, setCode }: { row: LigaWorksheetRow; setCode:
             <Button type="submit" name="intencao" value="sem-pagina" size="sm" variant="secondary" disabled={pending}>
               Não existe na Liga
             </Button>
+            {reprint ? (
+              <Button
+                type="submit"
+                name="intencao"
+                value="confirmar-reprint"
+                size="sm"
+                variant="secondary"
+                disabled={pending}
+              >
+                A reimpressão está certa
+              </Button>
+            ) : null}
             {row.verified !== undefined ? (
               <Button type="submit" name="intencao" value="limpar" size="sm" variant="ghost" disabled={pending}>
                 Desfazer
@@ -232,6 +280,8 @@ export function LigaCardForm({ row, setCode }: { row: LigaWorksheetRow; setCode:
             <p aria-live="polite" className="text-xs">
               {state.status === 'saved' ? (
                 <span className="text-success">{state.url ? 'Gravado.' : 'Gravado: sem página na Liga.'}</span>
+              ) : state.status === 'confirmed' ? (
+                <span className="text-success">Confirmada: a arte sai da revisão.</span>
               ) : state.status === 'cleared' ? (
                 <span className="text-success">Desfeito: a arte voltou a não conferida.</span>
               ) : state.status === 'error' ? (

@@ -65,6 +65,54 @@ export function validateLigaCards(entries: readonly LigaCardEntry[]): LigaCardEn
   return [...entries].sort((a, b) => (a.arte < b.arte ? -1 : a.arte > b.arte ? 1 : 0))
 }
 
+/**
+ * A nota de quem revisou uma paralela conferida como `(Reprint)` e confirmou que
+ * ela é mesmo a reimpressão. Com ela, a arte sai da revisão.
+ */
+export const REPRINT_CONFIRMADA = 'revisado: a reimpressão está certa'
+
+export interface ReprintSuspectInput {
+  /** O endereço conferido desta paralela, ou `null`/ausente. */
+  url: string | null | undefined
+  nota?: string
+  /** Os sets em que esta paralela foi impressa. */
+  parallelSets: readonly string[]
+  /** Os sets em que a normal da mesma carta foi impressa. */
+  normalSets: readonly string[]
+}
+
+/**
+ * A paralela conferida como `(Reprint)` que provavelmente é outra arte.
+ *
+ * ## Por quê
+ *
+ * Reimpressão igual à normal não é arte nova no nosso catálogo: vira mais uma
+ * impressão da normal (decisão 052). Então, se a normal da carta **já** está
+ * impressa no mesmo set desta paralela, a reimpressão desse set é a normal — e
+ * a paralela é a outra versão que saiu nele, quase sempre a Pirate Foil da
+ * PRB-02.
+ *
+ * Levantado ao cruzar a tabela da Liga com os produtos do TCGplayer: as 30
+ * divergências contra vínculos existentes eram todas este caso, e o vínculo
+ * existente apontava para a Pirate Foil.
+ *
+ * É suspeita, e não certeza: quem decide é quem abre a Liga. A nota
+ * `REPRINT_CONFIRMADA` tira a arte da lista.
+ */
+export function isReprintSuspect({ url, nota, parallelSets, normalSets }: ReprintSuspectInput): boolean {
+  if (!url || nota === REPRINT_CONFIRMADA) return false
+  const card = (() => {
+    try {
+      return new URL(url).searchParams.get('card') ?? ''
+    } catch {
+      return ''
+    }
+  })()
+  if (!/\(reprint\)/i.test(card)) return false
+  const daNormal = new Set(normalSets)
+  return parallelSets.some((set) => daNormal.has(set))
+}
+
 /** A tabela como consulta: arte → endereço ou `null`. Ausente é "não conferida". */
 export function ligaLookup(entries: readonly LigaCardEntry[]): ReadonlyMap<string, string | null> {
   return new Map(entries.map((entry) => [entry.arte, entry.url]))

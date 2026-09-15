@@ -6,7 +6,12 @@ import {
   ligaSuffix,
   parseLigaUrl,
 } from '@/server/domain/catalog/liga'
-import { ligaLookup, validateLigaCards } from '@/server/domain/catalog/liga-cards'
+import {
+  isReprintSuspect,
+  ligaLookup,
+  REPRINT_CONFIRMADA,
+  validateLigaCards,
+} from '@/server/domain/catalog/liga-cards'
 
 /**
  * O endereço de uma carta na LigaOnePiece (decisões 047 e 071).
@@ -176,5 +181,40 @@ describe('a tabela conferida', () => {
     expect(() => validateLigaCards([{ arte: 'OP01-004_p1', url: 'https://example.com' }])).toThrow(
       /OP01-004_p1: O endereço não é da Liga/,
     )
+  })
+})
+
+describe('a paralela conferida como reimpressão que é suspeita', () => {
+  const REPRINT =
+    'https://www.ligaonepiece.com.br/?view=cards/card&card=Mountain+God+%28Reprint%29%20(EB01-018-RE)&ed=PRB2&num=EB01-018-RE'
+
+  /*
+   * Reimpressao igual a normal vira impressao da normal (decisao 052). Com a
+   * normal ja impressa na PRB-02, a paralela da PRB-02 e outra versao.
+   */
+  it('é suspeita quando a normal já saiu no mesmo set', () => {
+    expect(
+      isReprintSuspect({ url: REPRINT, parallelSets: ['PRB-02'], normalSets: ['EB-01', 'PRB-02'] }),
+    ).toBe(true)
+  })
+
+  it('não é quando a normal não saiu naquele set', () => {
+    expect(isReprintSuspect({ url: REPRINT, parallelSets: ['PRB-02'], normalSets: ['EB-01'] })).toBe(false)
+  })
+
+  it('não é quando o endereço não é de reimpressão, ou não existe', () => {
+    expect(isReprintSuspect({ url: ZORO_PAR, parallelSets: ['OP01'], normalSets: ['OP01'] })).toBe(false)
+    expect(isReprintSuspect({ url: null, parallelSets: ['PRB-02'], normalSets: ['PRB-02'] })).toBe(false)
+  })
+
+  it('sai da lista quando alguém confirmou que a reimpressão está certa', () => {
+    expect(
+      isReprintSuspect({
+        url: REPRINT,
+        nota: REPRINT_CONFIRMADA,
+        parallelSets: ['PRB-02'],
+        normalSets: ['PRB-02'],
+      }),
+    ).toBe(false)
   })
 })

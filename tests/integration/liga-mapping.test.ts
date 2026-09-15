@@ -3,7 +3,13 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getCardVariant } from '@/server/application/catalog/get-card-variant'
-import { clearLigaCard, readLigaWorksheet, recordLigaCard } from '@/server/application/catalog/liga-mapping'
+import {
+  clearLigaCard,
+  confirmReprint,
+  readLigaWorksheet,
+  readReprintReview,
+  recordLigaCard,
+} from '@/server/application/catalog/liga-mapping'
 import { ligaSearchLink } from '@/server/domain/catalog/liga'
 import { NotFoundError, ValidationError } from '@/server/domain/errors'
 import { disconnect, resetDatabase, testPrisma } from '../helpers'
@@ -196,5 +202,80 @@ describe('gravar o que foi conferido', () => {
     await expect(recordLigaCard(testPrisma(), 'OP01-004_p1', null, tabela)).rejects.toThrow(NotFoundError)
     expect(() => clearLigaCard('OP01-001_p1', tabela)).toThrow(NotFoundError)
     expect(lerTabela()).toEqual([{ arte: 'OP01-001_p1', url: ZORO_PAR }])
+  })
+})
+
+/**
+ * A revisão das reimpressões (`/dev/liga/revisar`).
+ *
+ * O arranjo do caso real: a normal `EB01-018` saiu na EB-01 e de novo na PRB-02,
+ * e a paralela `EB01-018_p1`, só da PRB-02, foi conferida como `(Reprint)`. A
+ * reimpressão igual é a própria normal (decisão 052), então a paralela é suspeita.
+ */
+describe('a revisão das reimpressões', () => {
+  const REPRINT =
+    'https://www.ligaonepiece.com.br/?view=cards/card&card=Mountain+God+%28Reprint%29%20(EB01-018-RE)&ed=PRB2&num=EB01-018-RE'
+
+  beforeEach(async () => {
+    const db = testPrisma()
+    for (const code of ['EB-01', 'PRB-02']) await db.set.create({ data: { code, name: code } })
+    const mountain = await db.card.create({ data: { code: 'EB01-018', name: 'Mountain God', type: 'Event' } })
+    await arte(mountain.id, 'EB01-018', 'C', 'EB-01', 'PRB-02')
+    await arte(mountain.id, 'EB01-018_p1', 'C', 'PRB-02')
+    await db.variantSourceProduct.create({
+      data: { cardVariantId: ids['EB01-018_p1'], source: 'tcgcsv', sourceProductId: '655984', origin: 'automatic' },
+    })
+    writeFileSync(
+      tabela,
+      JSON.stringify({
+        cartas: [
+          { arte: 'OP01-001_p1', url: ZORO_PAR },
+          { arte: 'EB01-018_p1', url: REPRINT },
+        ],
+      }),
+    )
+  })
+
+  it('lista a paralela conferida como reimpressão quando a normal já saiu no mesmo set', async () => {
+    const rows = await readReprintReview(testPrisma(), tabela)
+
+    expect(rows.map((r) => r.sourceId)).toEqual(['EB01-018_p1'])
+    expect(rows[0]).toMatchObject({
+      setCode: 'EB01',
+      normalSets: expect.arrayContaining(['EB-01', 'PRB-02']),
+      tcgProductId: '655984',
+      liga: { ed: 'PRB2', num: 'EB01-018-RE', suffix: 'RE' },
+    })
+  })
+
+  it('tira da lista quando o endereço é trocado pela versão certa', async () => {
+    await recordLigaCard(
+      testPrisma(),
+      'EB01-018_p1',
+      'https://www.ligaonepiece.com.br/?view=cards/card&card=Mountain+God+%28Pirate+Foil%29%20(EB01-018-PF)&ed=PRB2&num=EB01-018-PF',
+      tabela,
+    )
+
+    expect(await readReprintReview(testPrisma(), tabela)).toEqual([])
+  })
+
+  it('"a reimpressão está certa" mantém o endereço e tira da lista', async () => {
+    confirmReprint('EB01-018_p1', tabela)
+
+    expect(await readReprintReview(testPrisma(), tabela)).toEqual([])
+    const entrada = JSON.parse(readFileSync(tabela, 'utf8')).cartas.find(
+      (c: { arte: string }) => c.arte === 'EB01-018_p1',
+    )
+    expect(entrada).toEqual({ arte: 'EB01-018_p1', url: REPRINT, nota: 'revisado: a reimpressão está certa' })
+  })
+
+  it('não confirma arte sem endereço conferido', () => {
+    expect(() => confirmReprint('OP01-004_p1', tabela)).toThrow(NotFoundError)
+  })
+
+  it('recusa em produção', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    await expect(readReprintReview(testPrisma(), tabela)).rejects.toThrow(NotFoundError)
+    expect(() => confirmReprint('EB01-018_p1', tabela)).toThrow(NotFoundError)
   })
 })
