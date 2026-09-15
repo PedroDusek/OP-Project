@@ -42,7 +42,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 13 concluídos.** 1.276 testes de unidade, integração e
+**Checkpoints 0 a 13 concluídos.** 1.286 testes de unidade, integração e
 componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -81,6 +81,7 @@ componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 | — | Link da Liga por tabela conferida coleção a coleção, e a tela `/dev/liga` (decisão 071) |
 | — | Vínculo com o TCGplayer pelo tratamento conferido na Liga: 623 → 1.327 paralelas, US$ 39 mil → 182 mil (decisão 072) |
 | — | "Veja no TCGplayer" na página da carta, a partir do vínculo: 2.697 normais e 1.327 paralelas |
+| — | A edição da Liga desempata e a regra antiga não contradiz a Liga: 1.327 → 1.438 paralelas vinculadas (decisão 073) |
 
 ### Preços em produção, em 15/09/2026
 
@@ -121,7 +122,7 @@ outra hora, e isso é verdade, não defeito.
 
 ## As decisões que mais restringem o que vem depois
 
-As 72 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 73 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do

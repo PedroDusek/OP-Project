@@ -1,6 +1,11 @@
 import type { PrismaClient } from '@prisma/client'
 import type { LigaCardEntry } from '@/server/domain/catalog/liga-cards'
-import { deduceByLigaTreatment } from '@/server/domain/prices/liga-treatment'
+import {
+  deduceByLigaTreatment,
+  ligaTreatmentKey,
+  sourceTreatmentKey,
+  type LigaArt,
+} from '@/server/domain/prices/liga-treatment'
 import type { ManualLink } from '@/server/domain/prices/manual-links'
 import { deduceArtPairs } from '@/server/domain/prices/rarity-deduction'
 import type { PriceProvider, SourceArtProduct } from '@/server/http/price-provider'
@@ -65,6 +70,11 @@ export interface LinkArtProductsResult {
   deducedByRarity: number
   /** Dos pares automáticos, quantos saíram do tratamento conferido na Liga (072). */
   deducedByLiga: number
+  /**
+   * Pares que a raridade ou o caso sem escolha formariam, recusados porque a Liga
+   * dá à arte outro tratamento que o do produto.
+   */
+  refusedByLiga: number
   /** Cartas em que sobrou arte sem par dos dois lados: precisam de olho humano. */
   ambiguous: number
   /** Cartas cuja arte a fonte não oferece. */
@@ -121,6 +131,7 @@ export async function linkArtProducts(
     updated: 0,
     deducedByRarity: 0,
     deducedByLiga: 0,
+    refusedByLiga: 0,
     ambiguous: 0,
     withoutSource: 0,
     manualKept: 0,
@@ -257,18 +268,20 @@ export async function linkArtProducts(
      * O tratamento conferido na Liga (decisao 072), contra as artes e os demais
      * produtos da carta. O que ele casa sai da mesa das regras seguintes.
      */
+    const artesDaLiga: LigaArt[] = livres.map((variant) => ({
+      variantId: String(variant.id),
+      cardCode: code,
+      ligaUrl: variant.sourceId ? ligaPorArte.get(variant.sourceId) : undefined,
+      rarity: variant.rarity,
+      cardName: variant.cardName,
+      parallelSets: variant.sets,
+      normalSets: setsDaNormal.get(code) ?? [],
+    }))
     const ligaPares = deduceByLigaTreatment(
-      livres.map((variant) => ({
-        variantId: String(variant.id),
-        ligaUrl: variant.sourceId ? ligaPorArte.get(variant.sourceId) : undefined,
-        rarity: variant.rarity,
-        cardName: variant.cardName,
-        parallelSets: variant.sets,
-        normalSets: setsDaNormal.get(code) ?? [],
-      })),
+      artesDaLiga,
       [...daFonte, ...outrosDaFonte]
         .filter((art) => !reivindicados.has(art.productId))
-        .map((art) => ({ productId: art.productId, label: art.label })),
+        .map((art) => ({ productId: art.productId, label: art.label, groupCode: art.groupCode })),
     )
     const casadasPelaLiga = new Set(ligaPares.map((pair) => pair.variantId))
     const produtosDaLiga = new Set(ligaPares.map((pair) => pair.productId))
@@ -296,7 +309,21 @@ export async function linkArtProducts(
     result.deducedByRarity += viaRarity
     if (leftoverOurs.length > 0 && leftoverTheirs.length > 0) result.ambiguous++
 
-    for (const pair of pairs) {
+    /*
+     * A raridade e o caso sem escolha nao sabem o nome da arte; a Liga sabe. Um
+     * par em que a Liga diz `Manga` e o produto e `Alternate Art` e recusado,
+     * mesmo que tenha sobrado uma de cada lado: medido na primeira passada, a
+     * `OP09-078_p2` (Manga) ia para uma Alternate Art de US$ 923.
+     */
+    const chaveDaLiga = new Map(artesDaLiga.map((art) => [art.variantId, ligaTreatmentKey(art)]))
+    const rotulo = new Map(daFonte.map((art) => [art.productId, art.label]))
+    const coerentes = pairs.filter((pair) => {
+      const chave = chaveDaLiga.get(pair.variantId)
+      return chave == null || sourceTreatmentKey(rotulo.get(pair.productId) ?? '') === chave
+    })
+    result.refusedByLiga += pairs.length - coerentes.length
+
+    for (const pair of coerentes) {
       const atual = porVariante.get(pair.variantId)
       if (atual?.sourceProductId === pair.productId) {
         result.unchanged++
@@ -311,7 +338,8 @@ export async function linkArtProducts(
 
   logger.info(
     `[vinculo] ${result.cards} cartas com paralela: ${result.created} novos ` +
-      `(${result.deducedByLiga} pela Liga, ${result.deducedByRarity} por raridade), ` +
+      `(${result.deducedByLiga} pela Liga, ${result.deducedByRarity} por raridade, ` +
+      `${result.refusedByLiga} recusados pela Liga), ` +
       `${result.unchanged} sem mudanca, ` +
       `${result.updated} atualizados, ${result.ambiguous} ambiguos, ` +
       `${result.withoutSource} sem oferta | manual: ${result.manualApplied} aplicados, ` +

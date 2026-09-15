@@ -158,27 +158,28 @@ export class TcgCsvPriceProvider implements PriceProvider {
             productId: id,
             label: treatmentOf(art, comum?.name ?? null),
             value: market.get(art.productId) ?? null,
+            groupCode: group.abbreviation ?? group.name,
           })
         }
 
         /*
          * O resto dos produtos com numero — embalagem, reimpressao, colecao
-         * premium —, para a regra da Liga (decisao 072). Sem tratamento nenhum
-         * no nome, nao ha o que a Liga possa nomear: fica de fora.
+         * premium, e a carta sem tratamento que saiu em outro grupo (a Nami do
+         * ST-31) —, para a regra da Liga (decisao 072). Fica de fora so a arte
+         * comum que da o preco da normal: ela ja tem dono.
          */
         const ehArte = new Set(artesDaCarta.map((art) => art.productId))
         for (const outro of daCarta) {
           const id = String(outro.productId)
-          if (ehArte.has(outro.productId) || outro.productId === comum?.productId) continue
+          if (ehArte.has(outro.productId) || commonArts.get(number)?.productId === id) continue
           if (otherProducts.has(id) || arts.has(id)) continue
-          const label = treatmentOf(outro, comum?.name ?? null)
-          if (label === '') continue
 
           otherProducts.set(id, {
             cardCode: number,
             productId: id,
-            label,
+            label: treatmentOf(outro, comum?.name ?? null),
             value: market.get(outro.productId) ?? null,
+            groupCode: group.abbreviation ?? group.name,
           })
         }
       }
