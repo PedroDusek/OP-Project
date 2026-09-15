@@ -42,7 +42,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 13 concluídos.** 1.237 testes de unidade, integração e
+**Checkpoints 0 a 13 concluídos.** 1.241 testes de unidade, integração e
 componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -758,10 +758,30 @@ SR, SEC) e artes com o código dela impressas em outro produto. "Procurar na Lig
 abre a busca pelo código; cole o endereço da arte certa e grave. Depois, PR com o
 `data/liga-cartas.json`.
 
-**Onde a OP01 está:** conferidas as 13 paralelas com paralela no próprio set e a
-normal L (`OP01-001`). Faltam 20 paralelas da coleção, 5 raridades da amostra de
-normais e as 65 artes com código OP01 de outros produtos. A Shanks `_p2` (Manga)
-estava sendo comparada pelo dono do produto.
+**Onde a conferência está, em 15/09:** terminada pelo dono do produto. A tabela
+tem **3.132 artes**; **todas as paralelas do catálogo** estão nela, e as normais
+estão completas nas EB, nas ST, nas promos `P-` e nas OP07, OP14 e OP15 — nas
+outras OP há a amostra. Só 2 artes vão para a busca (`OP09-069_p2` e
+`OP10-107_p3`, sem página na Liga). Paralelas com link direto: 13 → **1.644**.
+
+O que a conferência ensinou sobre a Liga, para quem for mexer:
+
+- **A edição não segue um formato**: `OP-01` nas OP, `EB01` e `ST17` sem hífen
+  (mas `ST-01` a `ST-13` com), `PRB`, `PRB2`, `PC-01` (Gift Collection e
+  aniversários), `OP-02-PR`, `LTDS`. As EB04 estão dentro de `OP-14` e `OP-15`.
+- **O sufixo depende do produto, não da raridade**: mais de 90 diferentes — `AA`,
+  `PA`, `SP`, `FA`, `RE`, `BS`, `JR`, `TP`, `E`, `PAR`…
+- **A SP lançada em outra coleção usa o código sem sufixo** (`OP01-016` dentro de
+  `OP-05`): sem a edição, o link levaria à normal.
+- **Nomes repetidos ganham letra no código**: `OP02-093A`, `OP02-102A`,
+  `ST06-004B` (os Smoker).
+- **40 normais da EB01 foram geradas** pelo modelo das conferidas, com nota.
+
+Para revisar: a normal `OP01-029` aponta para `OP01-029-RE`, a reimpressão da
+PRB — a normal da OP01 deve ter página própria em `OP-01`.
+
+A tela passou a recusar o endereço colado duas vezes: ele passava por válido e
+entrou assim na `OP06-093_p5`.
 
 Três coisas para não desfazer sem querer:
 

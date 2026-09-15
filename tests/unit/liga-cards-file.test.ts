@@ -21,8 +21,12 @@ describe('o arquivo do repositório', () => {
     const tabela = bundledLigaCards()
     const zoro = tabela.find((entry) => entry.arte === 'OP01-001_p1')
     expect(zoro?.url).toContain('num=OP01-001-PAR')
-    // A paralela da PROMO nao foi conferida: nao pode estar la por deducao.
-    expect(tabela.some((entry) => entry.arte === 'OP01-004_p1')).toBe(false)
+    // O defeito que originou a tabela (decisao 071): a paralela da Usopp so existe
+    // fora da OP01 e nao e a -PAR. Antes este teste exigia que ela nao estivesse na
+    // tabela; o dono do produto a conferiu depois, e o que precisa continuar valendo
+    // e ela nao apontar para a arte da OP01.
+    const usopp = tabela.find((entry) => entry.arte === 'OP01-004_p1')
+    expect(usopp?.url ?? '').not.toContain('num=OP01-004-PAR')
   })
 })
 
