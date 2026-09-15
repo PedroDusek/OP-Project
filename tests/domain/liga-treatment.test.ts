@@ -50,7 +50,7 @@ describe('o tratamento que a Liga dá à arte', () => {
   })
 
   it('o -PAR sem parênteses é Parallel, e a SP CARD sem parênteses é SP', () => {
-    expect(ligaTreatmentKey(art({ variantId: '1', cardName: 'Sanji', ligaUrl: liga('Sanji (OP01-013-PAR)', 'OP01-013-PAR') }))).toBe('parallel')
+    expect(ligaTreatmentKey(art({ variantId: '1', cardCode: 'OP01-013', cardName: 'Sanji', ligaUrl: liga('Sanji (OP01-013-PAR)', 'OP01-013-PAR') }))).toBe('parallel')
     expect(
       ligaTreatmentKey(
         art({ variantId: '1', cardName: 'Trafalgar Law', rarity: 'SP CARD', ligaUrl: liga('Trafalgar Law (OP01-047)', 'OP01-047', 'OP-04') }),
@@ -119,6 +119,54 @@ describe('os pares', () => {
         [{ productId: 'tf', label: 'Textured Foil' }],
       ),
     ).toEqual([])
+  })
+
+  /* Medido: a Shanks OP01-120 ficava sem preco nas duas paralelas. */
+  it('a paralela -PAR casa mesmo com a -E-PAR na mesma carta', () => {
+    const shanks = (variantId: string, num: string) =>
+      art({ variantId, cardCode: 'OP01-120', cardName: 'Shanks', ligaUrl: liga(`Shanks (${num})`, num) })
+    expect(
+      deduceByLigaTreatment(
+        [shanks('1', 'OP01-120-PAR'), shanks('2', 'OP01-120-E-PAR')],
+        [
+          { productId: 'par', label: 'Parallel', groupCode: 'OP01' },
+          { productId: 'manga', label: 'Parallel + Manga + Alternate Art', groupCode: 'OP01' },
+        ],
+      ),
+    ).toEqual([{ variantId: '1', productId: 'par' }])
+  })
+
+  /* A OP05-006: a Alternate Art da OP-05 e a da reimpressao na PRB, com o mesmo nome. */
+  it('mesmo tratamento em edições diferentes: cada uma com o produto do grupo dela', () => {
+    const koala = (variantId: string, ed: string) =>
+      art({ variantId, cardCode: 'OP05-006', cardName: 'Koala', ligaUrl: liga('Koala (Alternate Art) (OP05-006-AA)', 'OP05-006-AA', ed) })
+    expect(
+      deduceByLigaTreatment(
+        [koala('1', 'OP-05'), koala('2', 'PRB')],
+        [
+          { productId: 'prb', label: 'Alternate Art', groupCode: 'PRB-01' },
+          { productId: 'op05', label: 'Alternate Art', groupCode: 'OP05' },
+        ],
+      ),
+    ).toEqual([
+      { variantId: '1', productId: 'op05' },
+      { variantId: '2', productId: 'prb' },
+    ])
+  })
+
+  /* So a edicao de uma delas tem grupo: a outra fica sem, e nao leva o da irma. */
+  it('desempatada pela edição, nunca leva o produto de outro grupo', () => {
+    const chopper = (variantId: string, ed: string) =>
+      art({ variantId, cardCode: 'ST01-006', cardName: 'Tony Tony.Chopper', ligaUrl: liga('Tony Tony.Chopper (Alternate Art) (ST01-006-AA)', 'ST01-006-AA', ed) })
+    expect(
+      deduceByLigaTreatment(
+        [chopper('1', 'PC-01'), chopper('2', 'PRB')],
+        [
+          { productId: 'promo', label: 'Alternate Art', groupCode: 'OP-PR' },
+          { productId: 'prb', label: 'Alternate Art', groupCode: 'PRB-01' },
+        ],
+      ),
+    ).toEqual([{ variantId: '2', productId: 'prb' }])
   })
 
   it('igualdade exata: SP + Gold não é SP', () => {
@@ -227,8 +275,18 @@ describe('o que a edição e a pontuação resolvem', () => {
 describe('a identidade que a Liga dá à arte', () => {
   it('é o tratamento, quando há', () => {
     expect(
-      ligaIdentity(art({ variantId: '1', cardName: 'Shanks', ligaUrl: liga('Shanks (OP01-120-PAR)', 'OP01-120-PAR') })).chave,
+      ligaIdentity(art({ variantId: '1', cardCode: 'OP01-120', cardName: 'Shanks', ligaUrl: liga('Shanks (OP01-120-PAR)', 'OP01-120-PAR') })).chave,
     ).toBe('parallel')
+  })
+
+  /*
+   * O caso real: a Liga da a paralela da Shanks como `-PAR` e a Manga como
+   * `-E-PAR`, as duas sem tratamento no nome. So o `-PAR` puro e a paralela.
+   */
+  it('só o -PAR puro é a paralela: o -E-PAR não', () => {
+    const shanks = (num: string) => art({ variantId: '1', cardCode: 'OP01-120', cardName: 'Shanks', ligaUrl: liga(`Shanks (${num})`, num) })
+    expect(ligaTreatmentKey(shanks('OP01-120-PAR'))).toBe('parallel')
+    expect(ligaTreatmentKey(shanks('OP01-120-E-PAR'))).toBeNull()
   })
 
   /* Sem tratamento, so a edicao de outra colecao identifica; na propria, e a normal. */
