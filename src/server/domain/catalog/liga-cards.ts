@@ -71,6 +71,13 @@ export function validateLigaCards(entries: readonly LigaCardEntry[]): LigaCardEn
  */
 export const REPRINT_CONFIRMADA = 'revisado: a reimpressão está certa'
 
+/**
+ * A nota de quem revisou artes de uma carta que a Liga deixa indistinguíveis —
+ * mesmo tratamento, ou a mesma página — e confirmou que a Liga não as separa.
+ * Com ela em todas, o grupo sai da revisão (decisão 073).
+ */
+export const MESMA_IDENTIDADE_CONFIRMADA = 'revisado: a Liga não distingue estas artes'
+
 export interface ReprintSuspectInput {
   /** O endereço conferido desta paralela, ou `null`/ausente. */
   url: string | null | undefined

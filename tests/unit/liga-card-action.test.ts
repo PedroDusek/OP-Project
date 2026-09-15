@@ -8,14 +8,15 @@ import { NotFoundError, ValidationError } from '@/server/domain/errors'
  * dubles: o que se testa e a traducao do formulario, e a regra esta testada em
  * `tests/integration/liga-mapping.test.ts`, contra arquivo temporario.
  */
-const { recordLigaCard, clearLigaCard, confirmReprint, revalidatePath } = vi.hoisted(() => ({
+const { recordLigaCard, clearLigaCard, confirmReprint, confirmSameIdentity, revalidatePath } = vi.hoisted(() => ({
   recordLigaCard: vi.fn(),
   clearLigaCard: vi.fn(),
   confirmReprint: vi.fn(),
+  confirmSameIdentity: vi.fn(),
   revalidatePath: vi.fn(),
 }))
 
-vi.mock('@/server/application/catalog', () => ({ recordLigaCard, clearLigaCard, confirmReprint }))
+vi.mock('@/server/application/catalog', () => ({ recordLigaCard, clearLigaCard, confirmReprint, confirmSameIdentity }))
 vi.mock('next/cache', () => ({ revalidatePath }))
 
 const URL_ZORO = 'https://www.ligaonepiece.com.br/?view=cards/card&ed=OP-01&num=OP01-001-PAR'
@@ -30,6 +31,7 @@ beforeEach(() => {
   recordLigaCard.mockReset()
   clearLigaCard.mockReset()
   confirmReprint.mockReset()
+  confirmSameIdentity.mockReset()
   revalidatePath.mockReset()
 })
 
@@ -76,6 +78,18 @@ describe('recordLigaCardAction', () => {
     expect(recordLigaCard).not.toHaveBeenCalled()
     expect(revalidatePath).toHaveBeenCalledWith('/dev/liga')
     expect(revalidatePath).toHaveBeenCalledWith('/dev/liga/revisar')
+    expect(r).toEqual({ status: 'confirmed' })
+  })
+
+  it('confirma que a Liga não distingue as artes, e atualiza as três telas', async () => {
+    const r = await recordLigaCardAction(
+      LIGA_CARD_IDLE,
+      form({ arte: 'OP01-120_p1', intencao: 'confirmar-mesma-identidade' }),
+    )
+
+    expect(confirmSameIdentity).toHaveBeenCalledWith('OP01-120_p1')
+    expect(confirmReprint).not.toHaveBeenCalled()
+    expect(revalidatePath).toHaveBeenCalledWith('/dev/liga/repetidas')
     expect(r).toEqual({ status: 'confirmed' })
   })
 

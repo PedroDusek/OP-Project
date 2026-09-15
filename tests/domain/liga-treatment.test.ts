@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   deduceByLigaTreatment,
   editionMatchesGroup,
+  ligaIdentity,
   ligaTreatmentKey,
   sourceTreatmentKey,
   type LigaArt,
@@ -220,5 +221,23 @@ describe('o que a edição e a pontuação resolvem', () => {
     expect(
       ligaTreatmentKey(art({ variantId: '1', cardName: 'Tony Tony.Chopper', ligaUrl: liga('Tony Tony.Chopper (0070) (Parallel) (OP08-007-PA)', 'OP08-007-PA', 'OP-08') })),
     ).toBe('parallel')
+  })
+})
+
+describe('a identidade que a Liga dá à arte', () => {
+  it('é o tratamento, quando há', () => {
+    expect(
+      ligaIdentity(art({ variantId: '1', cardName: 'Shanks', ligaUrl: liga('Shanks (OP01-120-PAR)', 'OP01-120-PAR') })).chave,
+    ).toBe('parallel')
+  })
+
+  /* Sem tratamento, so a edicao de outra colecao identifica; na propria, e a normal. */
+  it('sem tratamento, é a edição de outra coleção, e nunca a da própria', () => {
+    expect(
+      ligaIdentity(art({ variantId: '1', cardCode: 'OP01-016', cardName: 'Nami', ligaUrl: liga('Nami (OP01-016)', 'OP01-016', 'ST31') })).chave,
+    ).toBe('sem tratamento em ST31')
+    expect(
+      ligaIdentity(art({ variantId: '1', cardCode: 'OP01-008', cardName: 'Cavendish', ligaUrl: liga('Cavendish (OP01-008-BT)', 'OP01-008-BT', 'OP-01') })).chave,
+    ).toBeNull()
   })
 })
