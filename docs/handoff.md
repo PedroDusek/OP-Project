@@ -791,6 +791,20 @@ com os produtos do TCGplayer: as 30 divergências contra vínculos existentes er
 todas este caso. A lista é calculada da tabela; "A reimpressão está certa" grava a
 nota que tira a arte dela.
 
+**Revisada pelo dono do produto em 15/09: 49 confirmadas como reimpressão
+correta, 1 trocada** (`OP01-006_p3`). A leitura pela decisão 052 estava errada
+nesses casos, e isso tem consequência para o TCGplayer: as 30 que tinham vínculo
+automático apontam para a **Pirate Foil**, e não para a `(Reprint)` que a Liga
+confirma — esses vínculos de preço precisam ser revistos antes da regra automática.
+
+**Para revisar: 34 páginas da Liga compartilhadas por 2 ou 3 artes.** Parte pode
+ser a Liga juntando versões que a Bandai separa (as `-TF` da PRB); parte parece
+engano, quando a normal e uma paralela caem na mesma página (`OP01-006` e `_p3`,
+`OP01-029` e `_p2`, `ST01-006` e `_p6`, `ST01-014` e `_p2`, `ST04-010` e `_p1`,
+`OP14-014` e `_p3`, `EB04-028` e `_p2`, `P-055`, `P-075`, `P-078`). A regra de
+vínculo com o TCGplayer não pode dar um produto a duas artes (índice único em
+`variant_source_products`), então essas precisam de decisão antes dela.
+
 Três coisas para não desfazer sem querer:
 
 - **O endereço é guardado inteiro**, e não remontado: o nome dentro dele nem
