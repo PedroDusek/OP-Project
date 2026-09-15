@@ -131,7 +131,7 @@ async function runImport(
   logger: Pick<Console, 'info' | 'warn'>,
 ): Promise<ImportPricesResult> {
   const knownNames = await knownCardNames(prisma)
-  const { prices, arts, sourceUpdatedAt } = await provider.fetchSnapshot(knownNames)
+  const { prices, arts, otherProducts, sourceUpdatedAt } = await provider.fetchSnapshot(knownNames)
   logger.info(
     `[precos] fonte ${provider.name}: ${prices.length} precos de arte comum, ` +
       `${arts.length} outras artes`,
@@ -159,7 +159,9 @@ async function runImport(
   const linked = await linkedVariants(prisma, provider.name)
   let linkedPriced = 0
 
-  for (const art of arts) {
+  // Os demais produtos entram so aqui, pelo vinculo: sem ele nao ha arte nossa
+  // para receber o preco (decisao 072).
+  for (const art of [...arts, ...otherProducts]) {
     if (art.value === null) continue
     const variantId = linked.get(art.productId)
     if (variantId === undefined) continue

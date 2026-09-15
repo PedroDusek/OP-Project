@@ -41,7 +41,7 @@ function fakeProvider(
     name: 'falsa',
     fetchSnapshot: async (knownNames) => {
       recebido.push(knownNames)
-      return { prices, arts, commonArts, sourceUpdatedAt }
+      return { prices, arts, commonArts, otherProducts: [], sourceUpdatedAt }
     },
   }
 

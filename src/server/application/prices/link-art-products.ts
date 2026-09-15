@@ -1,4 +1,6 @@
 import type { PrismaClient } from '@prisma/client'
+import type { LigaCardEntry } from '@/server/domain/catalog/liga-cards'
+import { deduceByLigaTreatment } from '@/server/domain/prices/liga-treatment'
 import type { ManualLink } from '@/server/domain/prices/manual-links'
 import { deduceArtPairs } from '@/server/domain/prices/rarity-deduction'
 import type { PriceProvider, SourceArtProduct } from '@/server/http/price-provider'
@@ -25,15 +27,18 @@ import type { PriceProvider, SourceArtProduct } from '@/server/http/price-provid
  * regra, que exige ler os 87 arquivos da fonte. O vínculo deixou de ser só
  * atalho de preço e virou a referência de imagem.
  *
- * ## Três origens de vínculo, em ordem
+ * ## Quatro origens de vínculo, em ordem
  *
  * 1. **O arquivo manual** (`data/vinculos-manuais.json`, decisão 068). É o
  *    julgamento do dono do produto, e vence tudo: aplicado primeiro, como
  *    `origin = 'manual'`, e os produtos que ele reivindica saem da mesa antes de
  *    qualquer regra.
- * 2. **A dedução por raridade** (068): `SP CARD` só pode ser o `SP`, `TR` só pode
+ * 2. **O tratamento conferido na Liga** (072): a arte tem nome na tabela da
+ *    Liga, e o nome casa com um produto só. Antes da raridade porque é
+ *    identidade conferida por gente, e não dedução.
+ * 3. **A dedução por raridade** (068): `SP CARD` só pode ser o `SP`, `TR` só pode
  *    ser o `TR`, quando cada um é o único do seu lado.
- * 3. **O caso sem escolha** (053): sobrou uma arte de cada lado, e casar é
+ * 4. **O caso sem escolha** (053): sobrou uma arte de cada lado, e casar é
  *    dedução, não palpite.
  *
  * O que sobra depois disso é olho humano, e é o que a tela de mapeamento mostra.
@@ -58,6 +63,8 @@ export interface LinkArtProductsResult {
   updated: number
   /** Dos pares automáticos, quantos saíram da raridade. */
   deducedByRarity: number
+  /** Dos pares automáticos, quantos saíram do tratamento conferido na Liga (072). */
+  deducedByLiga: number
   /** Cartas em que sobrou arte sem par dos dois lados: precisam de olho humano. */
   ambiguous: number
   /** Cartas cuja arte a fonte não oferece. */
@@ -82,6 +89,11 @@ export interface LinkArtProductsOptions {
    * trabalho manual chega a todo ambiente.
    */
   manualLinks?: readonly ManualLink[]
+  /**
+   * O conteúdo de `data/liga-cartas.json` (decisão 071), para a regra da Liga
+   * (072). Sem ele, a regra não roda — e as outras seguem como antes.
+   */
+  ligaCards?: readonly LigaCardEntry[]
 }
 
 type Existente = { cardVariantId: bigint; sourceProductId: string; origin: string }
@@ -97,8 +109,10 @@ export async function linkArtProducts(
   const cards = await prisma.card.findMany({ select: { code: true, name: true } })
   const knownNames = new Map(cards.map((card) => [card.code.toUpperCase(), card.name]))
 
-  const { arts, commonArts } = await provider.fetchSnapshot(knownNames)
+  const { arts, commonArts, otherProducts } = await provider.fetchSnapshot(knownNames)
   const artsByCode = groupByCode(arts)
+  const otherByCode = groupByCode(otherProducts)
+  const ligaPorArte = new Map((options.ligaCards ?? []).map((entry) => [entry.arte, entry.url]))
 
   const result: LinkArtProductsResult = {
     cards: 0,
@@ -106,6 +120,7 @@ export async function linkArtProducts(
     unchanged: 0,
     updated: 0,
     deducedByRarity: 0,
+    deducedByLiga: 0,
     ambiguous: 0,
     withoutSource: 0,
     manualKept: 0,
@@ -123,34 +138,62 @@ export async function linkArtProducts(
     prisma,
     source,
     options.manualLinks ?? [],
-    { arts, commonArts },
+    { arts, otherProducts, commonArts },
     result,
     logger,
   )
 
   const normais = await prisma.cardVariant.findMany({
     where: { variantType: 'Normal' },
-    select: { id: true, card: { select: { code: true } } },
+    select: {
+      id: true,
+      card: { select: { code: true } },
+      printings: { select: { set: { select: { code: true } } } },
+    },
   })
   const normalPorCarta = new Map<string, bigint[]>()
+  const setsDaNormal = new Map<string, string[]>()
   for (const variant of normais) {
     const code = variant.card.code.toUpperCase()
     const list = normalPorCarta.get(code)
     if (list) list.push(variant.id)
     else normalPorCarta.set(code, [variant.id])
+    setsDaNormal.set(code, [
+      ...(setsDaNormal.get(code) ?? []),
+      ...variant.printings.map((printing) => printing.set.code),
+    ])
   }
 
   const nossas = await prisma.cardVariant.findMany({
     where: { variantType: 'Parallel' },
-    select: { id: true, rarity: true, card: { select: { code: true } } },
+    select: {
+      id: true,
+      sourceId: true,
+      rarity: true,
+      card: { select: { code: true, name: true } },
+      printings: { select: { set: { select: { code: true } } } },
+    },
     orderBy: { sourceId: 'asc' },
   })
 
-  const nossasPorCarta = new Map<string, { id: bigint; rarity: string | null }[]>()
+  type Nossa = {
+    id: bigint
+    sourceId: string | null
+    rarity: string | null
+    cardName: string
+    sets: string[]
+  }
+  const nossasPorCarta = new Map<string, Nossa[]>()
   for (const variant of nossas) {
     const code = variant.card.code.toUpperCase()
     const list = nossasPorCarta.get(code)
-    const entry = { id: variant.id, rarity: variant.rarity }
+    const entry: Nossa = {
+      id: variant.id,
+      sourceId: variant.sourceId,
+      rarity: variant.rarity,
+      cardName: variant.card.name,
+      sets: variant.printings.map((printing) => printing.set.code),
+    }
     if (list) list.push(entry)
     else nossasPorCarta.set(code, [entry])
   }
@@ -195,13 +238,14 @@ export async function linkArtProducts(
 
   for (const [code, variantes] of nossasPorCarta) {
     const daFonte = artsByCode.get(code) ?? []
+    const outrosDaFonte = otherByCode.get(code) ?? []
 
-    if (daFonte.length === 0) {
+    if (daFonte.length === 0 && outrosDaFonte.length === 0) {
       result.withoutSource++
       continue
     }
 
-    const livres = variantes.filter((variant) => {
+    let livres = variantes.filter((variant) => {
       const id = String(variant.id)
       const manual = porVariante.get(id)?.origin === 'manual'
       if (manual && !variantesDoArquivo.has(id)) result.manualKept++
@@ -209,10 +253,43 @@ export async function linkArtProducts(
     })
     if (livres.length === 0) continue
 
+    /*
+     * O tratamento conferido na Liga (decisao 072), contra as artes e os demais
+     * produtos da carta. O que ele casa sai da mesa das regras seguintes.
+     */
+    const ligaPares = deduceByLigaTreatment(
+      livres.map((variant) => ({
+        variantId: String(variant.id),
+        ligaUrl: variant.sourceId ? ligaPorArte.get(variant.sourceId) : undefined,
+        rarity: variant.rarity,
+        cardName: variant.cardName,
+        parallelSets: variant.sets,
+        normalSets: setsDaNormal.get(code) ?? [],
+      })),
+      [...daFonte, ...outrosDaFonte]
+        .filter((art) => !reivindicados.has(art.productId))
+        .map((art) => ({ productId: art.productId, label: art.label })),
+    )
+    const casadasPelaLiga = new Set(ligaPares.map((pair) => pair.variantId))
+    const produtosDaLiga = new Set(ligaPares.map((pair) => pair.productId))
+    result.deducedByLiga += ligaPares.length
+    for (const pair of ligaPares) {
+      const atual = porVariante.get(pair.variantId)
+      if (atual?.sourceProductId === pair.productId) {
+        result.unchanged++
+        continue
+      }
+      await linkAutomatic(prisma, source, BigInt(pair.variantId), pair.productId)
+      if (atual) result.updated++
+      else result.created++
+    }
+    livres = livres.filter((variant) => !casadasPelaLiga.has(String(variant.id)))
+    if (livres.length === 0 || daFonte.length === 0) continue
+
     const { pairs, viaRarity, leftoverOurs, leftoverTheirs } = deduceArtPairs(
       livres.map((variant) => ({ variantId: String(variant.id), rarity: variant.rarity })),
       daFonte
-        .filter((art) => !reivindicados.has(art.productId))
+        .filter((art) => !reivindicados.has(art.productId) && !produtosDaLiga.has(art.productId))
         .map((art) => ({ productId: art.productId, label: art.label })),
     )
 
@@ -234,7 +311,8 @@ export async function linkArtProducts(
 
   logger.info(
     `[vinculo] ${result.cards} cartas com paralela: ${result.created} novos ` +
-      `(${result.deducedByRarity} por raridade), ${result.unchanged} sem mudanca, ` +
+      `(${result.deducedByLiga} pela Liga, ${result.deducedByRarity} por raridade), ` +
+      `${result.unchanged} sem mudanca, ` +
       `${result.updated} atualizados, ${result.ambiguous} ambiguos, ` +
       `${result.withoutSource} sem oferta | manual: ${result.manualApplied} aplicados, ` +
       `${result.manualCleared} sem produto, ${result.manualSkipped} recusados, ` +
@@ -286,7 +364,11 @@ async function applyManualLinks(
   prisma: PrismaClient,
   source: string,
   links: readonly ManualLink[],
-  snapshot: { arts: readonly SourceArtProduct[]; commonArts: readonly { cardCode: string; productId: string }[] },
+  snapshot: {
+    arts: readonly SourceArtProduct[]
+    otherProducts: readonly SourceArtProduct[]
+    commonArts: readonly { cardCode: string; productId: string }[]
+  },
   result: LinkArtProductsResult,
   logger: Pick<Console, 'warn'>,
 ): Promise<Set<string>> {
@@ -300,7 +382,9 @@ async function applyManualLinks(
   const porSourceId = new Map(alvos.map((variant) => [variant.sourceId, variant]))
 
   const cartaDoProduto = new Map<string, string>()
-  for (const art of snapshot.arts) cartaDoProduto.set(art.productId, art.cardCode.toUpperCase())
+  for (const art of [...snapshot.arts, ...snapshot.otherProducts]) {
+    cartaDoProduto.set(art.productId, art.cardCode.toUpperCase())
+  }
   for (const common of snapshot.commonArts) {
     cartaDoProduto.set(common.productId, common.cardCode.toUpperCase())
   }

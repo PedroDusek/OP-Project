@@ -4736,3 +4736,83 @@ coleção for conferida.
 ## Data
 
 2026-09-13
+
+---
+
+# Decisão: 072 — O tratamento conferido na Liga vincula a arte ao produto do TCGplayer
+
+**Amplia as decisões 053 e 068.**
+
+## Contexto
+
+Quase quatro quintos do valor do catálogo estavam nas paralelas sem vínculo com
+o TCGplayer — medido em 15/09: US$ 137 mil contra US$ 39 mil nas vinculadas e
+US$ 2 mil nas artes comuns. Sem vínculo, a paralela não tem preço, e o valor da
+coleção mostraria uma fração do real com cara de exato. O dono do produto
+decidiu manter o valor e terminar o mapeamento, em vez de trocar o preço por um
+link de busca.
+
+A conferência da Liga (decisão 071) deu nome a cada arte, e a Liga escreve o
+tratamento com os mesmos nomes do TCGplayer: `(Alternate Art)`, `(Manga)`,
+`(Jolly Roger Foil)`.
+
+## Decisão — aprovada pelo dono do produto
+
+**A arte casa com o produto quando o tratamento que a Liga dá a ela é igual ao
+de exatamente um produto da carta, e só uma arte nossa da carta tem aquele
+tratamento.** Igualdade do conjunto de partes (`SP + Gold` não é `SP`).
+
+- Roda na importação de preço **depois do arquivo manual e antes da raridade**:
+  é identidade conferida por gente, e não dedução. O manual continua vencendo.
+- Origem `automatic`: sai de uma regra, e a próxima passada refaz.
+- Lê o nome da Liga **sem o nome da carta** (o personagem `Mr.5(Gem)` não tem
+  tratamento `Gem`) e sem o `(033)` que desambigua cartas de mesmo nome. `-PAR`
+  sem parênteses é `Parallel`; `SP CARD` sem parênteses é `SP`.
+
+**A reimpressão da PRB vale como Pirate Foil.** Instrução do dono do produto: na
+Liga, `(Reprint)` é a carta original reimpressa na PRB, praticamente a mesma
+carta, e o preço que o TCGplayer cota é o da Pirate Foil. Quando a normal já está
+impressa no mesmo set da paralela, a `(Reprint)` da Liga casa com a `Pirate
+Foil`. O endereço da Liga não muda.
+
+**Produtos fora do vocabulário de arte entram, só por esta regra.** A fonte passa
+a entregar também os produtos que `treatments.ts` descarta como embalagem
+(`Premium Card Collection…`, `Championship 2024`, `4th Anniversary`), numa lista
+separada. As regras que contam artes — 053 e 068 — continuam sem vê-los: sem
+identidade conferida, embalagem contada como arte muda a contagem. Com o nome
+exato vindo da Liga, a dúvida some — e o preço deles passa a ser lido, para o
+vínculo render valor.
+
+## O que fica de fora
+
+- Duas artes nossas com o mesmo tratamento — as 34 páginas da Liga que valem para
+  mais de uma arte. Um produto não pode ter dois donos.
+- Dois produtos com o mesmo tratamento — a `(Reprint)` da PRB e a de um starter
+  deck.
+- Nome da Liga sem tratamento, fora dos dois casos acima.
+
+## Medido
+
+Antes de escrever: contra os 623 vínculos que já existiam, a regra concordou em
+513 de 513 decisões; as 30 divergências eram as reimpressões, resolvidas pela
+instrução acima.
+
+Importação de preço no banco local, em 15/09/2026:
+
+| Paralelas | antes | depois |
+|---|---:|---:|
+| Com vínculo | 623 | **1.327** |
+| Com preço | 623 | **1.257** |
+| Valor coberto (uma cópia de cada) | US$ 39 mil | **US$ 182 mil** |
+
+704 vínculos novos, 71 cartas ainda ambíguas, 7 sem oferta na fonte.
+
+## Chega a produção sozinha
+
+O agendamento de preços (`precos.yml`) roda `npm run supabase prices`, que passa
+a ler `data/liga-cartas.json`. A primeira execução depois do merge aplica a regra
+em produção.
+
+## Data
+
+2026-09-15

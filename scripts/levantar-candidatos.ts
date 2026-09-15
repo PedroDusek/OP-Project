@@ -3,6 +3,7 @@ import { linkArtProducts } from '@/server/application/prices/link-art-products'
 import { placementSet } from '@/server/domain/catalog/order'
 import { pendingParallels, type CandidateSourceArt } from '@/server/domain/prices/parallel-candidates'
 import { loadManualLinks } from '@/server/infrastructure/prices/manual-links-file'
+import { loadLigaCards } from '@/server/infrastructure/catalog/liga-cards-file'
 import { oncePerRun } from '@/server/infrastructure/prices/once-per-run'
 import { saveParallelCandidates } from '@/server/infrastructure/prices/parallel-candidates-file'
 import { TcgCsvPriceProvider } from '@/server/infrastructure/prices/tcgcsv-price-provider'
@@ -31,7 +32,7 @@ async function main(): Promise<void> {
     const provider = oncePerRun(new TcgCsvPriceProvider())
     const manual = loadManualLinks()
 
-    await linkArtProducts(prisma, provider, { manualLinks: manual })
+    await linkArtProducts(prisma, provider, { manualLinks: manual, ligaCards: loadLigaCards() })
 
     const cards = await prisma.card.findMany({ select: { code: true, name: true } })
     const knownNames = new Map(cards.map((card) => [card.code.toUpperCase(), card.name]))
