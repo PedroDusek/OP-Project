@@ -80,6 +80,18 @@ export interface PriceSnapshot {
   commonArts: SourceCommonArt[]
   /** As demais artes, com ou sem preço, para vincular. */
   arts: SourceArtProduct[]
+  /**
+   * Os produtos com número que **não** passam no vocabulário de arte
+   * (`treatments.ts`): `(Reprint)`, `(Premium Card Collection …)`, pacotes de
+   * torneio.
+   *
+   * Separados de `arts` de propósito. As regras que contam artes — o caso sem
+   * escolha (053) e a raridade (068) — não os podem ver: sem identidade conferida,
+   * embalagem contada como arte muda a contagem e produz vínculo errado. Só a
+   * regra da Liga os usa (decisão 072), porque ali a arte vem nomeada por gente —
+   * e o preço, para o vínculo que ela criar render valor.
+   */
+  otherProducts: SourceArtProduct[]
   /** Quando a fonte publicou este conjunto. Nulo quando ela não informa. */
   sourceUpdatedAt: Date | null
 }

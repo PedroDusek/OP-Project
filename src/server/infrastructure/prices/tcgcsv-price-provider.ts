@@ -100,6 +100,7 @@ export class TcgCsvPriceProvider implements PriceProvider {
     const prices = new Map<string, SourcePrice>()
     const commonArts = new Map<string, SourceCommonArt>()
     const arts = new Map<string, SourceArtProduct>()
+    const otherProducts = new Map<string, SourceArtProduct>()
 
     for (const group of groups.results) {
       const [products, quotes] = await Promise.all([
@@ -146,28 +147,53 @@ export class TcgCsvPriceProvider implements PriceProvider {
         const number = product.number.trim().toUpperCase()
         const daCarta = cards.filter((c) => c.number.trim().toUpperCase() === number)
 
-        for (const art of artProducts(daCarta, common.get(number) ?? null)) {
+        const comum = common.get(number) ?? null
+        const artesDaCarta = artProducts(daCarta, comum)
+        for (const art of artesDaCarta) {
           const id = String(art.productId)
           if (arts.has(id)) continue
 
           arts.set(id, {
             cardCode: number,
             productId: id,
-            label: treatmentOf(art, common.get(number)?.name ?? null),
+            label: treatmentOf(art, comum?.name ?? null),
             value: market.get(art.productId) ?? null,
+          })
+        }
+
+        /*
+         * O resto dos produtos com numero — embalagem, reimpressao, colecao
+         * premium —, para a regra da Liga (decisao 072). Sem tratamento nenhum
+         * no nome, nao ha o que a Liga possa nomear: fica de fora.
+         */
+        const ehArte = new Set(artesDaCarta.map((art) => art.productId))
+        for (const outro of daCarta) {
+          const id = String(outro.productId)
+          if (ehArte.has(outro.productId) || outro.productId === comum?.productId) continue
+          if (otherProducts.has(id) || arts.has(id)) continue
+          const label = treatmentOf(outro, comum?.name ?? null)
+          if (label === '') continue
+
+          otherProducts.set(id, {
+            cardCode: number,
+            productId: id,
+            label,
+            value: market.get(outro.productId) ?? null,
           })
         }
       }
     }
 
     this.logger.info(
-      `[precos] ${commonArts.size} artes comuns (${prices.size} com preço) e ` +
-        `${arts.size} outras artes em ${groups.results.length} grupos`,
+      `[precos] ${commonArts.size} artes comuns (${prices.size} com preço), ` +
+        `${arts.size} outras artes e ${otherProducts.size} demais produtos em ` +
+        `${groups.results.length} grupos`,
     )
     return {
       prices: [...prices.values()],
       commonArts: [...commonArts.values()],
       arts: [...arts.values()],
+      otherProducts: [...otherProducts.values()],
       sourceUpdatedAt,
     }
   }

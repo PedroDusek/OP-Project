@@ -28,10 +28,11 @@ function fonte(
   arts: SourceArtProduct[],
   prices: SourcePrice[] = [],
   commonArts: SourceCommonArt[] = [],
+  otherProducts: SourceArtProduct[] = [],
 ): PriceProvider {
   return {
     name: 'falsa',
-    fetchSnapshot: async () => ({ prices, arts, commonArts, sourceUpdatedAt: null }),
+    fetchSnapshot: async () => ({ prices, arts, commonArts, otherProducts, sourceUpdatedAt: null }),
   }
 }
 
@@ -378,5 +379,191 @@ describe('o arquivo manual', () => {
     expect(resultado.manualSkipped).toBe(2)
     expect(avisos.join(' ')).toMatch(/NAO-EXISTE_p1 nao existe/)
     expect(avisos.join(' ')).toMatch(/99 nao e uma arte de OP01-019/)
+  })
+})
+
+/**
+ * O tratamento conferido na Liga (decisão 072).
+ *
+ * As artes aqui têm `source_id` e impressões de verdade, porque a regra lê as
+ * duas: o endereço da Liga vem pelo `source_id`, e a reimpressão da PRB só vale
+ * como Pirate Foil quando a normal saiu no mesmo set.
+ */
+describe('o tratamento conferido na Liga', () => {
+  const liga = (card: string, num: string, ed = 'OP-01') =>
+    `https://www.ligaonepiece.com.br/?view=cards/card&card=${encodeURIComponent(card)}&ed=${ed}&num=${num}`
+
+  async function cartaComArtes(
+    code: string,
+    name: string,
+    normalSets: string[],
+    paralelas: { sourceId: string; rarity: string; sets: string[] }[],
+  ) {
+    const db = testPrisma()
+    const setId = async (setCode: string) =>
+      (await db.set.upsert({ where: { code: setCode }, create: { code: setCode, name: setCode }, update: {} })).id
+    const impressoes = async (sets: string[]) => {
+      const ids = []
+      for (const set of sets) ids.push({ setId: await setId(set) })
+      return ids
+    }
+    const card = await db.card.create({ data: { code, name, type: 'Character' } })
+    await db.cardVariant.create({
+      data: { cardId: card.id, sourceId: code, variantType: 'Normal', printings: { create: await impressoes(normalSets) } },
+    })
+    const ids: Record<string, bigint> = {}
+    for (const p of paralelas) {
+      const v = await db.cardVariant.create({
+        data: {
+          cardId: card.id,
+          sourceId: p.sourceId,
+          variantType: 'Parallel',
+          rarity: p.rarity,
+          printings: { create: await impressoes(p.sets) },
+        },
+      })
+      ids[p.sourceId] = v.id
+    }
+    return ids
+  }
+
+  /* SR | SR contra Alternate Art | Manga: a raridade nao resolvia, a Liga resolve. */
+  it('vincula as duas paralelas que só o olho distinguia', async () => {
+    const ids = await cartaComArtes('OP01-016', 'Nami', ['OP01'], [
+      { sourceId: 'OP01-016_p1', rarity: 'SR', sets: ['PROMO'] },
+      { sourceId: 'OP01-016_p2', rarity: 'SR', sets: ['PRB-01'] },
+    ])
+
+    const resultado = await linkArtProducts(
+      testPrisma(),
+      fonte([arte('OP01-016', 'aa', 'Alternate Art'), arte('OP01-016', 'ma', 'Manga')]),
+      {
+        logger: silent,
+        ligaCards: [
+          { arte: 'OP01-016_p1', url: liga('Nami (Manga) (OP01-016-MA)', 'OP01-016-MA', 'PRB') },
+          { arte: 'OP01-016_p2', url: liga('Nami (Alternate Art) (OP01-016-AA)', 'OP01-016-AA', 'PRB') },
+        ],
+      },
+    )
+
+    expect(resultado).toMatchObject({ deducedByLiga: 2, created: 2, ambiguous: 0 })
+    expect(await vinculos()).toEqual(
+      expect.arrayContaining([
+        { cardVariantId: ids['OP01-016_p1'], sourceProductId: 'ma', origin: 'automatic' },
+        { cardVariantId: ids['OP01-016_p2'], sourceProductId: 'aa', origin: 'automatic' },
+      ]),
+    )
+  })
+
+  /* Instrucao do dono do produto: a (Reprint) da PRB vale como Pirate Foil no preco. */
+  it('a reimpressão da PRB vai para a Pirate Foil, e não para o produto Reprint', async () => {
+    const ids = await cartaComArtes('EB01-018', 'Mountain God', ['EB-01', 'PRB-02'], [
+      { sourceId: 'EB01-018_p1', rarity: 'C', sets: ['PRB-02'] },
+    ])
+
+    await linkArtProducts(
+      testPrisma(),
+      fonte([arte('EB01-018', 'pf', 'Pirate Foil')], [], [], [arte('EB01-018', 're', 'Reprint')]),
+      {
+        logger: silent,
+        ligaCards: [{ arte: 'EB01-018_p1', url: liga('Mountain God (Reprint) (EB01-018-RE)', 'EB01-018-RE', 'PRB2') }],
+      },
+    )
+
+    expect(await vinculos()).toEqual([
+      { cardVariantId: ids['EB01-018_p1'], sourceProductId: 'pf', origin: 'automatic' },
+    ])
+  })
+
+  /*
+   * O produto que o vocabulario de arte descarta ganha vinculo pela Liga — e o
+   * preco precisa vir junto, senao o vinculo nao rende valor.
+   */
+  it('vincula produto fora do vocabulário de arte, e o preço dele é gravado', async () => {
+    const ids = await cartaComArtes('OP05-119', 'Kid', ['OP05'], [
+      { sourceId: 'OP05-119_p1', rarity: 'SEC', sets: ['OP05'] },
+      { sourceId: 'OP05-119_p3', rarity: 'SEC', sets: ['PROMO'] },
+    ])
+    const provider = fonte(
+      [arte('OP05-119', 'par', 'Parallel', 80)],
+      [],
+      [],
+      [arte('OP05-119', 'pcc', 'Premium Card Collection Best Selection Vol. 4', 42.5)],
+    )
+
+    const resultado = await linkArtProducts(testPrisma(), provider, {
+      logger: silent,
+      ligaCards: [
+        { arte: 'OP05-119_p1', url: liga('Kid (OP05-119-PAR)', 'OP05-119-PAR', 'OP-05') },
+        {
+          arte: 'OP05-119_p3',
+          url: liga('Kid (Premium Card Collection Best Selection Vol. 4) (OP05-119-BS)', 'OP05-119-BS', 'PC-01'),
+        },
+      ],
+    })
+    await importPrices(testPrisma(), provider, { logger: silent })
+
+    expect(resultado.deducedByLiga).toBe(2)
+    expect((await getMarketPrice(testPrisma(), ids['OP05-119_p3']))?.value).toBe(42.5)
+    expect((await getMarketPrice(testPrisma(), ids['OP05-119_p1']))?.value).toBe(80)
+  })
+
+  it('corrige o vínculo automático que a regra antiga tinha posto errado', async () => {
+    const ids = await cartaComArtes('OP02-004', 'Newgate', ['OP02'], [
+      { sourceId: 'OP02-004_p1', rarity: 'SR', sets: ['OP02'] },
+    ])
+    await testPrisma().variantSourceProduct.create({
+      data: { cardVariantId: ids['OP02-004_p1'], source: 'falsa', sourceProductId: 'aa', origin: 'automatic' },
+    })
+
+    const resultado = await linkArtProducts(
+      testPrisma(),
+      fonte([arte('OP02-004', 'aa', 'Alternate Art'), arte('OP02-004', 'par', 'Parallel')]),
+      { logger: silent, ligaCards: [{ arte: 'OP02-004_p1', url: liga('Newgate (OP02-004-PAR)', 'OP02-004-PAR', 'OP-02') }] },
+    )
+
+    expect(resultado).toMatchObject({ deducedByLiga: 1, updated: 1 })
+    expect(await vinculos()).toEqual([
+      { cardVariantId: ids['OP02-004_p1'], sourceProductId: 'par', origin: 'automatic' },
+    ])
+  })
+
+  /* O arquivo manual e julgamento do dono do produto: vence a Liga tambem. */
+  it('não passa por cima do vínculo manual', async () => {
+    const ids = await cartaComArtes('OP03-001', 'Ace', ['OP03'], [
+      { sourceId: 'OP03-001_p1', rarity: 'L', sets: ['OP03'] },
+    ])
+
+    await linkArtProducts(
+      testPrisma(),
+      fonte([arte('OP03-001', 'aa', 'Alternate Art'), arte('OP03-001', 'par', 'Parallel')]),
+      {
+        logger: silent,
+        manualLinks: [{ variante: 'OP03-001_p1', produto: 'aa' }],
+        ligaCards: [{ arte: 'OP03-001_p1', url: liga('Ace (OP03-001-PAR)', 'OP03-001-PAR', 'OP-03') }],
+      },
+    )
+
+    expect(await vinculos()).toEqual([
+      { cardVariantId: ids['OP03-001_p1'], sourceProductId: 'aa', origin: 'manual' },
+    ])
+  })
+
+  /* Duas artes na mesma pagina da Liga: nenhuma leva o produto. */
+  it('não vincula as artes que dividem a página da Liga', async () => {
+    await cartaComArtes('OP03-055', 'Carta', ['OP03'], [
+      { sourceId: 'OP03-055_p2', rarity: 'R', sets: ['PRB-01'] },
+      { sourceId: 'OP03-055_p3', rarity: 'R', sets: ['PRB-01'] },
+    ])
+    const url = liga('Carta (Textured Foil) (OP03-055-TF)', 'OP03-055-TF', 'PRB')
+
+    const resultado = await linkArtProducts(
+      testPrisma(),
+      fonte([], [], [], [arte('OP03-055', 'tf', 'Textured Foil')]),
+      { logger: silent, ligaCards: [{ arte: 'OP03-055_p2', url }, { arte: 'OP03-055_p3', url }] },
+    )
+
+    expect(resultado.deducedByLiga).toBe(0)
+    expect(await vinculos()).toEqual([])
   })
 })

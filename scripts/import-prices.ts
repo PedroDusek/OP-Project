@@ -6,6 +6,7 @@ import { TcgCsvPriceProvider } from '@/server/infrastructure/prices/tcgcsv-price
 import { BcbPtaxProvider } from '@/server/infrastructure/prices/bcb-ptax-provider'
 import { oncePerRun } from '@/server/infrastructure/prices/once-per-run'
 import { loadManualLinks } from '@/server/infrastructure/prices/manual-links-file'
+import { loadLigaCards } from '@/server/infrastructure/catalog/liga-cards-file'
 import { createPrisma } from '@/server/infrastructure/prisma'
 
 /**
@@ -49,7 +50,7 @@ async function main(): Promise<void> {
     const provider = oncePerRun(new TcgCsvPriceProvider())
     // O arquivo manual e lido aqui, antes de tocar no banco: se ele estiver
     // invalido, a importacao para com o motivo em vez de rodar sem ele.
-    await linkArtProducts(prisma, provider, { manualLinks: loadManualLinks() })
+    await linkArtProducts(prisma, provider, { manualLinks: loadManualLinks(), ligaCards: loadLigaCards() })
 
     const result = await importPrices(prisma, provider)
     console.log(

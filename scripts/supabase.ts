@@ -130,6 +130,7 @@ async function main(): Promise<void> {
       const { loadManualLinks } = await import(
         '@/server/infrastructure/prices/manual-links-file'
       )
+      const { loadLigaCards } = await import('@/server/infrastructure/catalog/liga-cards-file')
       const { BcbPtaxProvider } = await import(
         '@/server/infrastructure/prices/bcb-ptax-provider'
       )
@@ -152,7 +153,12 @@ async function main(): Promise<void> {
       const provider = oncePerRun(new TcgCsvPriceProvider())
       // O arquivo manual e o que leva o trabalho do dono do produto a producao
       // (decisao 068). Invalido, ele para a importacao antes de tocar no banco.
-      await linkArtProducts(prisma, provider, { manualLinks: loadManualLinks() })
+      // A tabela da Liga vai junto: o tratamento conferido nela vincula a arte ao
+      // produto (decisao 072), e e o que leva esse vinculo a producao.
+      await linkArtProducts(prisma, provider, {
+        manualLinks: loadManualLinks(),
+        ligaCards: loadLigaCards(),
+      })
 
       const result = await importPrices(prisma, provider)
       console.log(
