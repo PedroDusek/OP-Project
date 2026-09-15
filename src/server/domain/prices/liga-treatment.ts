@@ -246,7 +246,11 @@ export function ligaTreatmentKey(art: Omit<LigaArt, 'variantId'>): string | null
     })
 
   if (partes.length === 0) {
-    if (/-PAR$/i.test(params.get('num') ?? '')) return 'parallel'
+    // So o `-PAR` puro. A Liga da `OP01-120-PAR` a paralela e `OP01-120-E-PAR` a
+    // Manga da mesma carta, com o mesmo nome: ler as duas como `parallel` as
+    // tornava iguais, e nenhuma ganhava preco. O `-E-PAR` nao diz o nome no
+    // TCGplayer (`Parallel + Manga + Alternate Art` nas duas medidas), e fica sem.
+    if ((params.get('num') ?? '').toUpperCase() === `${art.cardCode.toUpperCase()}-PAR`) return 'parallel'
     if ((art.rarity ?? '').trim().toUpperCase() === 'SP CARD') return 'sp'
     return null
   }
@@ -284,6 +288,35 @@ export function ligaIdentity(art: Omit<LigaArt, 'variantId'>): {
 }
 
 /**
+ * As identidades das artes de **uma** carta, já desempatadas pela edição.
+ *
+ * Duas artes com o mesmo tratamento em edições diferentes da Liga são artes
+ * diferentes: a `OP05-006-AA` na `OP-05` é a Alternate Art da coleção, e na `PRB`
+ * a da reimpressão — e o TCGplayer também separa, `Alternate Art` no grupo `OP05`
+ * e no `PRB-01`. Só desempata quando todas as edições do grupo são diferentes;
+ * a mesma página colada em duas artes continua repetida.
+ */
+export function ligaIdentities<T extends Omit<LigaArt, 'variantId'>>(
+  arts: readonly T[],
+): Array<{ art: T; tratamento: string | null; edicao: string | null; chave: string; porEdicao: boolean }> {
+  const itens = arts
+    .map((art) => ({ art, ...ligaIdentity(art) }))
+    .filter((item): item is typeof item & { chave: string } => item.chave !== null)
+
+  const grupos = new Map<string, typeof itens>()
+  for (const item of itens) grupos.set(item.chave, [...(grupos.get(item.chave) ?? []), item])
+
+  return itens.map((item) => {
+    const grupo = grupos.get(item.chave)!
+    const edicoes = new Set(grupo.map((membro) => membro.edicao))
+    const desempata = grupo.length > 1 && item.tratamento !== null && !edicoes.has(null) && edicoes.size === grupo.length
+    return desempata
+      ? { ...item, chave: `${item.chave} em ${item.edicao}`, porEdicao: true }
+      : { ...item, porEdicao: false }
+  })
+}
+
+/**
  * Os pares que o tratamento da Liga decide numa carta. O que não casa volta para
  * as regras seguintes — raridade (068) e o caso sem escolha (053).
  */
@@ -291,22 +324,22 @@ export function deduceByLigaTreatment(
   ours: readonly LigaArt[],
   theirs: readonly SourceProductOption[],
 ): LigaPair[] {
-  const itens = ours
-    .filter((art) => art.ligaUrl)
-    .map((art) => ({ art, ...ligaIdentity(art) }))
-    .filter((item) => item.chave !== null)
+  const itens = ligaIdentities(ours.filter((art) => art.ligaUrl))
 
   const quantasNossas = new Map<string, number>()
-  for (const { chave } of itens) quantasNossas.set(chave!, (quantasNossas.get(chave!) ?? 0) + 1)
+  for (const { chave } of itens) quantasNossas.set(chave, (quantasNossas.get(chave) ?? 0) + 1)
 
   const pares: LigaPair[] = []
-  for (const { art, tratamento, edicao, chave } of itens) {
-    if (quantasNossas.get(chave!) !== 1) continue
+  for (const { art, tratamento, edicao, chave, porEdicao } of itens) {
+    if (quantasNossas.get(chave) !== 1) continue
 
     let produtos =
       tratamento === null
         ? theirs.filter((produto) => sourceTreatmentKey(produto.label) === '' && editionMatchesGroup(edicao, produto.groupCode))
         : theirs.filter((produto) => sourceTreatmentKey(produto.label, art.cardName) === tratamento)
+
+    // Desempatada pela edicao, so o produto do grupo dela serve: a irma leva o outro.
+    if (porEdicao) produtos = produtos.filter((produto) => editionMatchesGroup(edicao, produto.groupCode))
 
     // Mesmo nome em mais de um produto: fica o do grupo da edicao, se so ele.
     if (produtos.length > 1 && tratamento !== null) {

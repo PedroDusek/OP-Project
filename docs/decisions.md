@@ -4931,3 +4931,45 @@ sozinho.
 ## Data
 
 2026-09-15
+
+---
+
+# Decisão: 075 — O `-E-PAR` não é a paralela, e a edição separa artes de mesmo tratamento
+
+**Amplia as decisões 072 e 073.** Pedido do dono do produto na revisão das
+repetidas: a Shanks `OP01-120` tem dois endereços diferentes na Liga, `-PAR` e
+`-E-PAR`, e a tela as dava como a mesma arte.
+
+## Contexto
+
+A página sem tratamento no nome era lida como `parallel` sempre que o código
+terminava em `-PAR`. Isso pegava também o `-E-PAR`, que a Liga usa para a Manga da
+mesma carta (`OP01-120_p2`, `OP02-013_p2`; no TCGplayer, `Parallel + Manga +
+Alternate Art`). As duas artes ficavam com a mesma identidade, e nenhuma ganhava
+vínculo pela regra.
+
+O mesmo acontecia com a Alternate Art da coleção e a da reimpressão: a
+`OP05-006-AA` na edição `OP-05` e na `PRB` têm o mesmo nome, e o TCGplayer as
+separa por grupo (`OP05` e `PRB-01`).
+
+## Decisão
+
+1. **Só o `-PAR` puro — o código da carta seguido de `-PAR` — é a paralela.** O
+   `-E-PAR` fica sem tratamento: não se deduz o nome dele no TCGplayer (são só
+   dois casos, e os dois já têm vínculo manual).
+2. **Artes da mesma carta com o mesmo tratamento e edições diferentes na Liga são
+   artes diferentes.** Cada uma só casa com o produto do grupo da sua edição; a
+   edição sem grupo claro (`PC-01`) fica sem, e nunca leva o produto da irmã. A
+   mesma página colada em duas artes continua repetida.
+
+## Medido na tabela local, em 15/09/2026
+
+Das 84 artes em 41 grupos da tela `/dev/liga/repetidas`, a regra separa **30
+artes em 15 grupos**: as duas do `-E-PAR` e treze cartas com a Alternate Art (ou
+SP) da coleção e a da reimpressão. As 30 já tinham vínculo manual conferido, e o
+preço delas não muda; o que muda é que a regra passa a vinculá-las sozinha, e a
+tela deixa de pedir revisão do que a Liga já distingue.
+
+## Data
+
+2026-09-15

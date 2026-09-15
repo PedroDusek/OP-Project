@@ -8,7 +8,7 @@ import {
   validateLigaCards,
   type LigaCardEntry,
 } from '@/server/domain/catalog/liga-cards'
-import { ligaIdentity } from '@/server/domain/prices/liga-treatment'
+import { ligaIdentities } from '@/server/domain/prices/liga-treatment'
 import { compareCatalogOrder, isOwnSet, placementSet } from '@/server/domain/catalog/order'
 import { compareSetsForCatalog } from '@/server/domain/catalog/sets'
 import { LIGA_CARDS_PATH, loadLigaCards, saveLigaCards } from '@/server/infrastructure/catalog/liga-cards-file'
@@ -301,7 +301,7 @@ export interface DuplicateReviewRow extends LigaWorksheetRow {
  *
  * É o que trava a regra da Liga (decisão 072): duas artes com a mesma identidade
  * não ganham vínculo por ela, porque um produto não pode ter dois donos. Usa a
- * mesma leitura da regra (`ligaIdentity`), para a tela e a importação nunca
+ * mesma leitura da regra (`ligaIdentities`), para a tela e a importação nunca
  * discordarem sobre o que é repetido.
  *
  * O grupo sai da lista quando uma arte é corrigida — deixa de repetir — ou quando
@@ -337,21 +337,29 @@ export async function readDuplicateReview(
   })
   const setsDaNormal = new Map(normais.map((n) => [n.cardId, n.printings.map((p) => p.set.code)]))
 
+  // A identidade e lida carta a carta: a edicao so desempata entre irmas.
+  const porCarta = new Map<string, typeof paralelas>()
+  for (const p of paralelas) porCarta.set(p.card.code, [...(porCarta.get(p.card.code) ?? []), p])
+
   const grupos = new Map<string, typeof paralelas>()
   const identidadeDe = new Map<bigint, string>()
-  for (const p of paralelas) {
-    const { chave } = ligaIdentity({
-      cardCode: p.card.code,
-      ligaUrl: tabela.get(p.sourceId!)?.url,
-      rarity: p.rarity,
-      cardName: p.card.name,
-      parallelSets: p.printings.map((x) => x.set.code),
-      normalSets: setsDaNormal.get(p.cardId) ?? [],
-    })
-    if (chave === null) continue
-    identidadeDe.set(p.id, chave)
-    const grupo = `${p.card.code}|${chave}`
-    grupos.set(grupo, [...(grupos.get(grupo) ?? []), p])
+  for (const [codigo, daCarta] of porCarta) {
+    const identidades = ligaIdentities(
+      daCarta.map((p) => ({
+        paralela: p,
+        cardCode: p.card.code,
+        ligaUrl: tabela.get(p.sourceId!)?.url,
+        rarity: p.rarity,
+        cardName: p.card.name,
+        parallelSets: p.printings.map((x) => x.set.code),
+        normalSets: setsDaNormal.get(p.cardId) ?? [],
+      })),
+    )
+    for (const { art, chave } of identidades) {
+      identidadeDe.set(art.paralela.id, chave)
+      const grupo = `${codigo}|${chave}`
+      grupos.set(grupo, [...(grupos.get(grupo) ?? []), art.paralela])
+    }
   }
 
   const rows: DuplicateReviewRow[] = []
