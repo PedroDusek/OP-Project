@@ -120,6 +120,13 @@ describe('ler o endereço colado', () => {
     expect(parseLigaUrl(ligaSearchLink('OP01-001'))).toHaveProperty('error')
   })
 
+  /* Aconteceu na conferencia: o segundo endereco ia inteiro para dentro do `num`. */
+  it('recusa o endereço colado duas vezes', () => {
+    expect(parseLigaUrl(`${ZORO_PAR}${ZORO_PAR}`)).toEqual({
+      error: 'O endereço parece ter sido colado duas vezes. Cole só um.',
+    })
+  })
+
   it('recusa sem edição ou sem código', () => {
     expect(parseLigaUrl('https://www.ligaonepiece.com.br/?view=cards/card&num=OP01-001')).toEqual({
       error: 'O endereço não tem a edição (ed).',

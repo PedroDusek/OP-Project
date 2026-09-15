@@ -115,9 +115,16 @@ export interface ParsedLigaUrl {
  *
  * Confere só a forma — host, `view=cards/card`, `ed` e `num` presentes. Se a
  * página existe e é a arte certa, só quem abriu sabe.
+ *
+ * Recusa o endereço colado duas vezes seguidas. Ele passa por endereço válido —
+ * o segundo vai inteiro para dentro do `num` — e entrou assim na conferência de
+ * 15/09, na `OP06-093_p5`: o link abria uma página que não existe.
  */
 export function parseLigaUrl(text: string): ParsedLigaUrl | { error: string } {
   const url = text.trim()
+  if (url.indexOf('://') !== url.lastIndexOf('://')) {
+    return { error: 'O endereço parece ter sido colado duas vezes. Cole só um.' }
+  }
   let parsed: URL
   try {
     parsed = new URL(url)
