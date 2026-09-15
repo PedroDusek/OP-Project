@@ -142,23 +142,24 @@ function statusDe(row: LigaWorksheetRow) {
 }
 
 /**
- * O contexto de uma arte na revisão das reimpressões: onde a normal saiu, e qual
- * produto do TCGplayer dá o preço hoje — que costuma ser a versão certa.
+ * O contexto de uma arte numa das revisões — reimpressões (`/dev/liga/revisar`) e
+ * repetidas (`/dev/liga/repetidas`): por que ela está ali, o botão que confirma
+ * que está certa, e o produto do TCGplayer que dá o preço hoje.
  */
-export interface ReprintContext {
-  normalSets: string[]
+export interface ReviewContext {
+  motivo: string
+  confirmar: { intencao: 'confirmar-reprint' | 'confirmar-mesma-identidade'; rotulo: string }
   tcgProductId: string | null
 }
 
 export function LigaCardForm({
   row,
   setCode,
-  reprint,
+  review,
 }: {
   row: LigaWorksheetRow
   setCode: string
-  /** Na `/dev/liga/revisar`: mostra o porquê da suspeita e o botão de confirmar. */
-  reprint?: ReprintContext
+  review?: ReviewContext
 }) {
   const [state, action, pending] = useActionState(recordLigaCardAction, LIGA_CARD_IDLE)
   // Controlado: o React limpa o formulario quando a acao termina, inclusive em
@@ -204,13 +205,7 @@ export function LigaCardForm({
           ) : null}
           {row.nota ? <p className="text-xs text-text-subtle">Nota: {row.nota}</p> : null}
 
-          {reprint ? (
-            <p className="text-xs text-warning">
-              Conferida como reimpressão, mas a normal de {row.cardCode} já saiu em{' '}
-              {reprint.normalSets.join(', ')} — a reimpressão igual desse set é a própria normal. Esta
-              paralela deve ser outra versão.
-            </p>
-          ) : null}
+          {review ? <p className="text-xs text-warning">{review.motivo}</p> : null}
 
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
             <a
@@ -226,9 +221,9 @@ export function LigaCardForm({
                 Abrir o link atual
               </a>
             ) : null}
-            {reprint?.tcgProductId ? (
+            {review?.tcgProductId ? (
               <a
-                href={`https://www.tcgplayer.com/product/${reprint.tcgProductId}`}
+                href={`https://www.tcgplayer.com/product/${review.tcgProductId}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-accent-ink underline"
@@ -260,16 +255,16 @@ export function LigaCardForm({
             <Button type="submit" name="intencao" value="sem-pagina" size="sm" variant="secondary" disabled={pending}>
               Não existe na Liga
             </Button>
-            {reprint ? (
+            {review ? (
               <Button
                 type="submit"
                 name="intencao"
-                value="confirmar-reprint"
+                value={review.confirmar.intencao}
                 size="sm"
                 variant="secondary"
                 disabled={pending}
               >
-                A reimpressão está certa
+                {review.confirmar.rotulo}
               </Button>
             ) : null}
             {row.verified !== undefined ? (

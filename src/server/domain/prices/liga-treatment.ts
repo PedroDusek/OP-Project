@@ -217,6 +217,28 @@ export function ligaTreatmentKey(art: Omit<LigaArt, 'variantId'>): string | null
 }
 
 /**
+ * O que a Liga diz que esta arte é, na forma que a regra usa para distinguir as
+ * artes de uma carta: o tratamento, ou — sem tratamento — a edição de outra
+ * coleção. `null` quando a Liga não diz nada que sirva.
+ *
+ * Duas artes da mesma carta com a mesma identidade são indistinguíveis para a
+ * regra, e nenhuma das duas ganha vínculo por ela. É o que a tela
+ * `/dev/liga/repetidas` lista.
+ */
+export function ligaIdentity(art: Omit<LigaArt, 'variantId'>): {
+  tratamento: string | null
+  edicao: string | null
+  chave: string | null
+} {
+  const tratamento = ligaTreatmentKey(art)
+  const edicao = ligaEditionOf(art.ligaUrl)
+  if (tratamento !== null) return { tratamento, edicao, chave: tratamento }
+  // Sem tratamento, na colecao da propria carta, a pagina e a da normal: nao identifica.
+  if (!edicao || isOwnSet(art.cardCode, edicao)) return { tratamento, edicao, chave: null }
+  return { tratamento, edicao, chave: `sem tratamento em ${edicao}` }
+}
+
+/**
  * Os pares que o tratamento da Liga decide numa carta. O que não casa volta para
  * as regras seguintes — raridade (068) e o caso sem escolha (053).
  */
@@ -226,13 +248,7 @@ export function deduceByLigaTreatment(
 ): LigaPair[] {
   const itens = ours
     .filter((art) => art.ligaUrl)
-    .map((art) => {
-      const tratamento = ligaTreatmentKey(art)
-      const edicao = ligaEditionOf(art.ligaUrl)
-      // A arte sem tratamento se identifica pela edicao: e ela que a torna unica.
-      const chave = tratamento ?? (edicao ? `sem tratamento em ${edicao}` : null)
-      return { art, tratamento, edicao, chave }
-    })
+    .map((art) => ({ art, ...ligaIdentity(art) }))
     .filter((item) => item.chave !== null)
 
   const quantasNossas = new Map<string, number>()
@@ -241,8 +257,6 @@ export function deduceByLigaTreatment(
   const pares: LigaPair[] = []
   for (const { art, tratamento, edicao, chave } of itens) {
     if (quantasNossas.get(chave!) !== 1) continue
-
-    if (tratamento === null && edicao && isOwnSet(art.cardCode, edicao)) continue
 
     let produtos =
       tratamento === null

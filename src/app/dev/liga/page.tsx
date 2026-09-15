@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { LigaWorksheetView } from '@/components/catalog/liga-worksheet'
 import { ligaMappingAvailable, readLigaWorksheet } from '@/server/application/catalog'
@@ -40,6 +41,14 @@ export default async function LigaPage({ searchParams }: { searchParams: Promise
           endereço ao lado da arte, e ele vai para <code>data/liga-cartas.json</code>. A normal sem
           conferência continua com o link montado; a paralela só vai direto depois de conferida.
         </p>
+        <nav aria-label="Revisões" className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+          <Link href="/dev/liga/revisar" className="text-accent-ink underline">
+            Revisar reimpressões
+          </Link>
+          <Link href="/dev/liga/repetidas" className="text-accent-ink underline">
+            Revisar artes repetidas
+          </Link>
+        </nav>
       </header>
 
       <LigaWorksheetView worksheet={worksheet} />

@@ -6,6 +6,8 @@ import { getCardVariant } from '@/server/application/catalog/get-card-variant'
 import {
   clearLigaCard,
   confirmReprint,
+  confirmSameIdentity,
+  readDuplicateReview,
   readLigaWorksheet,
   readReprintReview,
   recordLigaCard,
@@ -290,5 +292,65 @@ describe('a revisão das reimpressões', () => {
     vi.stubEnv('NODE_ENV', 'production')
     await expect(readReprintReview(testPrisma(), tabela)).rejects.toThrow(NotFoundError)
     expect(() => confirmReprint('EB01-018_p1', tabela)).toThrow(NotFoundError)
+  })
+})
+
+/**
+ * A revisão das artes repetidas (`/dev/liga/repetidas`, decisão 073).
+ *
+ * O arranjo do caso real: a Shanks `OP01-120` com duas SEC da OP01 que a Liga dá
+ * como Parallel — a regra não sabe qual é qual, e nenhuma ganha vínculo.
+ */
+describe('a revisão das artes repetidas', () => {
+  const PAR = 'https://www.ligaonepiece.com.br/?view=cards/card&card=Shanks%20(OP01-120-PAR)&ed=OP-01&num=OP01-120-PAR'
+  const MANGA = 'https://www.ligaonepiece.com.br/?view=cards/card&card=Shanks%20(Manga)%20(OP01-120-MA)&ed=OP-01&num=OP01-120-MA'
+
+  beforeEach(async () => {
+    const db = testPrisma()
+    const shanks = await db.card.create({ data: { code: 'OP01-120', name: 'Shanks', type: 'Character' } })
+    await arte(shanks.id, 'OP01-120', 'SEC', 'OP01')
+    await arte(shanks.id, 'OP01-120_p1', 'SEC', 'OP01')
+    await arte(shanks.id, 'OP01-120_p2', 'SEC', 'OP01')
+    writeFileSync(
+      tabela,
+      JSON.stringify({
+        cartas: [
+          { arte: 'OP01-120_p1', url: PAR },
+          { arte: 'OP01-120_p2', url: PAR },
+        ],
+      }),
+    )
+  })
+
+  it('lista as artes da mesma carta com a mesma identidade, cada uma com a irmã', async () => {
+    const rows = await readDuplicateReview(testPrisma(), tabela)
+
+    expect(rows.map((r) => [r.sourceId, r.identidade, r.irmas])).toEqual([
+      ['OP01-120_p1', 'parallel', ['OP01-120_p2']],
+      ['OP01-120_p2', 'parallel', ['OP01-120_p1']],
+    ])
+    expect(rows[0].setCode).toBe('OP01')
+  })
+
+  it('sai da lista quando uma das artes vai para a página certa', async () => {
+    await recordLigaCard(testPrisma(), 'OP01-120_p2', MANGA, tabela)
+
+    expect(await readDuplicateReview(testPrisma(), tabela)).toEqual([])
+  })
+
+  it('sai da lista só quando todas são confirmadas', async () => {
+    confirmSameIdentity('OP01-120_p1', tabela)
+    expect(await readDuplicateReview(testPrisma(), tabela)).toHaveLength(2)
+
+    confirmSameIdentity('OP01-120_p2', tabela)
+    expect(await readDuplicateReview(testPrisma(), tabela)).toEqual([])
+    const entrada = JSON.parse(readFileSync(tabela, 'utf8')).cartas.find((c: { arte: string }) => c.arte === 'OP01-120_p2')
+    expect(entrada).toEqual({ arte: 'OP01-120_p2', url: PAR, nota: 'revisado: a Liga não distingue estas artes' })
+  })
+
+  it('recusa em produção', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    await expect(readDuplicateReview(testPrisma(), tabela)).rejects.toThrow(NotFoundError)
+    expect(() => confirmSameIdentity('OP01-120_p1', tabela)).toThrow(NotFoundError)
   })
 })

@@ -5,6 +5,7 @@ import { getCardVariant as getCardVariantWith } from './get-card-variant'
 import {
   readLigaWorksheet as readLigaWorksheetWith,
   readReprintReview as readReprintReviewWith,
+  readDuplicateReview as readDuplicateReviewWith,
   recordLigaCard as recordLigaCardWith,
 } from './liga-mapping'
 import { searchCatalog as searchCatalogWith, type CatalogQuery } from './search-cards'
@@ -50,8 +51,18 @@ export function readReprintReview() {
   return readReprintReviewWith(prisma)
 }
 
-export { clearLigaCard, confirmReprint, ligaMappingAvailable } from './liga-mapping'
-export type { LigaWorksheet, LigaWorksheetRow, NormalSample, ReprintReviewRow } from './liga-mapping'
+export function readDuplicateReview() {
+  return readDuplicateReviewWith(prisma)
+}
+
+export { clearLigaCard, confirmReprint, confirmSameIdentity, ligaMappingAvailable } from './liga-mapping'
+export type {
+  DuplicateReviewRow,
+  LigaWorksheet,
+  LigaWorksheetRow,
+  NormalSample,
+  ReprintReviewRow,
+} from './liga-mapping'
 
 export function listSets() {
   return listSetsWith(prisma)

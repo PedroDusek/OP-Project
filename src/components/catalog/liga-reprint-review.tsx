@@ -59,7 +59,14 @@ export function LigaReprintReview({ rows }: { rows: ReprintReviewRow[] }) {
             <LigaCardForm
               row={row}
               setCode={row.setCode}
-              reprint={{ normalSets: row.normalSets, tcgProductId: row.tcgProductId }}
+              review={{
+                motivo:
+                  `Conferida como reimpressão, mas a normal de ${row.cardCode} já saiu em ` +
+                  `${row.normalSets.join(', ')} — a reimpressão igual desse set é a própria normal. ` +
+                  'Esta paralela deve ser outra versão.',
+                confirmar: { intencao: 'confirmar-reprint', rotulo: 'A reimpressão está certa' },
+                tcgProductId: row.tcgProductId,
+              }}
             />
           </li>
         ))}

@@ -15,6 +15,7 @@ export const LIGA_CARD_IDLE: LigaCardState = { status: 'idle' }
 
 /**
  * O que o botão pediu: gravar o endereço, dizer que não existe, desfazer, ou —
- * na revisão das reimpressões — confirmar que a `(Reprint)` estava certa.
+ * nas revisões — confirmar que a `(Reprint)` estava certa, ou que a Liga não
+ * distingue as artes repetidas.
  */
-export type LigaCardIntent = 'gravar' | 'sem-pagina' | 'limpar' | 'confirmar-reprint'
+export type LigaCardIntent = 'gravar' | 'sem-pagina' | 'limpar' | 'confirmar-reprint' | 'confirmar-mesma-identidade'

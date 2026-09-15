@@ -3,10 +3,12 @@ import { NotFoundError, ValidationError } from '@/server/domain/errors'
 import { ligaCardLink, ligaSuffix, parseLigaUrl, type LigaLink } from '@/server/domain/catalog/liga'
 import {
   isReprintSuspect,
+  MESMA_IDENTIDADE_CONFIRMADA,
   REPRINT_CONFIRMADA,
   validateLigaCards,
   type LigaCardEntry,
 } from '@/server/domain/catalog/liga-cards'
+import { ligaIdentity } from '@/server/domain/prices/liga-treatment'
 import { compareCatalogOrder, isOwnSet, placementSet } from '@/server/domain/catalog/order'
 import { compareSetsForCatalog } from '@/server/domain/catalog/sets'
 import { LIGA_CARDS_PATH, loadLigaCards, saveLigaCards } from '@/server/infrastructure/catalog/liga-cards-file'
@@ -260,13 +262,121 @@ export async function readReprintReview(
  * da revisão.
  */
 export function confirmReprint(sourceId: string, path: string = LIGA_CARDS_PATH): LigaCardEntry {
+  return anotar(sourceId, REPRINT_CONFIRMADA, path)
+}
+
+/**
+ * "A Liga não distingue estas artes": mantém o endereço e grava a nota que tira
+ * a arte da revisão das repetidas. O vínculo com o TCGplayer dessas artes continua
+ * sem regra — fica para o mapeamento manual.
+ */
+export function confirmSameIdentity(sourceId: string, path: string = LIGA_CARDS_PATH): LigaCardEntry {
+  return anotar(sourceId, MESMA_IDENTIDADE_CONFIRMADA, path)
+}
+
+function anotar(sourceId: string, nota: string, path: string): LigaCardEntry {
   exigirDesenvolvimento()
   const anteriores = loadLigaCards(path)
   const antes = anteriores.find((entry) => entry.arte === sourceId)
   if (!antes || !antes.url) throw new NotFoundError(`A arte ${sourceId} não tem endereço conferido para confirmar.`)
-  const nova: LigaCardEntry = { ...antes, nota: REPRINT_CONFIRMADA }
+  const nova: LigaCardEntry = { ...antes, nota }
   gravar([...anteriores.filter((entry) => entry.arte !== sourceId), nova], path)
   return nova
+}
+
+export interface DuplicateReviewRow extends LigaWorksheetRow {
+  /** A coleção do código da carta, que agrupa o filtro (`OP01`, `ST14`, `P`). */
+  setCode: string
+  /** O que a Liga diz destas artes, igual para todas do grupo: `parallel`. */
+  identidade: string
+  /** As outras artes da mesma carta com a mesma identidade. */
+  irmas: string[]
+  /** O produto do TCGplayer que hoje dá o preço desta arte, quando há vínculo. */
+  tcgProductId: string | null
+}
+
+/**
+ * As artes de uma carta que a Liga deixa indistinguíveis — mesmo tratamento, ou a
+ * mesma página —, para a tela `/dev/liga/repetidas`.
+ *
+ * É o que trava a regra da Liga (decisão 072): duas artes com a mesma identidade
+ * não ganham vínculo por ela, porque um produto não pode ter dois donos. Usa a
+ * mesma leitura da regra (`ligaIdentity`), para a tela e a importação nunca
+ * discordarem sobre o que é repetido.
+ *
+ * O grupo sai da lista quando uma arte é corrigida — deixa de repetir — ou quando
+ * todas levam a nota `MESMA_IDENTIDADE_CONFIRMADA`.
+ */
+export async function readDuplicateReview(
+  prisma: PrismaClient,
+  path: string = LIGA_CARDS_PATH,
+): Promise<DuplicateReviewRow[]> {
+  exigirDesenvolvimento()
+
+  const tabela = new Map(loadLigaCards(path).map((entry) => [entry.arte, entry]))
+  const conferidas = [...tabela.values()].filter((entry) => entry.url)
+  if (conferidas.length === 0) return []
+
+  const paralelas = await prisma.cardVariant.findMany({
+    where: { variantType: 'Parallel', sourceId: { in: conferidas.map((entry) => entry.arte) } },
+    select: {
+      id: true,
+      sourceId: true,
+      variantType: true,
+      rarity: true,
+      imageUrl: true,
+      cardId: true,
+      card: { select: { code: true, name: true } },
+      printings: { select: { set: { select: { code: true } } } },
+      sourceProducts: { select: { sourceProductId: true }, take: 1 },
+    },
+  })
+  const normais = await prisma.cardVariant.findMany({
+    where: { variantType: 'Normal', cardId: { in: [...new Set(paralelas.map((p) => p.cardId))] } },
+    select: { cardId: true, printings: { select: { set: { select: { code: true } } } } },
+  })
+  const setsDaNormal = new Map(normais.map((n) => [n.cardId, n.printings.map((p) => p.set.code)]))
+
+  const grupos = new Map<string, typeof paralelas>()
+  const identidadeDe = new Map<bigint, string>()
+  for (const p of paralelas) {
+    const { chave } = ligaIdentity({
+      cardCode: p.card.code,
+      ligaUrl: tabela.get(p.sourceId!)?.url,
+      rarity: p.rarity,
+      cardName: p.card.name,
+      parallelSets: p.printings.map((x) => x.set.code),
+      normalSets: setsDaNormal.get(p.cardId) ?? [],
+    })
+    if (chave === null) continue
+    identidadeDe.set(p.id, chave)
+    const grupo = `${p.card.code}|${chave}`
+    grupos.set(grupo, [...(grupos.get(grupo) ?? []), p])
+  }
+
+  const rows: DuplicateReviewRow[] = []
+  for (const membros of grupos.values()) {
+    if (membros.length < 2) continue
+    if (membros.every((p) => tabela.get(p.sourceId!)?.nota === MESMA_IDENTIDADE_CONFIRMADA)) continue
+    for (const p of membros) {
+      rows.push({
+        ...montarLinha(p, p.printings.map((x) => x.set.code), true, tabela.get(p.sourceId!)),
+        setCode: p.card.code.split('-')[0],
+        identidade: identidadeDe.get(p.id)!,
+        irmas: membros.filter((m) => m.id !== p.id).map((m) => m.sourceId!),
+        tcgProductId: p.sourceProducts[0]?.sourceProductId ?? null,
+      })
+    }
+  }
+
+  return rows.sort((a, b) => {
+    const set = compareSetsForCatalog(a.setCode, b.setCode)
+    if (set !== 0) return set
+    return compareCatalogOrder(
+      { cardCode: a.cardCode, sourceId: a.sourceId, setCode: a.setCode },
+      { cardCode: b.cardCode, sourceId: b.sourceId, setCode: b.setCode },
+    )
+  })
 }
 
 function normalSample(rows: readonly LigaWorksheetRow[]): NormalSample[] {

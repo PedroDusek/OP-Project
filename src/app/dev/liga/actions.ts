@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { clearLigaCard, confirmReprint, recordLigaCard } from '@/server/application/catalog'
+import { clearLigaCard, confirmReprint, confirmSameIdentity, recordLigaCard } from '@/server/application/catalog'
 import { isAppError } from '@/server/domain/errors'
 import type { LigaCardIntent, LigaCardState } from './state'
 
@@ -9,6 +9,7 @@ import type { LigaCardIntent, LigaCardState } from './state'
 function revalidar(): void {
   revalidatePath('/dev/liga')
   revalidatePath('/dev/liga/revisar')
+  revalidatePath('/dev/liga/repetidas')
 }
 
 /**
@@ -39,6 +40,12 @@ export async function recordLigaCardAction(
 
     if (intent === 'confirmar-reprint') {
       confirmReprint(sourceId)
+      revalidar()
+      return { status: 'confirmed' }
+    }
+
+    if (intent === 'confirmar-mesma-identidade') {
+      confirmSameIdentity(sourceId)
       revalidar()
       return { status: 'confirmed' }
     }
