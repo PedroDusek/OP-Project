@@ -4880,3 +4880,54 @@ sinônimos e o que fazer com os conflitos são decisão do dono do produto.
 ## Data
 
 2026-09-15
+
+---
+
+# Decisão: 074 — Os sinônimos entre a Liga e o TCGplayer
+
+**Amplia as decisões 072 e 073.** Terceiro dos três passos sobre as paralelas sem
+vínculo.
+
+## Contexto
+
+Levantados dos dados, os nomes que a Liga escreve diferente do TCGplayer
+apareciam quase todos em vínculos que já existiam — a regra da Liga os via como
+conflito e recusava, e sem eles as artes ficariam sem vínculo num banco novo.
+
+## Decisão — cada sinônimo aprovado pelo dono do produto
+
+| Liga | TCGplayer | medido |
+|---|---|---|
+| `SPR` | `SP` | 23 artes, as SP reimpressas da EB-02 |
+| `Pandaman` | `Pandaman Art` | 6 artes da OP17 |
+| `Extended Art` | `Full Art` | 2 artes da PRB-01 |
+| `(Reprint)` da **PRB-01** | `Jolly Roger Foil` | como a da PRB-02 já vale `Pirate Foil` (072) |
+
+Só a parte inteira, e só do lado da Liga: `SPR` vira `SP`, e `SP + Gold` continua
+`SP + Gold`.
+
+Junto, duas leituras sem julgamento novo:
+
+- `(ST17)` no nome da Liga diz de onde a carta é, e não o tratamento.
+- O TCGplayer às vezes põe pedaço do nome no tratamento — `Miss
+  Doublefinger(Zala) (Full Art)` dá `Zala + Full Art`. A parte que é pedaço do nome
+  da carta sai, **nunca** uma palavra do vocabulário de arte (a carta `Gol D. Roger`
+  contém `gold`, e `SP + Gold` precisa continuar `SP + Gold`).
+
+## Medido no banco local, em 15/09/2026
+
+10 vínculos novos, **nenhum vínculo existente mudou**, e os pares recusados pela
+Liga caíram de 52 para 17. Os 10 conferidos um a um, lado a lado: `Extended Art` →
+`Full Art`, `SPR` → `SP` (Yamato da EB-02, US$ 1.002), `(Reprint)` da PRB-01 →
+`Jolly Roger Foil`, e três com o nome no tratamento (`Zala`, `Galdino`).
+
+## O que fica
+
+Os vínculos em que a Liga e o TCGplayer discordam de verdade — Liga `Parallel` ×
+vínculo `Manga` de US$ 2.001, `Manga` × `Alternate Art`, `SP` × `TR` — vão para uma
+tela de revisão (`/dev/liga/conflitos`), escolha do dono do produto: nada muda
+sozinho.
+
+## Data
+
+2026-09-15

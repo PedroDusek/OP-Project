@@ -19,13 +19,14 @@
  * Medido em 15/09/2026, contra os vínculos que já existiam: a regra concordou em
  * 513 de 513. As 30 divergências eram as reimpressões abaixo.
  *
- * ## A reimpressão da PRB vale como Pirate Foil
+ * ## A reimpressão da PRB vale como o foil dela
  *
  * Instrução do dono do produto. Na Liga, `(Reprint)` é a carta original
  * reimpressa na PRB — praticamente a mesma carta, mudando o produto de onde saiu.
  * Quando a normal da carta já está impressa no mesmo set da paralela, o preço que
- * o TCGplayer cota para essa versão é o da **Pirate Foil**, e é para ela que o
- * vínculo vai. O endereço da Liga continua sendo o que foi conferido.
+ * o TCGplayer cota para essa versão é o do foil: **Pirate Foil** na PRB-02 e
+ * **Jolly Roger Foil** na PRB-01 (decisão 074). O endereço da Liga continua sendo
+ * o que foi conferido.
  *
  * ## O que fica de fora, de propósito
  *
@@ -61,6 +62,7 @@
  */
 
 import { isOwnSet } from '@/server/domain/catalog/order'
+import { ART_TREATMENTS } from '@/server/domain/prices/treatments'
 
 export interface LigaArt {
   variantId: string
@@ -174,8 +176,42 @@ function ligaEditionOf(ligaUrl: string | null | undefined): string | null {
   }
 }
 
-export function sourceTreatmentKey(label: string): string {
-  return treatmentKey(label.split('+'))
+/**
+ * Os nomes que a Liga escreve diferente do TCGplayer, e que são o mesmo
+ * tratamento. Aprovados pelo dono do produto em 15/09 (decisão 074), um a um.
+ *
+ * | Liga | TCGplayer | medido |
+ * |---|---|---|
+ * | `SPR` | `SP` | 23 artes, reimpressões SP da EB-02 |
+ * | `Pandaman` | `Pandaman Art` | 6 artes da OP17 |
+ * | `Extended Art` | `Full Art` | 2 artes da PRB-01 |
+ *
+ * Só no lado da Liga, e só a parte inteira: `SPR` vira `SP`, mas `SP + Gold`
+ * continua `SP + Gold`.
+ */
+const SINONIMOS_DA_LIGA: Readonly<Record<string, string>> = {
+  spr: 'sp',
+  pandaman: 'pandaman art',
+  'extended art': 'full art',
+}
+
+/**
+ * O tratamento do produto, na forma de comparar.
+ *
+ * Com o nome da carta, tira a parte que é pedaço do nome: o TCGplayer escreve
+ * `Mr.1 (Daz.Bonez) (Alternate Art)`, e o `Daz.Bonez` do personagem virava parte
+ * do tratamento. Nunca tira uma palavra do vocabulário de arte — a carta `Gol D.
+ * Roger` contém `gold`, e `SP + Gold` precisa continuar `SP + Gold`.
+ */
+export function sourceTreatmentKey(label: string, cardName?: string): string {
+  const nome = (cardName ?? '').toLowerCase().replace(/[^a-z0-9]/g, '')
+  const partes = label.split('+').filter((parte) => {
+    const compacta = parte.toLowerCase().replace(/[^a-z0-9]/g, '')
+    if (!nome || compacta.length < 4) return true
+    if (ART_TREATMENTS.has(parte.trim().toLowerCase())) return true
+    return !nome.includes(compacta)
+  })
+  return treatmentKey(partes)
 }
 
 /**
@@ -202,6 +238,12 @@ export function ligaTreatmentKey(art: Omit<LigaArt, 'variantId'>): string | null
     // `(033)` desambigua cartas de mesmo nome na Liga — as vezes com outra
     // quantidade de digitos, `(60)` ou `(0070)`.
     .filter((parte) => !/^\s*\d{1,4}\s*$/.test(parte))
+    // `(ST17)` diz de onde a carta e, e nao o tratamento: `Trafalgar Law (ST17) (Alternate Art)`.
+    .filter((parte) => !/^\s*(op|st|eb|prb)\s*-?\s*\d{1,2}\s*$/i.test(parte))
+    .map((parte) => {
+      const limpa = parte.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+      return SINONIMOS_DA_LIGA[limpa] ?? limpa
+    })
 
   if (partes.length === 0) {
     if (/-PAR$/i.test(params.get('num') ?? '')) return 'parallel'
@@ -210,8 +252,11 @@ export function ligaTreatmentKey(art: Omit<LigaArt, 'variantId'>): string | null
   }
 
   const chave = treatmentKey(partes)
-  if (chave === 'reprint' && art.parallelSets.some((set) => art.normalSets.includes(set))) {
-    return 'pirate foil'
+  const emComum = art.parallelSets.filter((set) => art.normalSets.includes(set))
+  if (chave === 'reprint' && emComum.length > 0) {
+    // Na PRB-01 o foil da reimpressao e o Jolly Roger; na PRB-02, o Pirate Foil.
+    const naPrimeira = emComum.some((set) => set.toUpperCase().replace(/[^A-Z0-9]/g, '') === 'PRB01')
+    return naPrimeira ? 'jolly roger foil' : 'pirate foil'
   }
   return chave
 }
@@ -261,7 +306,7 @@ export function deduceByLigaTreatment(
     let produtos =
       tratamento === null
         ? theirs.filter((produto) => sourceTreatmentKey(produto.label) === '' && editionMatchesGroup(edicao, produto.groupCode))
-        : theirs.filter((produto) => sourceTreatmentKey(produto.label) === tratamento)
+        : theirs.filter((produto) => sourceTreatmentKey(produto.label, art.cardName) === tratamento)
 
     // Mesmo nome em mais de um produto: fica o do grupo da edicao, se so ele.
     if (produtos.length > 1 && tratamento !== null) {
