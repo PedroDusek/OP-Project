@@ -211,6 +211,26 @@ describe('o preco chega na arte vinculada', () => {
     expect(await getMarketPrice(testPrisma(), parallels[0].id)).toMatchObject({ value: 42.5 })
   })
 
+  /*
+   * Decisao 077: a normal da promo ligada a mao a um produto com nome de evento
+   * fica com o preco dele, e nao com o da arte comum no mesmo instante.
+   */
+  it('a normal com vínculo manual fica com o preço do produto, e não o da arte comum', async () => {
+    const card = await testPrisma().card.create({ data: { code: 'P-014', name: 'Koby', type: 'Character' } })
+    const normal = await testPrisma().cardVariant.create({
+      data: { cardId: card.id, variantType: 'Normal', sourceId: 'P-014' },
+    })
+    const provider = fonte([], [{ cardCode: 'P-014', value: 99, currency: 'USD' }], [], [arte('P-014', 'ev', 'Event Pack', 3.5)])
+
+    await linkArtProducts(testPrisma(), provider, {
+      logger: silent,
+      manualLinks: [{ variante: 'P-014', produto: 'ev' }],
+    })
+    await importPrices(testPrisma(), provider, { logger: silent })
+
+    expect(await getMarketPrice(testPrisma(), normal.id)).toMatchObject({ value: 3.5 })
+  })
+
   /** Sem vinculo nao ha preco: o codigo sozinho nao diz qual arte e qual. */
   it('nao grava nada na paralela sem vinculo', async () => {
     const { parallels } = await carta('OP01-031', 1)

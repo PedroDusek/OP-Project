@@ -10,15 +10,30 @@ import { Segmented } from '@/components/ui/segmented'
 import { EmptyState } from '@/components/ui/states'
 import { Panel } from '@/components/ui/surface'
 import { cn } from '@/lib/cn'
-import type { ParallelCandidate } from '@/server/domain/prices/parallel-candidates'
+import {
+  candidateAnswered,
+  type CandidateOurArt,
+  type CandidateReason,
+  type CandidateSourceArt,
+  type ParallelCandidate,
+} from '@/server/domain/prices/parallel-candidates'
 import { sourceImageUrl } from '@/server/domain/prices/source-image'
+import { tcgplayerProductUrl } from '@/server/domain/prices/tcgplayer-link'
 
 /**
- * O pareamento das paralelas que só o olho resolve (decisão 068).
+ * O pareamento das artes que só o olho resolve (decisões 068 e 077).
  *
  * Uma carta por painel. Cada arte nossa é uma linha, com a arte da Bandai à
- * esquerda e os produtos da fonte à direita — miniatura, tratamento e preço —,
- * mais "não tem na fonte" e "deixar para depois".
+ * esquerda e **todos** os produtos da carta à direita — miniatura, tratamento,
+ * grupo, preço e link do TCGplayer —, mais "não tem na fonte" e "deixar para
+ * depois".
+ *
+ * ## O que a linha diz
+ *
+ * Por que a arte está aqui, o vínculo de hoje, a página da Liga com o tratamento
+ * lido dela, e o produto que a Liga aponta. Nos produtos, a marca de quem os
+ * segura hoje: escolher o produto de outra arte tira dela, e a pessoa precisa ver
+ * isso antes de gravar.
  *
  * ## Por que as miniaturas se repetem em cada linha
  *
@@ -42,21 +57,48 @@ import { sourceImageUrl } from '@/server/domain/prices/source-image'
 
 type Filtro = 'faltam' | 'todas'
 
+const TODOS_OS_SETS = 'todos'
+
+type Manual = Readonly<Record<string, { produto: string | null; nota?: string }>>
+
 export interface ParallelMapperProps {
   cartas: readonly ParallelCandidate[]
   /** As respostas já gravadas no arquivo manual, por `source_id`. */
-  answers: Readonly<Record<string, string | null>>
+  manual: Manual
 }
 
-function respondida(carta: ParallelCandidate, answers: ParallelMapperProps['answers']): boolean {
-  return carta.ours.every((art) => art.sourceId in answers)
+function respondida(carta: ParallelCandidate, manual: Manual): boolean {
+  return carta.ours.every((art) => candidateAnswered(art, manual))
 }
 
-export function ParallelMapper({ cartas, answers }: ParallelMapperProps) {
+const MOTIVO: Record<CandidateReason, string> = {
+  'sem-vinculo': 'Sem vínculo',
+  'liga-sugere-outro': 'A Liga aponta outro produto',
+  'normal-sem-preco': 'Normal sem preço',
+}
+
+export function ParallelMapper({ cartas, manual }: ParallelMapperProps) {
   const [filtro, setFiltro] = useState<Filtro>('faltam')
+  // Abre na primeira colecao, e nao em todas: sao 150 cartas com milhares de
+  // miniaturas, e a pagina inteira de uma vez travava o navegador.
+  const [set, setSet] = useState<string | null>(null)
 
-  const faltam = useMemo(() => cartas.filter((c) => !respondida(c, answers)), [cartas, answers])
-  const visiveis = filtro === 'faltam' ? faltam : cartas
+  const faltam = useMemo(() => cartas.filter((c) => !respondida(c, manual)), [cartas, manual])
+  const doFiltro = filtro === 'faltam' ? faltam : cartas
+
+  const sets = useMemo(() => {
+    const contagem = new Map<string, number>()
+    for (const carta of doFiltro) {
+      const code = carta.setCode ?? '—'
+      contagem.set(code, (contagem.get(code) ?? 0) + 1)
+    }
+    return [...contagem]
+  }, [doFiltro])
+  const primeiro = sets[0]?.[0] ?? TODOS_OS_SETS
+  const escolhido = set ?? primeiro
+  const setAtivo = escolhido === TODOS_OS_SETS || sets.some(([code]) => code === escolhido) ? escolhido : primeiro
+  const visiveis =
+    setAtivo === TODOS_OS_SETS ? doFiltro : doFiltro.filter((carta) => (carta.setCode ?? '—') === setAtivo)
 
   return (
     <div className="space-y-4">
@@ -69,6 +111,17 @@ export function ParallelMapper({ cartas, answers }: ParallelMapperProps) {
           { value: 'todas', label: 'Todas', count: cartas.length },
         ]}
       />
+      {sets.length > 1 ? (
+        <Segmented<string>
+          label="Filtrar por coleção"
+          value={setAtivo}
+          onValueChange={setSet}
+          options={[
+            { value: TODOS_OS_SETS, label: 'Todas', count: doFiltro.length },
+            ...sets.map(([code, count]) => ({ value: code, label: code, count })),
+          ]}
+        />
+      ) : null}
 
       {visiveis.length === 0 ? (
         <EmptyState
@@ -79,7 +132,7 @@ export function ParallelMapper({ cartas, answers }: ParallelMapperProps) {
         <ul className="space-y-4">
           {visiveis.map((carta) => (
             <li key={carta.cardCode}>
-              <CardMappingForm carta={carta} answers={answers} />
+              <CardMappingForm carta={carta} manual={manual} />
             </li>
           ))}
         </ul>
@@ -91,35 +144,32 @@ export function ParallelMapper({ cartas, answers }: ParallelMapperProps) {
 /** A escolha de uma linha: um produto, `NO_PRODUCT`, ou vazio para "depois". */
 type Escolha = string
 
-function escolhaInicial(
-  carta: ParallelCandidate,
-  answers: ParallelMapperProps['answers'],
-): Record<string, Escolha> {
+function escolhaInicial(carta: ParallelCandidate, manual: Manual): Record<string, Escolha> {
   const produtos = new Set(carta.theirs.map((art) => art.productId))
   return Object.fromEntries(
     carta.ours.map((art) => {
-      if (!(art.sourceId in answers)) return [art.sourceId, '']
-      const produto = answers[art.sourceId]
-      if (produto === null) return [art.sourceId, NO_PRODUCT]
+      const resposta = manual[art.sourceId]
+      if (!resposta) return [art.sourceId, '']
+      if (resposta.produto === null) return [art.sourceId, NO_PRODUCT]
       // Resposta editada à mão para um produto fora do levantamento: a tela não
       // tem como mostrá-la, e fingir que ela é uma das opções gravaria outra coisa.
-      return [art.sourceId, produtos.has(produto) ? produto : '']
+      return [art.sourceId, produtos.has(resposta.produto) ? resposta.produto : '']
     }),
   )
 }
 
-export function CardMappingForm({
-  carta,
-  answers,
-}: {
-  carta: ParallelCandidate
-  answers: ParallelMapperProps['answers']
-}) {
+function descreverProduto(produto: CandidateSourceArt | undefined): string {
+  if (!produto) return 'produto fora da fonte'
+  return `${produto.label || 'sem tratamento'}${produto.groupCode ? ` · ${produto.groupCode}` : ''}`
+}
+
+export function CardMappingForm({ carta, manual }: { carta: ParallelCandidate; manual: Manual }) {
   const [state, action, pending] = useActionState(recordCardMappingAction, MAPPING_IDLE)
-  const [escolhas, setEscolhas] = useState(() => escolhaInicial(carta, answers))
+  const [escolhas, setEscolhas] = useState(() => escolhaInicial(carta, manual))
 
   const escolhidas = Object.values(escolhas).filter((valor) => valor !== '')
-  const gravada = respondida(carta, answers)
+  const gravada = respondida(carta, manual)
+  const porId = new Map(carta.theirs.map((produto) => [produto.productId, produto]))
 
   return (
     <Panel className="p-4">
@@ -146,46 +196,77 @@ export function CardMappingForm({
 
             return (
               <fieldset key={art.sourceId} className="flex flex-col gap-3 py-3 sm:flex-row">
-                <legend className="sr-only">
-                  Qual produto é a arte {art.sourceId}
-                </legend>
+                <legend className="sr-only">Qual produto é a arte {art.sourceId}</legend>
 
-                <div className="w-24 shrink-0">
-                  <CardArt src={art.imageUrl} alt={`Arte ${art.sourceId}`} fallback={art.sourceId} sizes="96px" />
-                  <p className="mt-1 text-xs text-text">{art.sourceId}</p>
-                  {art.rarity ? <p className="text-xs text-text-subtle">{art.rarity}</p> : null}
+                <div className="w-28 shrink-0 space-y-1">
+                  <CardArt src={art.imageUrl} alt={`Arte ${art.sourceId}`} fallback={art.sourceId} sizes="112px" />
+                  <p className="text-xs text-text">{art.sourceId}</p>
+                  <p className="text-xs text-text-subtle">
+                    {art.variantType === 'Normal' ? 'Normal' : 'Paralela'}
+                    {art.rarity ? ` · ${art.rarity}` : ''}
+                  </p>
+                  {art.motivo && !candidateAnswered(art, manual) ? (
+                    <Badge tone="warning">{MOTIVO[art.motivo]}</Badge>
+                  ) : null}
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  {carta.theirs.map((produto) => (
-                    <Opcao
-                      key={produto.productId}
-                      name={nome}
-                      value={produto.productId}
-                      checked={minha === produto.productId}
-                      disabled={tomados.has(produto.productId)}
-                      onSelect={escolher}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={sourceImageUrl(produto.productId, 'thumb')}
-                        alt=""
-                        loading="lazy"
-                        className="aspect-[5/7] w-full rounded-control border border-border object-cover"
-                      />
-                      <span className="mt-1 block text-xs text-text">{produto.label}</span>
-                      <span className="block text-xs text-text-subtle">
-                        {produto.value === null ? 'sem preço' : formatUsd(produto.value)}
-                      </span>
-                    </Opcao>
-                  ))}
+                <div className="min-w-0 flex-1 space-y-2">
+                  <ContextoDaArte art={art} porId={porId} />
 
-                  <Opcao name={nome} value={NO_PRODUCT} checked={minha === NO_PRODUCT} onSelect={escolher}>
-                    <span className="block text-xs text-text">Não tem na fonte</span>
-                  </Opcao>
-                  <Opcao name={nome} value="" checked={minha === ''} onSelect={escolher}>
-                    <span className="block text-xs text-text-muted">Deixar para depois</span>
-                  </Opcao>
+                  <div className="flex flex-wrap gap-2">
+                    {carta.theirs.map((produto) => (
+                      <Opcao
+                        key={produto.productId}
+                        name={nome}
+                        value={produto.productId}
+                        checked={minha === produto.productId}
+                        disabled={tomados.has(produto.productId)}
+                        onSelect={escolher}
+                        rodape={
+                          <a
+                            href={tcgplayerProductUrl(produto.productId) ?? undefined}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-accent underline"
+                            aria-label={`produto ${produto.productId} no TCGplayer`}
+                          >
+                            TCGplayer
+                          </a>
+                        }
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={sourceImageUrl(produto.productId, 'thumb')}
+                          alt=""
+                          loading="lazy"
+                          className="aspect-[5/7] w-full rounded-control border border-border object-cover"
+                        />
+                        <span className="mt-1 block text-xs text-text">{produto.label || 'Sem tratamento'}</span>
+                        {produto.groupCode ? (
+                          <span className="block text-xs text-text-subtle">{produto.groupCode}</span>
+                        ) : null}
+                        <span className="block text-xs text-text-subtle">
+                          {produto.value === null ? 'sem preço' : formatUsd(produto.value)}
+                        </span>
+                        {art.atual?.productId === produto.productId ? (
+                          <span className="block text-xs font-medium text-text">Vínculo de hoje</span>
+                        ) : null}
+                        {art.sugestao === produto.productId ? (
+                          <span className="block text-xs font-medium text-accent">A Liga aponta</span>
+                        ) : null}
+                        {produto.dono && produto.dono !== art.sourceId ? (
+                          <span className="block text-xs text-warning">de {produto.dono}</span>
+                        ) : null}
+                      </Opcao>
+                    ))}
+
+                    <Opcao name={nome} value={NO_PRODUCT} checked={minha === NO_PRODUCT} onSelect={escolher}>
+                      <span className="block text-xs text-text">Não tem na fonte</span>
+                    </Opcao>
+                    <Opcao name={nome} value="" checked={minha === ''} onSelect={escolher}>
+                      <span className="block text-xs text-text-muted">Deixar para depois</span>
+                    </Opcao>
+                  </div>
                 </div>
               </fieldset>
             )
@@ -214,12 +295,52 @@ export function CardMappingForm({
   )
 }
 
+/** O vínculo de hoje, a página da Liga e o que ela aponta. */
+function ContextoDaArte({
+  art,
+  porId,
+}: {
+  art: CandidateOurArt
+  porId: ReadonlyMap<string, CandidateSourceArt>
+}) {
+  return (
+    <dl className="grid gap-x-4 gap-y-0.5 text-xs sm:grid-cols-[auto_1fr]">
+      <dt className="text-text-subtle">Hoje</dt>
+      <dd className="text-text">
+        {art.atual
+          ? `${descreverProduto(porId.get(art.atual.productId))} (${art.atual.origin === 'manual' ? 'manual' : 'automático'})`
+          : 'sem vínculo'}
+      </dd>
+      <dt className="text-text-subtle">Liga</dt>
+      <dd className="text-text">
+        {art.liga ? (
+          <>
+            <a href={art.liga.url} target="_blank" rel="noreferrer" className="text-accent underline">
+              página conferida
+            </a>
+            {art.liga.tratamento ? ` · ${art.liga.tratamento}` : ' · sem tratamento no nome'}
+          </>
+        ) : (
+          'sem página conferida'
+        )}
+      </dd>
+      {art.sugestao ? (
+        <>
+          <dt className="text-text-subtle">A Liga aponta</dt>
+          <dd className="font-medium text-accent">{descreverProduto(porId.get(art.sugestao))}</dd>
+        </>
+      ) : null}
+    </dl>
+  )
+}
+
 function Opcao({
   name,
   value,
   checked,
   disabled = false,
   onSelect,
+  rodape,
   children,
 }: {
   name: string
@@ -227,9 +348,11 @@ function Opcao({
   checked: boolean
   disabled?: boolean
   onSelect: (value: string) => void
+  /** Fica fora do rótulo: clicar no link não escolhe a opção. */
+  rodape?: React.ReactNode
   children: React.ReactNode
 }) {
-  return (
+  const opcao = (
     <label
       className={cn(
         'block w-24 cursor-pointer rounded-control border p-1.5',
@@ -250,6 +373,13 @@ function Opcao({
       />
       {children}
     </label>
+  )
+  if (!rodape) return opcao
+  return (
+    <div className="w-24 space-y-1">
+      {opcao}
+      <div className="px-1.5">{rodape}</div>
+    </div>
   )
 }
 

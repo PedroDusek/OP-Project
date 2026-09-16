@@ -110,6 +110,7 @@ export function VariantDetail({
         <MarketPricePanel
           price={price}
           variantType={variant.variantType}
+          linked={variant.tcgplayerUrl !== null}
           freshness={priceFreshness}
         />
 

@@ -149,6 +149,14 @@ describe('sem cotação', () => {
     expect(screen.queryByText(/paralelas ainda não têm preço/i)).not.toBeInTheDocument()
   })
 
+  /* Pedido do dono do produto: com produto e sem venda, a frase e "sem cartas vendidas". */
+  it('com produto no TCGplayer e sem preço, diz que não há cartas vendidas', () => {
+    render(<MarketPricePanel price={null} variantType="Parallel" linked />)
+
+    expect(screen.getByText('Sem cartas vendidas no TCGplayer.')).toBeInTheDocument()
+    expect(screen.queryByText(/ainda não foi identificada/i)).not.toBeInTheDocument()
+  })
+
   it('mostra o preço da paralela vinculada como o de qualquer outra', () => {
     render(
       <MarketPricePanel

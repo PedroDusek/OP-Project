@@ -183,7 +183,11 @@ export class TcgCsvPriceProvider implements PriceProvider {
      */
     for (const [number, candidatas] of comunsPorNumero) {
       const escolhida = normalProduct(number, candidatas)
-      commonArts.set(number, { cardCode: number, productId: escolhida.productId })
+      commonArts.set(number, {
+        cardCode: number,
+        productId: escolhida.productId,
+        groupCode: candidatas.find((c) => c.productId === escolhida.productId)?.groupCode ?? null,
+      })
       otherProducts.delete(escolhida.productId)
       if (escolhida.value !== null) {
         prices.set(number, { cardCode: number, value: escolhida.value, currency: 'USD' })

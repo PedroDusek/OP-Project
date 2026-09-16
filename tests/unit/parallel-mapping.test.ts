@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { recordCardMapping, readMapping } from '@/server/application/prices/parallel-mapping'
 import { NotFoundError, ValidationError } from '@/server/domain/errors'
-import type { ParallelCandidate } from '@/server/domain/prices/parallel-candidates'
+import { MANTIDO_CONTRA_A_LIGA, type ParallelCandidate } from '@/server/domain/prices/parallel-candidates'
 import { saveParallelCandidates } from '@/server/infrastructure/prices/parallel-candidates-file'
 
 /**
@@ -18,26 +18,53 @@ import { saveParallelCandidates } from '@/server/infrastructure/prices/parallel-
 let pasta: string
 let paths: { candidates: string; manual: string }
 
+const arte = (sourceId: string, rarity: string, extra: Partial<ParallelCandidate['ours'][number]> = {}) => ({
+  sourceId,
+  variantType: 'Parallel' as const,
+  rarity,
+  imageUrl: null,
+  motivo: 'sem-vinculo' as const,
+  atual: null,
+  liga: null,
+  sugestao: null,
+  ...extra,
+})
+
+const produto = (productId: string, label: string, value: number | null) => ({
+  productId,
+  label,
+  value,
+  groupCode: null,
+  dono: null,
+})
+
 const levantamento: ParallelCandidate[] = [
   {
     cardCode: 'OP01-016',
     cardName: 'Nami',
     setCode: 'OP01',
     ours: [
-      { sourceId: 'OP01-016_p1', rarity: 'R', imageUrl: null },
-      { sourceId: 'OP01-016_p2', rarity: 'R', imageUrl: null },
+      arte('OP01-016_p1', 'R'),
+      arte('OP01-016_p2', 'R'),
+      arte('OP01-016_p3', 'R', {
+        motivo: 'liga-sugere-outro',
+        atual: { productId: '102', origin: 'manual' },
+        sugestao: '103',
+      }),
     ],
     theirs: [
-      { productId: '100', label: 'Alternate Art', value: 12.5 },
-      { productId: '101', label: 'Manga', value: null },
+      produto('100', 'Alternate Art', 12.5),
+      produto('101', 'Manga', null),
+      produto('102', 'Jolly Roger Foil', 0.2),
+      produto('103', 'Event Pack Vol. 2', 0.3),
     ],
   },
   {
     cardCode: 'OP02-001',
     cardName: 'Edward Newgate',
     setCode: 'OP02',
-    ours: [{ sourceId: 'OP02-001_p1', rarity: 'L', imageUrl: null }],
-    theirs: [{ productId: '200', label: 'Parallel', value: 3 }],
+    ours: [arte('OP02-001_p1', 'L')],
+    theirs: [produto('200', 'Parallel', 3)],
   },
 ]
 
@@ -86,7 +113,7 @@ describe('readMapping', () => {
     const view = readMapping(paths)
     expect(view.candidates?.cartas).toHaveLength(2)
     expect(view.answered).toBe(2)
-    expect(view.answers).toEqual({ 'OP01-016_p1': '100', 'OP01-016_p2': null })
+    expect(view.manual).toEqual({ 'OP01-016_p1': { produto: '100' }, 'OP01-016_p2': { produto: null } })
   })
 })
 
@@ -131,6 +158,15 @@ describe('recordCardMapping', () => {
     expect(gravado()).toEqual([{ variante: 'OP01-016_p1', produto: '100', nota: 'a do fundo azul' }])
   })
 
+  /* Decisao 077: sem a nota, a arte voltaria a tela a cada levantamento. */
+  it('manter contra a sugestão da Liga grava a nota, e aceitar a sugestão não', () => {
+    recordCardMapping('OP01-016', [{ sourceId: 'OP01-016_p3', productId: '102' }], paths)
+    expect(gravado()).toEqual([{ variante: 'OP01-016_p3', produto: '102', nota: MANTIDO_CONTRA_A_LIGA }])
+
+    recordCardMapping('OP01-016', [{ sourceId: 'OP01-016_p3', productId: '103' }], paths)
+    expect(gravado()).toEqual([{ variante: 'OP01-016_p3', produto: '103' }])
+  })
+
   it('recusa carta fora do levantamento', () => {
     expect(() => recordCardMapping('OP09-999', [{ sourceId: 'OP09-999_p1', productId: null }], paths)).toThrow(
       NotFoundError,
@@ -139,13 +175,13 @@ describe('recordCardMapping', () => {
 
   it('recusa arte de outra carta', () => {
     expect(() => recordCardMapping('OP01-016', [{ sourceId: 'OP02-001_p1', productId: null }], paths)).toThrow(
-      /OP02-001_p1 não é uma paralela pendente de OP01-016/,
+      /OP02-001_p1 não é de OP01-016 no levantamento/,
     )
   })
 
   it('recusa produto de outra carta', () => {
     expect(() => recordCardMapping('OP01-016', [{ sourceId: 'OP01-016_p1', productId: '200' }], paths)).toThrow(
-      /produto 200 não é uma arte de OP01-016/,
+      /produto 200 não é de OP01-016 na fonte/,
     )
   })
 
