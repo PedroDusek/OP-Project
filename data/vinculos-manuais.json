@@ -47,11 +47,13 @@
     },
     {
       "variante": "EB01-043_p1",
-      "produto": "619195"
+      "produto": "619195",
+      "nota": "revisado: mantido contra a sugestão da Liga"
     },
     {
       "variante": "EB01-043_p2",
-      "produto": "623623"
+      "produto": "623623",
+      "nota": "revisado: mantido contra a sugestão da Liga"
     },
     {
       "variante": "EB01-043_p3",
@@ -372,7 +374,7 @@
     },
     {
       "variante": "OP02-035_p2",
-      "produto": "486355"
+      "produto": "486694"
     },
     {
       "variante": "OP02-036_p1",
@@ -506,7 +508,7 @@
     },
     {
       "variante": "OP03-055_p3",
-      "produto": "593306"
+      "produto": "593886"
     },
     {
       "variante": "OP03-056_p2",
@@ -515,7 +517,7 @@
     },
     {
       "variante": "OP03-056_p3",
-      "produto": "586201"
+      "produto": "593887"
     },
     {
       "variante": "OP03-056_p4",
@@ -528,7 +530,7 @@
     },
     {
       "variante": "OP03-057_p3",
-      "produto": "586599"
+      "produto": "593888"
     },
     {
       "variante": "OP03-057_p4",
@@ -573,7 +575,7 @@
     },
     {
       "variante": "OP03-094_p3",
-      "produto": "593316"
+      "produto": "593889"
     },
     {
       "variante": "OP03-099_p1",
@@ -1312,7 +1314,8 @@
     },
     {
       "variante": "OP07-021_p1",
-      "produto": "619196"
+      "produto": "619196",
+      "nota": "revisado: mantido contra a sugestão da Liga"
     },
     {
       "variante": "OP07-021_p2",
@@ -1320,7 +1323,8 @@
     },
     {
       "variante": "OP07-021_p3",
-      "produto": "623622"
+      "produto": "623622",
+      "nota": "revisado: mantido contra a sugestão da Liga"
     },
     {
       "variante": "OP07-021_p4",
@@ -1336,8 +1340,7 @@
     },
     {
       "variante": "OP07-021_p7",
-      "produto": "681240",
-      "nota": "revisado: mantido contra a sugestão da Liga"
+      "produto": "681240"
     },
     {
       "variante": "OP07-021_p8",
@@ -1653,11 +1656,13 @@
     },
     {
       "variante": "OP09-106_p1",
-      "produto": "619197"
+      "produto": "619197",
+      "nota": "revisado: mantido contra a sugestão da Liga"
     },
     {
       "variante": "OP09-106_p2",
-      "produto": "623621"
+      "produto": "623621",
+      "nota": "revisado: mantido contra a sugestão da Liga"
     },
     {
       "variante": "OP09-106_p3",
@@ -2485,7 +2490,8 @@
     },
     {
       "variante": "P-075_p1",
-      "produto": "627095"
+      "produto": "627095",
+      "nota": "revisado: mantido contra a sugestão da Liga"
     },
     {
       "variante": "P-076",
@@ -2869,7 +2875,8 @@
     },
     {
       "variante": "ST03-007_p2",
-      "produto": "525328"
+      "produto": "525328",
+      "nota": "revisado: mantido contra a sugestão da Liga"
     },
     {
       "variante": "ST03-008_p1",
