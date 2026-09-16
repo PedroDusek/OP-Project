@@ -193,6 +193,17 @@ describe('a busca por carta', () => {
     expect(nomes(await listNetwork(testPrisma(), eu.user, { query: 'Luffy' }))).toEqual([])
   })
 
+  /* Relatado pelo dono do produto: buscar a propria carta dizia "ninguem tem". */
+  it('diz quando a carta buscada só está no binder de quem busca', async () => {
+    const eu = await pessoa('Eu', 'eu')
+    const zoro = await carta('OP04-079', 'Roronoa Zoro')
+    await guardar(eu, zoro.id, 2)
+
+    const minha = await listNetwork(testPrisma(), eu.user, { query: 'OP04-079' })
+    expect(minha).toMatchObject({ members: [], viewerHasMatch: true })
+    expect((await listNetwork(testPrisma(), eu.user, { query: 'Nami' })).viewerHasMatch).toBe(false)
+  })
+
   /* A busca e o gesto que serve a busca de alvo: cota mais apertada (decisao 060). */
   it('a busca tem cota própria, mais apertada que a listagem', async () => {
     const eu = await pessoa('Eu', 'eu')

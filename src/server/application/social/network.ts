@@ -61,6 +61,11 @@ export interface NetworkPage {
   hasMore: boolean
   /** A busca normalizada, ou `null` sem busca. */
   query: string | null
+  /**
+   * Com busca sem resultado, se quem olha tem a carta no próprio Trade Binder. Ele não aparece
+   * para si mesmo, e sem isto a tela diria "ninguém tem" de uma carta que é dele.
+   */
+  viewerHasMatch: boolean
 }
 
 /** As variantes que quem olha ainda procura: o want que a coleção dele não cobre. */
@@ -115,7 +120,7 @@ export async function listNetwork(
 
   const wanted = await stillWanted(prisma, viewer)
   const matching = query ? await matchingVariants(prisma, query) : null
-  if (matching && matching.size === 0) return { members: [], page, hasMore: false, query }
+  if (matching && matching.size === 0) return { members: [], page, hasMore: false, query, viewerHasMatch: false }
 
   const quero = [...wanted]
   const casa = matching ? [...matching] : []
@@ -169,7 +174,13 @@ export async function listNetwork(
     }
   })
 
-  return { members, page, hasMore, query }
+  let viewerHasMatch = false
+  if (matching && members.length === 0) {
+    const meu = (await readVisibleTradeStock(prisma, [viewer.id])).get(viewer.id) ?? []
+    viewerHasMatch = meu.some((card) => matching.has(card.variantId))
+  }
+
+  return { members, page, hasMore, query, viewerHasMatch }
 }
 
 export interface MemberBinder {

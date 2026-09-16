@@ -76,8 +76,16 @@ function Rede({ resultado }: { resultado: NetworkPage }) {
     return resultado.query ? (
       <EmptyState
         icon={<Users className="size-10" aria-hidden />}
-        title={`Ninguém na rede tem "${resultado.query}" para troca`}
-        description="Tente o código da carta, ou outro nome. Quem tem a carta guardada fora do Trade Binder não aparece aqui."
+        title={
+          resultado.viewerHasMatch
+            ? `Só você tem "${resultado.query}" para troca na rede`
+            : `Ninguém na rede tem "${resultado.query}" para troca`
+        }
+        description={
+          resultado.viewerHasMatch
+            ? 'A carta está no seu Trade Binder. Você não aparece na sua própria busca — as outras pessoas veem você quando buscam por ela.'
+            : 'Tente o código da carta, ou outro nome. Quem tem a carta guardada fora do Trade Binder não aparece aqui.'
+        }
       />
     ) : (
       <EmptyState
