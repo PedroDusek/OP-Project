@@ -4968,6 +4968,24 @@ separa por grupo (`OP05` e `PRB-01`).
    TCGplayer dá o mesmo nome às duas, e só o preço difere. Por isso a regra não
    vincula nenhuma delas; fica para o vínculo manual.
 
+Da auditoria de 16/09, três leituras que estavam erradas:
+
+4. **O evento da coleção não é a coleção.** A página sem tratamento na edição
+   `OP-02-PR` é a do pré-lançamento, e não a da normal: casa com o produto sem
+   tratamento do grupo `OP02 PRE`. Só a edição sem palavra solta (`OP-02`) é a da
+   própria coleção.
+5. **A `(Reprint)` só vale Jolly Roger/Pirate Foil na edição da PRB.** A
+   Bartolomeo `OP07-031` tem a normal também na PRB-02, mas a página da Liga é a
+   do `ST24`: é a reimpressão do ST-24, e o TCGplayer tem as duas.
+6. **A página sem tratamento de outra coleção recusa produto com tratamento.** A
+   Nami `OP01-016_p9` (ST31) ia pelo caso sem escolha para uma SP da EB-05. Como
+   nos outros conflitos (074), recusar não apaga o vínculo já gravado: ele vai
+   para `/dev/liga/conflitos`.
+
+Medido na importação local de 16/09: 9 paralelas de pré-lançamento ganharam
+vínculo (US$ 196 em preço), a `OP07-031_p1` trocou a Pirate Foil pela Reprint do
+ST-24, e a `OP01-016_p9` é o único conflito automático.
+
 ## Medido na tabela local, em 15/09/2026
 
 Das 84 artes em 41 grupos da tela `/dev/liga/repetidas`, a regra separa **30

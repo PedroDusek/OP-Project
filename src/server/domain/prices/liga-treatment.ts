@@ -267,7 +267,12 @@ export function ligaTreatmentKey(art: Omit<LigaArt, 'variantId'>): string | null
   }
 
   const chave = treatmentKey(partes)
-  const emComum = art.parallelSets.filter((set) => art.normalSets.includes(set))
+  // So a reimpressao da propria PRB: a `(Reprint)` da Bartolomeo na edicao `ST24`
+  // e a do ST-24, mesmo com a normal tambem na PRB-02 — e o TCGplayer tem as duas.
+  const edicao = params.get('ed')
+  const emComum = art.parallelSets.filter(
+    (set) => art.normalSets.includes(set) && (!edicao || editionMatchesGroup(edicao, set)),
+  )
   if (chave === 'reprint' && emComum.length > 0) {
     // Na PRB-01 o foil da reimpressao e o Jolly Roger; na PRB-02, o Pirate Foil.
     const naPrimeira = emComum.some((set) => set.toUpperCase().replace(/[^A-Z0-9]/g, '') === 'PRB01')
@@ -300,8 +305,12 @@ export function ligaIdentity(art: Omit<LigaArt, 'variantId'>): {
     const qualificador = ligaQualifierOf(art.ligaUrl)
     return { tratamento, edicao, chave: qualificador ? `${tratamento} [${qualificador}]` : tratamento }
   }
-  // Sem tratamento, na colecao da propria carta, a pagina e a da normal: nao identifica.
-  if (!edicao || isOwnSet(art.cardCode, edicao)) return { tratamento, edicao, chave: null }
+  // Sem tratamento, na colecao da propria carta, a pagina e a da normal: nao
+  // identifica. O evento da colecao nao e ela: `OP-02-PR` e o pre-lancamento, que
+  // o TCGplayer vende no grupo `OP02 PRE`.
+  if (!edicao || (isOwnSet(art.cardCode, edicao) && editionParts(edicao).words.size === 0)) {
+    return { tratamento, edicao, chave: null }
+  }
   return { tratamento, edicao, chave: `sem tratamento em ${edicao}` }
 }
 

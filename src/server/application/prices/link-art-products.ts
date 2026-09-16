@@ -2,7 +2,7 @@ import type { PrismaClient } from '@prisma/client'
 import type { LigaCardEntry } from '@/server/domain/catalog/liga-cards'
 import {
   deduceByLigaTreatment,
-  ligaTreatmentKey,
+  ligaIdentity,
   sourceTreatmentKey,
   type LigaArt,
 } from '@/server/domain/prices/liga-treatment'
@@ -315,12 +315,16 @@ export async function linkArtProducts(
      * mesmo que tenha sobrado uma de cada lado: medido na primeira passada, a
      * `OP09-078_p2` (Manga) ia para uma Alternate Art de US$ 923.
      */
-    const chaveDaLiga = new Map(artesDaLiga.map((art) => [art.variantId, ligaTreatmentKey(art)]))
+    const identidadeDaLiga = new Map(artesDaLiga.map((art) => [art.variantId, ligaIdentity(art)]))
     const nomeDaCarta = artesDaLiga[0]?.cardName
     const rotulo = new Map(daFonte.map((art) => [art.productId, art.label]))
     const coerentes = pairs.filter((pair) => {
-      const chave = chaveDaLiga.get(pair.variantId)
-      return chave == null || sourceTreatmentKey(rotulo.get(pair.productId) ?? '', nomeDaCarta) === chave
+      const identidade = identidadeDaLiga.get(pair.variantId)
+      if (!identidade || identidade.chave === null) return true
+      const doProduto = sourceTreatmentKey(rotulo.get(pair.productId) ?? '', nomeDaCarta)
+      // Sem tratamento em outra colecao (a Nami do ST31), so serve produto sem
+      // tratamento: medido, a `OP01-016_p9` ia para uma SP da EB-05.
+      return doProduto === (identidade.tratamento ?? '')
     })
     result.refusedByLiga += pairs.length - coerentes.length
 

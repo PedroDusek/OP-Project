@@ -40,6 +40,13 @@ describe('o que é conflito', () => {
     ).toBeNull()
   })
 
+  /* A Nami do ST31 estava numa SP da EB-05: a pagina diz que ela nao tem tratamento. */
+  it('acusa a página sem tratamento de outra coleção vinculada a produto com tratamento', () => {
+    const nami = { ...arte('Nami (OP01-016)', 'OP01-016'), cardCode: 'OP01-016', cardName: 'Nami', rarity: 'SR', ligaUrl: liga('Nami (OP01-016)', 'OP01-016', 'ST31') }
+    expect(ligaConflict({ art: nami, linkedLabel: 'SP' })).toBe('sem tratamento em ST31')
+    expect(ligaConflict({ art: nami, linkedLabel: '' })).toBeNull()
+  })
+
   /* Com raridade SP CARD, a pagina sem tratamento e lida como SP (072): aqui a raridade e R. */
   it('sem tratamento na Liga, não há o que comparar', () => {
     const semTratamento = { ...arte('Come On (OP09-020)', 'OP09-020'), rarity: 'R' }
