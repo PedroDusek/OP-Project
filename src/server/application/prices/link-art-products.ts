@@ -241,6 +241,11 @@ export async function linkArtProducts(
       result.unchanged++
       continue
     }
+    // O dono do produto escolheu este produto para uma paralela: o manual vence.
+    if (reivindicados.has(common.productId)) {
+      logger.warn(`[vinculo] a normal de ${common.cardCode} fica sem o produto ${common.productId}: ele e de um vinculo manual`)
+      continue
+    }
 
     await linkAutomatic(prisma, source, cardVariantId, common.productId)
     if (atual) result.updated++
