@@ -169,6 +169,39 @@ describe('os pares', () => {
     ).toEqual([{ variantId: '2', productId: 'prb' }])
   })
 
+  /* A OP02-028_p1: a pagina do pre-lancamento, sem tratamento no nome. */
+  it('o pré-lançamento da coleção não é a página da normal', () => {
+    const usopp = art({ variantId: '1', cardCode: 'OP02-028', cardName: 'Usopp', rarity: 'C', ligaUrl: liga('Usopp (OP02-028)', 'OP02-028', 'OP-02-PR') })
+    expect(ligaIdentity(usopp).chave).toBe('sem tratamento em OP-02-PR')
+    expect(
+      deduceByLigaTreatment([usopp], [
+        { productId: 'normal', label: '', groupCode: 'OP02' },
+        { productId: 'pre', label: '', groupCode: 'OP02 PRE' },
+      ]),
+    ).toEqual([{ variantId: '1', productId: 'pre' }])
+  })
+
+  /* A OP07-031_p1: a normal tambem saiu na PRB-02, mas a pagina e a do ST-24. */
+  it('a reimpressão de outra edição continua reimpressão, e casa pelo grupo', () => {
+    const bartolomeo = art({
+      variantId: '1',
+      cardCode: 'OP07-031',
+      cardName: 'Bartolomeo',
+      rarity: 'C',
+      ligaUrl: liga('Bartolomeo (Reprint) (OP07-031-RE)', 'OP07-031-RE', 'ST24'),
+      parallelSets: ['ST-24', 'PRB-02'],
+      normalSets: ['OP07', 'PRB-02'],
+    })
+    expect(ligaTreatmentKey(bartolomeo)).toBe('reprint')
+    expect(
+      deduceByLigaTreatment([bartolomeo], [
+        { productId: 'pf', label: 'Pirate Foil', groupCode: 'PRB-02' },
+        { productId: 're-prb', label: 'Reprint', groupCode: 'PRB-02' },
+        { productId: 're-st', label: 'Reprint', groupCode: 'ST-24' },
+      ]),
+    ).toEqual([{ variantId: '1', productId: 're-st' }])
+  })
+
   it('igualdade exata: SP + Gold não é SP', () => {
     expect(
       deduceByLigaTreatment([nami('1', 'SP', 'OP01-016-SP')], [{ productId: 'gold', label: 'SP + Gold' }]),

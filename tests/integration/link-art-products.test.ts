@@ -569,6 +569,23 @@ describe('o tratamento conferido na Liga', () => {
     expect(await vinculos()).toEqual([])
   })
 
+  /*
+   * A Liga diz "sem tratamento no ST31"; a SP da EB-05 e outra arte. Medido: a
+   * OP01-016_p9 ia para ela pelo caso sem escolha.
+   */
+  it('a regra antiga não casa produto com tratamento na página sem tratamento de outra coleção', async () => {
+    await cartaComArtes('OP01-016', 'Nami', ['OP01'], [{ sourceId: 'OP01-016_p9', rarity: 'SR', sets: ['ST-31'] }])
+
+    const resultado = await linkArtProducts(
+      testPrisma(),
+      fonte([{ ...arte('OP01-016', 'sp', 'SP'), groupCode: 'EB-05' }]),
+      { logger: silent, ligaCards: [{ arte: 'OP01-016_p9', url: liga('Nami (OP01-016)', 'OP01-016', 'ST31') }] },
+    )
+
+    expect(resultado).toMatchObject({ refusedByLiga: 1, created: 0 })
+    expect(await vinculos()).toEqual([])
+  })
+
   /* Sem nome na Liga, a regra antiga segue como antes. */
   it('sem página na tabela, o caso sem escolha continua valendo', async () => {
     const ids = await cartaComArtes('OP09-079', 'Carta', ['OP09'], [

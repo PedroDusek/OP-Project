@@ -19,9 +19,12 @@ import { ligaIdentity, sourceTreatmentKey, type LigaArt } from './liga-treatment
  *
  * ## Só com o nome dito
  *
- * Arte sem tratamento na Liga não conflita com nada: não há o que comparar. E a
- * comparação é a mesma da regra — sinônimos, pontuação e o pedaço do nome da
- * carta —, para a tela nunca acusar o que a importação aceitaria.
+ * Arte sem tratamento na página da própria coleção não conflita com nada: não há
+ * o que comparar. A página sem tratamento de **outra** coleção diz que a arte não
+ * tem tratamento, e conflita com produto que tem — a `OP01-016_p9` (Nami do ST31)
+ * estava numa SP da EB-05. A comparação é a mesma da regra — sinônimos, pontuação
+ * e o pedaço do nome da carta —, para a tela nunca acusar o que a importação
+ * aceitaria.
  */
 
 export interface LigaConflictCheck {
@@ -32,7 +35,8 @@ export interface LigaConflictCheck {
 
 /** O tratamento que a Liga dá à arte, quando ele discorda do produto vinculado; senão `null`. */
 export function ligaConflict({ art, linkedLabel }: LigaConflictCheck): string | null {
-  const { tratamento } = ligaIdentity(art)
-  if (tratamento === null) return null
+  const { tratamento, chave } = ligaIdentity(art)
+  if (chave === null) return null
+  if (tratamento === null) return sourceTreatmentKey(linkedLabel, art.cardName) === '' ? null : chave
   return sourceTreatmentKey(linkedLabel, art.cardName) === tratamento ? null : tratamento
 }
