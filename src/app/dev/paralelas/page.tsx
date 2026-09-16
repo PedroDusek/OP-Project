@@ -27,14 +27,15 @@ export const dynamic = 'force-dynamic'
 export default function ParalelasPage() {
   if (!mappingAvailable()) notFound()
 
-  const { candidates, answered, answers } = readMapping()
+  const { candidates, answered, manual } = readMapping()
 
   return (
     <main className="mx-auto max-w-5xl space-y-4 p-4">
       <header className="space-y-1">
         <h1 className="text-xl font-semibold text-text">Mapeamento das paralelas</h1>
         <p className="text-sm text-text-muted">
-          Qual produto da fonte de preço é cada arte. A resposta vai para{' '}
+          Qual produto do TCGplayer é cada arte: as paralelas sem vínculo, as que a página da Liga
+          aponta para outro produto e as normais sem preço. A resposta vai para{' '}
           <code>data/vinculos-manuais.json</code>; a importação de preço é quem a aplica.
         </p>
         {candidates ? (
@@ -46,11 +47,11 @@ export default function ParalelasPage() {
       </header>
 
       {candidates ? (
-        <ParallelMapper cartas={candidates.cartas} answers={answers} />
+        <ParallelMapper cartas={candidates.cartas} manual={manual} />
       ) : (
         <EmptyState
           title="O levantamento ainda não foi gerado"
-          description="Rode npm run paralelas:candidatos e recarregue esta página."
+          description="Rode npm run paralelas:candidatos e recarregue esta página. Levantamento de antes de 16/09 precisa ser gerado de novo."
         />
       )}
     </main>

@@ -39,11 +39,14 @@ import type { MarketPrice, PriceFreshness } from '@/server/application/prices'
 export function MarketPricePanel({
   price,
   variantType,
+  linked = false,
   freshness = null,
 }: {
   price: MarketPrice | null
   /** `Normal` é a arte comum, a única que a fonte identifica sem ambiguidade. */
   variantType: string
+  /** Se a arte tem produto no TCGplayer: com ele, faltar preço é faltar venda. */
+  linked?: boolean
   /** Quando os preços foram conferidos. Ausente antes da primeira importação. */
   freshness?: PriceFreshness | null
 }) {
@@ -73,7 +76,7 @@ export function MarketPricePanel({
             ) : null}
           </>
         ) : (
-          <p className="text-sm text-text-muted">{semPreco(variantType)}</p>
+          <p className="text-sm text-text-muted">{semPreco(variantType, linked)}</p>
         )}
 
         <p className="text-xs text-text-subtle">{sourceNote(freshness)}</p>
@@ -110,9 +113,15 @@ function sourceNote(freshness: PriceFreshness | null): string {
  * qual das artes da fonte é esta (decisão 053). As que já foram vinculadas
  * mostram preço como qualquer outra.
  *
- * Dizer "sem preço" nos dois casos faria a pessoa achar que o produto quebrou.
+ * Com o produto identificado e sem preço, o motivo é o mercado: ninguém vendeu a
+ * carta. O dono do produto pediu a frase "sem cartas vendidas" em 16/09, para as
+ * versões de starter deck que o TCGplayer lista sem venda nenhuma; os links da
+ * Liga e do TCGplayer continuam logo abaixo.
+ *
+ * Dizer "sem preço" nos três casos faria a pessoa achar que o produto quebrou.
  */
-function semPreco(variantType: string): string {
+function semPreco(variantType: string, linked: boolean): string {
+  if (linked) return 'Sem cartas vendidas no TCGplayer.'
   return variantType === 'Normal'
     ? 'Sem cotação na fonte para esta carta.'
     : 'Esta arte ainda não foi identificada na fonte, então fica sem preço.'

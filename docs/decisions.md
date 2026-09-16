@@ -5046,3 +5046,56 @@ de outro grupo:
 ## Data
 
 2026-09-16
+
+---
+
+# Decisão: 077 — A tela de paralelas mostra a carta inteira, e pergunta também o que a Liga contradiz
+
+Aprovado pelo dono do produto em 16/09 ("pode ampliar a /dev/paralelas"), na
+auditoria dos vínculos. **Amplia a decisão 068.**
+
+## Contexto
+
+A tela só listava paralela **sem vínculo e sem resposta**, e só oferecia produto
+**de arte ainda livre**. Três coisas ficavam sem lugar para resolver:
+
+- **O engano no arquivo manual.** O manual vence qualquer regra, então ninguém o
+  corrige. A `OP01-052_p1` (página da Liga: Event Pack Vol. 2) estava no Jolly
+  Roger Foil, e a `OP01-052_p3` (página: Jolly Roger Foil) ficou sem nada. O
+  produto do Event Pack não aparecia na tela, porque não é "arte" no vocabulário
+  da fonte — a escolha errada era a única possível.
+- **As promos de evento**, que o TCGplayer vende com dois ou três produtos de
+  mesmo nome (participante, vencedor) e nunca apareciam.
+- **As normais sem preço**, quase todas promos `P-`, sem vínculo manual possível.
+
+## Decisão
+
+1. **A carta entra inteira**: todas as paralelas e todos os produtos da fonte, com
+   grupo, preço, link do TCGplayer e **quem segura cada produto hoje**. Trocas
+   entre irmãs só se desfazem vendo a carta toda.
+2. **Três motivos de pergunta**: paralela sem vínculo; **a página da Liga aponta
+   outro produto** (qualquer origem, o manual também); normal sem preço.
+3. **A sugestão da Liga só quando é clara** (`ligaSuggestion`): um produto só com
+   o tratamento que a Liga dá, do grupo da edição quando a edição tem grupo na
+   carta, e nunca tirando de uma irmã cuja página diz o mesmo. Nomes que a Liga e
+   o TCGplayer escrevem diferente (`Manga` × `Super Alternate Art`) não perguntam.
+4. **Manter contra a Liga é resposta**: grava a nota `revisado: mantido contra a
+   sugestão da Liga`, e a arte não volta.
+5. **A normal com vínculo manual** fica com o preço do produto escolhido, e não com
+   o da arte comum.
+6. A tela abre na primeira coleção: todas de uma vez são 26 mil elementos e 2 mil
+   miniaturas.
+
+Junto, a resposta do dono do produto sobre as artes com produto e sem venda: a
+página da carta diz **"Sem cartas vendidas no TCGplayer."**, e os links continuam.
+
+## Medido em 16/09/2026
+
+`npm run paralelas:candidatos`: **154 cartas** — 95 normais sem preço, 71
+paralelas sem vínculo e 10 em que a Liga aponta outro produto (`OP01-052_p1`,
+`OP02-106_p1`, `OP03-055_p2`, `OP03-056_p2`, `OP03-057_p2`, `OP03-094_p2`,
+`OP04-095_p3`, `OP05-069_p2`, `OP05-119_p2`, `OP06-056_p4`).
+
+## Data
+
+2026-09-16

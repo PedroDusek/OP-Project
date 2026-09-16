@@ -21,6 +21,8 @@ import type { ParallelCandidate } from '@/server/domain/prices/parallel-candidat
 
 export const PARALLEL_CANDIDATES_PATH = resolve(process.cwd(), 'paralelas-candidatas.json')
 
+const vinculo = z.object({ productId: z.string(), origin: z.enum(['automatic', 'manual']) })
+
 const fileSchema = z.object({
   geradoEm: z.string(),
   cartas: z.array(
@@ -29,10 +31,25 @@ const fileSchema = z.object({
       cardName: z.string(),
       setCode: z.string().nullable(),
       ours: z.array(
-        z.object({ sourceId: z.string(), rarity: z.string().nullable(), imageUrl: z.string().nullable() }),
+        z.object({
+          sourceId: z.string(),
+          variantType: z.enum(['Normal', 'Parallel']),
+          rarity: z.string().nullable(),
+          imageUrl: z.string().nullable(),
+          motivo: z.enum(['sem-vinculo', 'liga-sugere-outro', 'normal-sem-preco']).nullable(),
+          atual: vinculo.nullable(),
+          liga: z.object({ url: z.string(), tratamento: z.string().nullable() }).nullable(),
+          sugestao: z.string().nullable(),
+        }),
       ),
       theirs: z.array(
-        z.object({ productId: z.string(), label: z.string(), value: z.number().nullable() }),
+        z.object({
+          productId: z.string(),
+          label: z.string(),
+          value: z.number().nullable(),
+          groupCode: z.string().nullable(),
+          dono: z.string().nullable(),
+        }),
       ),
     }),
   ),
@@ -43,12 +60,16 @@ export interface ParallelCandidatesFile {
   cartas: ParallelCandidate[]
 }
 
-/** `null` quando o levantamento ainda não foi gerado: a tela diz como gerar. */
+/**
+ * `null` quando o levantamento ainda não foi gerado, ou foi gerado no formato de
+ * antes da decisão 077: nos dois casos a tela diz como gerar.
+ */
 export function loadParallelCandidates(
   path: string = PARALLEL_CANDIDATES_PATH,
 ): ParallelCandidatesFile | null {
   if (!existsSync(path)) return null
-  return fileSchema.parse(JSON.parse(readFileSync(path, 'utf8')))
+  const lido = fileSchema.safeParse(JSON.parse(readFileSync(path, 'utf8')))
+  return lido.success ? lido.data : null
 }
 
 export function saveParallelCandidates(

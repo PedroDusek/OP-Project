@@ -139,18 +139,6 @@ async function runImport(
 
   const variants = await commonArtVariants(prisma, prices)
 
-  let unknownCodes = 0
-  const aGravar: { variantId: bigint; value: number }[] = []
-
-  for (const price of prices) {
-    const variantId = variants.get(price.cardCode.toUpperCase())
-    if (variantId === undefined) {
-      unknownCodes++
-      continue
-    }
-    aGravar.push({ variantId, value: price.value })
-  }
-
   /*
    * As artes vinculadas a mao ou por regra (decisao 053). Sem vinculo, uma
    * paralela nao tem preco: o codigo identifica a carta, nao a arte, e a fonte
@@ -158,6 +146,7 @@ async function runImport(
    */
   const linked = await linkedVariants(prisma, provider.name)
   let linkedPriced = 0
+  const aGravar: { variantId: bigint; value: number }[] = []
 
   // Os demais produtos entram so aqui, pelo vinculo: sem ele nao ha arte nossa
   // para receber o preco (decisao 072).
@@ -167,6 +156,22 @@ async function runImport(
     if (variantId === undefined) continue
     aGravar.push({ variantId, value: art.value })
     linkedPriced++
+  }
+
+  // A normal com vinculo manual a outro produto — a promo `P-` que o TCGplayer
+  // vende com nome de evento (decisao 077) — fica com o preco dele, e nao com o
+  // da arte comum: dois precos no mesmo instante seriam um so por acaso.
+  const precoPeloVinculo = new Set(aGravar.map((item) => String(item.variantId)))
+  let unknownCodes = 0
+
+  for (const price of prices) {
+    const variantId = variants.get(price.cardCode.toUpperCase())
+    if (variantId === undefined) {
+      unknownCodes++
+      continue
+    }
+    if (precoPeloVinculo.has(String(variantId))) continue
+    aGravar.push({ variantId, value: price.value })
   }
 
   const latest = await latestValues(prisma, aGravar.map((item) => item.variantId))

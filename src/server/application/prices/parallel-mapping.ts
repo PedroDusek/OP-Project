@@ -1,5 +1,6 @@
 import { NotFoundError, ValidationError } from '@/server/domain/errors'
 import { validateManualLinks, type ManualLink } from '@/server/domain/prices/manual-links'
+import { MANTIDO_CONTRA_A_LIGA } from '@/server/domain/prices/parallel-candidates'
 import {
   loadManualLinks,
   MANUAL_LINKS_PATH,
@@ -52,13 +53,14 @@ export interface MappingView {
   /** Quantas respostas o arquivo manual já tem, para a tela mostrar o progresso. */
   answered: number
   /**
-   * As respostas já gravadas, por `source_id`: o produto, ou `null` para "não tem".
+   * As respostas já gravadas, por `source_id`: o produto, ou `null` para "não
+   * tem", e a nota.
    *
    * O levantamento é um retrato de quando foi gerado, e não sabe do que se gravou
    * depois. Sem isto, a tela mostraria em branco uma carta já respondida, e
    * gravar de novo apagaria a resposta anterior sem a pessoa vê-la.
    */
-  answers: Record<string, string | null>
+  manual: Record<string, { produto: string | null; nota?: string }>
 }
 
 export function readMapping(
@@ -69,7 +71,9 @@ export function readMapping(
   return {
     candidates: loadParallelCandidates(paths.candidates ?? PARALLEL_CANDIDATES_PATH),
     answered: manual.length,
-    answers: Object.fromEntries(manual.map((link) => [link.variante, link.produto])),
+    manual: Object.fromEntries(
+      manual.map((link) => [link.variante, { produto: link.produto, ...(link.nota ? { nota: link.nota } : {}) }]),
+    ),
   }
 }
 
@@ -88,13 +92,19 @@ export interface RecordResult {
  *
  * ## Confere contra o levantamento, e não confia no formulário
  *
- * Cada arte tem de ser uma paralela pendente **daquela carta**, e cada produto um
- * produto da fonte **daquela carta**. Um formulário adulterado — ou só uma tela
+ * Cada arte tem de ser uma arte **daquela carta** no levantamento, e cada produto
+ * um produto da fonte **daquela carta**. Um formulário adulterado — ou só uma tela
  * aberta desde antes de um levantamento novo — não grava vínculo que a importação
  * depois recusaria, e o erro aparece aqui, com o nome do que não fechou.
  *
  * Substitui as respostas anteriores das mesmas artes, e não acrescenta: mudar de
  * ideia sobre uma carta é gravar de novo.
+ *
+ * ## Manter contra a Liga é resposta
+ *
+ * A arte em que a página da Liga aponta outro produto e a pessoa escolhe um
+ * diferente do sugerido ganha a nota `MANTIDO_CONTRA_A_LIGA`: sem ela, a arte
+ * voltaria à tela a cada levantamento (decisão 077).
  */
 export function recordCardMapping(
   cardCode: string,
@@ -111,15 +121,15 @@ export function recordCardMapping(
   const carta = levantamento?.cartas.find((c) => c.cardCode === cardCode)
   if (!carta) throw new NotFoundError(`A carta ${cardCode} não está no levantamento atual.`)
 
-  const artes = new Set(carta.ours.map((art) => art.sourceId))
+  const artes = new Map(carta.ours.map((art) => [art.sourceId, art]))
   const produtos = new Set(carta.theirs.map((art) => art.productId))
 
   for (const answer of answers) {
     if (!artes.has(answer.sourceId)) {
-      throw new ValidationError(`A arte ${answer.sourceId} não é uma paralela pendente de ${cardCode}.`)
+      throw new ValidationError(`A arte ${answer.sourceId} não é de ${cardCode} no levantamento.`)
     }
     if (answer.productId !== null && !produtos.has(answer.productId)) {
-      throw new ValidationError(`O produto ${answer.productId} não é uma arte de ${cardCode} na fonte.`)
+      throw new ValidationError(`O produto ${answer.productId} não é de ${cardCode} na fonte.`)
     }
   }
 
@@ -128,9 +138,14 @@ export function recordCardMapping(
   const respondidas = new Set(answers.map((answer) => answer.sourceId))
   const mantidas = anteriores.filter((link) => !respondidas.has(link.variante))
   const novas: ManualLink[] = answers.map((answer) => {
+    const sugestao = artes.get(answer.sourceId)!.sugestao
+    if (sugestao !== null && answer.productId !== sugestao) {
+      return { variante: answer.sourceId, produto: answer.productId, nota: MANTIDO_CONTRA_A_LIGA }
+    }
     // A nota e de quem escreveu o porque; regravar a mesma resposta nao a apaga.
     const antes = anteriores.find((link) => link.variante === answer.sourceId)
-    const nota = antes && antes.produto === answer.productId ? antes.nota : undefined
+    const nota =
+      antes && antes.produto === answer.productId && antes.nota !== MANTIDO_CONTRA_A_LIGA ? antes.nota : undefined
     return { variante: answer.sourceId, produto: answer.productId, ...(nota ? { nota } : {}) }
   })
 

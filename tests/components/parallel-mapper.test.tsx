@@ -41,33 +41,51 @@ afterEach(() => {
  * formato que o caso de uso confere.
  */
 
+const arte = (sourceId: string, rarity: string, imageUrl: string | null, extra: Partial<ParallelCandidate['ours'][number]> = {}) => ({
+  sourceId,
+  variantType: 'Parallel' as const,
+  rarity,
+  imageUrl,
+  motivo: 'sem-vinculo' as const,
+  atual: null,
+  liga: null,
+  sugestao: null,
+  ...extra,
+})
+
+const produto = (productId: string, label: string, value: number | null, extra: Partial<ParallelCandidate['theirs'][number]> = {}) => ({
+  productId,
+  label,
+  value,
+  groupCode: null,
+  dono: null,
+  ...extra,
+})
+
 const nami: ParallelCandidate = {
   cardCode: 'OP01-016',
   cardName: 'Nami',
   setCode: 'OP01',
   ours: [
-    { sourceId: 'OP01-016_p1', rarity: 'R', imageUrl: 'https://en.onepiece-cardgame.com/images/cardlist/card/OP01-016_p1.png' },
-    { sourceId: 'OP01-016_p2', rarity: 'SR', imageUrl: null },
+    arte('OP01-016_p1', 'R', 'https://en.onepiece-cardgame.com/images/cardlist/card/OP01-016_p1.png'),
+    arte('OP01-016_p2', 'SR', null),
   ],
-  theirs: [
-    { productId: '100', label: 'Alternate Art', value: 12.5 },
-    { productId: '101', label: 'Manga', value: null },
-  ],
+  theirs: [produto('100', 'Alternate Art', 12.5), produto('101', 'Manga', null)],
 }
 
 const zoro: ParallelCandidate = {
   cardCode: 'OP01-001',
   cardName: 'Roronoa Zoro',
   setCode: 'OP01',
-  ours: [{ sourceId: 'OP01-001_p1', rarity: 'L', imageUrl: null }],
-  theirs: [{ productId: '200', label: 'Parallel', value: 614.28 }],
+  ours: [arte('OP01-001_p1', 'L', null)],
+  theirs: [produto('200', 'Parallel', 614.28)],
 }
 
 const linha = (sourceId: string) => screen.getByRole('group', { name: `Qual produto é a arte ${sourceId}` })
 
 describe('o pareamento de uma carta', () => {
   it('mostra cada arte nossa com os produtos da fonte, tratamento e preço', () => {
-    render(<ParallelMapper cartas={[nami]} answers={{}} />)
+    render(<ParallelMapper cartas={[nami]} manual={{}} />)
 
     const p1 = within(linha('OP01-016_p1'))
     expect(p1.getByRole('img', { name: 'Arte OP01-016_p1' })).toBeInTheDocument()
@@ -80,7 +98,7 @@ describe('o pareamento de uma carta', () => {
 
   /* O CDN do TCGplayer nao passa pelo otimizador: a miniatura e o endereco direto. */
   it('usa a miniatura da fonte', () => {
-    const { container } = render(<ParallelMapper cartas={[nami]} answers={{}} />)
+    const { container } = render(<ParallelMapper cartas={[nami]} manual={{}} />)
 
     const miniaturas = [...container.querySelectorAll('img')].map((img) => img.getAttribute('src'))
     expect(miniaturas).toContain('https://tcgplayer-cdn.tcgplayer.com/product/100_200w.jpg')
@@ -88,7 +106,7 @@ describe('o pareamento de uma carta', () => {
 
   it('desabilita nas outras linhas o produto que uma arte já escolheu', async () => {
     const user = userEvent.setup()
-    render(<ParallelMapper cartas={[nami]} answers={{}} />)
+    render(<ParallelMapper cartas={[nami]} manual={{}} />)
 
     await user.click(within(linha('OP01-016_p1')).getByRole('radio', { name: /alternate art/i }))
 
@@ -101,14 +119,14 @@ describe('o pareamento de uma carta', () => {
   })
 
   it('não deixa gravar sem escolha nenhuma', () => {
-    render(<ParallelMapper cartas={[nami]} answers={{}} />)
+    render(<ParallelMapper cartas={[nami]} manual={{}} />)
 
     expect(screen.getByRole('button', { name: /gravar 0 respostas/i })).toBeDisabled()
   })
 
   it('manda a carta e a escolha de cada arte para a ação', async () => {
     const user = userEvent.setup()
-    render(<ParallelMapper cartas={[nami]} answers={{}} />)
+    render(<ParallelMapper cartas={[nami]} manual={{}} />)
 
     await user.click(within(linha('OP01-016_p1')).getByRole('radio', { name: /manga/i }))
     await user.click(within(linha('OP01-016_p2')).getByRole('radio', { name: /não tem na fonte/i }))
@@ -128,7 +146,7 @@ describe('o pareamento de uma carta', () => {
       message: 'O produto 100 não é uma arte de OP01-016 na fonte.',
     } as never)
     const user = userEvent.setup()
-    render(<ParallelMapper cartas={[nami]} answers={{}} />)
+    render(<ParallelMapper cartas={[nami]} manual={{}} />)
 
     await user.click(within(linha('OP01-016_p1')).getByRole('radio', { name: /alternate art/i }))
     await user.click(screen.getByRole('button', { name: /gravar 1 resposta/i }))
@@ -141,7 +159,7 @@ describe('o que já foi respondido', () => {
   /* Sem isto, gravar de novo apagaria a resposta anterior sem a pessoa ve-la. */
   it('volta preenchido com a resposta gravada', async () => {
     const user = userEvent.setup()
-    render(<ParallelMapper cartas={[nami]} answers={{ 'OP01-016_p1': '101' }} />)
+    render(<ParallelMapper cartas={[nami]} manual={{ 'OP01-016_p1': { produto: '101' } }} />)
 
     expect(within(linha('OP01-016_p1')).getByRole('radio', { name: /manga/i })).toBeChecked()
     expect(within(linha('OP01-016_p2')).getByRole('radio', { name: /manga/i })).toBeDisabled()
@@ -160,7 +178,7 @@ describe('o que já foi respondido', () => {
     render(
       <ParallelMapper
         cartas={[nami, zoro]}
-        answers={{ 'OP01-016_p1': '100', 'OP01-016_p2': null }}
+        manual={{ 'OP01-016_p1': { produto: '100' }, 'OP01-016_p2': { produto: null } }}
       />,
     )
 
@@ -175,8 +193,51 @@ describe('o que já foi respondido', () => {
   })
 
   it('diz quando não falta nenhuma', () => {
-    render(<ParallelMapper cartas={[zoro]} answers={{ 'OP01-001_p1': '200' }} />)
+    render(<ParallelMapper cartas={[zoro]} manual={{ 'OP01-001_p1': { produto: '200' } }} />)
 
+    expect(screen.getByText('Nenhuma carta falta')).toBeInTheDocument()
+  })
+})
+
+describe('o que a linha diz (decisão 077)', () => {
+  /* A OP01-052: a p1 estava no Jolly Roger Foil, e a pagina da Liga dela e o Event Pack. */
+  const raizo: ParallelCandidate = {
+    cardCode: 'OP01-052',
+    cardName: 'Raizo',
+    setCode: 'OP01',
+    ours: [
+      arte('OP01-052_p1', 'UC', null, {
+        motivo: 'liga-sugere-outro',
+        atual: { productId: 'jr', origin: 'manual' },
+        liga: { url: 'https://www.ligaonepiece.com.br/?view=cards/card&ed=PC-01&num=OP01-052-EP', tratamento: 'event pack vol 2' },
+        sugestao: 'ep',
+      }),
+      arte('OP01-052_p3', 'UC', null),
+    ],
+    theirs: [
+      produto('jr', 'Jolly Roger Foil', 0.17, { groupCode: 'PRB-01', dono: 'OP01-052_p1' }),
+      produto('ep', 'Event Pack Vol. 2', 0.34, { groupCode: 'OP-PR' }),
+    ],
+  }
+
+  it('mostra o vínculo de hoje, a Liga, o que ela aponta e o dono de cada produto', () => {
+    render(<ParallelMapper cartas={[raizo]} manual={{ 'OP01-052_p1': { produto: 'jr' } }} />)
+    const p1 = within(linha('OP01-052_p1'))
+    const p3 = within(linha('OP01-052_p3'))
+
+    expect(p1.getByText('A Liga aponta outro produto')).toBeInTheDocument()
+    expect(p1.getByText('Jolly Roger Foil · PRB-01 (manual)')).toBeInTheDocument()
+    expect(p1.getByRole('link', { name: 'página conferida' })).toHaveAttribute('href', raizo.ours[0].liga!.url)
+    expect(p1.getByRole('radio', { name: /event pack vol\. 2.*a liga aponta/i })).toBeInTheDocument()
+    expect(p3.getByRole('radio', { name: /jolly roger foil.*de OP01-052_p1/i })).toBeInTheDocument()
+    expect(p3.getByRole('link', { name: 'produto ep no TCGplayer' })).toHaveAttribute(
+      'href',
+      'https://www.tcgplayer.com/product/ep',
+    )
+  })
+
+  it('a resposta que aceita a sugestão tira a carta de "Faltam"', () => {
+    render(<ParallelMapper cartas={[raizo]} manual={{ 'OP01-052_p1': { produto: 'ep' }, 'OP01-052_p3': { produto: 'jr' } }} />)
     expect(screen.getByText('Nenhuma carta falta')).toBeInTheDocument()
   })
 })
@@ -192,7 +253,7 @@ describe('a página', () => {
   })
 
   it('diz como gerar o levantamento quando ele falta', async () => {
-    readMapping.mockReturnValue({ candidates: null, answered: 0, answers: {} })
+    readMapping.mockReturnValue({ candidates: null, answered: 0, manual: {} })
     const { default: ParalelasPage } = await import('@/app/dev/paralelas/page')
 
     render(ParalelasPage())
@@ -205,7 +266,7 @@ describe('a página', () => {
     readMapping.mockReturnValue({
       candidates: { geradoEm: '2026-09-13T21:25:10.939Z', cartas: [nami, zoro] },
       answered: 3,
-      answers: {},
+      manual: {},
     })
     const { default: ParalelasPage } = await import('@/app/dev/paralelas/page')
 

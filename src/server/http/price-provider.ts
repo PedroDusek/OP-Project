@@ -76,6 +76,8 @@ export interface SourceCommonArt {
   cardCode: string
   /** O id do produto na fonte, como texto. */
   productId: string
+  /** O grupo onde a arte comum escolhida saiu: `OP01`, `ST-01`. */
+  groupCode?: string | null
 }
 
 export interface PriceSnapshot {
