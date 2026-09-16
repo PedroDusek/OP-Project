@@ -1,4 +1,4 @@
-# Handoff — estado em 10/09/2026
+# Handoff — estado em 16/09/2026
 
 Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
 
@@ -7,9 +7,9 @@ Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
 1. `npm run dev` — **sempre reinicie**. O servidor guarda o cliente Prisma que
    carregou ao subir, e três migrations entraram em 10/09 —
    `concluir_a_troca`, `trade_binder_publico` e `troca_ao_vivo` (armadilha 40).
-2. `npm run supabase status` — mostra o que produção tem e o que falta. Hoje
-   ela está **seis migrations atrás**.
-3. Leia "Produção, em 10/09/2026" e "Próximo passo", abaixo.
+2. `npm run supabase status` — mostra o que produção tem e o que falta. Em
+   16/09 ela ficou **em dia: 15 de 15 migrations**.
+3. Leia "Produção, em 16/09/2026" e "Próximo passo", abaixo.
 
 O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 
@@ -19,7 +19,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 69 PRs mergeados, CI verde em todos |
+| Branch | `main`, 94 PRs mergeados, CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -42,7 +42,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 13 concluídos.** 1.319 testes de unidade, integração e
+**Checkpoints 0 a 13 concluídos.** 1.343 testes de unidade, integração e
 componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -85,27 +85,33 @@ componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 | — | Tela `/dev/liga/repetidas`: as 86 artes (42 cartas) que a Liga deixa iguais e travam o vínculo (decisão 073) |
 | — | Sinônimos entre a Liga e o TCGplayer — SPR, Pandaman, Extended Art, Reprint PRB-01 (decisão 074) |
 | — | Tela `/dev/liga/conflitos`: os 15 vínculos que discordam da Liga, para decidir caso a caso (decisão 074) |
+| — | `-E-PAR`, edição e colchetes da Liga separam artes; pré-lançamento e reimpressão de outra edição (decisão 075) |
+| — | A normal tem o preço do grupo da coleção do código, e não de uma reimpressão: 133 normais corrigidas (decisão 076) |
+| — | `/dev/paralelas` mostra a carta inteira e pergunta o que a Liga contradiz; "Sem cartas vendidas" na página da carta (decisão 077) |
+| — | Revisão do dono do produto: 777 respostas manuais, 1.642 de 1.646 paralelas com vínculo |
+| — | Com dois acabamentos (Normal e Foil), vale o preço Normal (decisão 078) |
 
-### Preços em produção, em 15/09/2026
+### Produção, em 16/09/2026
 
-`npm run supabase prices` rodado a pedido do dono do produto, logo depois da
-decisão 072: **3.949 variantes com preço** (eram 3.315), 704 vínculos novos pela
-Liga. As migrations continuam **seis atrás** — o comando de preço não depende
-delas, e o agendamento diário vinha gravando normalmente com esse atraso.
+**Em dia: 15 de 15 migrations.** As seis que faltavam desde 10/09 — `convite_de_troca`,
+`revisao_apos_alteracao`, `nome_de_usuario`, `concluir_a_troca`,
+`trade_binder_publico` e `troca_ao_vivo` — entraram em 16/09 com
+`npm run supabase migrate`, a pedido do dono do produto. A única destrutiva
+(`trade_binder_publico` apaga `storage_locations.public_token`) foi conferida
+antes: produção tinha **zero usuários e zero locais**.
 
-### Produção, em 10/09/2026
+Preços, depois da `npm run supabase prices` das 15:33 UTC de 16/09, com os
+arquivos de dados do `main`:
 
-> **Produção está SEIS migrations atrás: 9 de 15** (medido em 10/09). Faltam
-> `convite_de_troca`, `revisao_apos_alteracao`, `nome_de_usuario`,
-> `concluir_a_troca`, `trade_binder_publico` e `troca_ao_vivo`. **Publicar o
-> `main` atual sem rodar `npm run supabase migrate` derruba Trocas, a conta e o
-> link público do Trade Binder**, com `Cannot read properties of undefined`. É a
-> primeira coisa a resolver antes de qualquer publicação. Produção tem **zero
-> usuários**, então o atraso ainda não quebrou a tela de ninguém.
+| | |
+|---|---:|
+| Normais com preço | **2.785 de 2.785** |
+| Paralelas com vínculo | **1.642 de 1.646** (as 4 restantes respondidas "não tem na fonte") |
+| Paralelas com preço | 1.548 — as outras 94 têm produto sem venda, e a página diz "Sem cartas vendidas" |
+| Vínculos manuais aplicados | 773, mais 4 "não tem na fonte" |
 
-Catálogo e preços estão certos e iguais ao local: 2.785 cartas, 4.431 variantes,
-60 sets, 4.834 impressões, **3.170 variantes com preço** — 2.692 artes comuns
-por regra e 478 paralelas por vínculo. Cotação PTAX de 08/09 (USD/BRL 5,0856).
+Catálogo igual ao local: 2.785 cartas, 4.431 variantes, 60 sets, 4.834
+impressões. Cotação PTAX de 15/09 (USD/BRL 5,149).
 
 `npm run supabase status` compara as migrations com o repositório, diz quais
 faltam e mostra o estado dos preços. **É o comando a rodar antes de publicar** —
@@ -582,42 +588,49 @@ Três coisas para não desfazer sem querer:
 banco — que é o que acontece quando a pessoa espera de verdade. Dormir cinco
 segundos por teste custaria mais de um minuto na suíte sem provar nada a mais.
 
-## A tela de mapeamento das paralelas (decisão 068)
+## A tela de mapeamento das paralelas (decisões 068 e 077)
 
-Construída em 13/09. **`/dev/paralelas`**, só fora de produção: as nossas artes
-(Bandai, via `CardArt`) numa linha, os produtos da fonte ao lado — miniatura,
-tratamento e preço —, mais "não tem na fonte" e "deixar para depois". Gravar
-escreve `data/vinculos-manuais.json`; **a tela não escreve no banco**, quem
-aplica é a importação de preço.
+**`/dev/paralelas`**, só fora de produção. Desde 16/09 (decisão 077) a carta entra
+**inteira**: todas as artes, e todos os produtos da fonte com grupo, preço, link
+do TCGplayer e quem segura cada um. Por arte: o motivo, o vínculo de hoje
+(manual/automático), a página conferida na Liga e o produto que ela aponta.
+Gravar escreve `data/vinculos-manuais.json`; **a tela não escreve no banco**,
+quem aplica é a importação de preço.
+
+Três motivos de pergunta: paralela **sem vínculo**; **a Liga aponta outro
+produto** (`ligaSuggestion`, de qualquer origem — o manual também erra); **normal
+sem preço**. Manter contra a Liga grava a nota `revisado: mantido contra a
+sugestão da Liga`, e a arte não volta.
 
 Para usar:
 
 1. `npm run paralelas:candidatos` — ~2 min, 174 pedidos ao tcgcsv. Roda o vínculo
    no banco **local** e grava `paralelas-candidatas.json` (derivado, fora do Git).
-2. `npm run dev` e abra `/dev/paralelas`. O filtro "Faltam" esconde a carta cujas
-   artes já têm todas resposta no arquivo.
-3. Commit do `data/vinculos-manuais.json` num PR. `npm run prices:import` aplica
-   no local; `npm run supabase prices` leva a produção.
+   **Rode de novo depois de mexer na tabela da Liga ou no arquivo manual**: uma
+   resposta libera produto, e a Liga da irmã pode passar a apontar para ele.
+2. `npm run dev` e abra `/dev/paralelas`. Abre na primeira coleção — todas de uma
+   vez eram 26 mil elementos. "Faltam" esconde o que já tem resposta.
+3. PR com `data/vinculos-manuais.json`; `npm run prices:import` aplica no local e
+   `npm run supabase prices` leva a produção.
 
-**Levantamento de 13/09**: **287 cartas pendentes, 753 artes nossas sem par** —
-batendo com as 287 ambíguas da decisão 068. O arquivo manual continua vazio: o
-mapeamento em si é julgamento do dono do produto.
+**Em 16/09: nenhuma pergunta sem resposta.** O dono do produto respondeu duas
+rodadas (PRs #92 e #93); o levantamento seguinte só lista cartas já respondidas.
 
 Coisas para não desfazer sem querer:
 
 - **A recusa fora de desenvolvimento está no caso de uso** (`mappingAvailable()`),
-  e não só na página: a ação pode ser chamada direto. Ela é `NotFoundError`, o
-  mesmo que a página responde.
+  e não só na página: a ação pode ser chamada direto.
 - **O caso de uso lança erro da taxonomia**, e não `Error` puro: a ação só mostra
-  mensagem de `AppError`, e "produto 100 dado a duas artes" viraria "erro interno".
-- **A tela volta preenchida com as respostas gravadas** (`readMapping().answers`).
-  O levantamento é um retrato de quando foi gerado; sem isso, regravar uma carta
-  apagaria a resposta anterior sem a pessoa vê-la.
+  mensagem de `AppError`.
+- **A tela lê as respostas do arquivo de agora** (`readMapping().manual`) e decide
+  o que falta com `candidateAnswered`: o levantamento é um retrato.
 - **A miniatura da fonte é `<img>` puro.** O CDN do TCGplayer não está em
-  `images.remotePatterns`, e abrir o otimizador de produção a um host novo por
-  uma tela de desenvolvimento não compensa.
-- **Sem sessão**: não há dado de pessoa, e o que ela grava só chega a algum lugar
-  passando por PR.
+  `images.remotePatterns`.
+- **Produto da normal numa paralela.** Em 12 cartas o dono do produto deu à `_p2`
+  (a reimpressão da PRB-01, lida como a carta original) o produto da própria
+  normal. A normal mantém o preço, mas fica sem o botão "Veja no TCGplayer": o
+  índice único de `variant_source_products` dá um dono por produto. Mostrar nas
+  duas exigiria mudar o modelo, e o dono escolheu deixar como está.
 
 ## Próximo passo
 
@@ -737,16 +750,20 @@ Duas coisas que valem saber ao testar:
 
 ## O que falta em preços e no vínculo
 
-- **Mapear as 287 cartas ambíguas.** Eram 351; a dedução por raridade (decisão
-  068) resolveu parte, e as paralelas com preço foram de 478 para 623 no banco
-  local. O que sobra só o olho resolve — qual é a *Alternate Art* e qual é a
-  *Manga*. O resultado vai para `data/vinculos-manuais.json`, versionado, que a
-  importação de preço aplica como `manual` em qualquer ambiente. A tela
-  `/dev/paralelas` existe desde 13/09; falta usá-la.
-  **Produção ainda não tem os 145 vínculos novos**: chegam na próxima
-  `npm run supabase prices`.
-- **168 cartas com paralela que a fonte não oferece.** Não há produto para
-  vincular; ficam sem preço e sem arte na folha em JPEG até a fonte listá-las.
+Em 16/09, depois da auditoria de todas as artes contra a Liga e o TCGplayer:
+
+- **Nada pendente de mapeamento.** Normais 2.785/2.785 com preço; paralelas
+  1.642/1.646 com vínculo.
+- **4 paralelas sem produto na fonte**, respondidas "não tem na fonte":
+  `OP02-041_p2`, `OP05-076_p4`, `OP10-107_p3`, `OP11-041_p2`.
+- **94 paralelas com produto e sem venda.** Ganham preço sozinhas quando alguém
+  vender; a página diz "Sem cartas vendidas no TCGplayer."
+- **A diferença de preço entre o site e o TCGplayer** não é defeito: usamos o
+  *preço de mercado* (média das vendas) do espelho de ontem, 20:00 UTC; a página
+  do TCGplayer destaca a *oferta mais barata* de agora. A Zoro `OP01-001`
+  mostrava 8,30 contra 7,84, e os dois números estavam no mesmo arquivo da fonte:
+  `marketPrice` e `lowPrice` do mesmo produto — que era, então, o do `OP-DD`
+  (corrigido pela 076).
 
 ## O link da Liga — conferência coleção a coleção (decisão 071)
 
@@ -790,8 +807,8 @@ O que a conferência ensinou sobre a Liga, para quem for mexer:
   `ST06-004B` (os Smoker).
 - **40 normais da EB01 foram geradas** pelo modelo das conferidas, com nota.
 
-Para revisar: a normal `OP01-029` aponta para `OP01-029-RE`, a reimpressão da
-PRB — a normal da OP01 deve ter página própria em `OP-01`.
+A normal `OP01-029`, que apontava para a reimpressão da PRB, foi corrigida pelo
+dono do produto em 15/09 para a página própria em `OP-01`.
 
 A tela passou a recusar o endereço colado duas vezes: ele passava por válido e
 entrou assim na `OP06-093_p5`.
@@ -808,15 +825,13 @@ nota que tira a arte dela.
 correta, 1 trocada** (`OP01-006_p3`). A leitura pela decisão 052 estava errada
 nesses casos, e isso tem consequência para o TCGplayer: as 30 que tinham vínculo
 automático apontam para a **Pirate Foil**, e não para a `(Reprint)` que a Liga
-confirma — esses vínculos de preço precisam ser revistos antes da regra automática.
+confirma. Resolvido pela instrução do dono do produto: a `(Reprint)` da PRB vale a
+Pirate Foil (PRB-02) ou a Jolly Roger Foil (PRB-01) no preço (decisões 072 e 074).
 
-**Para revisar: 34 páginas da Liga compartilhadas por 2 ou 3 artes.** Parte pode
-ser a Liga juntando versões que a Bandai separa (as `-TF` da PRB); parte parece
-engano, quando a normal e uma paralela caem na mesma página (`OP01-006` e `_p3`,
-`OP01-029` e `_p2`, `ST01-006` e `_p6`, `ST01-014` e `_p2`, `ST04-010` e `_p1`,
-`OP14-014` e `_p3`, `EB04-028` e `_p2`, `P-055`, `P-075`, `P-078`). A regra de
-vínculo com o TCGplayer não pode dar um produto a duas artes (índice único em
-`variant_source_products`), então essas precisam de decisão antes dela.
+**As páginas compartilhadas por duas artes foram resolvidas** em 15 e 16/09, em
+`/dev/liga/repetidas`: o dono do produto corrigiu os endereços, e a regra passou a
+separar pelo `-E-PAR`, pela edição e pelos colchetes (`[Winner]`) (decisão 075).
+A tela está vazia.
 
 Três coisas para não desfazer sem querer:
 
