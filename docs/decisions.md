@@ -2571,6 +2571,9 @@ valores reais de duas impressões reais, e o nosso modelo guarda uma variante s�
 O `ST01-001 Monkey.D.Luffy` cota 18,52 e 9,93 — a diferença não é
 arredondamento. São 5 cartas.
 
+> **Mudado pela decisão 078** (16/09/2026): com os dois acabamentos, vale o preço
+> `Normal`.
+
 ## O que fica sem preço, e por quê
 
 Medido sobre as 2.785 cartas do catálogo:
@@ -5095,6 +5098,45 @@ página da carta diz **"Sem cartas vendidas no TCGplayer."**, e os links continu
 paralelas sem vínculo e 10 em que a Liga aponta outro produto (`OP01-052_p1`,
 `OP02-106_p1`, `OP03-055_p2`, `OP03-056_p2`, `OP03-057_p2`, `OP03-094_p2`,
 `OP04-095_p3`, `OP05-069_p2`, `OP05-119_p2`, `OP06-056_p4`).
+
+## Data
+
+2026-09-16
+
+---
+
+# Decisão: 078 — Com dois acabamentos, vale o preço Normal
+
+**Muda o item 4 da decisão 050.** Aprovado pelo dono do produto em 16/09.
+
+## Contexto
+
+O TCGplayer cota o mesmo produto por acabamento — `Normal` e `Foil` —, e a 050
+não dava preço quando havia os dois: seria escolher entre duas impressões reais.
+Isso ficou escondido enquanto a normal pegava o preço de uma reimpressão; com a
+076, cinco normais das coleções antigas ficaram sem valor, e a página delas dizia
+"Sem cartas vendidas", o que não era verdade.
+
+| Carta | Normal | Foil |
+|---|---:|---:|
+| `OP01-068` Gecko Moria | US$ 0,23 | 0,31 |
+| `OP01-086` Overheat | 0,15 | 0,23 |
+| `OP02-040` Brook | 0,21 | 0,37 |
+| `OP02-041` Monkey.D.Luffy | 0,39 | 0,82 |
+| `OP03-115` Streusen | 0,09 | 0,16 |
+
+## Decisão
+
+Com uma cotação só, é ela — a impressão base de líder, SR e SEC é foil, e a
+cotação única dela continua valendo. Com `Normal` e `Foil`, vale a **`Normal`**,
+a impressão comum. Com dois acabamentos e nenhum `Normal`, fica sem preço (não
+acontece hoje).
+
+## Medido em 16/09/2026
+
+90 produtos da fonte têm as duas cotações, todos `Normal` + `Foil`. Na importação
+local, **8 variantes nossas** passaram a ter preço, todas normais: as cinco acima,
+`OP01-005`, `ST04-003` (US$ 0,36) e `P-043` (Convention Promo 2024, US$ 89,78).
 
 ## Data
 

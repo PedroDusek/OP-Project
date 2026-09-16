@@ -1,5 +1,6 @@
 import { commonArtByNumber, type SourceProduct } from '@/server/domain/prices/matching'
 import { normalProduct, type CommonCandidate } from '@/server/domain/prices/normal-product'
+import { marketPriceOf } from '@/server/domain/prices/finish'
 import { artProducts, treatmentOf } from '@/server/domain/prices/treatments'
 import type {
   KnownCardNames,
@@ -254,7 +255,7 @@ function hasNumber(product: SourceProduct): boolean {
 }
 
 /**
- * O preço de mercado por produto, quando há um só.
+ * O preço de mercado por produto (decisões 050 e 078).
  *
  * `subTypeName` é o **acabamento**, não a arte: o mesmo produto aparece como
  * `Normal` e como `Foil`. Em One Piece a impressão base de líder, SR e SEC é
@@ -262,30 +263,30 @@ function hasNumber(product: SourceProduct): boolean {
  * preço de 870 cartas cuja única cotação era a foil. A cobertura subiu de 64%
  * para 95% ao parar de fazer isso.
  *
- * Quando o mesmo produto tem cotação nos dois acabamentos, não há preço: são
- * dois valores reais de duas impressões reais, e o nosso modelo guarda uma
- * variante só. Escolher um seria inventar — o `ST01-001 Monkey.D.Luffy` cota
- * 18,52 e 9,93, e a diferença não é arredondamento. São 5 cartas.
+ * Com uma cotação só, é ela. Com as duas, vale a `Normal` (decisão 078): antes
+ * não havia preço, e as 5 normais das coleções antigas — a `OP02-041` cota 0,39
+ * e 0,82 — ficaram sem valor quando a 076 parou de dar a elas o preço de uma
+ * reimpressão.
  *
  * Sem preço de mercado o produto fica de fora: `lowPrice` é a oferta mais
  * barata de um vendedor, não o valor da carta.
  */
 function marketByProduct(prices: readonly Price[]): Map<number, number> {
-  const byProduct = new Map<number, number[]>()
+  const byProduct = new Map<number, { subType: string | null; value: number }[]>()
 
   for (const price of prices) {
     if (price.marketPrice === null || price.marketPrice <= 0) continue
-    const found = byProduct.get(price.productId)
-    if (found) found.push(price.marketPrice)
-    else byProduct.set(price.productId, [price.marketPrice])
+    const cotacao = { subType: price.subTypeName, value: price.marketPrice }
+    byProduct.set(price.productId, [...(byProduct.get(price.productId) ?? []), cotacao])
   }
 
-  const single = new Map<number, number>()
-  for (const [productId, values] of byProduct) {
-    if (values.length === 1) single.set(productId, values[0])
+  const market = new Map<number, number>()
+  for (const [productId, cotacoes] of byProduct) {
+    const value = marketPriceOf(cotacoes)
+    if (value !== null) market.set(productId, value)
   }
 
-  return single
+  return market
 }
 
 function delay(ms: number): Promise<void> {
