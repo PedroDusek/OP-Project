@@ -5000,3 +5000,49 @@ Depois da revisão do dono do produto, os dois grupos que sobraram (`P-001` e
 ## Data
 
 2026-09-15
+
+---
+
+# Decisão: 076 — A normal tem o preço do grupo da coleção do código
+
+Aprovado pelo dono do produto em 16/09, na auditoria dos vínculos.
+
+## Contexto
+
+O mesmo número sai em mais de um grupo do TCGplayer: a coleção original e cada
+produto que reimprime a carta. A importação ficava com a arte comum do **primeiro
+grupo** na ordem da fonte — que começa pelos lançamentos mais novos —, e isso não
+estava registrado em decisão nenhuma. Medido em 16/09, 133 normais tinham o preço
+de outro grupo:
+
+- a Zoro `OP01-001` com a do `OP-DD` (US$ 8,30), e não a do `OP01` (US$ 2,15);
+- a normal da `OP13-037` com a TR da `OP15-EB04`, **US$ 202**, porque o TCGplayer
+  escreve a TR sem tratamento no nome;
+- e as versões de starter deck dos líderes (`OP02-001` no ST-15) dando preço à
+  normal, enquanto a paralela delas ficava sem vínculo.
+
+## Decisão
+
+1. **A normal fica com a arte comum do grupo da coleção do código** — `OP01` para
+   `OP01-001`, `ST-01` para `ST01-011`; o evento da coleção (`ST-01 PRE`) não
+   conta. A imagem e o preço vêm dela.
+2. **Sem cotação nesse grupo, a normal fica sem preço.** Buscar o de outro grupo
+   traria a reimpressão de volta.
+3. **Sem o grupo da coleção** — as promos `P-`, que não nomeiam coleção —, vale a
+   regra de antes: a imagem do primeiro grupo e o preço do primeiro que tem.
+4. As artes comuns dos outros grupos ficam para as paralelas, pela regra da Liga.
+   Um produto que o arquivo manual já deu a uma paralela não é tomado pela normal.
+
+## Medido na importação local, em 16/09/2026
+
+- 133 normais trocaram de produto. As maiores quedas: `OP13-037` US$ 200,53 →
+  0,23, `ST18-004` 62,66 → 2,07, `OP12-108` 34,63 → 0,21; a `OP01-016` subiu de
+  0,72 para 5,85.
+- **27 paralelas ganharam vínculo** com os produtos liberados: a TR da `OP13-037`
+  (US$ 200,53), a da `ST18-004` (US$ 62,66), e 25 versões de starter deck
+  (`OP02-001_p2` no ST-15, `ST11-001_p1` no ST-16, …). A `OP01-016_p9` trocou a SP
+  da EB-05 pela Nami do ST-31.
+
+## Data
+
+2026-09-16

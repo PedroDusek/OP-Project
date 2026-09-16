@@ -1,4 +1,5 @@
 import { commonArtByNumber, type SourceProduct } from '@/server/domain/prices/matching'
+import { normalProduct, type CommonCandidate } from '@/server/domain/prices/normal-product'
 import { artProducts, treatmentOf } from '@/server/domain/prices/treatments'
 import type {
   KnownCardNames,
@@ -101,6 +102,7 @@ export class TcgCsvPriceProvider implements PriceProvider {
     const commonArts = new Map<string, SourceCommonArt>()
     const arts = new Map<string, SourceArtProduct>()
     const otherProducts = new Map<string, SourceArtProduct>()
+    const comunsPorNumero = new Map<string, CommonCandidate[]>()
 
     for (const group of groups.results) {
       const [products, quotes] = await Promise.all([
@@ -113,27 +115,14 @@ export class TcgCsvPriceProvider implements PriceProvider {
       const common = commonArtByNumber(cards, knownNames)
 
       for (const [number, product] of common) {
-        /*
-         * A arte comum entra aqui tenha preço ou não: sem cotação ela ainda
-         * serve de referência de imagem, e o primeiro grupo que a identifica
-         * manda, como no preço.
-         */
-        if (!commonArts.has(number)) {
-          commonArts.set(number, { cardCode: number, productId: String(product.productId) })
-        }
-
-        const value = market.get(product.productId)
-        if (value === undefined) continue
-
-        /*
-         * O mesmo número aparece em mais de um grupo — a coleção original e as
-         * reimpressões. Fica o primeiro, e os grupos vêm na ordem da fonte, que
-         * começa pelos lançamentos. Repetir a decisão a cada grupo faria o preço
-         * depender de qual arquivo chegou por último.
-         */
-        if (!prices.has(number)) {
-          prices.set(number, { cardCode: number, value, currency: 'USD' })
-        }
+        comunsPorNumero.set(number, [
+          ...(comunsPorNumero.get(number) ?? []),
+          {
+            productId: String(product.productId),
+            groupCode: group.abbreviation ?? group.name,
+            value: market.get(product.productId),
+          },
+        ])
       }
 
       /*
@@ -165,13 +154,13 @@ export class TcgCsvPriceProvider implements PriceProvider {
         /*
          * O resto dos produtos com numero — embalagem, reimpressao, colecao
          * premium, e a carta sem tratamento que saiu em outro grupo (a Nami do
-         * ST-31) —, para a regra da Liga (decisao 072). Fica de fora so a arte
-         * comum que da o preco da normal: ela ja tem dono.
+         * ST-31) —, para a regra da Liga (decisao 072). A arte comum de cada
+         * grupo entra tambem; a que ficar com o preco da normal sai no fim.
          */
         const ehArte = new Set(artesDaCarta.map((art) => art.productId))
         for (const outro of daCarta) {
           const id = String(outro.productId)
-          if (ehArte.has(outro.productId) || commonArts.get(number)?.productId === id) continue
+          if (ehArte.has(outro.productId)) continue
           if (otherProducts.has(id) || arts.has(id)) continue
 
           otherProducts.set(id, {
@@ -182,6 +171,22 @@ export class TcgCsvPriceProvider implements PriceProvider {
             groupCode: group.abbreviation ?? group.name,
           })
         }
+      }
+    }
+
+    /*
+     * A normal fica com a arte comum do grupo da colecao do codigo (decisao 076):
+     * a Zoro `OP01-001` e a do `OP01`, a US$ 2,15, e nao a reimpressao do `OP-DD`,
+     * a US$ 8,30. Sem esse grupo — as promos `P-`, ou a colecao sem a carta —,
+     * fica a primeira na ordem da fonte, como antes. Com a escolha feita, a
+     * arte comum sai dos demais produtos: ela ja tem dono.
+     */
+    for (const [number, candidatas] of comunsPorNumero) {
+      const escolhida = normalProduct(number, candidatas)
+      commonArts.set(number, { cardCode: number, productId: escolhida.productId })
+      otherProducts.delete(escolhida.productId)
+      if (escolhida.value !== null) {
+        prices.set(number, { cardCode: number, value: escolhida.value, currency: 'USD' })
       }
     }
 
