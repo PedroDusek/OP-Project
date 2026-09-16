@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto'
 import type { PrismaClient } from '@prisma/client'
 import type { AuthenticatedUser } from '@/server/application/auth'
 import { ConflictError } from '@/server/domain/errors'
-import { compareCatalogOrder, placementSet, type CatalogOrderKey } from '@/server/domain/catalog/order'
+import { readVisibleTradeStock, type VisibleTradeCard } from './trade-stock'
 
 /**
  * O Trade Binder publicado por link.
@@ -40,16 +40,8 @@ import { compareCatalogOrder, placementSet, type CatalogOrderKey } from '@/serve
 /** 24 bytes em base64url: 32 caracteres. Cabe na URL e não se adivinha. */
 const TOKEN_BYTES = 24
 
-export interface PublicBinderCard {
-  variantId: string
-  cardCode: string
-  cardName: string
-  rarity: string | null
-  variantType: string
-  imageUrl: string | null
-  /** Cópias disponíveis para troca, somadas entre todos os locais de troca. */
-  quantity: number
-}
+/** A carta como o link público a mostra: a mesma que a rede mostra (`trade-stock.ts`). */
+export type PublicBinderCard = VisibleTradeCard
 
 export interface PublicBinder {
   /** A única identidade que aparece (regra 6.1.1). */
@@ -176,72 +168,7 @@ export async function readPublicTradeBinder(
     return null
   }
 
-  const rows = await prisma.collectionItemLocation.findMany({
-    where: {
-      storageLocation: { userId: dono.id, purpose: 'TRADE' },
-      collectionItem: { collection: { userId: dono.id } },
-    },
-    select: {
-      quantity: true,
-      collectionItem: {
-        select: {
-          cardVariant: {
-            select: {
-              id: true,
-              sourceId: true,
-              variantType: true,
-              rarity: true,
-              imageUrl: true,
-              card: { select: { code: true, name: true } },
-              printings: { select: { set: { select: { code: true } } } },
-            },
-          },
-        },
-      },
-    },
-  })
-
-  const porVariante = new Map<string, { card: PublicBinderCard; order: CatalogOrderKey }>()
-
-  for (const row of rows) {
-    const variante = row.collectionItem.cardVariant
-    const chave = String(variante.id)
-    const achado = porVariante.get(chave)
-
-    // O conjunto e somado entre os locais: quem olha ve "3 copias", e nao
-    // "2 no binder e 1 na caixa" (decisao 064).
-    if (achado) {
-      achado.card.quantity += row.quantity
-      continue
-    }
-
-    porVariante.set(chave, {
-      order: {
-        cardCode: variante.card.code,
-        sourceId: variante.sourceId,
-        setCode: placementSet(variante.card.code, variante.printings.map((p) => p.set.code)),
-      },
-      card: {
-        variantId: chave,
-        cardCode: variante.card.code,
-        cardName: variante.card.name,
-        rarity: variante.rarity,
-        variantType: variante.variantType,
-        imageUrl: variante.imageUrl,
-        quantity: row.quantity,
-      },
-    })
-  }
-
-  // A mesma ordem do catalogo e da colecao — lancamento, promos no fim, e o
-  // codigo dentro do set (decisoes 040 e 069) —, porque e a ordem que quem joga
-  // ja aprendeu.
-  const cards = [...porVariante.values()]
-    .sort(
-      (a, b) =>
-        compareCatalogOrder(a.order, b.order) || (a.card.variantId < b.card.variantId ? -1 : 1),
-    )
-    .map((entrada) => entrada.card)
+  const cards = (await readVisibleTradeStock(prisma, [dono.id])).get(dono.id) ?? []
 
   return {
     username: dono.username,

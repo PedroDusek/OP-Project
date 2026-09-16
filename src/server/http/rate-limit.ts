@@ -108,3 +108,31 @@ export const EMAIL_SEND_LIMIT: RateLimitOptions = {
   limit: 3,
   windowMs: 15 * 60_000,
 }
+
+/**
+ * A rede: abrir a listagem e o Trade Binder de alguém (decisão 079).
+ *
+ * Folgada para quem navega — rolar a lista e abrir binders não chega perto —, e
+ * apertada o bastante para percorrer a base inteira levar tempo demais. Junto
+ * com o teto de páginas, é a contenção de raspagem que a decisão 060 pede. Não
+ * segura alguém determinado, e isso está escrito lá.
+ */
+export const NETWORK_READ_LIMIT: RateLimitOptions = {
+  limit: 60,
+  windowMs: 60_000,
+}
+
+/**
+ * Buscar quem tem uma carta. Mais apertada que a listagem: é o gesto que
+ * endereça uma carta específica, e o que serve à busca de alvo (decisão 060).
+ */
+export const NETWORK_SEARCH_LIMIT: RateLimitOptions = {
+  limit: 20,
+  windowMs: 60_000,
+}
+
+/** Denunciar. Denúncia é rara; muitas seguidas são abuso do próprio canal. */
+export const NETWORK_REPORT_LIMIT: RateLimitOptions = {
+  limit: 5,
+  windowMs: 60 * 60_000,
+}

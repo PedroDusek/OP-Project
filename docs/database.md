@@ -411,6 +411,37 @@ O formato espelha `collection_item_locations` de propósito: é a mesma pergunta
 
 ---
 
+### Rede
+
+Aprovadas pelo dono do produto em 16/09 (decisão 079), para a regra 6.1.4.
+
+**user_blocks**
+
+| Coluna | Tipo | Restrições |
+|---|---|---|
+| `id` | bigint | PK |
+| `blocker_id` | bigint | not null, FK users |
+| `blocked_id` | bigint | not null, FK users |
+| `created_at` | timestamptz | not null |
+
+`UNIQUE (blocker_id, blocked_id)`, `CHECK (blocker_id <> blocked_id)`.
+
+Numa direção só, como a regra: quem está bloqueado não aparece na rede para quem
+bloqueou. O contrário não vale.
+
+**user_reports**
+
+| Coluna | Tipo | Restrições |
+|---|---|---|
+| `id` | bigint | PK |
+| `reporter_id` | bigint | not null, FK users |
+| `reported_id` | bigint | not null, FK users |
+| `reason` | varchar(1000) | not null, não em branco |
+| `created_at` | timestamptz | not null |
+
+`CHECK (reporter_id <> reported_id)`, `CHECK (length(btrim(reason)) > 0)`. Lida
+por quem administra em `/admin/denuncias` (`ADMIN_EMAILS`).
+
 ## 2.6 O que vive em SQL bruto e o que vive no schema
 
 As migrations têm duas metades, e a divisão não é estética.
@@ -506,6 +537,8 @@ Analisada relação a relação, e não aplicada uniformemente.
 | `trade_item_origins.trade_item_id` | CASCADE | a origem pertence ao item da oferta |
 | `trade_item_origins.storage_location_id` | CASCADE | apagar o local apaga a origem que apontava para ele |
 | `trade_participants.user_id` | RESTRICT | protege o histórico; nunca dispara, porque contas são anonimizadas e não excluídas |
+| `user_blocks.blocker_id` / `blocked_id` | CASCADE | o bloqueio é preferência de uma pessoa sobre outra, e não sobrevive a nenhuma das duas |
+| `user_reports.reporter_id` / `reported_id` | RESTRICT | registro de moderação; como em trocas, contas são anonimizadas e não excluídas |
 
 ### 4.1 Exclusão de conta
 
@@ -569,6 +602,9 @@ seja rápida.
 | `trade_item_origins (trade_item_id, storage_location_id)` único | uma origem por local, por item |
 | `trade_item_origins (storage_location_id)` | apagar um local alcança as origens dele |
 | `users (lower(email))` único | autenticação |
+| `user_blocks (blocker_id, blocked_id)` único | a rede esconde quem quem olha bloqueou |
+| `user_blocks (blocked_id)` | apagar ou anonimizar alcança os bloqueios recebidos |
+| `user_reports (reported_id)`, `user_reports (created_at)` | denúncias contra alguém; as mais recentes primeiro |
 
 Toda listagem de catálogo e de coleção é paginada e filtrada no servidor. O
 catálogo completo nunca é carregado numa requisição.

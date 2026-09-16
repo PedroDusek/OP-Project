@@ -5141,3 +5141,64 @@ local, **8 variantes nossas** passaram a ter preço, todas normais: as cinco aci
 ## Data
 
 2026-09-16
+
+---
+
+# Decisão: 079 — A rede: listagem, busca, binder de outra pessoa, bloquear e denunciar
+
+Primeira etapa da aba Social. As regras são as da decisão 060 e da seção 6.1; o
+que segue são as escolhas do dono do produto em 16/09 e as de implementação.
+
+## Escolhas do dono do produto
+
+- **Etapas**: a rede primeiro; depois o convite direto a partir do binder de
+  alguém; depois o chat — "o site só organiza trocas físicas, então as pessoas
+  terão que interagir de qualquer forma".
+- **Bloqueio e denúncia em tabelas**, `user_blocks` e `user_reports` (modelo novo,
+  aprovado). A denúncia é lida numa tela de administrador, porque o SMTP próprio
+  ainda não existe; a decisão 060 falava em "endereço próprio do domínio", que
+  entra quando existir.
+- **Social direto**, sem a passada de design nos componentes antes. Ela ajusta a
+  Social junto com o resto quando vier.
+
+## Decisões de implementação
+
+1. **Quem aparece**: nome de usuário, conta ativa, ao menos uma cópia em local de
+   troca, não é quem olha, e não foi bloqueado por quem olha. O bloqueio é numa
+   direção só, como a regra 6.1.4 escreve.
+2. **Interesse** (o desempate da 6.1.3) é o número de **cartas diferentes** do
+   Trade Binder dela que quem olha ainda procura — o want que a coleção dele não
+   cobre. A ordem é feita no banco, numa consulta só, para paginar sem trazer a
+   rede para a memória.
+3. **A prévia** tem até sete cartas: com busca, as que casam primeiro; depois as
+   que quem olha procura; depois o resto na ordem do catálogo.
+4. **Páginas de dez pessoas, no máximo vinte páginas**: a lista cresce ao pedir
+   mais, e o teto é a profundidade máxima que a 060 pede.
+5. **Cotas por pessoa**: listagem e binder, 60 por minuto; busca, 20 por minuto;
+   denúncia, 5 por hora. Contadas em memória de processo — seguram abuso
+   acidental e script ingênuo, e não alguém determinado (060).
+6. **A busca** casa código ou nome da carta, a partir de duas letras, e devolve
+   quem tem alguma variante que casa. Busca ao enviar, e não a cada letra, para
+   não gastar a cota.
+7. **O binder de alguém** (`/social/<nome>`) mostra só o que o link público
+   mostra, pela mesma leitura (`readVisibleTradeStock`), com as cartas que quem
+   olha procura marcadas. Bloqueado, mostra só o aviso e o desbloquear. O próprio
+   nome manda para Trocas.
+8. **Administrador por e-mail**, na variável `ADMIN_EMAILS`: há uma pessoa nesse
+   papel, e uma coluna seria modelo novo para um caso. Sem a variável, ninguém
+   administra. Quem não administra recebe "não encontrado" em
+   `/admin/denuncias`.
+9. **A denúncia** exige motivo (até 1.000 caracteres). A pessoa denunciada não
+   fica sabendo quem denunciou.
+
+## O que fica para depois
+
+- Filtros dentro do binder de alguém (cor, raridade, set) — a busca por carta
+  cobre o caso mais comum.
+- Medir a consulta da ordem com rede grande (decisão 060), antes de ir ao ar.
+- Termos de Uso, Política de Privacidade e idade mínima continuam bloqueando o
+  lançamento da rede.
+
+## Data
+
+2026-09-16

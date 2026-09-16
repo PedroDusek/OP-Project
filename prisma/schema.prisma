@@ -69,6 +69,10 @@ model User {
   storageLocations  StorageLocation[]
   wantItems         WantItem[]
   tradeParticipants TradeParticipant[]
+  blocksMade        UserBlock[]         @relation("blocker")
+  blocksReceived    UserBlock[]         @relation("blocked")
+  reportsMade       UserReport[]        @relation("reporter")
+  reportsReceived   UserReport[]        @relation("reported")
 
   @@map("users")
 }
@@ -578,4 +582,50 @@ model TradeItemOrigin {
   @@unique([tradeItemId, storageLocationId])
   @@index([storageLocationId])
   @@map("trade_item_origins")
+}
+
+// --------------------------------------------------------------------- rede
+
+// Quem bloqueou quem (regra 6.1.4, decisao 079).
+//
+// Numa direcao so, como a regra diz: quem esta bloqueado nao aparece na rede
+// para quem bloqueou. O contrario nao vale — bloquear nao esconde quem bloqueou,
+// e presumir isso seria inventar regra.
+//
+// CASCADE nos dois lados: o bloqueio e uma preferencia de uma pessoa sobre
+// outra, e nao sobrevive a nenhuma das duas.
+model UserBlock {
+  id        BigInt   @id @default(autoincrement())
+  blockerId BigInt   @map("blocker_id")
+  blockedId BigInt   @map("blocked_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  blocker User @relation("blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("user_blocks")
+}
+
+// Uma denuncia de uma pessoa contra outra (regra 6.1.4, decisao 079).
+//
+// Guardada, e nao so enviada por e-mail: o dono do produto escolheu le-las numa
+// tela de administrador, e o SMTP proprio ainda nao existe.
+//
+// RESTRICT nos dois lados: e registro de moderacao, como os participantes de
+// uma troca. Uma conta sai por anonimizacao (decisao 015), e nunca apagada.
+model UserReport {
+  id         BigInt   @id @default(autoincrement())
+  reporterId BigInt   @map("reporter_id")
+  reportedId BigInt   @map("reported_id")
+  reason     String   @db.VarChar(1000)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  reporter User @relation("reporter", fields: [reporterId], references: [id], onDelete: Restrict)
+  reported User @relation("reported", fields: [reportedId], references: [id], onDelete: Restrict)
+
+  @@index([reportedId])
+  @@index([createdAt])
+  @@map("user_reports")
 }

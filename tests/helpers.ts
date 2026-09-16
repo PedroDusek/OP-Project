@@ -18,6 +18,8 @@ const TABLES_IN_TRUNCATION_ORDER = [
   // legivel ao lado do que elas servem.
   'exchange_rates',
   'price_imports',
+  'user_reports',
+  'user_blocks',
   'collection_item_locations',
   'collection_items',
   'want_items',
@@ -160,7 +162,8 @@ export async function allocate(
 export async function resetUserData(): Promise<void> {
   const db = testPrisma()
   await db.$executeRawUnsafe(
-    `TRUNCATE TABLE "trade_items", "trade_participants", "trades",
+    `TRUNCATE TABLE "user_reports", "user_blocks",
+       "trade_items", "trade_participants", "trades",
        "collection_item_locations", "collection_items", "want_items",
        "storage_locations", "collections", "users"
      RESTART IDENTITY CASCADE`,
