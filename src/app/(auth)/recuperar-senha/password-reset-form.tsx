@@ -12,6 +12,7 @@ import {
   SentToEmail,
   SubmitButton,
 } from '@/components/auth/form-parts'
+import { Captcha } from '@/components/auth/captcha'
 import { Input } from '@/components/ui/field'
 
 export function PasswordResetForm() {
@@ -63,6 +64,8 @@ export function PasswordResetForm() {
           />
           <FieldError id="email-error" messages={fields?.email} />
         </div>
+
+        <Captcha resetKey={state} />
 
         <SubmitButton>Enviar link</SubmitButton>
       </form>

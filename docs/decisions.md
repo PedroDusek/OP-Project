@@ -5509,3 +5509,52 @@ tela de administração.
 ## Data
 
 2026-09-17
+
+---
+
+# Decisão: 088 — CAPTCHA no entrar, no cadastrar e no recuperar senha, pelo Turnstile
+
+Aprovado pelo dono do produto em 17/09, depois da revisão de segurança (decisão
+085).
+
+## Contexto
+
+A confirmação de e-mail já impede que conta falsa chegue às nossas tabelas: a
+linha em `users` só nasce no primeiro login confirmado. O que ela não impede é o
+**gasto**: cada cadastro de robô dispara um e-mail pelo Resend, e cada tentativa
+de senha chega ao Supabase. As cotas por endereço (`AUTH_ATTEMPT_LIMIT`,
+`EMAIL_SEND_LIMIT`) não seguram quem troca de endereço a cada tentativa.
+
+## Decisão
+
+1. **Cloudflare Turnstile**, porque é o que o Supabase aceita além do hCaptcha,
+   é gratuito e quase sempre resolve sem a pessoa clicar em nada.
+2. **Quem confere é o Supabase**, com a chave secreta no painel (*Attack
+   Protection*). O ColeXa só desenha o desafio e repassa o token pela Server
+   Action. Nenhuma chave secreta no nosso código ou no nosso ambiente.
+3. **Nos três formulários que o Supabase protege**: entrar, criar conta e
+   recuperar senha. Os botões do Google e da Apple não passam por CAPTCHA — o
+   próprio provedor já faz esse papel.
+4. **Sem a chave pública, nada muda na tela** (`NEXT_PUBLIC_TURNSTILE_SITE_KEY`
+   vazia): o desenvolvimento e os testes seguem sem Cloudflare.
+5. **A ordem de ligar importa.** A chave pública no ambiente primeiro; o CAPTCHA
+   no painel do Supabase depois. Ao contrário, ninguém entra. E o `.env` local
+   usa o **mesmo projeto Supabase** da produção: ligado no painel, o login local
+   também exige o CAPTCHA.
+6. **CAPTCHA recusado diz o que houve** ("Não conseguimos confirmar que você não
+   é um robô"). Na recuperação de senha, que responde "enviamos" até para
+   endereço desconhecido, a recusa do CAPTCHA sobe como erro: ela não revela
+   conta nenhuma, e engoli-la diria "enviamos" sem ter enviado.
+7. O token vale um envio. Cada resposta do formulário pede um desafio novo.
+
+## Consequências
+
+- **A Política de Privacidade precisa citar a Cloudflare**: o Turnstile coleta
+  sinais do navegador para decidir. Vai para a advogada junto com o resto.
+- **Abrir pelo IP da rede local** (o celular em `192.168.x.x`) pode fazer o
+  widget recusar, porque o hostname não está na lista do widget. `localhost` e
+  `colexa.com.br` estão.
+
+## Data
+
+2026-09-17
