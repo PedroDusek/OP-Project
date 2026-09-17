@@ -4,6 +4,7 @@ import {
   Heart,
   House,
   Layers,
+  MessageCircle,
   Search,
   UserRound,
   Users,
@@ -24,7 +25,8 @@ import {
  * lista, e cabem quantas forem precisas.
  *
  * Com a gaveta, Trocas voltou para a navegacao e Want list e Social entraram —
- * escolha do dono do produto, que muda a decisao 044.
+ * escolha do dono do produto, que muda a decisao 044. Conversas entrou com a
+ * decisao 081.
  *
  * ## A conta fica separada
  *
@@ -87,6 +89,12 @@ export const DESTINATIONS: Destination[] = [
     label: 'Social',
     icon: Users,
     description: 'Quem tem o que você procura, e quem procura o que você tem.',
+  },
+  {
+    href: '/conversas',
+    label: 'Conversas',
+    icon: MessageCircle,
+    description: 'As conversas com outras pessoas da rede, para combinar as trocas.',
   },
 ]
 

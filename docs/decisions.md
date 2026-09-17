@@ -5237,3 +5237,52 @@ há algo pendente.
 ## Data
 
 2026-09-16
+
+---
+
+# Decisão: 081 — As Conversas entre pessoas da rede
+
+Pedido do dono do produto em 16/09: "o site só organiza trocas físicas, então as
+pessoas terão que interagir de qualquer forma". Uma aba **Conversas** onde a
+pessoa vê as conversas com outras pessoas da rede.
+
+## Escolhas do dono do produto
+
+- **Qualquer pessoa da rede** conversa com qualquer outra, pelo "Mandar mensagem"
+  no Trade Binder dela. Só quem tem nome de usuário conversa.
+- **O bloqueio**: quem foi bloqueado não abre conversa com quem bloqueou (regra
+  6.1.4) **e não escreve numa conversa que já existia** (extensão aprovada).
+- **Só texto**, sem imagem.
+- **Três tabelas**: `conversations`, `conversation_participants` e `messages`.
+- **Mensagens não lidas** entram no sino (decisão 080).
+
+## Decisões de implementação
+
+1. **Uma conversa por par**, pela coluna `pair_key` (`<menor id>:<maior id>`,
+   única): duas pessoas abrindo conversa uma com a outra ao mesmo tempo caem na
+   mesma.
+2. **Quem bloqueou também não escreve** para quem bloqueou — a outra pessoa não
+   poderia responder. Para voltar a conversar, desbloqueia. As mensagens antigas
+   continuam à vista dos dois. A quem foi bloqueado, a tela diz só "Não é
+   possível enviar mensagens para esta pessoa", sem contar que foi bloqueio.
+3. **Mensagem**: até 1.000 caracteres, sem editar nem apagar. Cota de 30 envios por
+   minuto por pessoa.
+4. **Não lida** é mensagem da outra pessoa depois de `last_read_at`. Abrir a
+   conversa marca como lida — não há confirmação de leitura para o outro lado.
+   A hora da mensagem e a da leitura vêm do mesmo relógio, o da aplicação:
+   comparar a hora do banco com a da aplicação deixaria mensagem lida parecendo
+   não lida.
+5. **A conversa aberta é viva**: pergunta a cada três segundos se chegou mensagem
+   ou se o bloqueio mudou, e se redesenha quando muda — como a troca ao vivo
+   (decisão 065). Pausa com a aba escondida.
+6. **A lista** mostra só conversas com alguma mensagem, da mais recente, com o
+   começo da última e a marca de não lida. Abrir e não escrever não põe um nome
+   na lista da outra pessoa.
+7. **A conversa mostra as 200 mensagens mais recentes.** Ver as anteriores fica
+   para quando alguma conversa chegar lá.
+8. **Denunciar e bloquear** ficam no topo da conversa, com o que a rede já tem.
+9. **Conta que saiu** aparece como "Conta removida", e não recebe mais mensagem.
+
+## Data
+
+2026-09-16

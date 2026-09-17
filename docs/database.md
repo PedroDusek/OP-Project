@@ -442,6 +442,48 @@ bloqueou. O contrário não vale.
 `CHECK (reporter_id <> reported_id)`, `CHECK (length(btrim(reason)) > 0)`. Lida
 por quem administra em `/admin/denuncias` (`ADMIN_EMAILS`).
 
+### Conversas
+
+Aprovadas pelo dono do produto em 16/09 (decisão 081). Só texto — sem imagem, por
+escolha dele.
+
+**conversations**
+
+| Coluna | Tipo | Restrições |
+|---|---|---|
+| `id` | bigint | PK |
+| `pair_key` | varchar(41) | not null, único, `<menor id>:<maior id>` |
+| `created_at` | timestamptz | not null |
+| `last_message_at` | timestamptz | nulo enquanto ninguém escreveu |
+
+Uma conversa por par de pessoas: o índice único de `pair_key` garante isso mesmo
+com as duas abrindo ao mesmo tempo. Um `CHECK` exige o menor id primeiro.
+
+**conversation_participants**
+
+| Coluna | Tipo | Restrições |
+|---|---|---|
+| `id` | bigint | PK |
+| `conversation_id` | bigint | not null, FK conversations |
+| `user_id` | bigint | not null, FK users |
+| `last_read_at` | timestamptz | nulo enquanto nunca abriu |
+
+`UNIQUE (conversation_id, user_id)`. Há mensagem não lida quando a outra pessoa
+escreveu depois de `last_read_at`.
+
+**messages**
+
+| Coluna | Tipo | Restrições |
+|---|---|---|
+| `id` | bigint | PK |
+| `conversation_id` | bigint | not null, FK conversations |
+| `sender_id` | bigint | not null, FK users |
+| `body` | varchar(1000) | not null, não em branco |
+| `created_at` | timestamptz | not null |
+
+A hora da mensagem e a da leitura vêm do mesmo relógio, o da aplicação: comparar
+a hora do banco com a da aplicação deixaria mensagem lida parecendo não lida.
+
 ## 2.6 O que vive em SQL bruto e o que vive no schema
 
 As migrations têm duas metades, e a divisão não é estética.
@@ -539,6 +581,8 @@ Analisada relação a relação, e não aplicada uniformemente.
 | `trade_participants.user_id` | RESTRICT | protege o histórico; nunca dispara, porque contas são anonimizadas e não excluídas |
 | `user_blocks.blocker_id` / `blocked_id` | CASCADE | o bloqueio é preferência de uma pessoa sobre outra, e não sobrevive a nenhuma das duas |
 | `user_reports.reporter_id` / `reported_id` | RESTRICT | registro de moderação; como em trocas, contas são anonimizadas e não excluídas |
+| `conversation_participants.conversation_id`, `messages.conversation_id` | CASCADE | participante e mensagem pertencem à conversa |
+| `conversation_participants.user_id`, `messages.sender_id` | RESTRICT | a conversa é da outra pessoa também; contas são anonimizadas e não excluídas |
 
 ### 4.1 Exclusão de conta
 
@@ -605,6 +649,10 @@ seja rápida.
 | `user_blocks (blocker_id, blocked_id)` único | a rede esconde quem quem olha bloqueou |
 | `user_blocks (blocked_id)` | apagar ou anonimizar alcança os bloqueios recebidos |
 | `user_reports (reported_id)`, `user_reports (created_at)` | denúncias contra alguém; as mais recentes primeiro |
+| `conversations (pair_key)` único | uma conversa por par |
+| `conversations (last_message_at)` | a lista de conversas, da mais recente |
+| `conversation_participants (conversation_id, user_id)` único, `(user_id)` | participação e as conversas de alguém |
+| `messages (conversation_id, created_at)` | as mensagens de uma conversa, em ordem |
 
 Toda listagem de catálogo e de coleção é paginada e filtrada no servidor. O
 catálogo completo nunca é carregado numa requisição.

@@ -136,3 +136,12 @@ export const NETWORK_REPORT_LIMIT: RateLimitOptions = {
   limit: 5,
   windowMs: 60 * 60_000,
 }
+
+/**
+ * Enviar mensagem numa conversa (decisão 081). Quem conversa de verdade não
+ * passa de uma mensagem a cada dois segundos; mais que isso é enxurrada.
+ */
+export const MESSAGE_SEND_LIMIT: RateLimitOptions = {
+  limit: 30,
+  windowMs: 60_000,
+}

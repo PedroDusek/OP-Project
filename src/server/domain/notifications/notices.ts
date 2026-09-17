@@ -21,6 +21,11 @@ export type Notice =
       /** Cartas diferentes com cópia sem lugar. */
       cards: number
     }
+  | {
+      kind: 'unread-messages'
+      /** Conversas com mensagem nova da outra pessoa. */
+      conversations: number
+    }
 
 /**
  * O aviso das cartas sem armazenamento, quando cabe.
@@ -35,4 +40,9 @@ export function unallocatedNotice(
 ): Notice | null {
   if (!hasStorageLocations || summary.copies <= 0) return null
   return { kind: 'unallocated-cards', copies: summary.copies, cards: summary.cards }
+}
+
+/** O aviso das mensagens não lidas: some quando a pessoa abre as conversas (decisão 081). */
+export function unreadMessagesNotice(conversations: number): Notice | null {
+  return conversations > 0 ? { kind: 'unread-messages', conversations } : null
 }

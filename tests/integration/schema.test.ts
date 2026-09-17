@@ -21,6 +21,7 @@ import { disconnect, testPrisma } from '../helpers'
  * - `variant_source_products` (decisao 053).
  * - `trade_item_origins` (decisao 062).
  * - `user_blocks` e `user_reports` (decisao 079, aprovadas pelo dono do produto em 16/09).
+ * - `conversations`, `conversation_participants` e `messages` (decisao 081, aprovadas em 16/09).
  */
 const EXPECTED_TABLES = [
   'attributes',
@@ -36,9 +37,12 @@ const EXPECTED_TABLES = [
   'collection_items',
   'collections',
   'colors',
+  'conversation_participants',
+  'conversations',
   'effects',
   'exchange_rates',
   'mechanics',
+  'messages',
   'price_imports',
   'sets',
   'storage_locations',
@@ -83,11 +87,17 @@ const EXPECTED_DELETE_ACTIONS: Record<string, 'CASCADE' | 'RESTRICT'> = {
   // O bloqueio e preferencia de uma pessoa sobre outra: nao sobrevive a nenhuma.
   'user_blocks.blocker_id': 'CASCADE',
   'user_blocks.blocked_id': 'CASCADE',
+  // Participante e mensagem pertencem a conversa.
+  'conversation_participants.conversation_id': 'CASCADE',
+  'messages.conversation_id': 'CASCADE',
 
   'card_variants.card_id': 'RESTRICT',
   // A denuncia e registro de moderacao, como o participante de uma troca.
   'user_reports.reporter_id': 'RESTRICT',
   'user_reports.reported_id': 'RESTRICT',
+  // A conversa e da outra pessoa tambem: contas sao anonimizadas, e nao apagadas.
+  'conversation_participants.user_id': 'RESTRICT',
+  'messages.sender_id': 'RESTRICT',
   'variant_printings.set_id': 'RESTRICT',
   'collection_items.card_variant_id': 'RESTRICT',
   'want_items.card_variant_id': 'RESTRICT',
