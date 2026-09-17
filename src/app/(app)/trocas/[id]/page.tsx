@@ -39,7 +39,11 @@ export default async function TrocaPage({ params }: PageProps<'/trocas/[id]'>) {
         </Link>
         <div className="min-w-0 flex-1 pt-2">
           <h1 className="truncate text-2xl font-bold tracking-tight text-text">
-            {trade.other ? `Troca com ${trade.other.name}` : 'Troca aguardando alguém'}
+            {trade.other
+              ? `Troca com ${trade.other.name}`
+              : trade.invitedUsername
+                ? `Convite enviado para @${trade.invitedUsername}`
+                : 'Troca aguardando alguém'}
           </h1>
           <p className="mt-1 text-sm text-text-muted">
             Cada um monta a própria oferta. A troca vale quando os dois confirmarem.

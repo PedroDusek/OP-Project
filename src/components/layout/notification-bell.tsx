@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Bell, MessageCircle, PackageOpen } from 'lucide-react'
+import { Bell, Handshake, MessageCircle, PackageOpen } from 'lucide-react'
 import { Popover } from 'radix-ui'
 import { cn } from '@/lib/cn'
 import type { Notice } from '@/server/application/notifications'
@@ -117,6 +117,16 @@ function Aviso({ notice, onNavigate }: { notice: Notice; onNavigate: () => void 
           icon={<MessageCircle className="size-5" aria-hidden />}
           title={notice.conversations === 1 ? 'Você recebeu uma mensagem' : 'Você recebeu mensagens'}
           description={`Mensagem não lida em ${notice.conversations} ${notice.conversations === 1 ? 'conversa' : 'conversas'}.`}
+          onNavigate={onNavigate}
+        />
+      )
+    case 'trade-invites':
+      return (
+        <Item
+          href="/trocas"
+          icon={<Handshake className="size-5" aria-hidden />}
+          title={notice.invites === 1 ? 'Você recebeu um convite de troca' : `Você recebeu ${notice.invites} convites de troca`}
+          description="Aceite ou recuse em Trocas."
           onNavigate={onNavigate}
         />
       )

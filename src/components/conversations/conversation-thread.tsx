@@ -103,26 +103,41 @@ export function ConversationThread({ conversationId, messages, sendBlocked, othe
 
   return (
     <div className="flex flex-col gap-3">
-      <ol className="flex flex-col gap-2" aria-label={`Mensagens com ${otherUsername ? `@${otherUsername}` : 'conta removida'}`}>
+      <ol
+        className="flex flex-col gap-2"
+        style={{ display: 'flex', flexDirection: 'column' }}
+        aria-label={`Mensagens com ${otherUsername ? `@${otherUsername}` : 'conta removida'}`}>
         {messages.length === 0 ? (
           <li className="py-8 text-center text-sm text-text-muted">
             Nenhuma mensagem ainda. Combine a troca por aqui — sem telefone, sem sair do ColeXa.
           </li>
         ) : (
           messages.map((mensagem) => (
-            <li key={mensagem.id} className={cn('flex', mensagem.mine ? 'justify-end' : 'justify-start')}>
-              <div
-                className={cn(
-                  'max-w-[80%] rounded-card px-3 py-2',
-                  mensagem.mine ? 'bg-accent text-white' : 'border border-border bg-surface text-text',
-                )}
-              >
-                <p className="text-sm break-words whitespace-pre-wrap">{mensagem.body}</p>
-                <p className={cn('mt-1 text-right text-[11px] tabular-nums', mensagem.mine ? 'text-white/75' : 'text-text-subtle')}>
-                  <span className="sr-only">{mensagem.mine ? 'Você, ' : ''}</span>
-                  {dia.format(new Date(mensagem.createdAt))} {hora.format(new Date(mensagem.createdAt))}
-                </p>
-              </div>
+            /*
+              O proprio balao se alinha na coluna (`self-end`), e o alinhamento e a
+              largura vao tambem como estilo no elemento. Relatado pelo dono do
+              produto: no Brave do iPhone as mensagens dos dois lados saiam a
+              esquerda e de ponta a ponta, com as classes certas no CSS e o mesmo
+              codigo aparecendo certo no Safari do mesmo aparelho. O Brave
+              reescreve a folha de estilo (modo noturno, escudos), e a regra do
+              elemento nao passa por essa reescrita.
+            */
+            <li
+              key={mensagem.id}
+              data-lado={mensagem.mine ? 'meu' : 'outro'}
+              style={{ alignSelf: mensagem.mine ? 'flex-end' : 'flex-start', maxWidth: '80%' }}
+              className={cn(
+                'max-w-[80%] rounded-card px-3 py-2',
+                mensagem.mine
+                  ? 'self-end bg-accent text-white'
+                  : 'self-start border border-border bg-surface text-text',
+              )}
+            >
+              <p className="text-sm break-words whitespace-pre-wrap">{mensagem.body}</p>
+              <p className={cn('mt-1 text-right text-[11px] tabular-nums', mensagem.mine ? 'text-white/75' : 'text-text-subtle')}>
+                <span className="sr-only">{mensagem.mine ? 'Você, ' : ''}</span>
+                {dia.format(new Date(mensagem.createdAt))} {hora.format(new Date(mensagem.createdAt))}
+              </p>
             </li>
           ))
         )}

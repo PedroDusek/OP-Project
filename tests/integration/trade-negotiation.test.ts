@@ -226,6 +226,39 @@ describe('o cruzamento nas duas direcoes', () => {
     expect(paraAna.theyCanOffer).toEqual(paraBruno.iCanOffer)
   })
 
+  /*
+   * Decisao 083, pedido do dono do produto: a troca mostra todas as cartas
+   * possiveis — primeiro o que o outro procura, depois o resto —, as duas na
+   * ordem do catalogo.
+   */
+  it('mostra também o resto do Trade Binder, os dois grupos na ordem do catálogo', async () => {
+    const ana = await person('Ana')
+    const bruno = await person('Bruno')
+    const guardar = async (code: string, quantity: number) => {
+      const { variant } = await createCardWithVariant('Character', code)
+      const item = await own(ana.collectionId, variant.id, quantity)
+      const local = await createStorage(ana.userId, 'BINDER', 'TRADE')
+      await allocate(item.id, local.id, quantity)
+      return variant
+    }
+    const op02b = await guardar('OP02-010', 1)
+    const op01b = await guardar('OP01-020', 2)
+    const op02a = await guardar('OP02-003', 1)
+    const op01a = await guardar('OP01-005', 3)
+    await wants(bruno, op02b.id, 1)
+    await wants(bruno, op01b.id, 1)
+
+    const tradeId = await tradeBetween(ana, bruno)
+    const view = await getTrade(testPrisma(), ana.user, tradeId)
+
+    expect(view.iCanOffer.map((c) => c.cardCode)).toEqual(['OP01-020', 'OP02-010'])
+    expect(view.iCanAlsoOffer.map((c) => [c.cardCode, c.quantity, c.available, c.stillWanted])).toEqual([
+      ['OP01-005', 1, 3, 0],
+      ['OP02-003', 1, 1, 0],
+    ])
+    expect([op01a.id, op02a.id].map(String)).toEqual(view.iCanAlsoOffer.map((c) => c.variantId))
+  })
+
   /** Antes de alguem entrar, nenhum dado privado e cruzado. */
   it('nao cruza nada enquanto falta a segunda pessoa', async () => {
     const ana = await person('Ana')

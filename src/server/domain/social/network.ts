@@ -7,15 +7,19 @@ import { ValidationError } from '@/server/domain/errors'
  * Camada: domain. Puro.
  */
 
-/** Pessoas por página. Dez caixas com prévia cabem numa rolagem de celular sem pesar. */
-export const NETWORK_PAGE_SIZE = 10
+/**
+ * Pessoas por página: sete, definido pelo dono do produto (decisão 084). Cada
+ * página traz só as suas — muita gente com muitas cartas numa lista só pesaria a
+ * página.
+ */
+export const NETWORK_PAGE_SIZE = 7
 
 /**
  * Quantas páginas se pode pedir, no máximo.
  *
  * A decisão 060 pede teto de profundidade: sem ele, paginar é raspar devagar.
- * Vinte páginas são duzentas pessoas — mais do que alguém percorre olhando, e a
- * busca por carta é o caminho para o resto.
+ * Vinte páginas são 140 pessoas — mais do que alguém percorre olhando, e a busca
+ * por carta ou por nome é o caminho para o resto.
  */
 export const NETWORK_MAX_PAGES = 20
 

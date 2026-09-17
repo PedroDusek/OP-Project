@@ -5172,8 +5172,9 @@ que segue são as escolhas do dono do produto em 16/09 e as de implementação.
    rede para a memória.
 3. **A prévia** tem até sete cartas: com busca, as que casam primeiro; depois as
    que quem olha procura; depois o resto na ordem do catálogo.
-4. **Páginas de dez pessoas, no máximo vinte páginas**: a lista cresce ao pedir
-   mais, e o teto é a profundidade máxima que a 060 pede.
+4. ~~**Páginas de dez pessoas**, a lista crescendo ao pedir mais~~ — **mudado pela
+   decisão 084**: sete por página, uma página por vez. O teto de vinte páginas
+   continua.
 5. **Cotas por pessoa**: listagem e binder, 60 por minuto; busca, 20 por minuto;
    denúncia, 5 por hora. Contadas em memória de processo — seguram abuso
    acidental e script ingênuo, e não alguém determinado (060).
@@ -5282,6 +5283,103 @@ pessoa vê as conversas com outras pessoas da rede.
    para quando alguma conversa chegar lá.
 8. **Denunciar e bloquear** ficam no topo da conversa, com o que a rede já tem.
 9. **Conta que saiu** aparece como "Conta removida", e não recebe mais mensagem.
+
+## Data
+
+2026-09-16
+
+---
+
+# Decisão: 082 — O convite direto para troca, e a busca por nome na rede
+
+Pedidos do dono do produto em 16/09: seguir com o convite direto, a segunda etapa
+da Social, e "tornar possível buscar o nick de alguém na Social e isso fazer com
+que apareçam as cartas para troca daquela pessoa". **Acrescenta à regra 4.6.1.**
+
+## O convite direto
+
+1. **"Convidar para trocar"** no Trade Binder de alguém da rede. A troca nasce em
+   `DRAFT` já com as duas pessoas — quem convida como `INITIATOR`, a convidada
+   como `RECIPIENT` — e **sem link**: ninguém de fora entra. Sem tabela nova.
+2. **O consentimento continua no gesto de quem recebe** (regra 4.6.1): antes do
+   aceite, a convidada não abre nem mexe na troca, e quem convidou não vê o
+   cruzamento com ela.
+3. **A convidada vê o convite em Trocas**, com aceitar e recusar. Aceitar leva a
+   troca a `NEGOTIATING`; recusar, a `CANCELLED`. Quem convidou vê "Convite
+   enviado para @nome", sem troca para abrir, e pode descartar.
+4. **Um convite aberto por vez** para quem convida, como o link. Aceitar exige as
+   duas pessoas livres de outra troca ativa (regra 4.5) — quem convidou pode ter
+   entrado noutra enquanto o convite esperava.
+5. **Nome na rede exigido** de quem convida; **bloqueio em qualquer direção**
+   impede, como nas conversas.
+6. **A troca mostra a outra pessoa pelo nome na rede** quando ela tem um (regra
+   6.1.1: é a única identidade que outros veem). O nome real só aparece na troca
+   por link com quem ainda não escolheu nome — que já se conhece por fora. Antes,
+   a troca mostrava sempre o nome real, o que vazaria a quem veio da rede.
+7. ~~**O sino não avisa de convite**~~ — **mudado pela decisão 083**: avisa.
+
+## A busca por nome
+
+1. A busca da Social casa a carta **ou** o nome na rede: "zoro" traz quem tem a
+   carta e quem se chama algo com "zoro". Começando com `@`, só o nome.
+2. **O nome igual ao buscado vem primeiro** — quem digita um nome inteiro procura
+   aquela pessoa —, depois a ordem da rede.
+3. Quem não tem carta em local de troca **continua fora da rede**, também na busca
+   por nome: a rede é de quem tem o que trocar (decisão 079).
+4. O `_` do nome é letra, e não curinga: é escapado na consulta.
+
+## Data
+
+2026-09-16
+
+---
+
+# Decisão: 083 — A troca mostra todas as cartas possíveis, e o sino avisa do convite
+
+Correções do dono do produto em 16/09, ao conferir o convite direto. **Muda o item
+7 da decisão 082.**
+
+## Decisão
+
+1. **Na troca aparecem todas as cartas do seu Trade Binder**, em dois grupos:
+   primeiro **o que a outra pessoa procura** (o cruzamento de sempre), depois
+   **as outras cartas do seu Trade Binder**, que ela não procura — "isso não
+   impede elas de serem adicionadas". Cada carta do segundo grupo se oferece com
+   uma cópia, e não fala em "procura".
+2. **Os dois grupos na ordem do catálogo**: coleção e número (decisões 040 e 069).
+3. **O sino avisa do convite de troca recebido** — "Você recebeu um convite de
+   troca", levando a Trocas —, e o aviso some quando a pessoa aceita ou recusa.
+   Fica depois das mensagens e antes das cartas sem armazenamento.
+
+## Data
+
+2026-09-16
+
+---
+
+# Decisão: 084 — A Social em páginas de sete, e duas correções da conversa e da troca
+
+Correções do dono do produto em 16/09, ao conferir no telefone. **Muda o item 4 da
+decisão 079.**
+
+## Decisão
+
+1. **A Social mostra sete pessoas por página**, e a pessoa passa de página em
+   página ("Anterior", "Página N", "Próxima"). Definição do dono do produto: muita
+   gente com muitas cartas numa lista que acumula pesaria a página. Antes eram dez
+   por vez, com "Ver mais pessoas" somando à lista. O teto continua em vinte
+   páginas (140 pessoas), a contenção da decisão 060.
+2. **As mensagens da conversa se alinham pelo próprio balão** (`self-end` e
+   `self-start` na coluna), e não por um item flexível que empurra o balão. No
+   iPhone as mensagens dos dois lados saíam todas à esquerda; no navegador de mesa
+   o arranjo anterior funcionava, e por isso não foi pego. Conferido depois com o dono do
+   produto: no **Safari** do iPhone o balão ficava certo, e no **Brave** do mesmo
+   aparelho não — o Brave reescreve a folha de estilo. Por isso o alinhamento e a
+   largura vão também como estilo no próprio elemento.
+3. **Quem convidou é levado à troca quando o convite é aceito.** Enquanto o
+   convite espera, o cartão de Trocas pergunta a cada três segundos pelo estado da
+   troca; aceita, vai direto para a negociação; recusada ou descartada, redesenha
+   Trocas. Antes, era preciso sair de Trocas e voltar.
 
 ## Data
 

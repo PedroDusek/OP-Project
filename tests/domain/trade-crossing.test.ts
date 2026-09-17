@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { crossOffer, crossTrade } from '@/server/domain/trades/crossing'
+import { crossOffer, crossTrade, notWantedOffer } from '@/server/domain/trades/crossing'
 
 /**
  * O cruzamento entre o que um oferece e o que o outro quer.
@@ -113,5 +113,17 @@ describe('as duas direcoes', () => {
 
     expect(cruzado.fromFirst).toHaveLength(1)
     expect(cruzado.fromSecond).toEqual([])
+  })
+})
+
+describe('o resto do que se tem para troca (decisão 083)', () => {
+  it('é o disponível que não cruzou com o que o outro procura', () => {
+    const disponivel = [
+      { variantId: '1', quantity: 3 },
+      { variantId: '2', quantity: 1 },
+      { variantId: '3', quantity: 0 },
+    ]
+    const cruzado = [{ variantId: '1', quantity: 2, available: 3, stillWanted: 2 }]
+    expect(notWantedOffer(disponivel, cruzado)).toEqual([{ variantId: '2', quantity: 1 }])
   })
 })

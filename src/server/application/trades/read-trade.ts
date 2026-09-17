@@ -1,7 +1,8 @@
 import type { PrismaClient } from '@prisma/client'
 import type { AuthenticatedUser } from '@/server/application/auth'
 import { AuthorizationError, NotFoundError } from '@/server/domain/errors'
-import { crossTrade, type CrossedCard, type TradeSide } from '@/server/domain/trades/crossing'
+import { compareCatalogOrder, placementSet, type CatalogOrderKey } from '@/server/domain/catalog/order'
+import { crossTrade, notWantedOffer, type CrossedCard, type TradeSide } from '@/server/domain/trades/crossing'
 import { isValidated, type TradeStatus } from '@/server/domain/trades/negotiation'
 
 /**
@@ -74,11 +75,18 @@ export interface TradeView {
   status: TradeStatus
   /** O link de convite, enquanto ainda falta alguém entrar. */
   inviteToken: string | null
+  /** Quem foi convidado direto e ainda não aceitou (decisão 082). */
+  invitedUsername: string | null
   me: TradeSideView
   /** Nulo enquanto o convite não foi aceito: não há outro lado ainda. */
   other: TradeSideView | null
-  /** O que eu tenho e a outra pessoa quer. Sugestão, nunca obrigação. */
+  /** O que eu tenho e a outra pessoa quer. Sugestão, nunca obrigação. Na ordem do catálogo. */
   iCanOffer: TradeSuggestion[]
+  /**
+   * O resto do meu Trade Binder: o que a outra pessoa não procura, e que eu
+   * posso oferecer mesmo assim (decisão 083). Na ordem do catálogo.
+   */
+  iCanAlsoOffer: TradeSuggestion[]
   /** O que a outra pessoa tem e eu quero. */
   theyCanOffer: TradeSuggestion[]
   /** Os dois confirmaram: a troca está validada. */
@@ -112,10 +120,11 @@ export async function getTrade(
         select: {
           id: true,
           userId: true,
+          role: true,
           confirmedAt: true,
           reviewRequestedAt: true,
           exchangedAt: true,
-          user: { select: { name: true } },
+          user: { select: { name: true, username: true } },
           items: {
             select: {
               quantity: true,
@@ -144,7 +153,18 @@ export async function getTrade(
     throw new AuthorizationError('Você não participa desta troca.')
   }
 
-  const theirs = trade.participants.find((participant) => participant.userId !== user.id)
+  /*
+   * O convite direto que ainda nao foi aceito (decisao 082). A convidada nao ve a
+   * troca antes de aceitar, e quem convidou nao ve o cruzamento com ela: o
+   * consentimento da regra 4.6.1 fecha no aceite, e antes dele nenhum dado
+   * privado de nenhum dos dois e cruzado.
+   */
+  const pendente = trade.status === 'DRAFT'
+  if (pendente && mine.role === 'RECIPIENT') {
+    throw new AuthorizationError('Aceite o convite em Trocas para ver a troca.')
+  }
+  const convidada = pendente ? trade.participants.find((p) => p.role === 'RECIPIENT') : undefined
+  const theirs = pendente ? undefined : trade.participants.find((participant) => participant.userId !== user.id)
 
   const [myData, theirData] = await Promise.all([
     tradeSideData(prisma, user.id),
@@ -161,18 +181,29 @@ export async function getTrade(
     confirmedAt: participant.confirmedAt,
   }))
 
+  // O resto do que eu tenho: oferecido com uma copia, e sem "procura".
+  const resto: CrossedCard[] = notWantedOffer(myData.available, crossing.fromFirst).map((card) => ({
+    variantId: card.variantId,
+    quantity: 1,
+    available: card.quantity,
+    stillWanted: 0,
+  }))
+
   const cartas = await cardsByVariant(prisma, [
     ...crossing.fromFirst.map((c) => c.variantId),
     ...crossing.fromSecond.map((c) => c.variantId),
+    ...resto.map((c) => c.variantId),
   ])
 
   return {
     tradeId: String(trade.id),
     status: trade.status as TradeStatus,
     inviteToken: trade.inviteToken,
+    invitedUsername: convidada?.user.username ?? null,
     me: toSideView(mine),
     other: theirs ? toSideView(theirs) : null,
     iCanOffer: withCards(crossing.fromFirst, cartas),
+    iCanAlsoOffer: withCards(resto, cartas),
     theyCanOffer: withCards(crossing.fromSecond, cartas),
     validated: isValidated(participants),
     completedAt: trade.completedAt,
@@ -180,7 +211,16 @@ export async function getTrade(
   }
 }
 
-type CardLabel = { cardCode: string; cardName: string; imageUrl: string | null }
+/**
+ * Como a outra pessoa aparece: pelo nome na rede quando há, que é a única
+ * identidade que outros veem (regra 6.1.1). O nome real fica para a troca por
+ * link com quem ainda não escolheu nome — que já se conhece por fora.
+ */
+export function displayName(user: { name: string; username: string | null }): string {
+  return user.username ? `@${user.username}` : user.name
+}
+
+type CardLabel = { cardCode: string; cardName: string; imageUrl: string | null; order: CatalogOrderKey }
 
 /**
  * As cartas das sugestões, numa consulta só.
@@ -196,19 +236,35 @@ async function cardsByVariant(
 
   const rows = await prisma.cardVariant.findMany({
     where: { id: { in: ids } },
-    select: { id: true, imageUrl: true, card: { select: { code: true, name: true } } },
+    select: {
+      id: true,
+      sourceId: true,
+      imageUrl: true,
+      card: { select: { code: true, name: true } },
+      printings: { select: { set: { select: { code: true } } } },
+    },
   })
 
   return new Map(
     rows.map((row) => [
       String(row.id),
-      { cardCode: row.card.code, cardName: row.card.name, imageUrl: row.imageUrl },
+      {
+        cardCode: row.card.code,
+        cardName: row.card.name,
+        imageUrl: row.imageUrl,
+        order: {
+          cardCode: row.card.code,
+          sourceId: row.sourceId,
+          setCode: placementSet(row.card.code, row.printings.map((p) => p.set.code)),
+        },
+      },
     ]),
   )
 }
 
 /**
- * Junta a aritmética com a carta, e descarta o que não tem carta.
+ * Junta a aritmética com a carta, descarta o que não tem carta, e ordena como o
+ * catálogo: coleção e número (decisões 040, 069 e 083).
  *
  * Uma sugestão sem carta não existe: a variante teria de ter saído do catálogo
  * entre uma consulta e outra. Mostrar um id cru seria pior que não mostrar.
@@ -217,10 +273,18 @@ function withCards(
   crossed: readonly CrossedCard[],
   cards: Map<string, CardLabel>,
 ): TradeSuggestion[] {
-  return crossed.flatMap((item) => {
-    const card = cards.get(item.variantId)
-    return card ? [{ ...item, ...card }] : []
-  })
+  return crossed
+    .flatMap((item) => {
+      const card = cards.get(item.variantId)
+      return card ? [{ item, card }] : []
+    })
+    .sort((a, b) => compareCatalogOrder(a.card.order, b.card.order) || (a.item.variantId < b.item.variantId ? -1 : 1))
+    .map(({ item, card }) => ({
+      ...item,
+      cardCode: card.cardCode,
+      cardName: card.cardName,
+      imageUrl: card.imageUrl,
+    }))
 }
 
 type ParticipantRow = {
@@ -228,7 +292,7 @@ type ParticipantRow = {
   confirmedAt: Date | null
   reviewRequestedAt: Date | null
   exchangedAt: Date | null
-  user: { name: string }
+  user: { name: string; username: string | null }
   items: {
     quantity: number
     cardVariant: {
@@ -244,7 +308,7 @@ type ParticipantRow = {
 function toSideView(participant: ParticipantRow): TradeSideView {
   return {
     userId: String(participant.userId),
-    name: participant.user.name,
+    name: displayName(participant.user),
     confirmed: participant.confirmedAt !== null,
     reviewRequested: participant.reviewRequestedAt !== null,
     exchanged: participant.exchangedAt !== null,
@@ -310,6 +374,8 @@ export interface OpenTrade {
   otherName: string | null
   /** O convite, enquanto ainda falta alguém entrar. */
   inviteToken: string | null
+  /** Quem foi convidado direto e ainda não aceitou (decisão 082). */
+  invitedUsername: string | null
   /** A outra pessoa alterou depois de eu confirmar. */
   reviewRequested: boolean
   /** Eu já marquei que as cartas trocaram de mão. */
@@ -334,6 +400,9 @@ export async function getOpenTrade(
     where: {
       userId: user.id,
       trade: { status: { in: ['DRAFT', 'PROPOSED', 'NEGOTIATING', 'CONFIRMED'] } },
+      // O convite direto recebido nao e troca aberta de quem recebeu: e pergunta,
+      // e aparece na lista de convites (decisao 082).
+      NOT: { role: 'RECIPIENT', trade: { status: 'DRAFT' } },
     },
     select: {
       reviewRequestedAt: true,
@@ -343,7 +412,7 @@ export async function getOpenTrade(
           id: true,
           status: true,
           inviteToken: true,
-          participants: { select: { userId: true, user: { select: { name: true } } } },
+          participants: { select: { userId: true, role: true, user: { select: { name: true, username: true } } } },
         },
       },
     },
@@ -358,8 +427,11 @@ export async function getOpenTrade(
   return {
     tradeId: String(escolhida.trade.id),
     status: escolhida.trade.status as TradeStatus,
-    otherName: outro?.user.name ?? null,
+    // No rascunho ninguem entrou ainda: a convidada aparece como convidada, e nao como "o outro lado".
+    otherName: outro && escolhida.trade.status !== 'DRAFT' ? displayName(outro.user) : null,
     inviteToken: escolhida.trade.inviteToken,
+    invitedUsername:
+      escolhida.trade.status === 'DRAFT' ? (outro?.role === 'RECIPIENT' ? outro.user.username : null) : null,
     reviewRequested: escolhida.reviewRequestedAt !== null,
     exchanged: escolhida.exchangedAt !== null,
   }

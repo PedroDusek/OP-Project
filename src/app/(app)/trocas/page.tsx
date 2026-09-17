@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { PageHeader } from '@/components/layout/app-shell'
 import { OpenTradeCard } from '@/components/trades/open-trade-card'
+import { ReceivedInvites } from '@/components/trades/received-invites'
 import { TradeStarter } from '@/components/trades/trade-starter'
 import { TradeBinder, TradeBinderSummary } from '@/components/trades/trade-binder'
 import { TradeBinderShareCard } from '@/components/trades/trade-binder-share'
@@ -8,6 +9,7 @@ import {
   countCopies,
   getOpenTrade,
   getTradeBinderShare,
+  listReceivedInvites,
   listTradeBinder,
 } from '@/server/application/trades'
 import { appUrl } from '@/server/http/app-url'
@@ -30,10 +32,11 @@ export const metadata: Metadata = { title: 'Trocas' }
  */
 export default async function TrocasPage() {
   const viewer = await requireViewer('/trocas')
-  const [aberta, cards, share] = await Promise.all([
+  const [aberta, cards, share, convites] = await Promise.all([
     getOpenTrade(viewer),
     listTradeBinder(viewer),
     getTradeBinderShare(viewer),
+    listReceivedInvites(viewer),
   ])
 
   return (
@@ -41,6 +44,9 @@ export default async function TrocasPage() {
       <PageHeader title="Trocas" />
 
       <div className="flex flex-col gap-6">
+        {/* Primeiro os convites: e alguem esperando uma resposta (decisao 082). */}
+        <ReceivedInvites invites={convites} />
+
         <section className="flex flex-col gap-3">
           {aberta ? (
             <OpenTradeCard trade={aberta} appUrl={appUrl()} />

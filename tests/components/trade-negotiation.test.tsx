@@ -54,6 +54,7 @@ const troca = (over: Partial<TradeView> = {}): TradeView => ({
   tradeId: '7',
   status: 'NEGOTIATING',
   inviteToken: null,
+  invitedUsername: null,
   me: {
     userId: '1',
     name: 'Ana',
@@ -71,6 +72,7 @@ const troca = (over: Partial<TradeView> = {}): TradeView => ({
     offer: [],
   },
   iCanOffer: [],
+  iCanAlsoOffer: [],
   theyCanOffer: [],
   validated: false,
   completedAt: null,
@@ -255,6 +257,21 @@ describe('as sugestoes', () => {
     expect(within(faixa).getByText('3 disponíveis')).toBeInTheDocument()
     expect(within(faixa).getByText('procura 4')).toBeInTheDocument()
     expect(screen.getByText(/enquanto não puser, nada está oferecido/i)).toBeInTheDocument()
+  })
+
+  /* Decisao 083: o resto do Trade Binder aparece depois, e nao fala em procura. */
+  it('mostra o resto do Trade Binder num segundo grupo, sem "procura"', () => {
+    const outra = { ...sugestao, variantId: '10', quantity: 1, available: 5, stillWanted: 0, cardCode: 'OP01-020', cardName: 'Usopp' }
+    render(<TradeNegotiation trade={troca({ iCanOffer: [sugestao], iCanAlsoOffer: [outra] })} />)
+
+    const secoes = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
+    expect(secoes.indexOf('Outras cartas do seu Trade Binder')).toBeGreaterThan(
+      secoes.findIndex((t) => /procura e você tem/.test(t ?? '')),
+    )
+    const faixa = screen.getByRole('list', { name: 'Outras cartas do seu Trade Binder' })
+    expect(within(faixa).getByText('5 disponíveis')).toBeInTheDocument()
+    expect(within(faixa).queryByText(/procura/)).not.toBeInTheDocument()
+    expect(within(faixa).getByRole('button', { name: /oferecer 1/i })).toBeInTheDocument()
   })
 
   /** Ja oferecida sai da lista: repetir seria oferecer a mesma carta duas vezes. */
