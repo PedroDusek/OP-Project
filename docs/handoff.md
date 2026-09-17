@@ -19,7 +19,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 107 PRs mergeados, CI verde em todos |
+| Branch | `main`, 109 PRs mergeados, CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -42,7 +42,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 13 concluídos, e a Social.** 1.444 testes de unidade, integração e
+**Checkpoints 0 a 13 concluídos, e a Social.** 1.448 testes de unidade, integração e
 componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -100,8 +100,18 @@ componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 | — | A denúncia chega por e-mail a suporte@colexa.com.br, assunto DENUNCIA, pelo Resend (decisão 086) |
 | — | A página `/admin/denuncias` e `ADMIN_EMAILS` saíram: a denúncia é lida só pelo e-mail (decisão 087) |
 | — | CAPTCHA (Cloudflare Turnstile) em entrar, criar conta e recuperar senha (decisão 088) — **ligado no Supabase em 17/09** |
+| — | Login com Google ligado pelo dono do produto; o primeiro login de conta nova não dá mais erro (#109) |
 
 ### Produção, em 17/09/2026
+
+**Login com Google ligado** em 17/09 pelo dono do produto (Google Auth Platform,
+cliente *Web application*, redirect do Supabase; `development.md` 6.3). Ele
+entrou com a conta Google pelo `localhost`: a conta nasceu no **banco local**
+(id 6), porque `DATABASE_URL` é sempre local. Quando o site for publicado, a
+origem `https://colexa.com.br` entra no cliente do Google, e
+`https://colexa.com.br/auth/callback` nas *Redirect URLs* do Supabase. A tela do
+Google mostra o endereço do Supabase, e não colexa.com.br — mudar exige domínio
+personalizado, que é pago.
 
 **CAPTCHA ligado** no painel do Supabase em 17/09, pelo dono do produto, que
 testou entrar, criar conta e recuperar senha. Conferido de fora: entrar pela API
@@ -454,6 +464,12 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     assistente o desafio mostra "Confirme que é humano"; numa pessoa, no modo
     *Managed*, ele passa sozinho. O assistente não resolve CAPTCHA: o envio com
     o desafio de verdade é conferido pelo dono do produto.
+57. **O primeiro acesso de uma conta nova chega em paralelo.** A página e o sino
+    resolvem a mesma sessão ao mesmo tempo, e todos tentam criar a conta; o
+    segundo batia no índice único de `auth_user_id` e a tela dava erro até
+    recarregar. `resolveUser` agora lê a conta criada por quem ganhou a corrida.
+    O sintoma no banco é **id pulado a cada conta nova** — a sequência gasta pela
+    inserção que falhou. Os ids 3 e 5 do banco local são isso, e não fazem falta.
 
 ## Pendências
 
