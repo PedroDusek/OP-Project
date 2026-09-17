@@ -5372,7 +5372,10 @@ decisão 079.**
 2. **As mensagens da conversa se alinham pelo próprio balão** (`self-end` e
    `self-start` na coluna), e não por um item flexível que empurra o balão. No
    iPhone as mensagens dos dois lados saíam todas à esquerda; no navegador de mesa
-   o arranjo anterior funcionava, e por isso não foi pego.
+   o arranjo anterior funcionava, e por isso não foi pego. Conferido depois com o dono do
+   produto: no **Safari** do iPhone o balão ficava certo, e no **Brave** do mesmo
+   aparelho não — o Brave reescreve a folha de estilo. Por isso o alinhamento e a
+   largura vão também como estilo no próprio elemento.
 3. **Quem convidou é levado à troca quando o convite é aceito.** Enquanto o
    convite espera, o cartão de Trocas pergunta a cada três segundos pelo estado da
    troca; aceita, vai direto para a negociação; recusada ou descartada, redesenha

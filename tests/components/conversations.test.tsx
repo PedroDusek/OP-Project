@@ -54,6 +54,9 @@ describe('a conversa', () => {
     // protege a classe que alinha, e nao a posicao.
     expect(itens[0]).toHaveClass('self-start')
     expect(itens[1]).toHaveClass('self-end')
+    // No Brave do iPhone a classe nao bastou: o estilo no elemento e o que garante.
+    expect(itens[1]).toHaveStyle({ alignSelf: 'flex-end', maxWidth: '80%' })
+    expect(itens[0]).toHaveStyle({ alignSelf: 'flex-start' })
 
     const campo = screen.getByRole('textbox', { name: 'Mensagem' })
     const enviar = screen.getByRole('button', { name: 'Enviar mensagem' })
