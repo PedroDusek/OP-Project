@@ -87,6 +87,22 @@ export function crossOffer(
   return crossed
 }
 
+/**
+ * O resto do que quem oferece tem para troca: o que a outra pessoa **não**
+ * procura (decisão 083).
+ *
+ * Pedido do dono do produto: a troca mostra todas as cartas possíveis, e não só
+ * o cruzamento. Não procurar uma carta não impede de recebê-la — a want list é o
+ * ponto de partida da conversa, e não o limite dela.
+ */
+export function notWantedOffer(
+  available: readonly AvailableCard[],
+  crossed: readonly CrossedCard[],
+): AvailableCard[] {
+  const cruzadas = new Set(crossed.map((card) => card.variantId))
+  return available.filter((card) => card.quantity > 0 && !cruzadas.has(card.variantId))
+}
+
 export interface TradeCrossing {
   /** O que o primeiro lado pode dar ao segundo. */
   fromFirst: CrossedCard[]

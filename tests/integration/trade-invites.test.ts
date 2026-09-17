@@ -1,5 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { AuthenticatedUser } from '@/server/application/auth'
+import { readNotices } from '@/server/application/notifications/notices'
 import { blockMember } from '@/server/application/social/network'
 import { setOfferItem } from '@/server/application/trades/edit-offer'
 import { getOpenTrade, getTrade } from '@/server/application/trades/read-trade'
@@ -40,6 +41,10 @@ describe('convidar', () => {
     const bia = await pessoa('Bia Lima', 'bia')
 
     const tradeId = await inviteMember(testPrisma(), ana, 'BIA')
+
+    // Decisao 083: o convite recebido aparece no sino de quem recebe.
+    expect(await readNotices(testPrisma(), bia)).toEqual([{ kind: 'trade-invites', invites: 1 }])
+    expect(await readNotices(testPrisma(), ana)).toEqual([])
 
     expect(await listReceivedInvites(testPrisma(), bia)).toEqual([
       { tradeId: String(tradeId), fromUsername: 'ana', createdAt: expect.any(Date) },
@@ -118,6 +123,7 @@ describe('aceitar e recusar', () => {
     const tradeId = await inviteMember(testPrisma(), ana, 'bia')
 
     await declineInvite(testPrisma(), bia, tradeId)
+    expect(await readNotices(testPrisma(), bia)).toEqual([])
 
     expect(await listReceivedInvites(testPrisma(), bia)).toEqual([])
     expect(await getOpenTrade(testPrisma(), ana)).toBeNull()

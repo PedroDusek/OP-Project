@@ -1,7 +1,8 @@
 import type { PrismaClient } from '@prisma/client'
 import type { AuthenticatedUser } from '@/server/application/auth'
 import { AuthorizationError, NotFoundError } from '@/server/domain/errors'
-import { crossTrade, type CrossedCard, type TradeSide } from '@/server/domain/trades/crossing'
+import { compareCatalogOrder, placementSet, type CatalogOrderKey } from '@/server/domain/catalog/order'
+import { crossTrade, notWantedOffer, type CrossedCard, type TradeSide } from '@/server/domain/trades/crossing'
 import { isValidated, type TradeStatus } from '@/server/domain/trades/negotiation'
 
 /**
@@ -79,8 +80,13 @@ export interface TradeView {
   me: TradeSideView
   /** Nulo enquanto o convite não foi aceito: não há outro lado ainda. */
   other: TradeSideView | null
-  /** O que eu tenho e a outra pessoa quer. Sugestão, nunca obrigação. */
+  /** O que eu tenho e a outra pessoa quer. Sugestão, nunca obrigação. Na ordem do catálogo. */
   iCanOffer: TradeSuggestion[]
+  /**
+   * O resto do meu Trade Binder: o que a outra pessoa não procura, e que eu
+   * posso oferecer mesmo assim (decisão 083). Na ordem do catálogo.
+   */
+  iCanAlsoOffer: TradeSuggestion[]
   /** O que a outra pessoa tem e eu quero. */
   theyCanOffer: TradeSuggestion[]
   /** Os dois confirmaram: a troca está validada. */
@@ -175,9 +181,18 @@ export async function getTrade(
     confirmedAt: participant.confirmedAt,
   }))
 
+  // O resto do que eu tenho: oferecido com uma copia, e sem "procura".
+  const resto: CrossedCard[] = notWantedOffer(myData.available, crossing.fromFirst).map((card) => ({
+    variantId: card.variantId,
+    quantity: 1,
+    available: card.quantity,
+    stillWanted: 0,
+  }))
+
   const cartas = await cardsByVariant(prisma, [
     ...crossing.fromFirst.map((c) => c.variantId),
     ...crossing.fromSecond.map((c) => c.variantId),
+    ...resto.map((c) => c.variantId),
   ])
 
   return {
@@ -188,6 +203,7 @@ export async function getTrade(
     me: toSideView(mine),
     other: theirs ? toSideView(theirs) : null,
     iCanOffer: withCards(crossing.fromFirst, cartas),
+    iCanAlsoOffer: withCards(resto, cartas),
     theyCanOffer: withCards(crossing.fromSecond, cartas),
     validated: isValidated(participants),
     completedAt: trade.completedAt,
@@ -204,7 +220,7 @@ export function displayName(user: { name: string; username: string | null }): st
   return user.username ? `@${user.username}` : user.name
 }
 
-type CardLabel = { cardCode: string; cardName: string; imageUrl: string | null }
+type CardLabel = { cardCode: string; cardName: string; imageUrl: string | null; order: CatalogOrderKey }
 
 /**
  * As cartas das sugestões, numa consulta só.
@@ -220,19 +236,35 @@ async function cardsByVariant(
 
   const rows = await prisma.cardVariant.findMany({
     where: { id: { in: ids } },
-    select: { id: true, imageUrl: true, card: { select: { code: true, name: true } } },
+    select: {
+      id: true,
+      sourceId: true,
+      imageUrl: true,
+      card: { select: { code: true, name: true } },
+      printings: { select: { set: { select: { code: true } } } },
+    },
   })
 
   return new Map(
     rows.map((row) => [
       String(row.id),
-      { cardCode: row.card.code, cardName: row.card.name, imageUrl: row.imageUrl },
+      {
+        cardCode: row.card.code,
+        cardName: row.card.name,
+        imageUrl: row.imageUrl,
+        order: {
+          cardCode: row.card.code,
+          sourceId: row.sourceId,
+          setCode: placementSet(row.card.code, row.printings.map((p) => p.set.code)),
+        },
+      },
     ]),
   )
 }
 
 /**
- * Junta a aritmética com a carta, e descarta o que não tem carta.
+ * Junta a aritmética com a carta, descarta o que não tem carta, e ordena como o
+ * catálogo: coleção e número (decisões 040, 069 e 083).
  *
  * Uma sugestão sem carta não existe: a variante teria de ter saído do catálogo
  * entre uma consulta e outra. Mostrar um id cru seria pior que não mostrar.
@@ -241,10 +273,18 @@ function withCards(
   crossed: readonly CrossedCard[],
   cards: Map<string, CardLabel>,
 ): TradeSuggestion[] {
-  return crossed.flatMap((item) => {
-    const card = cards.get(item.variantId)
-    return card ? [{ ...item, ...card }] : []
-  })
+  return crossed
+    .flatMap((item) => {
+      const card = cards.get(item.variantId)
+      return card ? [{ item, card }] : []
+    })
+    .sort((a, b) => compareCatalogOrder(a.card.order, b.card.order) || (a.item.variantId < b.item.variantId ? -1 : 1))
+    .map(({ item, card }) => ({
+      ...item,
+      cardCode: card.cardCode,
+      cardName: card.cardName,
+      imageUrl: card.imageUrl,
+    }))
 }
 
 type ParticipantRow = {

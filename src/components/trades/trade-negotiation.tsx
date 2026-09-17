@@ -98,11 +98,26 @@ export function TradeNegotiation({ trade }: { trade: TradeView }) {
         editable={!encerrada}
       />
 
+      {/*
+        Dois grupos, pedido do dono do produto (decisao 083): primeiro o que a
+        outra pessoa procura, depois o resto do Trade Binder — nao procurar nao
+        impede de receber. Os dois na ordem do catalogo.
+      */}
       {trade.iCanOffer.length > 0 && !encerrada ? (
         <Suggestions
           title={`O que ${trade.other?.name ?? 'a outra pessoa'} procura e você tem`}
           description="Toque para pôr na sua oferta. Enquanto não puser, nada está oferecido."
           cards={trade.iCanOffer}
+          offer={trade.me.offer}
+          tradeId={trade.tradeId}
+        />
+      ) : null}
+
+      {trade.iCanAlsoOffer.length > 0 && !encerrada ? (
+        <Suggestions
+          title="Outras cartas do seu Trade Binder"
+          description={`${trade.other?.name ?? 'A outra pessoa'} não procura estas, mas você pode oferecer mesmo assim.`}
+          cards={trade.iCanAlsoOffer}
           offer={trade.me.offer}
           tradeId={trade.tradeId}
         />
@@ -431,7 +446,7 @@ function SuggestionCard({
       {/* Duas linhas: numa so, a faixa de 128px quebrava no meio e o numero ficava sozinho. */}
       <p className="text-xs text-text-muted">
         <span className="block">{card.available} disponíveis</span>
-        <span className="block">procura {card.stillWanted}</span>
+        {card.stillWanted > 0 ? <span className="block">procura {card.stillWanted}</span> : null}
       </p>
       <Button type="submit" variant="secondary" block loading={saving}>
         Oferecer {card.quantity}

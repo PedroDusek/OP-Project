@@ -26,6 +26,11 @@ export type Notice =
       /** Conversas com mensagem nova da outra pessoa. */
       conversations: number
     }
+  | {
+      kind: 'trade-invites'
+      /** Convites diretos de troca esperando resposta. */
+      invites: number
+    }
 
 /**
  * O aviso das cartas sem armazenamento, quando cabe.
@@ -45,4 +50,12 @@ export function unallocatedNotice(
 /** O aviso das mensagens não lidas: some quando a pessoa abre as conversas (decisão 081). */
 export function unreadMessagesNotice(conversations: number): Notice | null {
   return conversations > 0 ? { kind: 'unread-messages', conversations } : null
+}
+
+/**
+ * O aviso dos convites de troca recebidos: some quando a pessoa aceita ou recusa
+ * (decisão 083, pedido do dono do produto).
+ */
+export function tradeInvitesNotice(invites: number): Notice | null {
+  return invites > 0 ? { kind: 'trade-invites', invites } : null
 }

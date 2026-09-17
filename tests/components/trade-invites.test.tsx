@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { NotificationBell } from '@/components/layout/notification-bell'
 import { InviteMemberButton } from '@/components/trades/invite-member'
 import { OpenTradeCard } from '@/components/trades/open-trade-card'
 import { ReceivedInvites } from '@/components/trades/received-invites'
@@ -18,6 +19,7 @@ const { inviteMemberAction, acceptInviteAction, declineInviteAction, cancelTrade
   declineInviteAction: vi.fn(async (_previous: unknown, _data: FormData) => ({ status: 'done' as const })),
   cancelTradeAction: vi.fn(async (_previous: unknown, _data: FormData) => ({ status: 'done' as const })),
 }))
+vi.mock('next/navigation', () => ({ usePathname: () => '/trocas' }))
 vi.mock('@/app/(app)/trocas/actions', () => ({
   inviteMemberAction,
   acceptInviteAction,
@@ -89,5 +91,21 @@ describe('o convite enviado', () => {
     expect(screen.queryByRole('link', { name: 'Abrir a troca' })).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Link do convite')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Descartar este convite' })).toBeInTheDocument()
+  })
+})
+
+describe('o sino com convite (decisão 083)', () => {
+  it('avisa do convite e leva a Trocas', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ notices: [{ kind: 'trade-invites', invites: 1 }] }))),
+    )
+    const user = userEvent.setup()
+    render(<NotificationBell />)
+
+    await user.click(await screen.findByRole('button', { name: 'Notificações, 1 pendente' }))
+    const aviso = await screen.findByRole('link', { name: /Você recebeu um convite de troca/ })
+    expect(aviso).toHaveAttribute('href', '/trocas')
+    vi.unstubAllGlobals()
   })
 })

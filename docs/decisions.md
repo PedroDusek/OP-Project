@@ -5315,8 +5315,7 @@ que apareçam as cartas para troca daquela pessoa". **Acrescenta à regra 4.6.1.
    6.1.1: é a única identidade que outros veem). O nome real só aparece na troca
    por link com quem ainda não escolheu nome — que já se conhece por fora. Antes,
    a troca mostrava sempre o nome real, o que vazaria a quem veio da rede.
-7. **O sino não avisa de convite**: o dono do produto limitou o primeiro corte a
-   cartas sem armazenamento e mensagens. O convite aparece no topo de Trocas.
+7. ~~**O sino não avisa de convite**~~ — **mudado pela decisão 083**: avisa.
 
 ## A busca por nome
 
@@ -5327,6 +5326,29 @@ que apareçam as cartas para troca daquela pessoa". **Acrescenta à regra 4.6.1.
 3. Quem não tem carta em local de troca **continua fora da rede**, também na busca
    por nome: a rede é de quem tem o que trocar (decisão 079).
 4. O `_` do nome é letra, e não curinga: é escapado na consulta.
+
+## Data
+
+2026-09-16
+
+---
+
+# Decisão: 083 — A troca mostra todas as cartas possíveis, e o sino avisa do convite
+
+Correções do dono do produto em 16/09, ao conferir o convite direto. **Muda o item
+7 da decisão 082.**
+
+## Decisão
+
+1. **Na troca aparecem todas as cartas do seu Trade Binder**, em dois grupos:
+   primeiro **o que a outra pessoa procura** (o cruzamento de sempre), depois
+   **as outras cartas do seu Trade Binder**, que ela não procura — "isso não
+   impede elas de serem adicionadas". Cada carta do segundo grupo se oferece com
+   uma cópia, e não fala em "procura".
+2. **Os dois grupos na ordem do catálogo**: coleção e número (decisões 040 e 069).
+3. **O sino avisa do convite de troca recebido** — "Você recebeu um convite de
+   troca", levando a Trocas —, e o aviso some quando a pessoa aceita ou recusa.
+   Fica depois das mensagens e antes das cartas sem armazenamento.
 
 ## Data
 
