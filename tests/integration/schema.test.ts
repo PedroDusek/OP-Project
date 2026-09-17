@@ -20,6 +20,7 @@ import { disconnect, testPrisma } from '../helpers'
  * - `exchange_rates` e `price_imports` (decisao 051).
  * - `variant_source_products` (decisao 053).
  * - `trade_item_origins` (decisao 062).
+ * - `user_blocks` e `user_reports` (decisao 079, aprovadas pelo dono do produto em 16/09).
  */
 const EXPECTED_TABLES = [
   'attributes',
@@ -46,6 +47,8 @@ const EXPECTED_TABLES = [
   'trade_participants',
   'trades',
   'traits',
+  'user_blocks',
+  'user_reports',
   'users',
   'variant_printings',
   'variant_source_products',
@@ -77,8 +80,14 @@ const EXPECTED_DELETE_ACTIONS: Record<string, 'CASCADE' | 'RESTRICT'> = {
   // e uma intencao sobre onde as copias estao, e nao historico: o historico
   // do trade concluido vive em trade_items.
   'trade_item_origins.storage_location_id': 'CASCADE',
+  // O bloqueio e preferencia de uma pessoa sobre outra: nao sobrevive a nenhuma.
+  'user_blocks.blocker_id': 'CASCADE',
+  'user_blocks.blocked_id': 'CASCADE',
 
   'card_variants.card_id': 'RESTRICT',
+  // A denuncia e registro de moderacao, como o participante de uma troca.
+  'user_reports.reporter_id': 'RESTRICT',
+  'user_reports.reported_id': 'RESTRICT',
   'variant_printings.set_id': 'RESTRICT',
   'collection_items.card_variant_id': 'RESTRICT',
   'want_items.card_variant_id': 'RESTRICT',

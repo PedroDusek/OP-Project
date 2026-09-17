@@ -1,59 +1,123 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { Users } from 'lucide-react'
 import { PageHeader } from '@/components/layout/app-shell'
-import { EmptyState } from '@/components/ui/states'
+import { NetworkMemberBox } from '@/components/social/network-member'
+import { NetworkSearch } from '@/components/social/network-search'
+import { EmptyState, ErrorState } from '@/components/ui/states'
 import { Panel } from '@/components/ui/surface'
-import { getUsernameState } from '@/server/application/social'
+import { getUsernameState, listNetwork, type NetworkPage } from '@/server/application/social'
+import { RateLimitError } from '@/server/domain/errors'
 import { requireViewer } from '@/server/http/viewer'
 
 export const metadata: Metadata = { title: 'Social' }
 
 /**
- * Social.
+ * A rede (regras 6.1.2 a 6.1.4, decisões 060 e 079).
  *
- * A rede ainda não existe: as regras estão escritas (`business-rules.md` 6.1.1
- * a 6.1.4) e a identidade está construída, mas a listagem, a busca por carta e
- * o bloqueio não.
+ * Quem tem cartas para troca, cada pessoa numa caixa com a prévia — Premium
+ * primeiro, depois quem tem mais do que quem olha procura. A busca por carta
+ * devolve quem a tem, na mesma apresentação.
  *
- * A tela existe assim mesmo porque o destino está na navegação por escolha do
- * dono do produto, e um destino que não leva a nada é pior que um que explica.
- * Ela também faz uma coisa útil hoje: cobra o nome de usuário de quem ainda não
- * escolheu — sem ele, ninguém aparece para ninguém quando a rede abrir.
+ * A lista cresce ao pedir mais pessoas, e não troca de página: o endereço guarda
+ * até onde se carregou, e voltar de um binder devolve a lista inteira. O teto
+ * de páginas mora no domínio (`NETWORK_MAX_PAGES`).
+ *
+ * A tela continua cobrando o nome de usuário de quem ainda não escolheu: sem
+ * ele, a pessoa vê a rede, mas ninguém a vê.
  */
-export default async function SocialPage() {
+export default async function SocialPage({ searchParams }: PageProps<'/social'>) {
   const viewer = await requireViewer('/social')
-  const { username } = await getUsernameState(viewer)
+  const params = await searchParams
+  const primeiro = (valor: string | string[] | undefined) => (Array.isArray(valor) ? valor[0] : valor) ?? null
+
+  const [{ username }, resultado] = await Promise.all([
+    getUsernameState(viewer),
+    listNetwork(viewer, { query: primeiro(params.q), page: primeiro(params.pagina) }).catch((error: unknown) => {
+      if (error instanceof RateLimitError) return error
+      throw error
+    }),
+  ])
 
   return (
     <>
-      <PageHeader
-        title="Social"
-        description="Quem tem o que você procura, e quem procura o que você tem."
-      />
+      <PageHeader title="Social" description="Quem tem o que você procura, e quem procura o que você tem." />
 
       <div className="flex flex-col gap-4">
-        {username ? (
+        {username ? null : (
           <Panel className="px-4 py-3">
             <p className="text-sm text-text">
-              Você aparecerá como <strong>@{username}</strong>.
-            </p>
-          </Panel>
-        ) : (
-          <Panel className="px-4 py-3">
-            <p className="text-sm text-text">
-              Escolha seu nome na rede em <strong>Minha conta</strong>. Sem ele, você não aparece
-              para ninguém quando a rede abrir.
+              Escolha seu nome na rede em{' '}
+              <Link href="/conta" className="font-medium text-accent-ink hover:underline">
+                Minha conta
+              </Link>
+              . Sem ele, você vê a rede, mas não aparece para ninguém.
             </p>
           </Panel>
         )}
 
-        <EmptyState
-          icon={<Users className="size-10" aria-hidden />}
-          title="A rede ainda não está aberta"
-          description="Aqui você vai ver o Trade Binder de outras pessoas e buscar quem tem uma carta específica. Enquanto isso, dá para trocar com quem você já conhece: comece uma troca em Trocas e mande o convite."
-          action={{ label: 'Ir para Trocas', href: '/trocas' }}
-        />
+        <NetworkSearch initial={resultado instanceof RateLimitError ? '' : (resultado.query ?? '')} />
+
+        {resultado instanceof RateLimitError ? (
+          <ErrorState
+            title="Muitas consultas seguidas"
+            description={`Espere ${resultado.retryAfterSeconds} segundos e tente de novo.`}
+          />
+        ) : (
+          <Rede resultado={resultado} />
+        )}
       </div>
+    </>
+  )
+}
+
+function Rede({ resultado }: { resultado: NetworkPage }) {
+  if (resultado.members.length === 0) {
+    return resultado.query ? (
+      <EmptyState
+        icon={<Users className="size-10" aria-hidden />}
+        title={
+          resultado.viewerHasMatch
+            ? `Só você tem "${resultado.query}" para troca na rede`
+            : `Ninguém na rede tem "${resultado.query}" para troca`
+        }
+        description={
+          resultado.viewerHasMatch
+            ? 'A carta está no seu Trade Binder. Você não aparece na sua própria busca — as outras pessoas veem você quando buscam por ela.'
+            : 'Tente o código da carta, ou outro nome. Quem tem a carta guardada fora do Trade Binder não aparece aqui.'
+        }
+      />
+    ) : (
+      <EmptyState
+        icon={<Users className="size-10" aria-hidden />}
+        title="Ninguém na rede tem cartas para troca ainda"
+        description="Quando alguém guardar cartas num local de troca, aparece aqui."
+      />
+    )
+  }
+
+  const mais = new URLSearchParams()
+  if (resultado.query) mais.set('q', resultado.query)
+  mais.set('pagina', String(resultado.page + 1))
+
+  return (
+    <>
+      <ul className="flex flex-col gap-3">
+        {resultado.members.map((member) => (
+          <li key={member.username}>
+            <NetworkMemberBox member={member} />
+          </li>
+        ))}
+      </ul>
+      {resultado.hasMore ? (
+        <Link
+          href={`/social?${mais.toString()}`}
+          scroll={false}
+          className="mx-auto inline-flex h-11 items-center rounded-control border border-border px-4 text-sm font-medium text-text hover:bg-surface-muted"
+        >
+          Ver mais pessoas
+        </Link>
+      ) : null}
     </>
   )
 }
