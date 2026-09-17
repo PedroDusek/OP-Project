@@ -5202,3 +5202,38 @@ que segue são as escolhas do dono do produto em 16/09 e as de implementação.
 ## Data
 
 2026-09-16
+
+---
+
+# Decisão: 080 — O sino mostra os avisos do estado atual
+
+Pedido do dono do produto em 16/09: o sino ao lado do avatar levava para Minha
+conta, e deve funcionar como o ícone indica — os avisos, com um pontinho quando
+há algo pendente.
+
+## Escolhas do dono do produto
+
+- **Avisos do estado atual**, e não histórico de notificações: o sino mostra o
+  que está pendente agora, e o aviso some sozinho quando a pessoa resolve. Não há
+  "marcar como lida" nem tabela.
+- **Primeiro corte**: cartas sem armazenamento e mensagens não lidas. As
+  mensagens entram com as Conversas, cujo modelo o dono do produto quer discutir
+  antes.
+
+## Decisões de implementação
+
+1. **O aviso das cartas sem armazenamento** segue a regra do lembrete de Binders:
+   aparece com cópia sem lugar, e não aparece para quem ainda não criou nenhum
+   local — tudo estaria sem lugar, e o convite seria um beco. Leva para
+   `/binders/sem-lugar`.
+2. **O sino busca os próprios avisos** em `/api/me/notificacoes`: ao abrir cada
+   página, ao voltar para a aba e a cada minuto com a aba à vista. O layout das
+   áreas autenticadas não é refeito ao navegar, e o aviso calculado nele ficaria
+   velho até recarregar.
+3. **O painel abre sobre a página**, com cada aviso levando a onde ele se
+   resolve; sem aviso, diz "Nada pendente por aqui". O avatar continua levando a
+   Minha conta.
+
+## Data
+
+2026-09-16

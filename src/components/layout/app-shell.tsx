@@ -28,12 +28,11 @@ import { TopBar, type Viewer } from './top-bar'
 
 export interface AppShellProps {
   viewer?: Viewer
-  hasUnread?: boolean
   children: React.ReactNode
   className?: string
 }
 
-export function AppShell({ viewer, hasUnread, children, className }: AppShellProps) {
+export function AppShell({ viewer, children, className }: AppShellProps) {
   return (
     <div className="min-h-dvh">
       <a
@@ -54,7 +53,7 @@ export function AppShell({ viewer, hasUnread, children, className }: AppShellPro
         limite de largura, que na folha vira margem branca de sobra.
       */}
       <div className="md:pl-56 print:pl-0">
-        <TopBar viewer={viewer} hasUnread={hasUnread} />
+        <TopBar viewer={viewer} />
         <main
           id="conteudo"
           className={cn(
