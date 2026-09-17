@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Script from 'next/script'
 
 /**
@@ -23,6 +23,16 @@ import Script from 'next/script'
  * ação (o próprio estado do formulário), e isso pede um desafio novo. O token
  * fica em estado, e não no campo escondido que o Turnstile cria sozinho: o React
  * reseta o `<form action>` ao fim da ação, e o valor controlado sobrevive.
+ *
+ * ## Desenha ao montar, e não só no `onReady`
+ *
+ * Relatado pelo dono do produto: o desafio aparecia ao recarregar a página, e
+ * sumia ao sair e voltar para ela. Com o script já carregado, o `next/script`
+ * chama `onReady` uma vez só por montagem do `<Script>` — e em desenvolvimento o
+ * React monta, desmonta e monta de novo. A desmontagem removia o widget, e a
+ * segunda montagem não recebia outro `onReady` para desenhá-lo. Por isso o
+ * componente desenha no próprio efeito, quando o script já existe, e o `onReady`
+ * fica para o primeiro carregamento.
  */
 
 interface TurnstileOptions {
@@ -55,7 +65,7 @@ export function Captcha({ resetKey }: { resetKey: unknown }) {
   const widget = useRef<string | null>(null)
   const [token, setToken] = useState('')
 
-  const desenhar = () => {
+  const desenhar = useCallback(() => {
     if (!siteKey || !container.current || widget.current || !window.turnstile) return
     widget.current = window.turnstile.render(container.current, {
       sitekey: siteKey,
@@ -66,20 +76,20 @@ export function Captcha({ resetKey }: { resetKey: unknown }) {
       'expired-callback': () => setToken(''),
       'error-callback': () => setToken(''),
     })
-  }
+  }, [siteKey])
+
+  useEffect(() => {
+    desenhar()
+    return () => {
+      if (widget.current) window.turnstile?.remove(widget.current)
+      widget.current = null
+    }
+  }, [desenhar])
 
   // Resposta da ação: o token já foi gasto, e o desafio recomeça.
   useEffect(() => {
     if (widget.current) window.turnstile?.reset(widget.current)
   }, [resetKey])
-
-  useEffect(
-    () => () => {
-      if (widget.current) window.turnstile?.remove(widget.current)
-      widget.current = null
-    },
-    [],
-  )
 
   if (!siteKey) return null
 

@@ -1,3 +1,4 @@
+import { StrictMode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, render } from '@testing-library/react'
 import { Captcha } from '@/components/auth/captcha'
@@ -8,11 +9,24 @@ import { Captcha } from '@/components/auth/captcha'
  * depois de montar, como o de verdade — antes disso o contêiner não existe.
  */
 
+/*
+ * Como o de verdade: `onReady` uma vez por montagem do `<Script>`, mesmo que o
+ * React refaça os efeitos. `scriptCarregado` falso imita o script ainda chegando.
+ */
+let scriptCarregado = true
+/** O `onReady` que o evento de carregamento do script chamaria. */
+let aoCarregar: (() => void) | undefined
 vi.mock('next/script', async () => {
-  const { useEffect } = await import('react')
+  const { useEffect, useRef } = await import('react')
   return {
     default: function ScriptFalso({ onReady }: { onReady?: () => void }) {
-      useEffect(() => onReady?.(), [onReady])
+      const chamado = useRef(false)
+      aoCarregar = onReady
+      useEffect(() => {
+        if (chamado.current || !scriptCarregado) return
+        chamado.current = true
+        onReady?.()
+      }, [onReady])
       return null
     },
   }
@@ -21,6 +35,7 @@ vi.mock('next/script', async () => {
 afterEach(() => {
   vi.unstubAllEnvs()
   delete window.turnstile
+  scriptCarregado = true
 })
 
 function turnstileFalso() {
@@ -61,6 +76,36 @@ describe('Captcha', () => {
     expect(campo(container)).toHaveValue('')
     await resolver('tok-1')
     expect(campo(container)).toHaveValue('tok-1')
+  })
+
+  /*
+   * Relatado pelo dono do produto: sair da tela e voltar deixava o desafio sem
+   * desenhar. Em desenvolvimento o React monta, desmonta e monta de novo, e o
+   * `onReady` so vem uma vez — quem desenha de novo e o proprio componente.
+   */
+  it('voltar à tela com o script já carregado desenha de novo, mesmo com o React remontando', () => {
+    vi.stubEnv('NEXT_PUBLIC_TURNSTILE_SITE_KEY', 'chave-publica')
+    const { api } = turnstileFalso()
+
+    const { unmount } = render(<Captcha resetKey={1} />, { wrapper: StrictMode })
+    expect(api.remove).toHaveBeenCalledTimes(1)
+    expect(api.render).toHaveBeenCalledTimes(2)
+    unmount()
+
+    render(<Captcha resetKey={1} />, { wrapper: StrictMode })
+    expect(api.render).toHaveBeenCalledTimes(4)
+    expect(api.remove).toHaveBeenCalledTimes(3)
+  })
+
+  it('no primeiro carregamento, desenha quando o script chega', () => {
+    vi.stubEnv('NEXT_PUBLIC_TURNSTILE_SITE_KEY', 'chave-publica')
+    scriptCarregado = false
+    render(<Captcha resetKey={1} />)
+    expect(window.turnstile).toBeUndefined()
+
+    const { api } = turnstileFalso()
+    act(() => aoCarregar?.())
+    expect(api.render).toHaveBeenCalledTimes(1)
   })
 
   it('cada resposta da ação pede um desafio novo, e sair da tela remove o widget', () => {
