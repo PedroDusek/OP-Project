@@ -5613,3 +5613,50 @@ depois da comparação entre Vercel, Fly.io e VPS.
 ## Data
 
 2026-09-17
+
+---
+
+# Decisão: 090 — As imagens das cartas na Fly: esperar mais, e o cache num volume
+
+Corrige a primeira publicação (decisão 089), relatada pelo dono do produto em
+17/09: logado em `colexa.fly.dev`, **nenhuma imagem de carta carregava**.
+
+## Contexto
+
+As imagens passam pelo nosso servidor porque a Bandai não deixa referenciá-las
+direto (decisão 038). O log da máquina mostrava `upstream image response timed
+out` para toda carta. Medido de dentro da máquina e do computador de
+desenvolvimento, com o mesmo resultado nos dois:
+
+- o original de cada carta tem **de 1,4 a 2,2 MB**, e vem de servidores em Tóquio;
+- cada um leva **cerca de 3 segundos**;
+- o Next desiste depois de **7 segundos**, e uma grade pede dezenas ao mesmo tempo.
+
+No desenvolvimento não aparecia porque o cache de `.next/cache/images` já estava
+cheio de semanas de uso. Na Fly ele começa vazio — e o disco da máquina é
+apagado a cada publicação.
+
+## Decisão
+
+1. **Esperar até 30 segundos** pela imagem de fora (`imgOptTimeoutInSeconds`).
+2. **Processar duas imagens por vez** (`imgOptConcurrency`), para a máquina de
+   CPU compartilhada não parar as páginas enquanto converte originais de 2 MB.
+3. **O cache num volume da Fly** de 1 GB, montado em `.next/cache`, que
+   sobrevive às publicações. Custo em torno de US$ 0,15/mês.
+4. O servidor continua rodando como `node`: o contêiner sobe como root só para
+   entregar a pasta do volume, e troca de usuário com `setpriv`. O workflow
+   **Imagem** passa a conferir isso.
+
+## Consequências
+
+- **A primeira visita a cada carta continua lenta** (alguns segundos), até o
+  cache ter a versão dela. Depois, é servida do disco.
+- O volume **prende a máquina ao servidor físico dele**, em `gru`. Com uma
+  máquina só, não muda nada; com duas, cada uma precisaria do seu.
+- Se isto não bastar, o próximo passo é guardar cópias otimizadas das cartas no
+  nosso Storage e deixar de depender de Tóquio a cada carta nova. Isso muda a
+  decisão 038 e tem questão de direito de imagem: volta como conversa.
+
+## Data
+
+2026-09-17

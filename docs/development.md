@@ -388,6 +388,11 @@ Nenhum destes passos passa segredo pela conversa.
      *Redirect URLs*;
    - Google Auth Platform, no cliente: `https://colexa.fly.dev` nas origens.
 
+8. **O volume do cache de imagens** (decisão 090), uma vez, antes da primeira
+   publicação que tiver `[[mounts]]` em `fly.toml`:
+   `fly volumes create colexa_cache --region gru --size 1 --app colexa`.
+   Sem ele, a publicação falha dizendo que o volume não existe.
+
 #### A cada publicação
 
 1. `npm run supabase status`. Se faltar migration, `npm run supabase migrate`
