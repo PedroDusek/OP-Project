@@ -40,10 +40,13 @@ FROM base AS runner
 ENV NODE_ENV=production \
     PORT=3000 \
     HOSTNAME=0.0.0.0
-# O usuario `node` ja existe na imagem oficial: o servidor nao roda como root.
 COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
 COPY --from=build --chown=node:node /app/public ./public
-USER node
 EXPOSE 3000
-CMD ["node", "server.js"]
+# O cache das imagens mora num volume da Fly montado em `.next/cache` (decisao
+# 090), e o volume chega pertencendo ao root. O processo sobe como root so para
+# entregar a pasta ao usuario `node`, e o servidor roda como `node` — o
+# `setpriv` troca o usuario sem deixar um processo root de pe. Sem volume (na
+# CI, por exemplo), a pasta e criada e o resto e igual.
+CMD ["sh", "-c", "mkdir -p /app/.next/cache && chown node:node /app/.next/cache && exec setpriv --reuid=node --regid=node --init-groups node server.js"]

@@ -45,6 +45,18 @@ jobs:
             exit 1
           fi
 
+      - name: O servidor roda como node, e nao como root
+        run: |
+          docker run -d --name usuario colexa:pr
+          sleep 5
+          dono=$(docker exec usuario sh -c 'ps -o user= -p 1 2>/dev/null || stat -c %U /proc/1')
+          docker rm -f usuario
+          echo "processo principal: $dono"
+          if [ "$dono" != "node" ]; then
+            echo "::error::O servidor esta rodando como $dono."
+            exit 1
+          fi
+
       - name: O servidor sobe e responde a checagem de saude
         run: |
           docker run -d --name colexa -p 3000:3000 \

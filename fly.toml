@@ -44,6 +44,14 @@ primary_region = 'gru'
     method = 'GET'
     path = '/api/saude'
 
+# O cache das imagens otimizadas das cartas (decisao 090). O disco da maquina e
+# apagado a cada publicacao, e sem isto cada publicacao voltaria a baixar de
+# Toquio os originais de 2 MB de toda carta vista. 1 GB sobra: a versao
+# otimizada tem dezenas de KB.
+[[mounts]]
+  source = 'colexa_cache'
+  destination = '/app/.next/cache'
+
 [[vm]]
   size = 'shared-cpu-1x'
   memory = '1gb'

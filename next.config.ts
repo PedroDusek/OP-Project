@@ -98,6 +98,24 @@ const nextConfig: NextConfig = {
      * da imagem nao deixa para tras um limite de transporte menor que ele.
      */
     serverActions: { bodySizeLimit: MAX_IMAGE_BYTES + 512 * 1024 },
+
+    /**
+     * Quanto esperar pela imagem da Bandai (decisao 090).
+     *
+     * O padrao do Next e **7 segundos**, e o original de uma carta tem de 1,4 a
+     * 2,2 MB vindo de Toquio: cerca de 3 s cada, medido da maquina da Fly e de
+     * desenvolvimento. Uma grade pede dezenas ao mesmo tempo, e na primeira
+     * publicacao nenhuma carta desenhou — "upstream image response timed out"
+     * para todas. Com o cache pronto, esperar nao acontece mais.
+     */
+    imgOptTimeoutInSeconds: 30,
+
+    /**
+     * Quantas imagens o `sharp` processa de uma vez. A maquina e um
+     * `shared-cpu-1x`: sem limite, uma grade inteira de originais de 2 MB
+     * disputa o mesmo nucleo com as paginas, e tudo fica lento junto.
+     */
+    imgOptConcurrency: 2,
   },
 
   images: {
