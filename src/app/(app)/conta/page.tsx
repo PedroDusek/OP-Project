@@ -91,6 +91,12 @@ export default async function MaisPage() {
 
         <PanelList>
           <SignOutButton />
+          <ListRow
+            title="Excluir conta"
+            description="Apaga seus dados depois de um prazo para desistir."
+            tone="danger"
+            href="/conta/excluir"
+          />
         </PanelList>
       </div>
     </>

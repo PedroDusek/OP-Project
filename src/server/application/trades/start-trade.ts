@@ -158,9 +158,11 @@ export async function inviteMember(prisma: PrismaClient, user: AuthenticatedUser
 
   const outra = await prisma.user.findUnique({
     where: { username: normalizeUsername(username) },
-    select: { id: true, username: true, deletedAt: true },
+    select: { id: true, username: true, deletedAt: true, deletionRequestedAt: true },
   })
-  if (!outra || outra.deletedAt || !outra.username) throw new NotFoundError('Ninguém na rede tem esse nome.')
+  if (!outra || outra.deletedAt || outra.deletionRequestedAt || !outra.username) {
+    throw new NotFoundError('Ninguém na rede tem esse nome.')
+  }
   if (outra.id === user.id) throw new ValidationError('Você não pode convidar a si mesmo.')
 
   await assertNotBlocked(prisma, user.id, outra.id)

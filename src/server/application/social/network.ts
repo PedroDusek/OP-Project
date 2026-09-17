@@ -171,6 +171,7 @@ export async function listNetwork(
       JOIN collections c ON c.id = ci.collection_id AND c.user_id = u.id
      WHERE u.username IS NOT NULL
        AND u.deleted_at IS NULL
+       AND u.deletion_requested_at IS NULL
        AND u.id <> ${viewer.id}
        AND NOT EXISTS (SELECT 1 FROM user_blocks b WHERE b.blocker_id = ${viewer.id} AND b.blocked_id = u.id)
      GROUP BY u.id
@@ -228,10 +229,11 @@ async function findMember(prisma: PrismaClient, username: string) {
   const nome = normalizeUsername(username)
   const pessoa = await prisma.user.findUnique({
     where: { username: nome },
-    select: { id: true, username: true, plan: true, premiumUntil: true, deletedAt: true },
+    select: { id: true, username: true, plan: true, premiumUntil: true, deletedAt: true, deletionRequestedAt: true },
   })
-  // Conta que saiu e nome que nao existe sao a mesma resposta.
-  if (!pessoa || pessoa.deletedAt || !pessoa.username) {
+  // Conta que saiu, conta com exclusao pedida (decisao 091) e nome que nao
+  // existe sao a mesma resposta.
+  if (!pessoa || pessoa.deletedAt || pessoa.deletionRequestedAt || !pessoa.username) {
     throw new NotFoundError('Ninguém na rede tem esse nome.')
   }
   return { ...pessoa, username: pessoa.username }

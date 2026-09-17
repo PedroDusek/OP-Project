@@ -77,9 +77,11 @@ export async function startConversation(
 
   const outra = await prisma.user.findUnique({
     where: { username: normalizeUsername(username) },
-    select: { id: true, username: true, deletedAt: true },
+    select: { id: true, username: true, deletedAt: true, deletionRequestedAt: true },
   })
-  if (!outra || outra.deletedAt || !outra.username) throw new NotFoundError('Ninguém na rede tem esse nome.')
+  if (!outra || outra.deletedAt || outra.deletionRequestedAt || !outra.username) {
+    throw new NotFoundError('Ninguém na rede tem esse nome.')
+  }
   if (outra.id === viewer.id) throw new ValidationError('Você não pode conversar consigo mesmo.')
 
   const motivo = sendBlockedReason(await bloqueios(prisma, viewer.id, outra.id))
@@ -213,7 +215,7 @@ async function participacao(prisma: PrismaClient, viewer: AuthenticatedUser, con
 
   const outra = await prisma.conversationParticipant.findFirst({
     where: { conversationId, userId: { not: viewer.id } },
-    select: { user: { select: { id: true, username: true, deletedAt: true } } },
+    select: { user: { select: { id: true, username: true, deletedAt: true, deletionRequestedAt: true } } },
   })
   if (!outra) throw new NotFoundError('Conversa não encontrada.')
   return { participanteId: eu.id, outra: outra.user }
@@ -222,10 +224,15 @@ async function participacao(prisma: PrismaClient, viewer: AuthenticatedUser, con
 async function motivoParaNaoEnviar(
   prisma: PrismaClient,
   viewer: AuthenticatedUser,
-  outra: { id: bigint; deletedAt: Date | null; username: string | null },
+  outra: { id: bigint; deletedAt: Date | null; deletionRequestedAt: Date | null; username: string | null },
 ) {
   if (outra.deletedAt || !outra.username) {
     return { motivo: 'Esta conta saiu da rede.', viewerBlockedOther: false }
+  }
+  // Pediu para excluir e ainda pode desistir (decisao 091): nao diz que saiu,
+  // so que nao da para escrever agora.
+  if (outra.deletionRequestedAt) {
+    return { motivo: 'Esta conta não está disponível no momento.', viewerBlockedOther: false }
   }
   const estado = await bloqueios(prisma, viewer.id, outra.id)
   return { motivo: sendBlockedReason(estado), viewerBlockedOther: estado.viewerBlockedOther }

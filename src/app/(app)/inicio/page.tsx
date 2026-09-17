@@ -21,9 +21,18 @@ export const metadata: Metadata = { title: 'Início' }
  * Colecão vazia mostra o estado vazio em vez de quatro zeros: zero em tudo não
  * informa, e a próxima ação é a mesma.
  */
-export default async function InicioPage() {
+export default async function InicioPage({ searchParams }: { searchParams: Promise<{ exclusao?: string }> }) {
   const viewer = await requireViewer('/inicio')
   const summary = await getCollectionSummary(viewer)
+
+  // Entrar de novo cancelou um pedido de exclusao da conta (decisao 091). O
+  // parametro so muda o texto desta pagina, entao nao ha o que falsificar.
+  const exclusaoCancelada = (await searchParams).exclusao === 'cancelada' ? (
+    <Panel role="status" className="mb-5 border-success/40 bg-success-soft p-3 text-sm text-text">
+      O pedido de exclusão da sua conta foi cancelado. Tudo continua como estava, menos as trocas
+      que tinham sido canceladas.
+    </Panel>
+  ) : null
 
   const primeiroNome = viewer.name.trim().split(/\s+/)[0]
 
@@ -31,6 +40,7 @@ export default async function InicioPage() {
     return (
       <>
         <PageHeader title={`Olá, ${primeiroNome}`} description="Sua coleção em um só lugar." />
+        {exclusaoCancelada}
         <EmptyState
           icon={<Layers className="size-10" aria-hidden />}
           title="Sua coleção está vazia"
@@ -44,6 +54,7 @@ export default async function InicioPage() {
   return (
     <>
       <PageHeader title={`Olá, ${primeiroNome}`} description="Sua coleção em um só lugar." />
+      {exclusaoCancelada}
 
       <div className="flex flex-col gap-5">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3">

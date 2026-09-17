@@ -61,6 +61,11 @@ model User {
   plan                      String    @default("FREE") @db.VarChar(20)
   trialStartedAt            DateTime? @map("trial_started_at") @db.Timestamptz(6)
   premiumUntil              DateTime? @map("premium_until") @db.Timestamptz(6)
+  // Quando a pessoa pediu para excluir a conta (decisao 091). Durante 30 dias a
+  // conta fica suspensa — nao entra, nao aparece na rede — e entrar de novo
+  // cancela o pedido. Vencido o prazo, a tarefa diaria anonimiza (decisao 015) e
+  // limpa esta coluna. Anulavel: quase ninguem pede.
+  deletionRequestedAt       DateTime? @map("deletion_requested_at") @db.Timestamptz(6)
   deletedAt                 DateTime? @map("deleted_at") @db.Timestamptz(6)
   createdAt                 DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt                 DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)

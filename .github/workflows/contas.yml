@@ -1,0 +1,77 @@
+name: Contas
+
+# Anonimiza as contas com pedido de exclusao vencido (decisao 091).
+#
+# Quem pede para excluir a conta tem 30 dias para desistir entrando de novo.
+# Vencido o prazo, esta tarefa exclui a conta no Supabase Auth e anonimiza no
+# banco (decisao 015). Diaria, porque o prazo e em dias: rodar de hora em hora
+# so anteciparia em horas o que a pessoa ja sabe que vai acontecer naquele dia.
+#
+# 08:00 UTC, 05:00 em Brasilia, uma hora depois dos precos, para as duas tarefas
+# nao disputarem o banco.
+#
+# **Este workflow escreve em producao, e apaga dado pessoal.** Precisa de dois
+# segredos: SUPABASE_DATABASE_URL (a string do pooler, como nos precos) e
+# SUPABASE_SECRET_KEY (para excluir a conta no Auth e as fotos no Storage). Sem
+# qualquer um dos dois, termina sem erro dizendo que pulou — anonimizar sem
+# excluir no Auth deixaria e-mail e senha no provedor.
+
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: contas
+  cancel-in-progress: false
+
+jobs:
+  anonimizar:
+    name: Anonimizar contas vencidas
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      # O mesmo valor inutil do workflow de precos: producao chega so por
+      # SUPABASE_DATABASE_URL.
+      DATABASE_URL: postgresql://nao-usar:nao-usar@127.0.0.1:5432/nao-usar
+
+    steps:
+      - name: Verificar se o destino esta configurado
+        id: destino
+        env:
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: |
+          if [ -z "$SUPABASE_DATABASE_URL" ] || [ -z "$SUPABASE_SECRET_KEY" ]; then
+            echo "::notice::SUPABASE_DATABASE_URL ou SUPABASE_SECRET_KEY nao esta configurado. Nada a fazer."
+            echo "configurado=nao" >> "$GITHUB_OUTPUT"
+          else
+            echo "configurado=sim" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v5
+        if: steps.destino.outputs.configurado == 'sim'
+
+      - uses: actions/setup-node@v5
+        if: steps.destino.outputs.configurado == 'sim'
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependencias
+        if: steps.destino.outputs.configurado == 'sim'
+        run: npm ci
+
+      - name: Gerar Prisma Client
+        if: steps.destino.outputs.configurado == 'sim'
+        run: npx prisma generate
+
+      - name: Anonimizar
+        if: steps.destino.outputs.configurado == 'sim'
+        env:
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_STORAGE_BUCKET: colexa-imagens
+        run: npm run supabase contas

@@ -40,7 +40,7 @@ export async function resolveUser(
   identity: ProviderIdentity,
 ): Promise<AuthenticatedUser | null> {
   const existing = await findUser(prisma, identity.authUserId)
-  if (existing) return existing.deletedAt ? null : toAuthenticated(existing)
+  if (existing) return unavailable(existing) ? null : toAuthenticated(existing)
 
   try {
     return await prisma.user.create({
@@ -58,18 +58,34 @@ export async function resolveUser(
     if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') throw error
     const criada = await findUser(prisma, identity.authUserId)
     if (!criada) throw error
-    return criada.deletedAt ? null : toAuthenticated(criada)
+    return unavailable(criada) ? null : toAuthenticated(criada)
   }
 }
 
 function findUser(prisma: PrismaClient, authUserId: string) {
   return prisma.user.findUnique({
     where: { authUserId },
-    select: { id: true, email: true, name: true, plan: true, premiumUntil: true, deletedAt: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      plan: true,
+      premiumUntil: true,
+      deletedAt: true,
+      deletionRequestedAt: true,
+    },
   })
 }
 
-/** Conta anonimizada nao autentica, mesmo com sessao valida no provedor: quem chama devolve `null`. */
-function toAuthenticated(user: AuthenticatedUser & { deletedAt: Date | null }): AuthenticatedUser {
+/**
+ * Conta que nao autentica, mesmo com sessao valida no provedor: anonimizada, ou
+ * com pedido de exclusao pendente (decisao 091). A suspensa volta entrando de
+ * novo — o login cancela o pedido antes de chegar aqui.
+ */
+function unavailable(user: { deletedAt: Date | null; deletionRequestedAt: Date | null }): boolean {
+  return user.deletedAt !== null || user.deletionRequestedAt !== null
+}
+
+function toAuthenticated(user: AuthenticatedUser): AuthenticatedUser {
   return { id: user.id, email: user.email, name: user.name, plan: user.plan, premiumUntil: user.premiumUntil }
 }

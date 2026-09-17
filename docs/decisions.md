@@ -511,6 +511,13 @@ chave estrangeira sem responder isso.
 
 Opção 1. Contas são anonimizadas e nunca excluídas fisicamente.
 
+> **Complementada pela decisão 091** (17/09): o pedido tem 30 dias para
+> desistir, as trocas em andamento são canceladas no pedido, a conta também é
+> excluída no Supabase Auth, e a anonimização passou a cobrir nome na rede, link
+> do Trade Binder, bloqueios e fotos. Os cascades citados abaixo só disparam com
+> DELETE do usuário, que nunca acontece: a anonimização apaga cada dado próprio
+> explicitamente.
+
 `users` ganha um `deleted_at` opcional. Anonimizar preenche esse campo, substitui
 `name` por um placeholder, substitui `email` por `deleted+<id>@deleted.invalid`,
 limpa `auth_user_id`, desfazendo o vínculo com a conta do provedor, e limpa os
@@ -5656,6 +5663,74 @@ apagado a cada publicação.
 - Se isto não bastar, o próximo passo é guardar cópias otimizadas das cartas no
   nosso Storage e deixar de depender de Tóquio a cada carta nova. Isso muda a
   decisão 038 e tem questão de direito de imagem: volta como conversa.
+
+## Data
+
+2026-09-17
+
+---
+
+# Decisão: 091 — Excluir a conta: 30 dias para desistir, e o que a anonimização cobre
+
+Definido pelo dono do produto em 17/09. **Complementa a decisão 015**, que foi
+escrita antes de existirem a rede, as conversas, as denúncias, o Trade Binder
+público, as fotos de binder e o login pelo Supabase.
+
+## Contexto
+
+A LGPD dá à pessoa o direito de pedir a exclusão dos seus dados, e até aqui
+nenhum gesto no produto executava a anonimização desenhada na 015. O dono do
+produto respondeu quatro perguntas que a 015 não cobria.
+
+## Decisão
+
+1. **30 dias para desistir.** Pedir suspende a conta; a anonimização acontece
+   depois do prazo. Coluna nova `users.deletion_requested_at`, com CHECK de que
+   conta anonimizada não tem pedido pendente.
+2. **Entrar de novo dentro do prazo cancela o pedido.** Só quem cria sessão
+   cancela — entrar com senha e a volta do provedor (Google, confirmação de
+   e-mail, redefinição de senha) —, e nunca `resolveUser`: uma requisição que já
+   estava a caminho no momento do pedido (o sino pergunta sozinho) desfaria o
+   pedido no mesmo segundo. O início avisa que o pedido foi cancelado.
+3. **Suspensa é indisponível:** não autentica, some da rede e do binder de
+   alguém, o link público do Trade Binder sai do ar, ninguém começa conversa nem
+   convida, e quem já conversava vê "Esta conta não está disponível no momento".
+   Tudo volta se a pessoa desistir.
+4. **As trocas em andamento são canceladas no pedido** (rascunho, convite,
+   negociação, proposta, confirmada), com o convite por link junto. A outra
+   pessoa não espera trinta dias. As trocas canceladas **não voltam** se a
+   pessoa desistir. As concluídas ficam (015).
+5. **As mensagens enviadas ficam**, com o texto, para a outra pessoa. Depois da
+   anonimização o remetente não tem mais nome na rede.
+6. **O nome na rede fica livre na hora** da anonimização.
+7. **A confirmação é digitar EXCLUIR**, e não a senha: quem entra com Google não
+   tem senha.
+8. **Um e-mail confirma o pedido**, com a data da exclusão e como desistir, pelo
+   Resend (decisão 086). Falhar não desfaz o pedido.
+9. **A anonimização**, pela tarefa diária (workflow **Contas**, `npm run
+   supabase contas`), por conta e nesta ordem:
+   1. exclui a conta no **Supabase Auth** (e-mail e senha saem do provedor);
+      já não existir conta como feito;
+   2. no banco, numa transação: apaga coleção, binders, want list e bloqueios
+      nos dois sentidos; troca nome por "Conta excluída", e-mail por
+      `deleted+<id>@deleted.invalid`, e limpa `auth_user_id`, nome na rede, link
+      do Trade Binder, plano e o pedido; preenche `deleted_at`;
+   3. apaga as fotos dos binders no Storage — falha fica no log.
+   Sem a chave secreta a tarefa não começa: anonimizar deixando e-mail e senha
+   no provedor seria dizer que excluiu sem ter excluído. Uma conta que falha não
+   derruba as outras, e a próxima execução retoma de onde parou.
+10. **Ficam**, como registro: trocas concluídas, mensagens, e denúncias feitas e
+    recebidas (decisão 079).
+
+## Consequências
+
+- **O workflow Contas precisa do segredo `SUPABASE_SECRET_KEY` no GitHub**, além
+  do `SUPABASE_DATABASE_URL` que os preços já usam. Sem ele, termina dizendo
+  que pulou.
+- **A migration precisa estar em produção antes de publicar** este código: toda
+  leitura de conta passa a pedir a coluna nova.
+- A Política de Privacidade precisa descrever o prazo, o que é apagado e o que
+  fica.
 
 ## Data
 

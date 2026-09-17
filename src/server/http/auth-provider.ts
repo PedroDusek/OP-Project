@@ -51,6 +51,14 @@ export interface SignUpInput {
   captchaToken?: string
 }
 
+/**
+ * Quem acabou de entrar. So o id no provedor: e o que basta para cancelar um
+ * pedido de exclusao de conta ao entrar de novo (decisao 091).
+ */
+export interface SignedIn {
+  authUserId: string
+}
+
 export interface SignUpResult {
   /**
    * `true` quando o provedor exige confirmacao por e-mail antes de a sessao
@@ -71,7 +79,7 @@ export interface AuthProvider {
    * `captchaToken` e o do Turnstile (decisao 088): o provedor so o exige quando
    * o CAPTCHA esta ligado no painel. Vale o mesmo para cadastrar e redefinir.
    */
-  signInWithPassword(email: string, password: string, captchaToken?: string): Promise<void>
+  signInWithPassword(email: string, password: string, captchaToken?: string): Promise<SignedIn>
 
   signOut(): Promise<void>
 
@@ -85,7 +93,7 @@ export interface AuthProvider {
   updatePassword(password: string): Promise<void>
 
   /** Troca o codigo do link de e-mail ou do OAuth por uma sessao. */
-  exchangeCodeForSession(code: string): Promise<void>
+  exchangeCodeForSession(code: string): Promise<SignedIn>
 
   /** URL para onde mandar o navegador para comecar o fluxo do provedor. */
   oauthUrl(provider: OAuthProviderId, redirectTo: string): Promise<string>

@@ -5,6 +5,7 @@ import type {
   CookieStore,
   OAuthAvailability,
   OAuthProviderId,
+  SignedIn,
   SignUpInput,
   SignUpResult,
 } from '@/server/http/auth-provider'
@@ -73,13 +74,14 @@ export class SupabaseAuthProvider implements AuthProvider {
     return { needsEmailConfirmation: !data.session }
   }
 
-  async signInWithPassword(email: string, password: string, captchaToken?: string): Promise<void> {
-    const { error } = await this.client().auth.signInWithPassword({
+  async signInWithPassword(email: string, password: string, captchaToken?: string): Promise<SignedIn> {
+    const { data, error } = await this.client().auth.signInWithPassword({
       email,
       password,
       options: { captchaToken },
     })
-    if (error) throw translate(error)
+    if (error || !data.user) throw translate(error)
+    return { authUserId: data.user.id }
   }
 
   async signOut(): Promise<void> {
@@ -104,9 +106,9 @@ export class SupabaseAuthProvider implements AuthProvider {
     if (error) throw translate(error)
   }
 
-  async exchangeCodeForSession(code: string): Promise<void> {
-    const { error } = await this.client().auth.exchangeCodeForSession(code)
-    if (error) {
+  async exchangeCodeForSession(code: string): Promise<SignedIn> {
+    const { data, error } = await this.client().auth.exchangeCodeForSession(code)
+    if (error || !data.user) {
       /*
        * Tres causas diferentes, indistinguiveis daqui, e a terceira e a mais
        * comum de todas: o fluxo e PKCE, entao o verificador fica num cookie do
@@ -121,6 +123,7 @@ export class SupabaseAuthProvider implements AuthProvider {
           'ou ter sido aberto em um navegador diferente do que iniciou o cadastro.',
       )
     }
+    return { authUserId: data.user.id }
   }
 
   async oauthUrl(provider: OAuthProviderId, redirectTo: string): Promise<string> {

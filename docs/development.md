@@ -393,6 +393,11 @@ Nenhum destes passos passa segredo pela conversa.
    `fly volumes create colexa_cache --region gru --size 1 --app colexa`.
    Sem ele, a publicação falha dizendo que o volume não existe.
 
+9. **O segredo `SUPABASE_SECRET_KEY` no GitHub** (decisão 091), em *Settings →
+   Secrets and variables → Actions → Secrets*, com o mesmo valor do segredo da
+   Fly. É o que deixa o workflow **Contas** excluir a conta no Supabase Auth e
+   as fotos no Storage; sem ele, a tarefa diária pula.
+
 #### A cada publicação
 
 1. `npm run supabase status`. Se faltar migration, `npm run supabase migrate`

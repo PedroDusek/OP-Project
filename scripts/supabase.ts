@@ -18,6 +18,7 @@ import { createPrisma } from '@/server/infrastructure/prisma'
  *   npm run supabase status             mostra o que existe la hoje
  *   npm run supabase storage            cria o bucket das imagens do usuario
  *   npm run supabase prices             importa precos de arte comum e cambio
+ *   npm run supabase contas             anonimiza as contas com exclusao vencida
  *
  * Prefira `--from` quando o snapshot ja existir: rebaixar o catalogo inteiro a
  * cada importacao e carga evitavel sobre a origem (decisao 020).
@@ -172,6 +173,30 @@ async function main(): Promise<void> {
     return
   }
 
+  if (command === 'contas') {
+    // Decisao 091: quem pediu para excluir a conta ha mais de 30 dias. Precisa
+    // da chave secreta, porque exclui a conta no Supabase Auth tambem.
+    const prisma = createPrisma(url)
+    try {
+      const { anonymizeDueAccounts } = await import('@/server/application/account/delete-account')
+      const { SupabaseAuthAdmin } = await import('@/server/infrastructure/auth/supabase-auth-admin')
+      const { SupabaseImageStorage } = await import('@/server/infrastructure/storage/supabase-image-storage')
+
+      const report = await anonymizeDueAccounts(prisma, {
+        authAdmin: new SupabaseAuthAdmin(),
+        images: new SupabaseImageStorage(),
+      })
+      // So numeros: nenhum nome nem e-mail no log de uma tarefa agendada.
+      console.log(
+        `[supabase] contas: ${report.due} vencida(s), ${report.anonymized} anonimizada(s), ${report.failed} com falha`,
+      )
+      if (report.failed > 0) process.exitCode = 1
+    } finally {
+      await prisma.$disconnect()
+    }
+    return
+  }
+
   if (command === 'status') {
     const prisma = createPrisma(url)
     try {
@@ -274,7 +299,7 @@ async function main(): Promise<void> {
 
   throw new Error(
     `Comando desconhecido: ${command ?? '(nenhum)'}. ` +
-      'Use migrate, import, prices, status ou storage.',
+      'Use migrate, import, prices, contas, status ou storage.',
   )
 }
 

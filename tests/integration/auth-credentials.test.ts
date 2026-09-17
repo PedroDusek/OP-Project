@@ -1,5 +1,6 @@
-import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  completeOAuth,
   requestPasswordReset,
   signIn,
   signOut,
@@ -46,6 +47,7 @@ const fakeProvider: AuthProvider = {
   },
   async signInWithPassword(email, password, captchaToken) {
     record('signInWithPassword', email, password, ...(captchaToken ? [captchaToken] : []))
+    return { authUserId: 'auth-falso' }
   },
   async signOut() {
     record('signOut')
@@ -58,6 +60,7 @@ const fakeProvider: AuthProvider = {
   },
   async exchangeCodeForSession(code) {
     record('exchangeCodeForSession', code)
+    return { authUserId: 'auth-falso' }
   },
   async oauthUrl(provider, redirectTo) {
     record('oauthUrl', provider, redirectTo)
@@ -122,9 +125,11 @@ describe('entrar', () => {
       await signIn({ email: 'alvo@example.test', password: 'x1234567' }, deps)
     }
 
+    // Desde a decisao 091 entrar devolve se havia pedido de exclusao a cancelar;
+    // o que este teste protege continua igual: o outro endereco entra.
     await expect(
       signIn({ email: 'outra@example.test', password: 'x1234567' }, deps),
-    ).resolves.toBeUndefined()
+    ).resolves.toEqual({ deletionCancelled: false })
   })
 
   it('repassa a falha do provedor sem enfeitar', async () => {
@@ -299,5 +304,27 @@ describe('CAPTCHA (decisão 088)', () => {
       deps,
     )
     expect(lastCall('signUp')?.args[0]).toMatchObject({ captchaToken: undefined })
+  })
+})
+
+describe('entrar de novo cancela o pedido de exclusão (decisão 091)', () => {
+  it('quem cria sessão passa o id de quem entrou, e a tela sabe se havia pedido', async () => {
+    const cancelDeletion = vi.fn(async () => true)
+
+    expect(await signIn({ email: 'p@example.test', password: 'senha-boa' }, { ...deps, cancelDeletion })).toEqual({
+      deletionCancelled: true,
+    })
+    expect(cancelDeletion).toHaveBeenCalledWith('auth-falso')
+
+    cancelDeletion.mockResolvedValueOnce(false)
+    expect(await completeOAuth('codigo', { ...deps, cancelDeletion })).toEqual({ deletionCancelled: false })
+    expect(cancelDeletion).toHaveBeenLastCalledWith('auth-falso')
+  })
+
+  it('login que falha não cancela nada', async () => {
+    const cancelDeletion = vi.fn(async () => true)
+    nextError = new AuthenticationError('E-mail ou senha incorretos.')
+    await expect(signIn({ email: 'p@example.test', password: 'errada' }, { ...deps, cancelDeletion })).rejects.toThrow()
+    expect(cancelDeletion).not.toHaveBeenCalled()
   })
 })
