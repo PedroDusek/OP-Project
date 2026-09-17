@@ -5,6 +5,7 @@ import { ReceivedInvites } from '@/components/trades/received-invites'
 import { TradeStarter } from '@/components/trades/trade-starter'
 import { TradeBinder, TradeBinderSummary } from '@/components/trades/trade-binder'
 import { TradeBinderShareCard } from '@/components/trades/trade-binder-share'
+import { PremiumNotice } from '@/components/premium/premium-notice'
 import {
   countCopies,
   getOpenTrade,
@@ -12,6 +13,7 @@ import {
   listReceivedInvites,
   listTradeBinder,
 } from '@/server/application/trades'
+import { isPremium } from '@/server/application/authorization'
 import { appUrl } from '@/server/http/app-url'
 import { requireViewer } from '@/server/http/viewer'
 
@@ -39,6 +41,10 @@ export default async function TrocasPage() {
     listReceivedInvites(viewer),
   ])
 
+  // Decisao 093: comecar troca e publicar o Trade Binder sao Premium. A tela
+  // esconde o gesto em vez de deixar o servidor recusar depois do clique.
+  const premium = isPremium(viewer)
+
   return (
     <>
       <PageHeader title="Trocas" />
@@ -50,8 +56,13 @@ export default async function TrocasPage() {
         <section className="flex flex-col gap-3">
           {aberta ? (
             <OpenTradeCard trade={aberta} appUrl={appUrl()} />
-          ) : (
+          ) : premium ? (
             <TradeStarter appUrl={appUrl()} />
+          ) : (
+            <PremiumNotice
+              title="Começar uma troca é Premium"
+              description="Você continua entrando em trocas por convite ou por link, e negociando normalmente."
+            />
           )}
         </section>
 
@@ -62,7 +73,14 @@ export default async function TrocasPage() {
             Compartilhar vem antes da lista, como na tela 31: quem rola ate o fim
             das cartas ja encontrou o que procurava, e nao volta para publicar.
           */}
-          <TradeBinderShareCard share={share} appUrl={appUrl()} cards={cards.length} />
+          {premium ? (
+            <TradeBinderShareCard share={share} appUrl={appUrl()} cards={cards.length} />
+          ) : (
+            <PremiumNotice
+              title="Publicar o Trade Binder é Premium"
+              description="Com o Premium, você gera um link para mostrar suas cartas de troca a quem quiser, sem expor mais nada da coleção."
+            />
+          )}
           <TradeBinder cards={cards} />
         </section>
       </div>

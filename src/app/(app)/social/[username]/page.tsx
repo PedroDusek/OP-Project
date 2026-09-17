@@ -10,6 +10,7 @@ import { BlockToggle, ReportForm } from '@/components/social/member-actions'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState, ErrorState } from '@/components/ui/states'
 import { Panel } from '@/components/ui/surface'
+import { isPremium } from '@/server/application/authorization'
 import { readMemberBinder } from '@/server/application/social'
 import { NotFoundError, RateLimitError } from '@/server/domain/errors'
 import { requireViewer } from '@/server/http/viewer'
@@ -115,7 +116,8 @@ export default async function MemberBinderPage({ params }: PageProps<'/social/[u
 
             <div className="flex flex-wrap items-start gap-2 border-t border-border pt-4">
               <StartConversationButton username={binder.username} />
-              <InviteMemberButton username={binder.username} />
+              {/* Convidar e Premium (decisao 093); conversar continua de todos. */}
+              {isPremium(viewer) ? <InviteMemberButton username={binder.username} /> : null}
               <BlockToggle username={binder.username} blocked={false} />
               <ReportForm username={binder.username} />
             </div>

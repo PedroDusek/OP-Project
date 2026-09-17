@@ -19,6 +19,8 @@ import { createPrisma } from '@/server/infrastructure/prisma'
  *   npm run supabase storage            cria o bucket das imagens do usuario
  *   npm run supabase prices             importa precos de arte comum e cambio
  *   npm run supabase contas             anonimiza as contas com exclusao vencida
+ *   npm run supabase premium <email> --ate=2026-12-31   da Premium ate a data
+ *   npm run supabase premium <email> --remover          volta a conta para Free
  *
  * Prefira `--from` quando o snapshot ja existir: rebaixar o catalogo inteiro a
  * cada importacao e carga evitavel sobre a origem (decisao 020).
@@ -173,6 +175,54 @@ async function main(): Promise<void> {
     return
   }
 
+  if (command === 'premium') {
+    // Decisao 093: a cortesia dos testadores, enquanto nao existe pagamento.
+    // Por e-mail, porque e o que o dono do produto tem em maos; nunca por id.
+    const email = args.find((a) => !a.startsWith('--'))?.trim().toLowerCase()
+    const remover = args.includes('--remover')
+    const ate = args.find((a) => a.startsWith('--ate='))?.slice('--ate='.length)
+
+    if (!email) throw new Error('Informe o e-mail: npm run supabase premium <email> --ate=AAAA-MM-DD')
+    if (!remover && !ate) {
+      throw new Error(
+        'Informe o prazo (--ate=AAAA-MM-DD) ou use --remover. Premium sem prazo nao cai sozinho no fim do beta.',
+      )
+    }
+
+    let premiumUntil: Date | null = null
+    if (!remover) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(ate!)) throw new Error('Data invalida. Use --ate=AAAA-MM-DD.')
+      // Fim do dia informado, em Brasilia: quem recebe "ate 31/12" espera ter o
+      // dia 31 inteiro, e nao perder o acesso a meia-noite UTC.
+      premiumUntil = new Date(`${ate}T23:59:59-03:00`)
+      if (Number.isNaN(premiumUntil.getTime())) throw new Error('Data invalida. Use --ate=AAAA-MM-DD.')
+      if (premiumUntil <= new Date()) throw new Error('A data ja passou.')
+    }
+
+    const prisma = createPrisma(url)
+    try {
+      const { count } = await prisma.user.updateMany({
+        where: { email, deletedAt: null },
+        data: remover
+          ? { plan: 'FREE', premiumUntil: null }
+          : { plan: 'PREMIUM', premiumUntil },
+      })
+      if (count === 0) {
+        console.log('[supabase] premium: nenhuma conta com esse e-mail (ou conta excluida).')
+        process.exitCode = 1
+        return
+      }
+      console.log(
+        remover
+          ? '[supabase] premium: conta de volta ao Free.'
+          : `[supabase] premium: Premium ate ${premiumUntil!.toISOString()}.`,
+      )
+    } finally {
+      await prisma.$disconnect()
+    }
+    return
+  }
+
   if (command === 'contas') {
     // Decisao 091: quem pediu para excluir a conta ha mais de 30 dias. Precisa
     // da chave secreta, porque exclui a conta no Supabase Auth tambem.
@@ -299,7 +349,7 @@ async function main(): Promise<void> {
 
   throw new Error(
     `Comando desconhecido: ${command ?? '(nenhum)'}. ` +
-      'Use migrate, import, prices, contas, status ou storage.',
+      'Use migrate, import, prices, contas, premium, status ou storage.',
   )
 }
 

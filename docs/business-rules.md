@@ -64,6 +64,9 @@ progresso do set = variantes distintas possuídas impressas no set
 
 Ambos usam variantes distintas, nunca contagem de cópias.
 
+> O progresso é **recurso Premium** desde a decisão 093, junto com o resto da
+> análise da coleção. O total de cartas continua visível para todos.
+
 A participação num set vem sempre de `variant_printings`. Nunca é derivada do
 prefixo do código da carta.
 
@@ -397,10 +400,9 @@ Nunca expõe a coleção, outros armazenamentos, decks, wants, nome real, e-mail
 nem quantas cópias a pessoa possui ao todo. Token inexistente e token revogado
 dão a mesma resposta.
 
-A regra reserva o recurso ao **Premium**. A trava está pendente por decisão do
-dono do produto (064): não existe caminho para alguém virar Premium enquanto não
-houver pagamento, e gatear antes entregaria um recurso inalcançável. Quando o
-pagamento existir, a trava entra em `publishTradeBinder`.
+A regra reserva o recurso ao **Premium**, e a trava está em `publishTradeBinder`
+desde a decisão 093. Enquanto não existe pagamento, o Premium é dado por comando
+(`npm run supabase premium`), que é como os testadores recebem o acesso.
 
 ### 6.1.1 Nome de usuário
 
@@ -456,7 +458,29 @@ ou modificar recursos privados de outro usuário.
 
 ---
 
-## 7. Testes obrigatórios de domínio
+## 7. Planos: Free e Premium
+
+Definido pelo dono do produto em 17/09 (decisão 093). Preço e meio de pagamento
+ficaram para depois do teste com usuários.
+
+**Só no Premium:**
+
+1. **Publicar o Trade Binder** num link público (6.1).
+2. **Começar uma troca**, pelo link ou pelo convite direto (4.6.1).
+3. **A análise da coleção** no Início: variantes distintas, playsets fechados,
+   progresso do catálogo (2.2) e, quando existir, o valor estimado.
+4. **Aparecer primeiro na rede** (6.1.3).
+
+**No Free, sem limite:** cadastrar a coleção inteira, binders e caixas, want list
+e a folha compartilhável dela, catálogo e preços por carta, o total de cartas no
+Início, **entrar em trocas** (por convite ou link) e negociar até o fim,
+conversar, aparecer na rede com o Trade Binder e bloquear ou denunciar.
+
+**Por que entrar numa troca é de todos:** travar as duas pontas deixaria o
+assinante sem ninguém para trocar. Quem paga ganha a iniciativa e a vitrine, não
+o direito de negociar.
+
+## 8. Testes obrigatórios de domínio
 
 | # | Cenário | Esperado |
 |---|---|---|

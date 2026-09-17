@@ -24,7 +24,9 @@ import { createUser, disconnect, resetDatabase, testPrisma } from '../helpers'
 async function pessoa(nome: string, username: string | null): Promise<AuthenticatedUser> {
   const criada = await createUser(nome)
   await testPrisma().user.update({ where: { id: criada.id }, data: { username } })
-  return { id: criada.id, email: criada.email, name: nome, plan: 'FREE', premiumUntil: null }
+  // Decisao 093: convidar e comecar uma troca sao Premium, e o que estes
+  // testes protegem e o convite em si.
+  return { id: criada.id, email: criada.email, name: nome, plan: 'PREMIUM', premiumUntil: null }
 }
 
 beforeEach(async () => {

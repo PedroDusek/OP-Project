@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import type { PrismaClient } from '@prisma/client'
 import type { AuthenticatedUser } from '@/server/application/auth'
+import { assertPremium } from '@/server/application/authorization'
 import { AuthorizationError, ConflictError, NotFoundError, ValidationError } from '@/server/domain/errors'
 import { normalizeUsername } from '@/server/domain/social/username'
 import { ACTIVE_TRADE_STATUSES } from '@/server/domain/trades/negotiation'
@@ -48,6 +49,10 @@ export async function startTrade(
   prisma: PrismaClient,
   user: AuthenticatedUser,
 ): Promise<StartedTrade> {
+  // Quem comeca a troca e Premium (decisao 093). Entrar numa troca continua de
+  // todos: travar as duas pontas deixaria o Premium sem ninguem para trocar.
+  assertPremium(user, 'Começar uma troca é um recurso Premium. Você pode entrar em trocas por convite ou link.')
+
   await assertNoActiveTrade(prisma, user.id)
 
   const inviteToken = randomBytes(INVITE_TOKEN_BYTES).toString('base64url')
@@ -148,6 +153,10 @@ async function assertNoActiveTrade(prisma: PrismaClient, userId: bigint): Promis
  * mandou antes de mandar outro.
  */
 export async function inviteMember(prisma: PrismaClient, user: AuthenticatedUser, username: string): Promise<bigint> {
+  // Convidar e comecar uma troca pela outra porta (decisao 082), e a trava da
+  // decisao 093 vale nas duas: senao o link seria Premium e o convite, gratis.
+  assertPremium(user, 'Convidar para trocar é um recurso Premium. Você pode entrar em trocas por convite ou link.')
+
   const eu = await prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { username: true } })
   if (!eu.username) {
     throw new ConflictError(

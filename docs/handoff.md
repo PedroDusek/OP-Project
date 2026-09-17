@@ -568,8 +568,10 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
    segredo `SUPABASE_SECRET_KEY` já estar no GitHub (está, desde 17/09) e a
    tarefa diária **Contas** ter rodado pelo menos uma vez para valer.
 7. **Limpar as contas de teste** de produção, nas duas metades (ver "Produção").
-8. **Premium no lançamento.** Hoje o plano não limita nada e não há como pagar;
-   lançar tudo liberado precisa ser escolha consciente do dono do produto.
+8. ~~**Premium no lançamento**~~ — **decidido em 17/09** (decisão 093): Premium
+   é publicar o Trade Binder, começar troca, a análise da coleção e aparecer
+   primeiro na rede. Falta só escolher **meio de pagamento e preço**, que o dono
+   do produto deixou para depois do teste com usuários.
 
 ### Decisões que o dono do produto ainda pode querer revisitar
 
@@ -667,11 +669,11 @@ em 10/09.
   30 dias para desistir, trocas em andamento canceladas no pedido, e a tarefa
   diária **Contas** anonimizando depois do prazo, inclusive no Supabase Auth e
   no Storage. O `trade_binder_token` é limpo, como este parágrafo pedia.
-- **O Premium não limita nada.** O plano é lido e mostrado em Minha conta, mas
-  nenhum recurso é bloqueado por ele, e não existe caminho para alguém virar
-  Premium — `trial_started_at` nunca é usado, e não há pagamento. A regra 6.1
-  reserva o Trade Binder público ao Premium; a trava está pendente por decisão
-  do dono do produto (064).
+- ~~**O Premium não limita nada.**~~ — **resolvido em 17/09** (decisão 093): as
+  travas estão em `publishTradeBinder`, `startTrade` e `inviteMember`, e a
+  análise do Início é Premium. O acesso é dado por `npm run supabase premium
+  <email> --ate=AAAA-MM-DD` enquanto não há pagamento. O trial de 7 dias
+  (`trial_started_at`) continua sem uso, para quando existir cobrança.
 
 ### Pendências que não bloqueiam
 

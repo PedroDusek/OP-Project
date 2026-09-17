@@ -5784,3 +5784,52 @@ testadores. Estas são as correções que não dependiam de nenhuma decisão pen
 ## Data
 
 2026-09-17
+
+---
+
+# Decisão: 093 — O que é Premium e o que é Free
+
+Definido pelo dono do produto em 17/09, antes do teste com 15 a 20 pessoas.
+**Aplica a trava que a decisão 064 tinha deixado pendente** e acrescenta dois
+recursos Premium que a especificação não previa.
+
+## Decisão
+
+**Premium:**
+
+1. **Publicar o Trade Binder** (regra 6.1, trava em `publishTradeBinder`).
+2. **Começar uma troca** — pelo link (`startTrade`) e pelo convite direto
+   (`inviteMember`). As duas portas, senão o link seria pago e o convite, grátis.
+3. **A análise da coleção** no Início: variantes distintas, playsets fechados,
+   progresso do catálogo e o valor estimado, quando existir. **O total de cartas
+   fica no Free**: sem ele, quem acabou de cadastrar cinquenta cartas abriria o
+   app e não veria sinal do próprio trabalho.
+4. **Aparecer primeiro na rede** (regra 6.1.3, já implementado).
+
+**Free:** todo o resto, sem limite de cartas, binders ou wants — e **entrar em
+trocas**, por convite ou link, negociando até o fim. Travar as duas pontas
+deixaria o assinante sem ninguém para trocar.
+
+**Como a tela responde:** o gesto Premium não aparece para quem é Free; no lugar
+dele vai um aviso dizendo o que o Premium faz ali. O servidor recusa de novo, com
+o código `PREMIUM_NECESSARIO` — a tela é conveniência, a trava é o caso de uso.
+
+**Enquanto não existe pagamento:** o Premium é dado por
+`npm run supabase premium <email> --ate=AAAA-MM-DD`, com prazo obrigatório. É
+assim que os testadores recebem a cortesia, e é isso que faz a cortesia terminar
+sozinha.
+
+**O que ficou para depois:** o meio de pagamento (Stripe, Asaas ou Mercado Pago)
+e o preço, que o dono do produto decide depois do teste. O trial de 7 dias da
+decisão 009 continua no plano, para quando o pagamento existir.
+
+## Consequências
+
+- Os testes de troca passaram a criar quem inicia como Premium, e dizem por quê.
+- O Free custa menos ao servidor no Início: a análise nem é calculada.
+- Quando houver pagamento, a trava já está nos três lugares; entra só o caminho
+  de virar Premium.
+
+## Data
+
+2026-09-17
