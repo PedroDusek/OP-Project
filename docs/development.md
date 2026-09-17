@@ -352,7 +352,60 @@ que usa o mesmo projeto Supabase:
 
 Para desligar, na ordem inversa: o painel primeiro, a chave depois.
 
-### 6.5 Se a conexão direta falhar
+### 6.6 Publicar na Fly.io (decisão 089)
+
+O site roda numa máquina da Fly.io em São Paulo. A imagem sai do `Dockerfile`, a
+configuração de `fly.toml`, e a publicação é **à mão**, pelo workflow
+**Publicar** do GitHub Actions.
+
+#### Uma vez só, pelo dono do produto
+
+Nenhum destes passos passa segredo pela conversa.
+
+1. **Conta na Fly.io**, com cartão cadastrado (a Fly exige).
+2. **O `flyctl`** no Windows, no PowerShell:
+   `iwr https://fly.io/install.ps1 -useb | iex`. Depois `fly auth login`, que
+   abre o navegador.
+3. **Criar a aplicação:** `fly apps create colexa`. Se o nome estiver tomado,
+   escolha outro e troque `app` e `APP_URL` em `fly.toml` num PR.
+4. **Os segredos**, no painel da Fly (*Apps → colexa → Secrets*), e não na linha
+   de comando, que fica no histórico do terminal:
+   - `DATABASE_URL` — a string do **Session pooler** do Supabase (*Connect →
+     Session pooler*), que tem IPv4. A conexão direta é só IPv6 (armadilha do
+     workflow de preços).
+   - `SUPABASE_SECRET_KEY` — para o envio de fotos.
+   - `RESEND_API_KEY` — para o e-mail de denúncia.
+5. **O token de publicação:** `fly tokens create deploy --app colexa`. O valor vai
+   em GitHub → *Settings → Secrets and variables → Actions → Secrets* com o nome
+   `FLY_API_TOKEN`.
+6. **Os três valores públicos**, no mesmo lugar, mas na aba **Variables**:
+   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` e
+   `NEXT_PUBLIC_TURNSTILE_SITE_KEY` — os mesmos do `.env`. Entram no build, e
+   mudar qualquer um exige publicar de novo.
+7. **Liberar o endereço de teste** `colexa.fly.dev` nos painéis:
+   - Cloudflare Turnstile: `colexa.fly.dev` nos hostnames do widget;
+   - Supabase, *URL Configuration*: `https://colexa.fly.dev/auth/callback` nas
+     *Redirect URLs*;
+   - Google Auth Platform, no cliente: `https://colexa.fly.dev` nas origens.
+
+#### A cada publicação
+
+1. `npm run supabase status`. Se faltar migration, `npm run supabase migrate`
+   **antes** — código novo contra banco velho derruba a tela inteira.
+2. GitHub → *Actions → Publicar → Run workflow*, na `main`.
+3. Abrir `https://colexa.fly.dev/api/saude` e depois o site.
+
+Com uma máquina só, a publicação deixa o site fora do ar por alguns segundos.
+
+#### Ligar o domínio
+
+1. `fly certs add colexa.com.br` (e `www.colexa.com.br`, se for usar). Ele mostra
+   os registros de DNS a criar no registro do domínio.
+2. Com o certificado emitido (`fly certs show colexa.com.br`), trocar `APP_URL`
+   em `fly.toml` para `https://colexa.com.br`, num PR, e publicar.
+3. Nos painéis, o mesmo do passo 7 com `colexa.com.br`: o Turnstile já tem.
+
+### 6.7 Se a conexão direta falhar
 
 O Supabase serve a conexão direta por IPv6. Em rede sem IPv6, a conexão expira
 sem erro claro. Nesse caso use a string do **Session pooler**, que é compatível

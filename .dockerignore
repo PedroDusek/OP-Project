@@ -1,0 +1,30 @@
+# O que nunca entra na imagem (decisao 089).
+
+# Segredos. A imagem e construida nos servidores da Fly: um `.env` copiado iria
+# junto, com a senha do banco de producao dentro.
+.env
+.env.*
+*.pem
+*.key
+*.p12
+secrets.json
+certs/
+
+# Gerado dentro da imagem, a partir do lockfile e do codigo.
+node_modules/
+.next/
+
+# O que nao serve ao site.
+.git/
+.github/
+.claude/
+docs/
+tests/
+e2e/
+coverage/
+playwright-report/
+test-results/
+blob-report/
+*.log
+liga-conflitos.json
+paralelas-candidatas.json

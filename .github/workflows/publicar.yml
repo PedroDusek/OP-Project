@@ -1,0 +1,56 @@
+name: Publicar
+
+# Publica a `main` na Fly.io (decisao 089).
+#
+# **So a mao** (Actions -> Publicar -> Run workflow), e nao a cada merge.
+# Producao nunca e o alvo padrao neste projeto: um merge que precisa de migration
+# nova, publicado antes de `npm run supabase migrate`, derruba a tela inteira. A
+# ordem e sempre `npm run supabase status`, a migration se faltar, e so entao
+# publicar.
+#
+# Como no workflow de precos, sem o segredo FLY_API_TOKEN ele termina sem erro
+# dizendo que pulou.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: publicar
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    name: Publicar na Fly.io
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    timeout-minutes: 30
+
+    steps:
+      - name: Conferir o token
+        id: token
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          if [ -z "$FLY_API_TOKEN" ]; then
+            echo "::notice::FLY_API_TOKEN nao existe no repositorio; nada foi publicado."
+            echo "pular=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v5
+        if: steps.token.outputs.pular != 'true'
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+        if: steps.token.outputs.pular != 'true'
+
+      # O build roda nos servidores da Fly. Os tres valores publicos vem das
+      # *variables* do repositorio (nao dos *secrets*): vao para o pacote do
+      # navegador de qualquer jeito.
+      - name: Publicar
+        if: steps.token.outputs.pular != 'true'
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: >-
+          flyctl deploy --remote-only --ha=false
+          --build-arg NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          --build-arg NEXT_PUBLIC_TURNSTILE_SITE_KEY=${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
