@@ -9,7 +9,10 @@ Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
    e `EMAIL_FROM` entraram nele em 17/09.
 2. `npm run supabase status` — mostra o que produção tem e o que falta. Em
    17/09 ela ficou **em dia: 18 de 18 migrations**.
-3. Leia "Produção, em 17/09/2026", "A Social" e "Próximo passo", abaixo.
+3. **O site está publicado em `https://colexa.fly.dev`** desde 17/09 (decisões
+   089 e 090), para teste do dono do produto — ainda **não é o lançamento**.
+   Publicar de novo é à mão: `development.md` 6.6.
+4. Leia "Produção, em 17/09/2026", "A Social" e "Próximo passo", abaixo.
 
 O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 
@@ -19,7 +22,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 109 PRs mergeados, CI verde em todos |
+| Branch | `main`, 112 PRs mergeados, CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -32,7 +35,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Node | 20.20.2 — o `@supabase/supabase-js` já avisa que 20 está depreciado |
 | PostgreSQL local | 18.6, bancos `optcg` e `optcg_test` |
-| Produção | Supabase, região São Paulo, banco e autenticação |
+| Produção | Supabase em São Paulo (banco, autenticação, Storage) e o site na Fly.io em São Paulo, `colexa.fly.dev` |
 | `.env` | ignorado pelo Git; desde 17/09 com `RESEND_API_KEY`, `EMAIL_FROM` (decisão 086) e `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (decisão 088) |
 
 **Produção nunca é alvo padrão.** `DATABASE_URL` é sempre o banco local; o
@@ -101,8 +104,40 @@ componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 | — | A página `/admin/denuncias` e `ADMIN_EMAILS` saíram: a denúncia é lida só pelo e-mail (decisão 087) |
 | — | CAPTCHA (Cloudflare Turnstile) em entrar, criar conta e recuperar senha (decisão 088) — **ligado no Supabase em 17/09** |
 | — | Login com Google ligado pelo dono do produto; o primeiro login de conta nova não dá mais erro (#109) |
+| — | Hospedagem na Fly.io, uma máquina em São Paulo, publicação à mão (decisão 089) |
+| — | Imagens das cartas na Fly: esperar 30 s, e o cache num volume (decisão 090) |
 
 ### Produção, em 17/09/2026
+
+**O site publicado na Fly.io** (decisões 089 e 090), em `https://colexa.fly.dev`,
+para teste. O domínio `colexa.com.br` **não** aponta para ele ainda.
+
+| | |
+|---|---|
+| Aplicação | `colexa`, uma máquina `shared-cpu-1x` de 1 GB em `gru`, sempre ligada |
+| Volume | `colexa_cache`, 1 GB, montado em `.next/cache` (imagens otimizadas das cartas) |
+| Segredos na Fly | `DATABASE_URL` (Session pooler, usuário `postgres.<ref>`, host `aws-0-sa-east-1.pooler.supabase.com`), `SUPABASE_SECRET_KEY`, `RESEND_API_KEY` |
+| Valores em `fly.toml` | `APP_URL=https://colexa.fly.dev`, `EMAIL_FROM`, `SUPABASE_STORAGE_BUCKET` |
+| GitHub | segredo `FLY_API_TOKEN` (token de deploy `publicar-github`); *variables* com os três `NEXT_PUBLIC_*` |
+| Painéis | Turnstile com `colexa.fly.dev`; Supabase com `https://colexa.fly.dev/**` nas *Redirect URLs* (Site URL continua `http://localhost:3000`); Google com a origem `https://colexa.fly.dev` |
+
+Conferido pelo assistente em 17/09: a checagem de saúde passa, o servidor roda
+como `node`, o banco conecta, o CAPTCHA desenha, e a mesma imagem de carta leva
+3,8 s na primeira vez e 0,1 s na segunda. O dono do produto entrou com Google,
+navegou com as imagens carregando e viu as coleções vazias — o esperado.
+
+**Produção tem 3 contas de teste** (criadas em 17/09 pelo `colexa.fly.dev`) e
+nenhuma carta em coleção. As contas locais (`pedrodussel`, `testedusekin`) e as
+cartas delas existem só no **banco local**: o `npm run dev` nunca escreve no
+Supabase, só autentica nele. **Decisão do dono do produto: nada é copiado do
+local**, e todas as contas serão excluídas antes do lançamento oficial, para
+começar com banco limpo. A limpeza tem duas metades que andam juntas — as
+contas em *Authentication → Users* e as linhas das pessoas no banco (catálogo e
+preços ficam); uma sem a outra deixa login sem conta ou conta que renasce.
+
+**Backup:** conferir o plano do Supabase antes de receber gente real. No
+gratuito não há backup automático; o Pro (US$ 25/mês) tem diário. Recomendado ao
+dono do produto em 17/09.
 
 **Login com Google ligado** em 17/09 pelo dono do produto (Google Auth Platform,
 cliente *Web application*, redirect do Supabase; `development.md` 6.3). Ele
@@ -470,6 +505,37 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     recarregar. `resolveUser` agora lê a conta criada por quem ganhou a corrida.
     O sintoma no banco é **id pulado a cada conta nova** — a sequência gasta pela
     inserção que falhou. Os ids 3 e 5 do banco local são isso, e não fazem falta.
+58. **`fly launch` não.** O painel da Fly empurra para ele, e ele gera `fly.toml`
+    e `Dockerfile` próprios por cima dos do repositório. A aplicação vazia sai de
+    `fly apps create colexa`. A `fly-builder-...` que aparece na lista é a
+    máquina de build da própria Fly: não apagar.
+59. **O PowerShell estraga o token ao passar por pipe.** Três tokens de deploy
+    gerados e copiados ou canalizados pelo PowerShell deram `token validation
+    error` no GitHub Actions. Gerado pelo Git Bash com `tr -d '\r\n'`, testado
+    antes com `FLY_CONFIG_DIR` vazio e `FLY_API_TOKEN` só com ele, funcionou de
+    primeira. O teste isolado é o que separa "token ruim" de "sessão local".
+60. **O `DATABASE_URL` da Fly não é o do `.env`.** O primeiro publicado apontava
+    para `optcg@localhost` (o banco local), e toda página com banco dava 500 com
+    `Can't reach database server at 127.0.0.1:5432`. O segundo tinha o host certo
+    e a senha errada (`AuthenticationFailed`). O que conferir, sem ver segredo:
+    `fly ssh console` com um script que imprime só usuário e host, e uma
+    impressão digital curta da senha comparada com a do `.env`. E segredo
+    trocado no painel fica **Staged** até `fly secrets deploy`.
+61. **O Supabase manda para a Site URL quando a volta não está na lista.** O
+    login com Google em `colexa.fly.dev` terminou em `localhost:3000` recusado.
+    A volta do ColeXa leva `?next=/inicio`, e `.../auth/callback` sem curinga não
+    casa; `https://colexa.fly.dev/**` casa. Na etapa de autorização o Supabase
+    aceita qualquer `redirect_to` — só no fim do login ele cai para a Site URL.
+62. **Turnstile erro 110200 é hostname fora da lista.** O quadro diz "Não foi
+    possível conectar ao site", e o código só aparece no console. A mudança de
+    hostname levou alguns minutos para valer; o log do console é cumulativo, e
+    conferir exige uma aba nova.
+63. **O cache de imagens do Next não sobrevive à publicação.** Na Fly o disco da
+    máquina é novo a cada deploy, e o original da Bandai (até 2,2 MB, ~3 s de
+    Tóquio) estourava os 7 s padrão do otimizador com a grade pedindo dezenas.
+    Local não aparecia porque o cache tinha semanas. A chave do cache é a URL da
+    imagem, a largura, a qualidade e o formato — não o domínio do site, então
+    trocar para `colexa.com.br` aproveita o volume.
 
 ## Pendências
 
@@ -481,14 +547,21 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 2. ~~**SMTP próprio no Supabase**~~ — **resolvido em 17/09**: configurado pelo
    dono do produto com o Resend, e ele confirmou que o e-mail de cadastro chega
    com o nome ColeXa (decisão 086).
-3. **Redirect URLs no painel do Supabase** precisam listar
-   `<APP_URL>/auth/callback` de cada ambiente.
-4. **`RESEND_API_KEY` e `EMAIL_FROM` no ambiente de produção** (decisão 086).
-   Sem elas, a denúncia fica só gravada e ninguém é avisado. Local já tem, e o
-   primeiro e-mail de denúncia chegou em 17/09. A hospedagem ainda não foi
-   escolhida.
+3. **O domínio.** `fly certs add colexa.com.br`, os registros de DNS, `APP_URL`
+   para `https://colexa.com.br` em `fly.toml`, e nos painéis: `https://colexa.com.br/**`
+   nas *Redirect URLs* e **Site URL** do Supabase, e a origem no Google
+   (`development.md` 6.6). A Site URL é o destino quando o endereço de volta não
+   está na lista (armadilha 61).
+4. ~~**`RESEND_API_KEY` e `EMAIL_FROM` no ambiente de produção**~~ — **resolvido
+   em 17/09**: na Fly (segredo e `fly.toml`), assim como a chave do Turnstile no
+   build.
 5. **Idade mínima da rede** (decisão 060). A rede expõe o Trade Binder e abre
    conversa entre estranhos.
+6. **Excluir a conta** (seção "Desenhado, e não construído"). A LGPD dá o direito
+   de pedir a exclusão, e hoje ninguém consegue.
+7. **Limpar as contas de teste** de produção, nas duas metades (ver "Produção").
+8. **Premium no lançamento.** Hoje o plano não limita nada e não há como pagar;
+   lançar tudo liberado precisa ser escolha consciente do dono do produto.
 
 ### Decisões que o dono do produto ainda pode querer revisitar
 
@@ -574,7 +647,8 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
   separado em vez de vincular, o nosso `resolveUser` bate no índice único de
   e-mail. Recusar com mensagem clara é a saída recomendada; vincular é a
   alternativa, e é caminho de tomada de conta se algum provedor entregar e-mail
-  não verificado. **Aguarda decisão**, e o Google ainda não está habilitado.
+  não verificado. **Aguarda decisão** — e ficou mais urgente: o Google foi ligado
+  em 17/09.
 
 ### Desenhado, e não construído
 
@@ -763,9 +837,10 @@ O que ficou combinado para depois dela:
   linha de lista, estado vazio —, que o dono do produto adiou para depois da
   Social. Ela ajusta a Social junto com o resto. A revisão visual e textual tela
   a tela, e os links das cartas, ficam para o fim.
-- **Os bloqueios de lançamento da rede**: Termos de Uso, Política de
-  Privacidade, idade mínima, e em produção as variáveis do Resend e a chave
-  pública do Turnstile.
+- **Os bloqueios de lançamento** (seção "Pendências"): Termos de Uso e Política
+  de Privacidade (que precisam citar Cloudflare, Resend e Google), idade mínima,
+  excluir a conta, e-mail repetido entre provedores, Premium no lançamento,
+  limpar as contas de teste e ligar o domínio.
 
 A skill `design` está habilitada e funciona; o conector do **Figma** aparece na
 sessão mas está **sem autorização**, e sessões não interativas não conseguem
@@ -963,9 +1038,11 @@ Três coisas para não desfazer sem querer:
   das implementações perto do fim.
 - **O que vem depois da Social**: a passada de design nos componentes, ou os
   bloqueios de lançamento.
-- **Duas travas no painel do Supabase**, recomendadas em 17/09: desligar a
-  exposição do schema `public` em *Settings → Data API* (o ColeXa não usa), e
-  *Network Restrictions* no banco quando a hospedagem existir.
+- **Desligar a exposição do schema `public`** em *Settings → Data API* no
+  Supabase (o ColeXa não usa), recomendado em 17/09. *Network Restrictions* **saiu
+  da recomendação** (decisão 089): a Fly e o workflow de preços saem por IPs que
+  mudam.
+- **Plano do Supabase**: backup automático só no Pro.
 
 O protocolo continua: uma branch e um PR por checkpoint, o assistente merge
 quando estiver completo e sem pendência, e para antes de iniciar o próximo

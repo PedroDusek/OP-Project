@@ -256,7 +256,7 @@ Três coisas do fluxo de conta **não** se resolvem em código:
 
 | O quê | Onde | Situação |
 |---|---|---|
-| Redirect URLs | *Authentication → URL Configuration* | precisa listar `<APP_URL>/auth/callback` de cada ambiente |
+| Redirect URLs | *Authentication → URL Configuration* | precisa listar `<APP_URL>/**` de cada ambiente — com curinga, porque a volta leva `?next=` |
 | Google e Apple | *Authentication → Providers* | desligados hoje; ver 6.2 |
 | SMTP próprio | *Authentication → Emails → SMTP Settings* | configurado em 17/09, pelo Resend (decisão 086) |
 
@@ -384,7 +384,7 @@ Nenhum destes passos passa segredo pela conversa.
    mudar qualquer um exige publicar de novo.
 7. **Liberar o endereço de teste** `colexa.fly.dev` nos painéis:
    - Cloudflare Turnstile: `colexa.fly.dev` nos hostnames do widget;
-   - Supabase, *URL Configuration*: `https://colexa.fly.dev/auth/callback` nas
+   - Supabase, *URL Configuration*: `https://colexa.fly.dev/**` nas
      *Redirect URLs*;
    - Google Auth Platform, no cliente: `https://colexa.fly.dev` nas origens.
 
