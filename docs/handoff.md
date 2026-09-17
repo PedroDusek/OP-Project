@@ -19,7 +19,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 106 PRs mergeados, CI verde em todos |
+| Branch | `main`, 107 PRs mergeados, CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -99,9 +99,16 @@ componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 | — | A API de dados do Supabase sem permissão nenhuma nas nossas tabelas (decisão 085) |
 | — | A denúncia chega por e-mail a suporte@colexa.com.br, assunto DENUNCIA, pelo Resend (decisão 086) |
 | — | A página `/admin/denuncias` e `ADMIN_EMAILS` saíram: a denúncia é lida só pelo e-mail (decisão 087) |
-| — | CAPTCHA (Cloudflare Turnstile) em entrar, criar conta e recuperar senha (decisão 088) |
+| — | CAPTCHA (Cloudflare Turnstile) em entrar, criar conta e recuperar senha (decisão 088) — **ligado no Supabase em 17/09** |
 
 ### Produção, em 17/09/2026
+
+**CAPTCHA ligado** no painel do Supabase em 17/09, pelo dono do produto, que
+testou entrar, criar conta e recuperar senha. Conferido de fora: entrar pela API
+sem token responde `400 captcha_failed` ("no captcha_token found"). Como o `.env`
+local usa o mesmo projeto, **o desenvolvimento local também exige a chave
+pública** — e abrir pelo IP da rede local pode fazer o widget recusar (decisão
+088). Para desligar: o painel primeiro, a chave depois.
 
 **Em dia: 18 de 18 migrations.** Em 17/09 entraram `rede_bloqueio_denuncia` e
 `conversas` — as duas só criam tabelas — e depois `api_de_dados_sem_permissao`,
@@ -940,12 +947,6 @@ Três coisas para não desfazer sem querer:
   das implementações perto do fim.
 - **O que vem depois da Social**: a passada de design nos componentes, ou os
   bloqueios de lançamento.
-- **Ligar o CAPTCHA no painel do Supabase** (decisão 088, `development.md` 6.4).
-  O código está na `main`, o widget foi criado pelo dono do produto e a chave
-  pública está no `.env` local — o desafio aparece nas três telas. **Não foi
-  confirmado** se o painel já foi ligado e se entrar, criar conta e recuperar
-  senha passam com ele. A ordem importa: o `.env` local usa o mesmo projeto
-  Supabase, então painel ligado sem a chave no ambiente é ninguém entrando.
 - **Duas travas no painel do Supabase**, recomendadas em 17/09: desligar a
   exposição do schema `public` em *Settings → Data API* (o ColeXa não usa), e
   *Network Restrictions* no banco quando a hospedagem existir.
