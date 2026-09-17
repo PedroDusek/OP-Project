@@ -385,6 +385,23 @@ qualquer implementação.
 
 ---
 
+## 3.3 Os serviços externos em produção
+
+Quem faz o quê, o que quebra sem ele, e que dado sai do ColeXa. A última coluna é
+o que a Política de Privacidade precisa descrever.
+
+| Serviço | Para quê | Sem ele | Dado que sai daqui |
+|---|---|---|---|
+| **Supabase** (São Paulo) | banco, autenticação e Storage (decisão 025) | o produto não funciona | tudo: conta, coleção, trocas, conversas, fotos |
+| **Fly.io** (São Paulo) | hospedagem do site, uma máquina (decisão 089) | o site sai do ar; os dados ficam | o tráfego do site |
+| **Cloudflare Turnstile** | CAPTCHA em entrar, criar conta e recuperar senha (decisão 088) | com o CAPTCHA ligado no painel, ninguém entra | sinais do navegador de quem entra |
+| **Resend** | e-mail da denúncia e do pedido de exclusão, e o SMTP do Supabase (decisões 086 e 091) | a denúncia fica só gravada; confirmação de conta para de chegar | e-mail e nome das pessoas envolvidas |
+| **Google** | login social (decisão 032) | resta entrar com e-mail e senha | e-mail e nome de quem escolhe entrar assim |
+| **Bandai** | imagens das cartas, pelo nosso servidor (decisões 020 e 038) | as cartas ficam sem arte | nada nosso: só pedimos a imagem |
+| **TCGplayer, via TCGCSV** | preços (decisão 047) | a tela deixa de mostrar preço | nada nosso |
+| **Banco Central (PTAX)** | cotação do dólar (decisão 051) | o preço aparece só em dólar | nada nosso |
+| **GitHub Actions** | preços (diário), contas a excluir (diário) e publicar (à mão) | as tarefas param; o site continua | nada além do que já está em produção |
+
 ## 4. Observabilidade
 
 A importação de preços registra cada execução em `price_imports`: quando

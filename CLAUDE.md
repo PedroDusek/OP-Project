@@ -37,8 +37,9 @@ Estas regras são do dono do produto e valem sobre qualquer instinto contrário:
 ## Produção nunca é o alvo padrão
 
 `DATABASE_URL` é sempre o banco local. Produção só é alcançada por
-`npm run supabase <migrate|import|prices|status|storage>`, que imprime o destino
-antes de agir. Não existe comando de reset para produção, de propósito.
+`npm run supabase <migrate|import|prices|contas|status|storage>`, que imprime o
+destino antes de agir, e pelo workflow **Publicar** do GitHub Actions, que sobe o
+site para a Fly.io **a mão** (decisão 089). Não existe comando de reset para produção, de propósito.
 
 **Rode `npm run supabase status` antes de qualquer publicação.** Ele compara as
 migrations com o repositório. Produção já ficou atrás sem ninguém notar, e o
@@ -62,7 +63,7 @@ npm run dev          npm test           npm run test:e2e
 npm run lint         npm run typecheck  npm run build
 npm run db:migrate   npm run db:seed    npm run catalog:import
 npm run prices:import
-npm run supabase <migrate|import|prices|status|storage>
+npm run supabase <migrate|import|prices|contas|status|storage>
 ```
 
 ## Como o código está organizado

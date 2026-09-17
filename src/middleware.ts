@@ -18,7 +18,7 @@ export async function middleware(request: NextRequest) {
 
   // Sem configuracao nao ha o que renovar. A rota decide o que fazer com a
   // ausencia de sessao; o middleware nao derruba a requisicao por isso.
-  if (!url || !publishableKey) return NextResponse.next({ request: withPathname(request) })
+  if (!url || !publishableKey) return indexable(request, NextResponse.next({ request: withPathname(request) }))
 
   let response = NextResponse.next({ request: withPathname(request) })
 
@@ -41,6 +41,25 @@ export async function middleware(request: NextRequest) {
   // acesso e a rota.
   await supabase.auth.getClaims()
 
+  return indexable(request, response)
+}
+
+/** O unico endereco que buscadores devem indexar (decisao 092). */
+const OFFICIAL_HOSTS = new Set(['colexa.com.br', 'www.colexa.com.br'])
+
+/**
+ * Fora do dominio oficial, pede aos buscadores para nao indexar.
+ *
+ * O site de teste em `colexa.fly.dev` declarava `index, follow` como qualquer
+ * pagina: apareceria em busca antes do lancamento, e depois dele viraria copia
+ * do dominio oficial. Pelo cabecalho `X-Robots-Tag`, e decidido **por
+ * requisicao**, a partir do `Host`: o layout e as paginas estaticas sao montados
+ * no build, sem saber em que endereco vao ser servidos. Entre o cabecalho e a
+ * meta tag, o buscador obedece a mais restritiva.
+ */
+function indexable(request: NextRequest, response: NextResponse): NextResponse {
+  const host = (request.headers.get('host') ?? '').split(':')[0].toLowerCase()
+  if (!OFFICIAL_HOSTS.has(host)) response.headers.set('X-Robots-Tag', 'noindex, nofollow')
   return response
 }
 

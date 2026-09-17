@@ -1,5 +1,17 @@
 # Arquitetura
 
+## 0. Onde isto roda
+
+O site roda numa máquina da Fly.io em São Paulo, a partir da imagem do
+`Dockerfile` (saída `standalone` do Next), e o banco é o Supabase, também em São
+Paulo (decisão 089). Uma máquina só, de propósito: as cotas de tentativa vivem
+na memória do processo (`src/server/http/rate-limit.ts`), e duas máquinas
+contariam cada uma por si. O cache das imagens otimizadas mora num volume, que
+sobrevive às publicações (decisão 090).
+
+Em desenvolvimento, o banco é local e produção nunca é alvo padrão: ver
+`CLAUDE.md` e `development.md` 6.6.
+
 ## 1. Stack
 
 | Camada | Escolha |
