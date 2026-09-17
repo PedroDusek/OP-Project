@@ -58,19 +58,3 @@ export function isPremium(user: { plan: string; premiumUntil?: Date | null }, no
   if (!user.premiumUntil) return true
   return user.premiumUntil > now
 }
-
-/**
- * Quem administra: o dono do produto, pelo e-mail (decisão 079).
- *
- * Por variável de ambiente, e não por coluna: há uma pessoa só nesse papel, e
- * um papel no banco seria modelo novo para um caso. `ADMIN_EMAILS` aceita mais
- * de um, separados por vírgula. Sem a variável, ninguém é administrador — o
- * padrão seguro.
- */
-export function isAdmin(user: { email: string }, adminEmails = process.env.ADMIN_EMAILS ?? ''): boolean {
-  const email = user.email.trim().toLowerCase()
-  return adminEmails
-    .split(',')
-    .map((item) => item.trim().toLowerCase())
-    .some((item) => item !== '' && item === email)
-}

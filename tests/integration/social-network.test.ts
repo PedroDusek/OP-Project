@@ -8,7 +8,6 @@ import {
   reportMember,
   unblockMember,
 } from '@/server/application/social/network'
-import { listReports } from '@/server/application/social/reports'
 import type { EmailMessage, Mailer } from '@/server/http/mailer'
 import { NotFoundError, RateLimitError, ValidationError } from '@/server/domain/errors'
 import { NETWORK_PAGE_SIZE } from '@/server/domain/social/network'
@@ -68,10 +67,7 @@ const nomes = (page: Awaited<ReturnType<typeof listNetwork>>) => page.members.ma
 
 /** O e-mail da denúncia vai para a memória, e não para a rede. */
 let enviados: EmailMessage[] = []
-const entrega = {
-  mailer: { name: 'memoria', available: true, send: async (m: EmailMessage) => void enviados.push(m) } satisfies Mailer,
-  appUrl: 'https://colexa.com.br/',
-}
+const entrega: Mailer = { name: 'memoria', available: true, send: async (m: EmailMessage) => void enviados.push(m) }
 
 beforeEach(async () => {
   await resetDatabase()
@@ -332,7 +328,11 @@ describe('bloquear e denunciar', () => {
     await expect(blockMember(testPrisma(), eu.user, 'eu')).rejects.toThrow(ValidationError)
   })
 
-  it('a denúncia exige motivo, e chega a quem administra — só a ele', async () => {
+  /*
+   * A leitura em /admin/denuncias saiu (decisao 087): o dono do produto le pelo
+   * e-mail. O que continua valendo aqui e o motivo obrigatorio e o registro.
+   */
+  it('a denúncia exige motivo, e fica registrada', async () => {
     const eu = await pessoa('Eu', 'eu')
     const ana = await pessoa('Ana', 'ana')
 
@@ -340,15 +340,10 @@ describe('bloquear e denunciar', () => {
     await expect(reportMember(testPrisma(), entrega, eu.user, 'eu', 'motivo')).rejects.toThrow(ValidationError)
     await reportMember(testPrisma(), entrega, eu.user, 'ana', '  Pediu pagamento adiantado.  ')
 
-    await expect(listReports(testPrisma(), eu.user)).rejects.toThrow(NotFoundError)
-
-    vi.stubEnv('ADMIN_EMAILS', `outra@example.test, ${eu.user.email.toUpperCase()}`)
-    const [denuncia] = await listReports(testPrisma(), eu.user)
-    expect(denuncia).toMatchObject({
-      reason: 'Pediu pagamento adiantado.',
-      reporter: { username: 'eu' },
-      reported: { username: 'ana', email: ana.user.email },
-    })
+    const denuncias = await testPrisma().userReport.findMany()
+    expect(denuncias).toEqual([
+      expect.objectContaining({ reporterId: eu.id, reportedId: ana.id, reason: 'Pediu pagamento adiantado.' }),
+    ])
   })
 
   /*
@@ -369,7 +364,6 @@ describe('bloquear e denunciar', () => {
     expect(email.text).toContain(`Denunciada: @ana <${ana.user.email}>`)
     expect(email.text).toContain(`Quem denunciou: @eu <${eu.user.email}>`)
     expect(email.text).toContain('Pediu pagamento adiantado.')
-    expect(email.text).toContain('https://colexa.com.br/admin/denuncias')
   })
 
   it('e-mail que falha, ou provedor sem configuração, não desfaz a denúncia', async () => {
@@ -378,13 +372,13 @@ describe('bloquear e denunciar', () => {
     const erro = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     const quebrado: Mailer = { name: 'quebrado', available: true, send: async () => { throw new Error('403') } }
-    await reportMember(testPrisma(), { mailer: quebrado, appUrl: 'https://colexa.com.br' }, eu.user, 'ana', 'Um.')
+    await reportMember(testPrisma(), quebrado, eu.user, 'ana', 'Um.')
     expect(erro).toHaveBeenCalledWith('[denuncia] e-mail ao suporte falhou', expect.objectContaining({ message: '403' }))
     // O log nao carrega o motivo.
     expect(JSON.stringify(erro.mock.calls)).not.toContain('Um.')
 
     const ausente: Mailer = { name: 'ausente', available: false, send: vi.fn() }
-    await reportMember(testPrisma(), { mailer: ausente, appUrl: 'https://colexa.com.br' }, eu.user, 'ana', 'Dois.')
+    await reportMember(testPrisma(), ausente, eu.user, 'ana', 'Dois.')
     expect(ausente.send).not.toHaveBeenCalled()
 
     expect(await testPrisma().userReport.count()).toBe(2)

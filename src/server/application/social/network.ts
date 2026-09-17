@@ -318,21 +318,17 @@ export async function listBlockedMembers(prisma: PrismaClient, viewer: Authentic
     .map((row) => ({ username: row.blocked.username!, since: row.createdAt }))
 }
 
-export interface ReportDelivery {
-  mailer: Mailer
-  appUrl: string
-}
-
 /**
  * Denuncia. O motivo é obrigatório; quem vai ler precisa saber o que aconteceu.
  *
- * Grava, e depois avisa o suporte por e-mail (decisão 086). O banco é o registro:
- * se o e-mail falhar ou o provedor não estiver configurado, a denúncia já está em
- * `/admin/denuncias`, e quem denunciou não vê erro de uma coisa que não é dela.
+ * Grava, e depois avisa o suporte por e-mail (decisões 086 e 087). O e-mail é onde
+ * a denúncia é lida; o banco guarda o registro. Se o envio falhar ou o provedor
+ * não estiver configurado, a denúncia continua gravada, e quem denunciou não vê
+ * erro de uma coisa que não é dela — a falha fica no log, com o número.
  */
 export async function reportMember(
   prisma: PrismaClient,
-  delivery: ReportDelivery,
+  mailer: Mailer,
   viewer: AuthenticatedUser,
   username: string,
   rawReason: string,
@@ -350,16 +346,15 @@ export async function reportMember(
     },
   })
 
-  if (!delivery.mailer.available) return
+  if (!mailer.available) return
   try {
-    await delivery.mailer.send(
+    await mailer.send(
       reportEmail({
         reportId: denuncia.id,
         createdAt: denuncia.createdAt,
         reporter: denuncia.reporter,
         reported: { username: pessoa.username, email: denuncia.reported.email },
         reason,
-        appUrl: delivery.appUrl,
       }),
     )
   } catch (error) {

@@ -5185,10 +5185,9 @@ que segue são as escolhas do dono do produto em 16/09 e as de implementação.
    mostra, pela mesma leitura (`readVisibleTradeStock`), com as cartas que quem
    olha procura marcadas. Bloqueado, mostra só o aviso e o desbloquear. O próprio
    nome manda para Trocas.
-8. **Administrador por e-mail**, na variável `ADMIN_EMAILS`: há uma pessoa nesse
-   papel, e uma coluna seria modelo novo para um caso. Sem a variável, ninguém
-   administra. Quem não administra recebe "não encontrado" em
-   `/admin/denuncias`.
+8. ~~**Administrador por e-mail**, na variável `ADMIN_EMAILS`, lendo as
+   denúncias em `/admin/denuncias`~~ — **mudado pela decisão 087**: a página e a
+   variável saíram; as denúncias são lidas pelo e-mail da decisão 086.
 9. **A denúncia** exige motivo (até 1.000 caracteres). A pessoa denunciada não
    fica sabendo quem denunciou.
 
@@ -5449,7 +5448,8 @@ Definido pelo dono do produto em 17/09: toda denúncia chega em
 
 1. **O banco continua sendo o registro.** A denúncia é gravada primeiro; o
    e-mail é o aviso. Se o envio falhar, ou o provedor não estiver configurado, a
-   denúncia fica em `/admin/denuncias` e quem denunciou vê o mesmo "Denúncia
+   denúncia fica gravada (e, até a decisão 087, em `/admin/denuncias`) e quem
+   denunciou vê o mesmo "Denúncia
    enviada" — a falha é nossa, não dela. A falha vai para o log só com o número
    da denúncia, sem o motivo nem os e-mails.
 2. **Texto puro**, com número, data no horário de Brasília, nome na rede e
@@ -5477,6 +5477,34 @@ Nenhum destes passos passa segredo pela conversa.
    Supabase manda do endereço dele, e com limite baixo de envios por hora.
 3. **A caixa `suporte@colexa.com.br`** precisa existir e receber — o Resend só
    envia.
+
+## Data
+
+2026-09-17
+
+---
+
+# Decisão: 087 — As denúncias são lidas só pelo e-mail
+
+Definido pelo dono do produto em 17/09, ao receber o primeiro e-mail de denúncia:
+a página `/admin/denuncias` não é necessária. **Muda o item 8 da decisão 079 e o
+link do e-mail da decisão 086.**
+
+## Decisão
+
+1. **Saem** a página `/admin/denuncias`, o atalho "Administração" em Conta, a
+   leitura das denúncias e a variável `ADMIN_EMAILS`. Era o único uso de papel de
+   administrador no produto.
+2. **Fica** a tabela `user_reports`, e cada denúncia continua gravada antes do
+   e-mail. É o registro para consultar um caso depois, direto no banco.
+3. O e-mail deixa de trazer o link para a página.
+
+## O que isso custa
+
+Se o envio falhar (Resend fora, domínio desverificado, chave revogada), ninguém é
+avisado daquela denúncia: ela fica só no banco, e a falha só no log do servidor,
+com o número da denúncia. Aceito pelo dono do produto em troca de não manter uma
+tela de administração.
 
 ## Data
 

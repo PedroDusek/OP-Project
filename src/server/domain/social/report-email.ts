@@ -17,8 +17,6 @@ export interface ReportEmailInput {
   reporter: { username: string | null; email: string }
   reported: { username: string; email: string }
   reason: string
-  /** Endereço do site, para o link da página de denúncias. */
-  appUrl: string
 }
 
 const quando = new Intl.DateTimeFormat('pt-BR', {
@@ -42,9 +40,6 @@ export function reportEmail(input: ReportEmailInput) {
     'Motivo, como foi escrito:',
     '',
     input.reason,
-    '',
-    '---',
-    `Todas as denúncias: ${input.appUrl.replace(/\/+$/, '')}/admin/denuncias`,
   ].join('\n')
 
   return { to: REPORT_EMAIL_TO, subject: REPORT_EMAIL_SUBJECT, text }

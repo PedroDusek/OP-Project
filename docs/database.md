@@ -439,8 +439,9 @@ bloqueou. O contrário não vale.
 | `reason` | varchar(1000) | not null, não em branco |
 | `created_at` | timestamptz | not null |
 
-`CHECK (reporter_id <> reported_id)`, `CHECK (length(btrim(reason)) > 0)`. Lida
-por quem administra em `/admin/denuncias` (`ADMIN_EMAILS`).
+`CHECK (reporter_id <> reported_id)`, `CHECK (length(btrim(reason)) > 0)`. É o
+registro: a leitura é pelo e-mail que cada denúncia manda ao suporte (decisões 086
+e 087).
 
 ### Conversas
 

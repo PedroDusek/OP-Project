@@ -431,8 +431,8 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
    redefinir senha. Ver `development.md` 6.2.
 3. **Redirect URLs no painel do Supabase** precisam listar
    `<APP_URL>/auth/callback` de cada ambiente.
-4. **`ADMIN_EMAILS` no ambiente de produção** (decisão 079). Sem ela, ninguém lê
-   as denúncias da rede.
+4. **`RESEND_API_KEY` e `EMAIL_FROM` no ambiente de produção** (decisão 086).
+   Sem elas, a denúncia fica só gravada e ninguém é avisado.
 5. **Idade mínima da rede** (decisão 060). A rede expõe o Trade Binder e abre
    conversa entre estranhos.
 
@@ -675,7 +675,8 @@ dono do produto. Conferida por ele no navegador e no iPhone (Safari e Brave).
   dois grupos: o que a outra pessoa procura, depois o resto do Trade Binder.
 - **O sino** — avisos do estado atual: mensagens não lidas, convites de troca e
   cartas sem armazenamento. Somem sozinhos quando o assunto se resolve.
-- **`/admin/denuncias`** — as denúncias, para os e-mails em `ADMIN_EMAILS`.
+- **Denúncias** — cada uma chega por e-mail em suporte@colexa.com.br, assunto
+  DENUNCIA (decisões 086 e 087).
 
 Coisas para não desfazer sem querer:
 
@@ -707,7 +708,7 @@ O que ficou combinado para depois dela:
   Social. Ela ajusta a Social junto com o resto. A revisão visual e textual tela
   a tela, e os links das cartas, ficam para o fim.
 - **Os bloqueios de lançamento da rede**: Termos de Uso, Política de
-  Privacidade, idade mínima e `ADMIN_EMAILS` em produção.
+  Privacidade, idade mínima e as variáveis do Resend em produção.
 
 A skill `design` está habilitada e funciona; o conector do **Figma** aparece na
 sessão mas está **sem autorização**, e sessões não interativas não conseguem
