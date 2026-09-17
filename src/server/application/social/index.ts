@@ -1,4 +1,6 @@
 import { prisma } from '@/server/infrastructure/prisma'
+import { ResendMailer } from '@/server/infrastructure/email/resend-mailer'
+import { appUrl } from '@/server/http/app-url'
 import type { AuthenticatedUser } from '@/server/application/auth'
 import {
   blockMember as blockMemberWith,
@@ -26,6 +28,8 @@ import {
  *
  * Camada: application, a unica que pode falar com infrastructure.
  */
+
+const mailer = new ResendMailer()
 
 export function getUsernameState(user: AuthenticatedUser) {
   return getUsernameStateWith(prisma, user)
@@ -56,7 +60,7 @@ export function listBlockedMembers(user: AuthenticatedUser) {
 }
 
 export function reportMember(user: AuthenticatedUser, username: string, reason: string) {
-  return reportMemberWith(prisma, user, username, reason)
+  return reportMemberWith(prisma, { mailer, appUrl: appUrl() }, user, username, reason)
 }
 
 export function listReports(user: AuthenticatedUser) {

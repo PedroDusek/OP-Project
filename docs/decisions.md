@@ -5436,3 +5436,48 @@ A API não oferece caminho para usar o que sobrava. Permissão que não serve a 
 ## Data
 
 2026-09-17
+
+---
+
+# Decisão: 086 — A denúncia chega ao suporte por e-mail, pelo Resend
+
+Definido pelo dono do produto em 17/09: toda denúncia chega em
+**`suporte@colexa.com.br`**, com o assunto **`DENUNCIA`**. Complementa a decisão
+079, que só gravava a denúncia e a mostrava em `/admin/denuncias`.
+
+## Decisão
+
+1. **O banco continua sendo o registro.** A denúncia é gravada primeiro; o
+   e-mail é o aviso. Se o envio falhar, ou o provedor não estiver configurado, a
+   denúncia fica em `/admin/denuncias` e quem denunciou vê o mesmo "Denúncia
+   enviada" — a falha é nossa, não dela. A falha vai para o log só com o número
+   da denúncia, sem o motivo nem os e-mails.
+2. **Texto puro**, com número, data no horário de Brasília, nome na rede e
+   e-mail das duas pessoas, o motivo por último e o link para
+   `/admin/denuncias`. O motivo é texto de usuário: sem HTML, não há marcação
+   para injetar, e por vir depois das linhas fixas ele não se passa por um campo.
+3. **Provedor: Resend**, por `fetch` direto na API (um endpoint), atrás do
+   contrato `Mailer`. Configuração por `RESEND_API_KEY` e `EMAIL_FROM`; sem
+   elas, o envio se declara indisponível, como o Storage (decisão 042).
+4. Endereço e assunto são constantes do domínio, e não variáveis de ambiente: é
+   regra do produto, e não muda por ambiente.
+
+## O que o dono do produto configura por fora
+
+Nenhum destes passos passa segredo pela conversa.
+
+1. **Resend** — criar a conta, adicionar o domínio `colexa.com.br` e publicar no
+   DNS os registros que ele mostrar (SPF, DKIM). Criar uma chave com permissão de
+   envio e colocá-la em `RESEND_API_KEY` no ambiente de produção, com
+   `EMAIL_FROM="ColeXa <nao-responda@colexa.com.br>"`.
+2. **Supabase, e-mail de cadastro com o nome ColeXa** — em *Authentication →
+   Emails → SMTP Settings*, ligar o SMTP próprio com os dados do Resend (host
+   `smtp.resend.com`, porta 465, usuário `resend`, senha = uma chave do Resend),
+   remetente `nao-responda@colexa.com.br` e nome **ColeXa**. Sem SMTP próprio o
+   Supabase manda do endereço dele, e com limite baixo de envios por hora.
+3. **A caixa `suporte@colexa.com.br`** precisa existir e receber — o Resend só
+   envia.
+
+## Data
+
+2026-09-17
