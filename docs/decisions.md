@@ -5845,3 +5845,50 @@ decisão 009 continua no plano, para quando o pagamento existir.
 ## Data
 
 2026-09-17
+
+---
+
+# Decisão: 094 — As imagens das cartas preparadas depois de publicar
+
+Pedido do dono do produto em 17/09, ao avaliar se valia usar o Imgur para
+acelerar as imagens.
+
+## Contexto
+
+A imagem de uma carta vem do servidor da Bandai, no Japão: até 2,2 MB, cerca de
+3 segundos. Depois de convertida, a versão leve (dezenas de KB) fica no volume da
+Fly e sai em 0,1 s (decisão 090). Como o disco da máquina é **novo a cada
+publicação**, quem abrisse o site logo depois pagaria essa espera de novo, carta
+por carta.
+
+**O Imgur foi recusado**, e não por preço: os termos dele proíbem usá-lo como
+hospedagem da biblioteca de imagens de outro site, e subir as cartas para lá
+seria **copiar e redistribuir imagem da Bandai**, o oposto das decisões 020, 026
+e 038, que mandam referenciar e nunca copiar.
+
+## Decisão
+
+1. **`npm run supabase aquecer`** pede as imagens já otimizadas ao nosso próprio
+   site, nas duas larguras que a grade usa (256 e 384, qualidade 75 — as mesmas
+   do `next/image`, num módulo de domínio, para não aquecer o que ninguém pede).
+2. **A ordem é o que faz caber num número pequeno:** primeiro o que está em local
+   de troca (o que aparece na Social e nas trocas), depois o que alguém possui, e
+   só então o resto, do mais novo para o mais antigo.
+3. **Três em paralelo, no máximo seis.** A fonte é de terceiro, e a decisão 020
+   pede cortesia com ela.
+4. **O workflow Publicar termina chamando o comando** com 200 cartas, e
+   `continue-on-error`: o site já está no ar, e o aquecimento é conveniência.
+   Sem `SUPABASE_DATABASE_URL`, o passo é pulado com aviso.
+5. O relatório diz quantas já estavam prontas — resposta em menos de meio segundo
+   é imagem que já estava no volume.
+
+## O que fica para quando o domínio entrar
+
+**Cloudflare gratuita na frente do `colexa.com.br`**, guardando as respostas já
+otimizadas perto de quem acessa. É cache das nossas respostas, e não uma cópia
+hospedada em terceiro. Some com a espera também para quem está longe de São
+Paulo e tira esse tráfego da nossa máquina.
+
+## Data
+
+2026-09-17

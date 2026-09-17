@@ -26,14 +26,21 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Conferir o token
+      - name: Conferir os segredos
         id: token
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
         run: |
           if [ -z "$FLY_API_TOKEN" ]; then
             echo "::notice::FLY_API_TOKEN nao existe no repositorio; nada foi publicado."
             echo "pular=true" >> "$GITHUB_OUTPUT"
+          fi
+          # O aquecer le a lista de cartas no banco de producao.
+          if [ -n "$SUPABASE_DATABASE_URL" ]; then
+            echo "aquecer=sim" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::SUPABASE_DATABASE_URL nao existe; as imagens nao serao preparadas."
           fi
 
       - uses: actions/checkout@v5
@@ -57,3 +64,25 @@ jobs:
           --build-arg NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
           --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
           --build-arg NEXT_PUBLIC_TURNSTILE_SITE_KEY=${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
+
+      # Decisao 094: o disco da maquina e novo a cada publicacao, entao a
+      # primeira pessoa a ver cada carta esperaria ~3 s pela ida ate o Japao.
+      # Falhar aqui nao derruba a publicacao: o site ja esta no ar, e o aquecer
+      # e conveniencia.
+      - uses: actions/setup-node@v5
+        if: steps.token.outputs.pular != 'true' && steps.token.outputs.aquecer == 'sim'
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Preparar as imagens das cartas
+        if: steps.token.outputs.pular != 'true' && steps.token.outputs.aquecer == 'sim'
+        continue-on-error: true
+        env:
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          DATABASE_URL: postgresql://nao-usar:nao-usar@127.0.0.1:5432/nao-usar
+          APP_URL: https://colexa.fly.dev
+        run: |
+          npm ci
+          npx prisma generate
+          npm run supabase aquecer -- --limite=200

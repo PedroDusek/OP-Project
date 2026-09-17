@@ -414,6 +414,18 @@ npm run supabase premium pessoa@exemplo.com --remover
 O prazo é obrigatório de propósito: cortesia sem data não cai sozinha quando o
 teste termina. A data vale até o fim do dia, no horário de Brasília.
 
+#### As imagens depois de publicar (decisão 094)
+
+O workflow **Publicar** termina pedindo as imagens das 200 cartas mais prováveis
+(`npm run supabase aquecer`), porque o disco da máquina é novo a cada publicação.
+À mão, com outros números:
+
+```
+npm run supabase aquecer -- --limite=400 --paralelas=3 --url=https://colexa.fly.dev
+```
+
+Poucas em paralelo de propósito: a fonte é de terceiro (decisão 020).
+
 #### A cada publicação
 
 1. `npm run supabase status`. Se faltar migration, `npm run supabase migrate`
