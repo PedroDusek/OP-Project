@@ -1,15 +1,15 @@
-# Handoff — estado em 16/09/2026
+# Handoff — estado em 17/09/2026
 
 Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
 
 ## Para retomar
 
 1. `npm run dev` — **sempre reinicie**. O servidor guarda o cliente Prisma que
-   carregou ao subir, e três migrations entraram em 10/09 —
-   `concluir_a_troca`, `trade_binder_publico` e `troca_ao_vivo` (armadilha 40).
+   carregou ao subir, e duas migrations entraram em 16/09 —
+   `rede_bloqueio_denuncia` e `conversas` (armadilha 40).
 2. `npm run supabase status` — mostra o que produção tem e o que falta. Em
-   16/09 ela ficou **em dia: 15 de 15 migrations**.
-3. Leia "Produção, em 16/09/2026" e "Próximo passo", abaixo.
+   17/09 ela ficou **em dia: 17 de 17 migrations**.
+3. Leia "Produção, em 17/09/2026", "A Social" e "Próximo passo", abaixo.
 
 O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 
@@ -19,7 +19,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 94 PRs mergeados, CI verde em todos |
+| Branch | `main`, 99 PRs mergeados, CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -42,7 +42,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 13 concluídos.** 1.343 testes de unidade, integração e
+**Checkpoints 0 a 13 concluídos, e a Social.** 1.426 testes de unidade, integração e
 componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -90,10 +90,18 @@ componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 | — | `/dev/paralelas` mostra a carta inteira e pergunta o que a Liga contradiz; "Sem cartas vendidas" na página da carta (decisão 077) |
 | — | Revisão do dono do produto: 777 respostas manuais, 1.642 de 1.646 paralelas com vínculo |
 | — | Com dois acabamentos (Normal e Foil), vale o preço Normal (decisão 078) |
+| — | A rede: listagem, busca por carta, binder de alguém, bloquear e denunciar (decisão 079) |
+| — | O sino com os avisos do estado atual: cartas sem armazenamento (decisão 080) |
+| — | Conversas entre pessoas da rede, e mensagem não lida no sino (decisão 081) |
+| — | Convite direto para troca, e busca por nome na rede (decisão 082) |
+| — | Todas as cartas na troca, em dois grupos; convite de troca no sino (decisão 083) |
+| — | Social em páginas de sete; balão da conversa certo no Brave; convite aceito leva à troca (decisão 084) |
 
-### Produção, em 16/09/2026
+### Produção, em 17/09/2026
 
-**Em dia: 15 de 15 migrations.** As seis que faltavam desde 10/09 — `convite_de_troca`,
+**Em dia: 17 de 17 migrations.** Em 17/09 entraram `rede_bloqueio_denuncia` e
+`conversas`, a pedido do dono do produto — as duas só criam tabelas. Em 16/09
+tinham entrado as seis que faltavam desde 10/09 — `convite_de_troca`,
 `revisao_apos_alteracao`, `nome_de_usuario`, `concluir_a_troca`,
 `trade_binder_publico` e `troca_ao_vivo` — entraram em 16/09 com
 `npm run supabase migrate`, a pedido do dono do produto. A única destrutiva
@@ -397,6 +405,19 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     2048 ou mais, validade até 825 dias e nome alternativo preenchido. E conferir
     o arquivo em disco não basta: o que vale é o certificado servido na conexão,
     que é onde se vê o que o aparelho realmente recebe.
+51. **O Brave do iPhone reescreve a folha de estilo.** Os balões da conversa
+    saíam de ponta a ponta e todos à esquerda, com as classes certas no CSS
+    servido — e o mesmo código aparecia certo no Safari do mesmo aparelho. O que
+    depende de layout crítico vai também como estilo no elemento. Para separar
+    "o motor do iPhone" de "o Brave", o teste é abrir no Safari. O "1 Issue" do
+    Next no Brave é o script da carteira dele (`window.ethereum`), e não do app.
+52. **O Windows pode não liberar o Node do nvm no firewall.** O servidor subia em
+    `C:\nvm4w\nodejs\node.exe`, um caminho sem regra — mas a conexão do celular
+    que não abria era do próprio aparelho (VPN, rede, "acesso à rede local"). O
+    diagnóstico que separa os dois: o computador faz ping no celular e responde
+    200 pelo próprio IP; aí o bloqueio está no telefone. E confira o IP do
+    computador (`ipconfig`): o roteador troca, e o `.9` que se tentou era o
+    próprio celular.
 
 ## Pendências
 
@@ -410,6 +431,10 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
    redefinir senha. Ver `development.md` 6.2.
 3. **Redirect URLs no painel do Supabase** precisam listar
    `<APP_URL>/auth/callback` de cada ambiente.
+4. **`ADMIN_EMAILS` no ambiente de produção** (decisão 079). Sem ela, ninguém lê
+   as denúncias da rede.
+5. **Idade mínima da rede** (decisão 060). A rede expõe o Trade Binder e abre
+   conversa entre estranhos.
 
 ### Decisões que o dono do produto ainda pode querer revisitar
 
@@ -632,35 +657,62 @@ Coisas para não desfazer sem querer:
   índice único de `variant_source_products` dá um dono por produto. Mostrar nas
   duas exigiria mudar o modelo, e o dono escolheu deixar como está.
 
+## A Social (decisões 079 a 084)
+
+Construída de 16 a 17/09, **direto, sem a passada de design antes** — escolha do
+dono do produto. Conferida por ele no navegador e no iPhone (Safari e Brave).
+
+- **`/social`** — quem tem cartas em local de troca, **sete por página**, com a
+  prévia de até sete cartas rolando na horizontal. Ordem: Premium, depois quantas
+  cartas quem olha procura, depois o nome. **Busca** por código ou nome da carta,
+  ou pelo nome na rede (`@nome` busca só nome, e o nome igual vem primeiro).
+- **`/social/<nome>`** — o Trade Binder de alguém, com o que quem olha procura
+  marcado: **Mandar mensagem**, **Convidar para trocar**, Bloquear e Denunciar.
+- **`/conversas`** — as conversas, da mais recente, com a marca de não lida; a
+  conversa aberta pergunta a cada 3 s se chegou mensagem.
+- **Trocas** — convites recebidos no topo, com aceitar e recusar; o convite
+  enviado espera e leva à troca quando aceito. Na negociação, as suas cartas em
+  dois grupos: o que a outra pessoa procura, depois o resto do Trade Binder.
+- **O sino** — avisos do estado atual: mensagens não lidas, convites de troca e
+  cartas sem armazenamento. Somem sozinhos quando o assunto se resolve.
+- **`/admin/denuncias`** — as denúncias, para os e-mails em `ADMIN_EMAILS`.
+
+Coisas para não desfazer sem querer:
+
+- **A rede e a troca mostram o nome na rede**, e não o nome real (regra 6.1.1).
+  O nome real só aparece na troca por link com quem não escolheu nome.
+- **O consentimento do convite direto fecha no aceite** (regra 4.6.1): antes, a
+  convidada não abre nem mexe na troca, e quem convidou não vê o cruzamento.
+- **A mensagem e a leitura usam o relógio da aplicação**, e não o do banco: com
+  relógios diferentes, abrir a conversa não apagaria o aviso.
+- **Cotas** (em memória de processo): rede 60/min, busca 20/min, denúncia 5/h,
+  mensagem 30/min.
+- **O layout não é refeito ao navegar**: o sino busca os próprios avisos em
+  `/api/me/notificacoes`, ao abrir cada página, ao voltar para a aba e a cada
+  minuto.
+
+Para testar entre duas contas no celular: as duas contas locais do dono do
+produto (`pedrodussel` e `testedusekin`) têm local de troca e se veem na rede.
+Uma conta num navegador, a outra noutro ou numa janela anônima.
+
 ## Próximo passo
 
-**A escolha está aberta**, em 10/09: o dono do produto pediu para deixar tudo
-atualizado antes de definir. A ordem combinada é a passada de Claude Design nos
-componentes antes da Social, mas qual das duas começa é decisão dele.
+**A escolha está aberta**, em 17/09. A Social está completa nas três etapas
+combinadas — rede, convite direto e conversas.
 
-**A aba Social**, desenhada pelo dono do produto em 10/09: prévia de 6 ou 7
-cartas rolando na horizontal dentro de uma caixa, com o nome público do dono em
-cima; clicar abre o Trade Binder inteiro; rolar para baixo traz mais gente.
-Mantém filtros e mensagem dentro do app. As regras de ordem já existem
-(decisão 060): Premium primeiro, desempate por quantas cartas interessam a quem
-olha.
+O que ficou combinado para depois dela:
 
-O **chat** é peça separada, e traz moderação junto.
-
-Antes dela, **a passada de Claude Design nos componentes compartilhados**,
-combinada para acontecer **antes da Social**: botão, painel, linha de lista e estado vazio são o
-vocabulário de toda tela, e a Social é o maior pedaço que falta. Mexer neles
-depois dela seria refazer todas as telas dela. A revisão visual e textual tela a
-tela, e os links das cartas, ficam para o fim.
+- **A passada de Claude Design nos componentes compartilhados** — botão, painel,
+  linha de lista, estado vazio —, que o dono do produto adiou para depois da
+  Social. Ela ajusta a Social junto com o resto. A revisão visual e textual tela
+  a tela, e os links das cartas, ficam para o fim.
+- **Os bloqueios de lançamento da rede**: Termos de Uso, Política de
+  Privacidade, idade mínima e `ADMIN_EMAILS` em produção.
 
 A skill `design` está habilitada e funciona; o conector do **Figma** aparece na
 sessão mas está **sem autorização**, e sessões não interativas não conseguem
 rodar o login. Ligar é por fora, nas configurações de conectores do claude.ai ou
 com `/mcp` num terminal interativo.
-
-Depois disso, a **aba Social**, que tem as regras escritas (decisão 060) e a
-identidade construída, e falta tudo o mais: listagem ordenada, busca por carta,
-bloquear, denunciar e o chat.
 
 ## A folha da want list agora se compartilha
 
@@ -851,8 +903,8 @@ Três coisas para não desfazer sem querer:
   rede os torna mais urgentes, porque ela expõe o Trade Binder de todo mundo.
   Ele informou que está contratando advogada e que pedirá uma revisão técnica
   das implementações perto do fim.
-- **A ordem de construção da Social**, e se o chat entra no primeiro corte — é
-  o maior pedaço, e traz moderação junto.
+- **O que vem depois da Social**: a passada de design nos componentes, ou os
+  bloqueios de lançamento.
 
 O protocolo continua: uma branch e um PR por checkpoint, o assistente merge
 quando estiver completo e sem pendência, e para antes de iniciar o próximo
