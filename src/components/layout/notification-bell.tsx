@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Bell, PackageOpen } from 'lucide-react'
+import { Bell, MessageCircle, PackageOpen } from 'lucide-react'
 import { Popover } from 'radix-ui'
 import { cn } from '@/lib/cn'
 import type { Notice } from '@/server/application/notifications'
@@ -110,6 +110,16 @@ export function NotificationBell({ initial = [] }: { initial?: Notice[] }) {
 
 function Aviso({ notice, onNavigate }: { notice: Notice; onNavigate: () => void }) {
   switch (notice.kind) {
+    case 'unread-messages':
+      return (
+        <Item
+          href="/conversas"
+          icon={<MessageCircle className="size-5" aria-hidden />}
+          title={notice.conversations === 1 ? 'Você recebeu uma mensagem' : 'Você recebeu mensagens'}
+          description={`Mensagem não lida em ${notice.conversations} ${notice.conversations === 1 ? 'conversa' : 'conversas'}.`}
+          onNavigate={onNavigate}
+        />
+      )
     case 'unallocated-cards':
       return (
         <Item

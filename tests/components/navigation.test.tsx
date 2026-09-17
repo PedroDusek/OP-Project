@@ -118,6 +118,7 @@ describe('SideNav', () => {
 
     expect(screen.getByRole('link', { name: 'Trocas' })).toHaveAttribute('href', '/trocas')
     expect(screen.getByRole('link', { name: 'Social' })).toHaveAttribute('href', '/social')
+    expect(screen.getByRole('link', { name: 'Conversas' })).toHaveAttribute('href', '/conversas')
   })
 
   /** A conta fica separada dos destinos, no rodape. */

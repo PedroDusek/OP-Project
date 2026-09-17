@@ -24,6 +24,8 @@ function revalidar(username: string) {
   revalidatePath('/social')
   revalidatePath(`/social/${username}`)
   revalidatePath('/conta')
+  // Bloquear muda se da para escrever numa conversa que ja existe.
+  revalidatePath('/conversas', 'layout')
 }
 
 async function executar(

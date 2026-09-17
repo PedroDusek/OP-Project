@@ -73,6 +73,8 @@ model User {
   blocksReceived    UserBlock[]         @relation("blocked")
   reportsMade       UserReport[]        @relation("reporter")
   reportsReceived   UserReport[]        @relation("reported")
+  conversations     ConversationParticipant[]
+  messagesSent      Message[]
 
   @@map("users")
 }
@@ -628,4 +630,65 @@ model UserReport {
   @@index([reportedId])
   @@index([createdAt])
   @@map("user_reports")
+}
+
+// --------------------------------------------------------------- conversas
+
+// Uma conversa entre duas pessoas da rede (decisao 081).
+//
+// Uma por par: `pair_key` e `<menor id>:<maior id>`, unico. Duas pessoas
+// abrindo conversa uma com a outra ao mesmo tempo caem na mesma, e e o indice
+// que garante isso, e nao uma consulta antes de gravar.
+//
+// `last_message_at` ordena a lista de conversas sem ler as mensagens, e e nulo
+// enquanto ninguem escreveu — a conversa vazia nao aparece na lista.
+model Conversation {
+  id            BigInt    @id @default(autoincrement())
+  pairKey       String    @unique @map("pair_key") @db.VarChar(41)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastMessageAt DateTime? @map("last_message_at") @db.Timestamptz(6)
+
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@index([lastMessageAt])
+  @@map("conversations")
+}
+
+// Quem participa, e ate onde leu.
+//
+// `last_read_at` e o que acende o pontinho do sino: ha mensagem da outra pessoa
+// depois dele. Nulo enquanto a pessoa nunca abriu a conversa. Nao ha
+// confirmacao de leitura para o outro lado — e so a marca de quem le.
+//
+// RESTRICT no usuario, como nas trocas: contas sao anonimizadas, e nunca
+// apagadas (decisao 015), e a conversa e da outra pessoa tambem.
+model ConversationParticipant {
+  id             BigInt    @id @default(autoincrement())
+  conversationId BigInt    @map("conversation_id")
+  userId         BigInt    @map("user_id")
+  lastReadAt     DateTime? @map("last_read_at") @db.Timestamptz(6)
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@map("conversation_participants")
+}
+
+// Uma mensagem: so texto, ate 1.000 caracteres, sem editar nem apagar
+// (decisao 081). Sem imagem, por escolha do dono do produto.
+model Message {
+  id             BigInt   @id @default(autoincrement())
+  conversationId BigInt   @map("conversation_id")
+  senderId       BigInt   @map("sender_id")
+  body           String   @db.VarChar(1000)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Restrict)
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
 }

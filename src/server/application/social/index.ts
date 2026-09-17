@@ -10,6 +10,13 @@ import {
 } from './network'
 import { listReports as listReportsWith } from './reports'
 import {
+  conversationState as conversationStateWith,
+  listConversations as listConversationsWith,
+  readConversation as readConversationWith,
+  sendMessage as sendMessageWith,
+  startConversation as startConversationWith,
+} from './conversations'
+import {
   getUsernameState as getUsernameStateWith,
   setUsername as setUsernameWith,
 } from './set-username'
@@ -56,7 +63,29 @@ export function listReports(user: AuthenticatedUser) {
   return listReportsWith(prisma, user)
 }
 
+export function startConversation(user: AuthenticatedUser, username: string) {
+  return startConversationWith(prisma, user, username)
+}
+
+export function listConversations(user: AuthenticatedUser) {
+  return listConversationsWith(prisma, user)
+}
+
+export function readConversation(user: AuthenticatedUser, conversationId: bigint) {
+  return readConversationWith(prisma, user, conversationId)
+}
+
+export function conversationState(user: AuthenticatedUser, conversationId: bigint) {
+  return conversationStateWith(prisma, user, conversationId)
+}
+
+export function sendMessage(user: AuthenticatedUser, conversationId: bigint, body: string) {
+  return sendMessageWith(prisma, user, conversationId, body)
+}
+
 export { isAdmin } from '@/server/application/authorization'
+export { USERNAME_REQUIRED_TO_CHAT } from './conversations'
+export type { ConversationMessage, ConversationSummary, ConversationView } from './conversations'
 export type { SetUsernameResult, UsernameState } from './set-username'
 export type { BlockedMember, MemberBinder, NetworkMember, NetworkPage } from './network'
 export type { ReportView } from './reports'
