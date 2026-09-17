@@ -20,6 +20,7 @@ import { createPrisma } from '@/server/infrastructure/prisma'
  *   npm run supabase prices             importa precos de arte comum e cambio
  *   npm run supabase contas             anonimiza as contas com exclusao vencida
  *   npm run supabase premium <email> --ate=2026-12-31   da Premium ate a data
+ *   npm run supabase aquecer            pede as imagens das cartas mais vistas
  *   npm run supabase premium <email> --remover          volta a conta para Free
  *
  * Prefira `--from` quando o snapshot ja existir: rebaixar o catalogo inteiro a
@@ -169,6 +170,100 @@ async function main(): Promise<void> {
           `gravados ${result.written} | sem mudanca ${result.unchanged} | ` +
           `por vinculo ${result.linkedPriced}`,
       )
+    } finally {
+      await prisma.$disconnect()
+    }
+    return
+  }
+
+  if (command === 'aquecer') {
+    /*
+     * Pre-aquecimento das imagens (decisao 094).
+     *
+     * Quem ve uma carta pela primeira vez espera a ida ate o servidor da Bandai,
+     * no Japao: ~3 s por imagem de ate 2,2 MB. Depois disso a versao leve fica no
+     * volume da Fly (decisao 090) e sai em 0,1 s. Este comando paga essa primeira
+     * vez por nos, na ordem em que as cartas realmente aparecem.
+     *
+     * Poucas em paralelo de proposito: a fonte e de terceiro, e a decisao 020
+     * pede cortesia com ela.
+     */
+    const site = (args.find((a) => a.startsWith('--url='))?.slice('--url='.length) ?? process.env.APP_URL ?? 'https://colexa.fly.dev').trim()
+    const limite = Number(args.find((a) => a.startsWith('--limite='))?.slice('--limite='.length) ?? 200)
+    const paralelas = Number(args.find((a) => a.startsWith('--paralelas='))?.slice('--paralelas='.length) ?? 3)
+    if (!Number.isFinite(limite) || limite < 1) throw new Error('--limite precisa ser um numero maior que zero.')
+    if (!Number.isFinite(paralelas) || paralelas < 1 || paralelas > 6) {
+      throw new Error('--paralelas precisa ficar entre 1 e 6: a fonte e de terceiro.')
+    }
+
+    const { optimizedImageUrl, WARMUP_WIDTHS } = await import('@/server/domain/catalog/optimized-image')
+
+    const prisma = createPrisma(url)
+    try {
+      /*
+       * A ordem e o que faz caber num numero pequeno: primeiro o que esta em
+       * local de troca (aparece na Social e nas trocas), depois o que alguem
+       * possui, e so entao o resto — do mais novo para o mais antigo, que e a
+       * ordem em que o catalogo foi importado.
+       */
+      const variantes = await prisma.$queryRaw<{ image_url: string }[]>`
+        SELECT v.image_url
+          FROM card_variants v
+         WHERE v.image_url IS NOT NULL
+         ORDER BY EXISTS (
+                   SELECT 1 FROM collection_item_locations cil
+                     JOIN collection_items ci ON ci.id = cil.collection_item_id
+                     JOIN storage_locations sl ON sl.id = cil.storage_location_id
+                    WHERE ci.card_variant_id = v.id AND sl.purpose = 'TRADE' AND cil.quantity > 0
+                 ) DESC,
+                 EXISTS (
+                   SELECT 1 FROM collection_items ci
+                    WHERE ci.card_variant_id = v.id AND ci.quantity > 0
+                 ) DESC,
+                 v.id DESC
+         LIMIT ${limite}
+      `
+
+      const pedidos = variantes.flatMap((v) => WARMUP_WIDTHS.map((w) => optimizedImageUrl(site, v.image_url, w)))
+      console.log(`[supabase] aquecer: ${variantes.length} cartas, ${pedidos.length} imagens, ${paralelas} por vez em ${site}`)
+
+      let ok = 0
+      let falhas = 0
+      let jaProntas = 0
+      const inicio = Date.now()
+
+      const fila = [...pedidos]
+      const trabalhar = async () => {
+        for (let proximo = fila.pop(); proximo; proximo = fila.pop()) {
+          const comecou = Date.now()
+          try {
+            const resposta = await fetch(proximo, {
+              headers: { accept: 'image/webp,image/avif,image/*' },
+              signal: AbortSignal.timeout(60_000),
+            })
+            // O corpo precisa ser lido: sem isso a conexao fica pendurada.
+            await resposta.arrayBuffer()
+            if (resposta.ok) {
+              ok++
+              // Resposta instantanea e imagem que ja estava pronta no volume.
+              if (Date.now() - comecou < 500) jaProntas++
+            } else {
+              falhas++
+            }
+          } catch {
+            falhas++
+          }
+        }
+      }
+
+      await Promise.all(Array.from({ length: paralelas }, () => trabalhar()))
+
+      const segundos = Math.round((Date.now() - inicio) / 1000)
+      console.log(
+        `[supabase] aquecer: ${ok} prontas (${jaProntas} ja estavam), ${falhas} com falha, em ${segundos}s`,
+      )
+      // Falha de imagem nao derruba nada: a proxima pessoa que abrir a carta
+      // paga a espera, como pagava antes deste comando existir.
     } finally {
       await prisma.$disconnect()
     }
@@ -349,7 +444,7 @@ async function main(): Promise<void> {
 
   throw new Error(
     `Comando desconhecido: ${command ?? '(nenhum)'}. ` +
-      'Use migrate, import, prices, contas, premium, status ou storage.',
+      'Use migrate, import, prices, contas, premium, aquecer, status ou storage.',
   )
 }
 
