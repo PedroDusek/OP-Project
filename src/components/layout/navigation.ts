@@ -6,6 +6,7 @@ import {
   Layers,
   MessageCircle,
   Search,
+  Swords,
   UserRound,
   Users,
 } from 'lucide-react'
@@ -71,6 +72,12 @@ export const DESTINATIONS: Destination[] = [
     label: 'Binders',
     icon: BookOpen,
     description: 'Seus binders, caixas e decks: criar, editar e ver o que está em cada um.',
+  },
+  {
+    href: '/deck',
+    label: 'Deck Builder',
+    icon: Swords,
+    description: 'Monte um deck e veja o que você tem, onde está e quanto custa o que falta.',
   },
   {
     href: '/quero',

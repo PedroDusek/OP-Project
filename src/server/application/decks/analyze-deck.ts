@@ -1,0 +1,304 @@
+import { Prisma, type PrismaClient } from '@prisma/client'
+import type { AuthenticatedUser } from '@/server/application/auth'
+import { assertPremium } from '@/server/application/authorization'
+import { getUsdBrlRate } from '@/server/application/prices/read-prices'
+import {
+  assertDeckRules,
+  deckTotal,
+  distributeOwned,
+  fitsLeader,
+  type DeckLine,
+} from '@/server/domain/decks/deck'
+import { NotFoundError, ValidationError } from '@/server/domain/errors'
+
+/**
+ * A conferência de um deck (decisão 095).
+ *
+ * Camada: application.
+ *
+ * **Nada é guardado.** A pessoa monta a lista na tela, e isto responde três
+ * coisas: quantas cópias ela já tem, **onde** elas estão, e quanto custa o que
+ * falta. Escolha do dono do produto — o ColeXa confere decks, não os hospeda.
+ *
+ * O preço do que falta é o da **arte escolhida**: quem montou a lista escolheu
+ * aquela arte, e trocar por outra na conta seria responder outra pergunta.
+ */
+
+export interface DeckInput {
+  leaderVariantId: string
+  lines: readonly { variantId: string; copies: number }[]
+  /** Ligado, as cópias de qualquer arte da mesma carta contam. */
+  autoComplete: boolean
+}
+
+export interface DeckPlace {
+  /** O nome do móvel, ou `null` para as cópias sem local definido. */
+  location: string | null
+  /** O local é de troca: a carta está oferecida a outras pessoas (regra 4.2). */
+  forTrade: boolean
+  quantity: number
+}
+
+export interface DeckAnalysisLine {
+  variantId: string
+  cardCode: string
+  cardName: string
+  variantType: string
+  imageUrl: string | null
+  copies: number
+  owned: number
+  missing: number
+  /** Onde estão as cópias que contaram, incluindo as sem local definido. */
+  places: DeckPlace[]
+  /** Preço unitário da arte escolhida, em dólar, ou `null` sem preço conhecido. */
+  unitUsd: number | null
+  /** Custo das cópias que faltam desta linha. */
+  missingUsd: number | null
+}
+
+export interface DeckAnalysis {
+  leader: { variantId: string; cardCode: string; cardName: string; imageUrl: string | null; colors: string[] }
+  autoComplete: boolean
+  total: number
+  remaining: number
+  ownedTotal: number
+  missingTotal: number
+  cost: {
+    usd: number
+    brl: { value: number; rate: number } | null
+    /** Quantas cópias faltantes não entraram na conta por não ter preço. */
+    withoutPrice: number
+  }
+  lines: DeckAnalysisLine[]
+}
+
+export async function analyzeDeck(
+  prisma: PrismaClient,
+  user: AuthenticatedUser,
+  input: DeckInput,
+  now: Date = new Date(),
+): Promise<DeckAnalysis> {
+  assertPremium(user, 'O Deck Builder é um recurso Premium.')
+
+  if (input.lines.length === 0) throw new ValidationError('Escolha ao menos uma carta para conferir.')
+
+  const escolhidas = await variantesDe(prisma, [
+    input.leaderVariantId,
+    ...input.lines.map((line) => line.variantId),
+  ])
+
+  const leader = escolhidas.get(input.leaderVariantId)
+  if (!leader) throw new NotFoundError('Líder não encontrado.')
+  if (leader.cardType !== 'Leader') throw new ValidationError('O líder precisa ser uma carta de Leader.')
+
+  const lines: DeckLine[] = input.lines.map((line) => {
+    const variante = escolhidas.get(line.variantId)
+    if (!variante) throw new NotFoundError('Alguma carta da lista não existe mais.')
+    if (variante.cardType === 'Leader') {
+      throw new ValidationError(`${variante.cardCode} é um Leader: o deck tem um líder só.`)
+    }
+    if (!fitsLeader(leader.colors, variante.colors)) {
+      throw new ValidationError(
+        `${variante.cardCode} não tem a cor do líder (${leader.colors.join(' e ')}).`,
+      )
+    }
+    return { variantId: line.variantId, cardCode: variante.cardCode, copies: line.copies }
+  })
+
+  assertDeckRules(lines)
+
+  const posse = await posseDe(prisma, user, lines.map((line) => line.cardCode))
+  const ownedByVariant = new Map([...posse].map(([variantId, dados]) => [variantId, dados.quantity]))
+  const ownedByCode = new Map<string, number>()
+  for (const dados of posse.values()) {
+    ownedByCode.set(dados.cardCode, (ownedByCode.get(dados.cardCode) ?? 0) + dados.quantity)
+  }
+
+  const reparte = distributeOwned(lines, ownedByVariant, ownedByCode, input.autoComplete)
+  const precos = await precosDe(prisma, lines.map((line) => line.variantId))
+
+  const analisadas: DeckAnalysisLine[] = lines.map((line, i) => {
+    const variante = escolhidas.get(line.variantId)!
+    const unitUsd = precos.get(line.variantId) ?? null
+    const { owned, missing } = reparte[i]
+
+    return {
+      variantId: line.variantId,
+      cardCode: line.cardCode,
+      cardName: variante.cardName,
+      variantType: variante.variantType,
+      imageUrl: variante.imageUrl,
+      copies: line.copies,
+      owned,
+      missing,
+      places: lugaresDe(posse, line, input.autoComplete),
+      unitUsd,
+      missingUsd: unitUsd === null ? null : Number((unitUsd * missing).toFixed(2)),
+    }
+  })
+
+  const semPreco = analisadas
+    .filter((line) => line.unitUsd === null)
+    .reduce((soma, line) => soma + line.missing, 0)
+  const usd = Number(
+    analisadas.reduce((soma, line) => soma + (line.missingUsd ?? 0), 0).toFixed(2),
+  )
+  const rate = await getUsdBrlRate(prisma, now)
+
+  return {
+    leader: {
+      variantId: input.leaderVariantId,
+      cardCode: leader.cardCode,
+      cardName: leader.cardName,
+      imageUrl: leader.imageUrl,
+      colors: leader.colors,
+    },
+    autoComplete: input.autoComplete,
+    total: deckTotal(lines),
+    remaining: Math.max(0, 50 - deckTotal(lines)),
+    ownedTotal: analisadas.reduce((soma, line) => soma + line.owned, 0),
+    missingTotal: analisadas.reduce((soma, line) => soma + line.missing, 0),
+    cost: {
+      usd,
+      brl: rate ? { value: Number((usd * rate.rate).toFixed(2)), rate: rate.rate } : null,
+      withoutPrice: semPreco,
+    },
+    lines: analisadas,
+  }
+}
+
+interface VarianteEscolhida {
+  cardCode: string
+  cardName: string
+  cardType: string
+  variantType: string
+  imageUrl: string | null
+  colors: string[]
+}
+
+async function variantesDe(prisma: PrismaClient, ids: string[]): Promise<Map<string, VarianteEscolhida>> {
+  const unicos = [...new Set(ids)].filter((id) => /^\d+$/.test(id))
+  if (unicos.length === 0) throw new ValidationError('Lista inválida.')
+
+  const variantes = await prisma.cardVariant.findMany({
+    where: { id: { in: unicos.map(BigInt) } },
+    select: {
+      id: true,
+      variantType: true,
+      imageUrl: true,
+      card: {
+        select: { code: true, name: true, type: true, colors: { select: { color: { select: { name: true } } } } },
+      },
+    },
+  })
+
+  return new Map(
+    variantes.map((variante) => [
+      String(variante.id),
+      {
+        cardCode: variante.card.code,
+        cardName: variante.card.name,
+        cardType: variante.card.type,
+        variantType: variante.variantType,
+        imageUrl: variante.imageUrl,
+        colors: variante.card.colors.map((c) => c.color.name),
+      },
+    ]),
+  )
+}
+
+interface PosseDaVariante {
+  cardCode: string
+  quantity: number
+  places: DeckPlace[]
+}
+
+/**
+ * O que a pessoa tem das cartas da lista, por variante, com os lugares.
+ *
+ * Busca por **código**, e não pelas variantes escolhidas, porque o auto completar
+ * precisa das outras artes — e porque mesmo desligado a tela diz quantas cópias
+ * de outras artes existem.
+ *
+ * As cópias sem local entram como lugar de nome nulo: elas contam (escolha do
+ * dono do produto), e a tela avisa que falta dizer onde estão.
+ */
+async function posseDe(
+  prisma: PrismaClient,
+  user: AuthenticatedUser,
+  codes: string[],
+): Promise<Map<string, PosseDaVariante>> {
+  const itens = await prisma.collectionItem.findMany({
+    where: {
+      collection: { userId: user.id },
+      quantity: { gt: 0 },
+      cardVariant: { card: { code: { in: [...new Set(codes)] } } },
+    },
+    select: {
+      quantity: true,
+      cardVariantId: true,
+      cardVariant: { select: { card: { select: { code: true } } } },
+      locations: {
+        where: { quantity: { gt: 0 } },
+        select: { quantity: true, storageLocation: { select: { name: true, purpose: true } } },
+      },
+    },
+  })
+
+  return new Map(
+    itens.map((item) => {
+      const alocado = item.locations.reduce((soma, local) => soma + local.quantity, 0)
+      const places: DeckPlace[] = item.locations.map((local) => ({
+        location: local.storageLocation.name,
+        forTrade: local.storageLocation.purpose === 'TRADE',
+        quantity: local.quantity,
+      }))
+      if (item.quantity > alocado) {
+        places.push({ location: null, forTrade: false, quantity: item.quantity - alocado })
+      }
+      return [
+        String(item.cardVariantId),
+        { cardCode: item.cardVariant.card.code, quantity: item.quantity, places },
+      ]
+    }),
+  )
+}
+
+/** Os lugares que a linha considera: só a arte escolhida, ou todas as do código. */
+function lugaresDe(
+  posse: Map<string, PosseDaVariante>,
+  line: DeckLine,
+  autoComplete: boolean,
+): DeckPlace[] {
+  const relevantes = [...posse.entries()].filter(([variantId, dados]) =>
+    autoComplete ? dados.cardCode === line.cardCode : variantId === line.variantId,
+  )
+
+  // Agrupa por lugar: a mesma carta em duas artes no mesmo binder e uma linha so.
+  const somados = new Map<string, DeckPlace>()
+  for (const [, dados] of relevantes) {
+    for (const place of dados.places) {
+      const chave = `${place.location ?? ''}|${place.forTrade}`
+      const atual = somados.get(chave)
+      if (atual) atual.quantity += place.quantity
+      else somados.set(chave, { ...place })
+    }
+  }
+  return [...somados.values()].sort((a, b) => b.quantity - a.quantity)
+}
+
+/** O preço mais recente de cada arte escolhida, em dólar. */
+async function precosDe(prisma: PrismaClient, variantIds: string[]): Promise<Map<string, number>> {
+  const ids = [...new Set(variantIds)].map(BigInt)
+  if (ids.length === 0) return new Map()
+
+  // `DISTINCT ON` traz o mais recente de cada variante numa consulta so: uma
+  // consulta por carta seriam cinquenta idas ao banco por conferencia.
+  const rows = await prisma.$queryRaw<{ card_variant_id: bigint; value: Prisma.Decimal }[]>`
+    SELECT DISTINCT ON (card_variant_id) card_variant_id, value
+      FROM card_prices
+     WHERE card_variant_id IN (${Prisma.join(ids)})
+     ORDER BY card_variant_id, captured_at DESC
+  `
+  return new Map(rows.map((row) => [String(row.card_variant_id), Number(row.value)]))
+}

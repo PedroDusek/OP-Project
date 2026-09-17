@@ -458,7 +458,33 @@ ou modificar recursos privados de outro usuário.
 
 ---
 
-## 7. Planos: Free e Premium
+## 7. Deck Builder
+
+Definido pelo dono do produto em 17/09 (decisão 095).
+
+Um deck tem **1 líder e 50 cartas**, e **toda carta precisa ter alguma cor do
+líder** — líder de duas cores aceita as duas. No máximo **4 cópias da mesma
+carta**, somando as artes: duas artes da mesma carta são a mesma carta.
+
+O ColeXa **não guarda decks**. A pessoa monta a lista na tela e o produto
+responde três coisas:
+
+1. **quantas cópias ela já tem**;
+2. **onde estão** — em qual binder ou caixa, com aviso quando estão em local de
+   troca (regra 4.2) ou quando não têm local definido; as duas contam;
+3. **quanto custa o que falta**, pelo preço da **arte escolhida**.
+
+O que falta pode ir para a want list em um gesto, na mesma arte.
+
+**Auto completar** é a chave que decide o que conta: ligado, as cópias de
+qualquer arte da mesma carta cobrem a linha; desligado, só a arte escolhida. Uma
+cópia nunca cobre duas linhas.
+
+O que não pode ser jogado é **recusado**, e não avisado: passar de 4 cópias, pôr
+carta fora da cor ou um segundo líder. O total de 50 é contagem, porque um deck
+em construção passa a maior parte do tempo incompleto.
+
+## 8. Planos: Free e Premium
 
 Definido pelo dono do produto em 17/09 (decisão 093). Preço e meio de pagamento
 ficaram para depois do teste com usuários.
@@ -474,7 +500,8 @@ ficaram para depois do teste com usuários.
 4. **Compartilhar a want list** — a folha com o que falta, em imagem ou
    impressa. Montá-la e usá-la como quiser é o recurso; **manter a want list**
    continua no Free.
-5. **Aparecer primeiro na rede** (6.1.3).
+5. **O Deck Builder** (seção 7).
+6. **Aparecer primeiro na rede** (6.1.3).
 
 **No Free, sem limite:** cadastrar, **ver, buscar e filtrar** a coleção inteira, binders e caixas, a want list
 inteira, catálogo e preços por carta, o total de cartas no
@@ -485,7 +512,7 @@ conversar, aparecer na rede com o Trade Binder e bloquear ou denunciar.
 assinante sem ninguém para trocar. Quem paga ganha a iniciativa e a vitrine, não
 o direito de negociar.
 
-## 8. Testes obrigatórios de domínio
+## 9. Testes obrigatórios de domínio
 
 | # | Cenário | Esperado |
 |---|---|---|
