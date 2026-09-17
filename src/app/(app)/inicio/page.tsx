@@ -6,7 +6,8 @@ import { StatTile } from '@/components/collection/stat-tile'
 import { ProgressBar } from '@/components/ui/progress-bar'
 import { Panel } from '@/components/ui/surface'
 import { EmptyState } from '@/components/ui/states'
-import { getCollectionSummary } from '@/server/application/collection'
+import { PremiumNotice } from '@/components/premium/premium-notice'
+import { readDashboard } from '@/server/application/collection'
 import { requireViewer } from '@/server/http/viewer'
 
 export const metadata: Metadata = { title: 'Início' }
@@ -23,7 +24,7 @@ export const metadata: Metadata = { title: 'Início' }
  */
 export default async function InicioPage({ searchParams }: { searchParams: Promise<{ exclusao?: string }> }) {
   const viewer = await requireViewer('/inicio')
-  const summary = await getCollectionSummary(viewer)
+  const summary = await readDashboard(viewer)
 
   // Entrar de novo cancelou um pedido de exclusao da conta (decisao 091). O
   // parametro so muda o texto desta pagina, entao nao ha o que falsificar.
@@ -57,36 +58,51 @@ export default async function InicioPage({ searchParams }: { searchParams: Promi
       {exclusaoCancelada}
 
       <div className="flex flex-col gap-5">
+        {/*
+          Decisao 093: a analise da colecao e Premium, e o total de cartas fica
+          para todos. Para o Free, os numeros que faltam nem sao calculados.
+        */}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
           <StatTile
             value={summary.totalCards.toLocaleString('pt-BR')}
             label="Cartas"
             icon={<BookOpen className="size-4" />}
           />
-          <StatTile
-            value={summary.uniqueVariants.toLocaleString('pt-BR')}
-            label="Variantes"
-            icon={<Layers className="size-4" />}
-          />
-          <StatTile
-            value={summary.closedPlaysets.toLocaleString('pt-BR')}
-            label="Playsets"
-            icon={<Star className="size-4" />}
-          />
+          {summary.premium ? (
+            <>
+              <StatTile
+                value={summary.uniqueVariants!.toLocaleString('pt-BR')}
+                label="Variantes"
+                icon={<Layers className="size-4" />}
+              />
+              <StatTile
+                value={summary.closedPlaysets!.toLocaleString('pt-BR')}
+                label="Playsets"
+                icon={<Star className="size-4" />}
+              />
+            </>
+          ) : null}
         </div>
 
-        <Panel className="flex flex-col gap-2 p-4">
-          <h2 className="text-sm font-semibold text-text">Progresso do catálogo</h2>
-          <ProgressBar
-            label="Progresso do catálogo"
-            value={summary.uniqueVariants}
-            total={summary.catalogVariants}
-            showNumbers
+        {summary.premium ? (
+          <Panel className="flex flex-col gap-2 p-4">
+            <h2 className="text-sm font-semibold text-text">Progresso do catálogo</h2>
+            <ProgressBar
+              label="Progresso do catálogo"
+              value={summary.uniqueVariants!}
+              total={summary.catalogVariants!}
+              showNumbers
+            />
+            <p className="text-xs text-text-muted">
+              Variantes distintas que você possui, sobre as do catálogo inteiro.
+            </p>
+          </Panel>
+        ) : (
+          <PremiumNotice
+            title="A análise da sua coleção é Premium"
+            description="Variantes distintas, playsets fechados, progresso do catálogo e o valor estimado aparecem aqui com o Premium."
           />
-          <p className="text-xs text-text-muted">
-            Variantes distintas que você possui, sobre as do catálogo inteiro.
-          </p>
-        </Panel>
+        )}
 
         <p className="text-sm text-text-muted">
           <Link href="/colecao" className="font-medium text-accent-ink underline underline-offset-2">

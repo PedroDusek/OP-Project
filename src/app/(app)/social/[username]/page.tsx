@@ -10,6 +10,7 @@ import { BlockToggle, ReportForm } from '@/components/social/member-actions'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState, ErrorState } from '@/components/ui/states'
 import { Panel } from '@/components/ui/surface'
+import { isPremium } from '@/server/application/authorization'
 import { readMemberBinder } from '@/server/application/social'
 import { NotFoundError, RateLimitError } from '@/server/domain/errors'
 import { requireViewer } from '@/server/http/viewer'
@@ -74,6 +75,20 @@ export default async function MemberBinderPage({ params }: PageProps<'/social/[u
           </Panel>
         ) : (
           <>
+            {/*
+              Os gestos vem antes das cartas, a pedido do dono do produto: quem
+              abre o binder de alguem ja sabe o que quer fazer, e rolar seis
+              linhas de cartas ate achar "Convidar para trocar" punha a acao
+              depois da consulta.
+            */}
+            <div className="flex flex-wrap items-start gap-2 border-b border-border pb-4">
+              <StartConversationButton username={binder.username} />
+              {/* Convidar e Premium (decisao 093); conversar continua de todos. */}
+              {isPremium(viewer) ? <InviteMemberButton username={binder.username} /> : null}
+              <BlockToggle username={binder.username} blocked={false} />
+              <ReportForm username={binder.username} />
+            </div>
+
             {binder.interest > 0 ? (
               <p className="text-sm font-medium text-success">
                 {binder.interest} {binder.interest === 1 ? 'carta que você procura' : 'cartas que você procura'}
@@ -113,12 +128,6 @@ export default async function MemberBinderPage({ params }: PageProps<'/social/[u
               Estas cartas estão disponíveis para troca — não estão reservadas para ninguém (regra 4.2).
             </p>
 
-            <div className="flex flex-wrap items-start gap-2 border-t border-border pt-4">
-              <StartConversationButton username={binder.username} />
-              <InviteMemberButton username={binder.username} />
-              <BlockToggle username={binder.username} blocked={false} />
-              <ReportForm username={binder.username} />
-            </div>
           </>
         )}
       </div>

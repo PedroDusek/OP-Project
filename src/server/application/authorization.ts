@@ -1,4 +1,4 @@
-import { AuthorizationError, NotFoundError } from '@/server/domain/errors'
+import { AuthorizationError, ConflictError, NotFoundError } from '@/server/domain/errors'
 import type { AuthenticatedUser } from './auth/resolve-user'
 
 /**
@@ -50,6 +50,24 @@ export function assertOwnedBy(
  */
 export function assertPermitted(condition: boolean, message?: string): void {
   if (!condition) throw new AuthorizationError(message)
+}
+
+/**
+ * O que so o Premium faz (decisao 093).
+ *
+ * O codigo e o mesmo em todas as travas porque a tela responde igual: mostra o
+ * aviso do Premium em vez de um erro. A mensagem muda, porque cada gesto merece
+ * a sua.
+ */
+export const PREMIUM_REQUIRED = 'PREMIUM_NECESSARIO'
+
+/** Recusa o gesto de quem nao e Premium, com a mensagem que a tela mostra. */
+export function assertPremium(
+  user: { plan: string; premiumUntil?: Date | null },
+  message: string,
+  now = new Date(),
+): void {
+  if (!isPremium(user, now)) throw new ConflictError(PREMIUM_REQUIRED, message)
 }
 
 /** Recursos Premium. O trial conta como Premium enquanto estiver valido. */

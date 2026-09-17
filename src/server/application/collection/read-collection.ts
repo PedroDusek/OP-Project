@@ -3,6 +3,7 @@ import { countCollection, PLAYSET_SIZE, type OwnedVariant } from '@/server/domai
 import { compareCatalogOrder, placementSet } from '@/server/domain/catalog/order'
 import { buildCatalogWhere, type CatalogFilters } from '@/server/application/catalog/search-cards'
 import type { AuthenticatedUser } from '@/server/application/auth'
+import { assertPremium, isPremium } from '@/server/application/authorization'
 
 /**
  * Leitura da colecao.
@@ -236,6 +237,10 @@ export async function listPlaysets(
   prisma: PrismaClient,
   user: AuthenticatedUser,
 ): Promise<PlaysetRow[]> {
+  // Decisao 093: a analise da colecao e Premium. A tela ja esconde o caminho;
+  // isto recusa quem monta o endereco a mao.
+  assertPremium(user, 'A lista de playsets é um recurso Premium.')
+
   const collectionId = await collectionIdOf(prisma, user)
   if (!collectionId) return []
 
@@ -280,4 +285,55 @@ export async function listPlaysets(
 
   playsets.sort((a, b) => (a.cardCode < b.cardCode ? -1 : a.cardCode > b.cardCode ? 1 : 0))
   return playsets
+}
+
+export interface Dashboard {
+  /** Quantas cartas a pessoa tem. É o único número que o Free vê (decisão 093). */
+  totalCards: number
+  premium: boolean
+  /** Do Premium para baixo, `null`: a tela mostra o aviso no lugar do número. */
+  uniqueVariants: number | null
+  closedPlaysets: number | null
+  catalogVariants: number | null
+}
+
+/**
+ * O Início (decisão 093).
+ *
+ * A análise da coleção — variantes distintas, playsets fechados, progresso do
+ * catálogo e, quando existir, o valor estimado — é recurso Premium. O total de
+ * cartas fica para todos: sem ele, quem acabou de cadastrar cinquenta cartas
+ * abriria o app e não veria sinal nenhum do próprio trabalho.
+ *
+ * Para o Free, a consulta é uma soma no banco, e não a leitura de toda a
+ * coleção: gatear na tela e continuar carregando o que não vai aparecer seria
+ * pagar o custo do recurso sem entregá-lo.
+ */
+export async function readDashboard(
+  prisma: PrismaClient,
+  user: AuthenticatedUser,
+  now = new Date(),
+): Promise<Dashboard> {
+  if (isPremium(user, now)) {
+    const summary = await getCollectionSummary(prisma, user)
+    return { ...summary, premium: true }
+  }
+
+  const collectionId = await collectionIdOf(prisma, user)
+  if (!collectionId) {
+    return { totalCards: 0, premium: false, uniqueVariants: null, closedPlaysets: null, catalogVariants: null }
+  }
+
+  const soma = await prisma.collectionItem.aggregate({
+    where: { collectionId, quantity: { gt: 0 } },
+    _sum: { quantity: true },
+  })
+
+  return {
+    totalCards: soma._sum.quantity ?? 0,
+    premium: false,
+    uniqueVariants: null,
+    closedPlaysets: null,
+    catalogVariants: null,
+  }
 }

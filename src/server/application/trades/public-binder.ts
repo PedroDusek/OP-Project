@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import type { PrismaClient } from '@prisma/client'
 import type { AuthenticatedUser } from '@/server/application/auth'
+import { assertPremium } from '@/server/application/authorization'
 import { ConflictError } from '@/server/domain/errors'
 import { readVisibleTradeStock, type VisibleTradeCard } from './trade-stock'
 
@@ -90,6 +91,10 @@ export async function publishTradeBinder(
   prisma: PrismaClient,
   user: AuthenticatedUser,
 ): Promise<TradeBinderShare> {
+  // A regra 6.1 sempre reservou isto ao Premium; a trava entrou com a decisao
+  // 093, quando passou a existir caminho para alguem ser Premium.
+  assertPremium(user, 'Publicar o Trade Binder é um recurso Premium.')
+
   const dono = await prisma.user.findUniqueOrThrow({
     where: { id: user.id },
     select: { username: true },

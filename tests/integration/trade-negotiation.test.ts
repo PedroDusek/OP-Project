@@ -39,7 +39,9 @@ async function person(name: string): Promise<Person> {
       id: created.id,
       email: `${name.toLowerCase()}@example.test`,
       name,
-      plan: 'FREE',
+      // Decisao 093: comecar troca e publicar o Trade Binder sao Premium. Estes
+      // testes tratam do que vem depois disso, entao quem eles criam e Premium.
+      plan: 'PREMIUM',
       premiumUntil: null,
     },
   }

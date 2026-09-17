@@ -5784,3 +5784,64 @@ testadores. Estas são as correções que não dependiam de nenhuma decisão pen
 ## Data
 
 2026-09-17
+
+---
+
+# Decisão: 093 — O que é Premium e o que é Free
+
+Definido pelo dono do produto em 17/09, antes do teste com 15 a 20 pessoas.
+**Aplica a trava que a decisão 064 tinha deixado pendente** e acrescenta dois
+recursos Premium que a especificação não previa.
+
+## Decisão
+
+**Premium:**
+
+1. **Publicar o Trade Binder** (regra 6.1, trava em `publishTradeBinder`).
+2. **Começar uma troca** — pelo link (`startTrade`) e pelo convite direto
+   (`inviteMember`). As duas portas, senão o link seria pago e o convite, grátis.
+3. **A análise da coleção**, onde ela aparecer. No Início: variantes distintas,
+   playsets fechados, progresso do catálogo e o valor estimado, quando existir.
+   Em Minha Coleção: os números do cabeçalho, as abas **Playsets** e **Faltam**,
+   a lista de playsets (`/colecao/playsets`) e a marca "Playset" na carta. No
+   binder: a contagem de playsets daquele local. **O total de cartas fica no
+   Free**, e ver, buscar e filtrar a coleção inteira também: sem isso, quem
+   acabou de cadastrar cinquenta cartas abriria o app e não veria sinal do
+   próprio trabalho.
+
+   Para o Free, os recortes nem são consultados, e o endereço escrito à mão cai
+   em "todas" — esconder a aba e continuar respondendo a ela seria trava de
+   fachada. `listPlaysets` também recusa no caso de uso.
+4. **Compartilhar a want list**: a folha do que falta, em imagem para mandar nos
+   grupos ou pronta para imprimir (`/quero/pdf`). O atalho em Quero passou a se
+   chamar **Compartilhar**, que é o que a tela faz — "Baixar a lista" descrevia
+   o caminho menos usado. Manter a want list continua no Free.
+5. **Aparecer primeiro na rede** (regra 6.1.3, já implementado).
+
+**Free:** todo o resto, sem limite de cartas, binders ou wants — e **entrar em
+trocas**, por convite ou link, negociando até o fim. Travar as duas pontas
+deixaria o assinante sem ninguém para trocar.
+
+**Como a tela responde:** o gesto Premium não aparece para quem é Free; no lugar
+dele vai um aviso dizendo o que o Premium faz ali. O servidor recusa de novo, com
+o código `PREMIUM_NECESSARIO` — a tela é conveniência, a trava é o caso de uso.
+
+**Enquanto não existe pagamento:** o Premium é dado por
+`npm run supabase premium <email> --ate=AAAA-MM-DD`, com prazo obrigatório. É
+assim que os testadores recebem a cortesia, e é isso que faz a cortesia terminar
+sozinha.
+
+**O que ficou para depois:** o meio de pagamento (Stripe, Asaas ou Mercado Pago)
+e o preço, que o dono do produto decide depois do teste. O trial de 7 dias da
+decisão 009 continua no plano, para quando o pagamento existir.
+
+## Consequências
+
+- Os testes de troca passaram a criar quem inicia como Premium, e dizem por quê.
+- O Free custa menos ao servidor no Início: a análise nem é calculada.
+- Quando houver pagamento, a trava já está nos três lugares; entra só o caminho
+  de virar Premium.
+
+## Data
+
+2026-09-17

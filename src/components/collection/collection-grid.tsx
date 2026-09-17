@@ -28,7 +28,17 @@ export interface CollectionCardView {
   playsetClosed: boolean
 }
 
-export function CollectionGrid({ items }: { items: CollectionCardView[] }) {
+/**
+ * `showPlayset` desliga a marca para quem e Free (decisao 093): playset fechado e
+ * analise da colecao, e nao um dado da carta.
+ */
+export function CollectionGrid({
+  items,
+  showPlayset = true,
+}: {
+  items: CollectionCardView[]
+  showPlayset?: boolean
+}) {
   const [editing, setEditing] = useState<CollectionCardView | null>(null)
 
   return (
@@ -41,7 +51,7 @@ export function CollectionGrid({ items }: { items: CollectionCardView[] }) {
             name={item.cardName}
             imageUrl={item.imageUrl}
             quantity={item.quantity}
-            labels={labelsFor(item)}
+            labels={labelsFor(item, showPlayset)}
             onClick={() => setEditing(item)}
             priority={index < 3}
           />
@@ -58,7 +68,7 @@ export function CollectionGrid({ items }: { items: CollectionCardView[] }) {
           code={editing.cardCode}
           name={editing.cardName}
           imageUrl={editing.imageUrl}
-          labels={labelsFor(editing)}
+          labels={labelsFor(editing, showPlayset)}
           currentQuantity={editing.quantity}
         />
       ) : null}
@@ -72,10 +82,10 @@ export function CollectionGrid({ items }: { items: CollectionCardView[] }) {
  * "Normal" em toda carta é ruído — é o caso comum. "Playset" só aparece onde
  * significa algo.
  */
-function labelsFor(item: CollectionCardView): string[] {
+function labelsFor(item: CollectionCardView, showPlayset: boolean): string[] {
   const labels: string[] = []
   if (item.rarity) labels.push(item.rarity)
   if (item.variantType !== 'Normal') labels.push(item.variantType)
-  if (item.playsetClosed) labels.push('Playset')
+  if (item.playsetClosed && showPlayset) labels.push('Playset')
   return labels
 }

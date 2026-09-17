@@ -4,6 +4,8 @@ import { PageHeader } from '@/components/layout/app-shell'
 import { ListRow, PanelList } from '@/components/ui/surface'
 import { WantList } from '@/components/wants/want-list'
 import { getWantSummary, listWants } from '@/server/application/wants'
+import { PremiumNotice } from '@/components/premium/premium-notice'
+import { isPremium } from '@/server/application/authorization'
 import { requireViewer } from '@/server/http/viewer'
 
 export const metadata: Metadata = { title: 'Want list' }
@@ -22,6 +24,7 @@ export const metadata: Metadata = { title: 'Want list' }
  */
 export default async function QueroPage() {
   const viewer = await requireViewer('/quero')
+  const premium = isPremium(viewer)
 
   const [wants, summary] = await Promise.all([listWants(viewer), getWantSummary(viewer)])
 
@@ -44,13 +47,23 @@ export default async function QueroPage() {
             title="Adicionar em massa"
             description="Percorra o catálogo com filtros e marque quantas de cada você procura."
           />
-          <ListRow
-            href="/quero/pdf"
-            leading={<FileDown className="size-5 text-text-muted" aria-hidden />}
-            title="Baixar a lista"
-            description="Uma folha com as cartas que faltam, em imagem ou impressa."
-          />
+          {/* Decisao 093: compartilhar a folha do que falta e Premium. */}
+          {premium ? (
+            <ListRow
+              href="/quero/pdf"
+              leading={<FileDown className="size-5 text-text-muted" aria-hidden />}
+              title="Compartilhar"
+              description="Uma folha com as cartas que faltam, em imagem ou impressa."
+            />
+          ) : null}
         </PanelList>
+
+        {premium ? null : (
+          <PremiumNotice
+            title="Compartilhar a want list é Premium"
+            description="Com o Premium, você gera uma folha com as cartas que faltam, para mandar nos grupos ou imprimir."
+          />
+        )}
 
         <WantList wants={wants} />
       </div>

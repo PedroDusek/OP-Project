@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { PageHeader } from '@/components/layout/app-shell'
 import { PlaysetList } from '@/components/collection/playset-list'
 import { EmptyState } from '@/components/ui/states'
+import { PremiumNotice } from '@/components/premium/premium-notice'
+import { isPremium } from '@/server/application/authorization'
 import { listPlaysets } from '@/server/application/collection'
 import { requireViewer } from '@/server/http/viewer'
 
@@ -16,6 +18,20 @@ export const metadata: Metadata = { title: 'Playsets' }
  */
 export default async function PlaysetsPage() {
   const viewer = await requireViewer('/colecao/playsets')
+
+  // Decisao 093: a analise da colecao e Premium. O caso de uso tambem recusa.
+  if (!isPremium(viewer)) {
+    return (
+      <>
+        <PageHeader title="Playsets" description="Cartas com 4 ou mais cópias." />
+        <PremiumNotice
+          title="A lista de playsets é Premium"
+          description="Ela mostra quantas cartas já fecharam quatro cópias e quantas faltam, somando todas as artes."
+        />
+      </>
+    )
+  }
+
   const rows = await listPlaysets(viewer)
 
   const fechados = rows.filter((row) => row.closed).length

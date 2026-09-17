@@ -2,6 +2,7 @@ import { prisma } from '@/server/infrastructure/prisma'
 import type { AuthenticatedUser } from '@/server/application/auth'
 import {
   getCollectionSummary as getCollectionSummaryWith,
+  readDashboard as readDashboardWith,
   listPlaysets as listPlaysetsWith,
   searchCollection as searchCollectionWith,
   type CollectionQuery,
@@ -21,6 +22,10 @@ import type { Removal } from '@/server/domain/storage/allocation'
 
 export function getCollectionSummary(user: AuthenticatedUser) {
   return getCollectionSummaryWith(prisma, user)
+}
+
+export function readDashboard(user: AuthenticatedUser) {
+  return readDashboardWith(prisma, user)
 }
 
 export function searchCollection(user: AuthenticatedUser, query: CollectionQuery = {}) {

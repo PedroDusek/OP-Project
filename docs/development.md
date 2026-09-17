@@ -402,6 +402,18 @@ O build acontece nos builders geridos (`--depot=true`). Não use `--remote-only`
 ele cria um app `fly-builder-...` com um volume de 50 GB, que é cobrado todo mês
 (decisão 089, armadilha 64).
 
+#### Premium de cortesia (decisão 093)
+
+Enquanto não existe pagamento, o Premium é dado por comando, contra produção:
+
+```
+npm run supabase premium pessoa@exemplo.com --ate=2026-12-31
+npm run supabase premium pessoa@exemplo.com --remover
+```
+
+O prazo é obrigatório de propósito: cortesia sem data não cai sozinha quando o
+teste termina. A data vale até o fim do dia, no horário de Brasília.
+
 #### A cada publicação
 
 1. `npm run supabase status`. Se faltar migration, `npm run supabase migrate`
