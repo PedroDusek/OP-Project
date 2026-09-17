@@ -19,7 +19,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 103 PRs mergeados, CI verde em todos |
+| Branch | `main`, 106 PRs mergeados, CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -33,7 +33,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 | Node | 20.20.2 — o `@supabase/supabase-js` já avisa que 20 está depreciado |
 | PostgreSQL local | 18.6, bancos `optcg` e `optcg_test` |
 | Produção | Supabase, região São Paulo, banco e autenticação |
-| `.env` | ignorado pelo Git; desde 17/09 com `RESEND_API_KEY` e `EMAIL_FROM` (decisão 086) |
+| `.env` | ignorado pelo Git; desde 17/09 com `RESEND_API_KEY`, `EMAIL_FROM` (decisão 086) e `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (decisão 088) |
 
 **Produção nunca é alvo padrão.** `DATABASE_URL` é sempre o banco local; o
 Supabase só é alcançado por `npm run supabase <migrate|import|prices|status|storage>`, que
@@ -42,7 +42,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 13 concluídos, e a Social.** 1.434 testes de unidade, integração e
+**Checkpoints 0 a 13 concluídos, e a Social.** 1.444 testes de unidade, integração e
 componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -99,6 +99,7 @@ componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 | — | A API de dados do Supabase sem permissão nenhuma nas nossas tabelas (decisão 085) |
 | — | A denúncia chega por e-mail a suporte@colexa.com.br, assunto DENUNCIA, pelo Resend (decisão 086) |
 | — | A página `/admin/denuncias` e `ADMIN_EMAILS` saíram: a denúncia é lida só pelo e-mail (decisão 087) |
+| — | CAPTCHA (Cloudflare Turnstile) em entrar, criar conta e recuperar senha (decisão 088) |
 
 ### Produção, em 17/09/2026
 
@@ -435,6 +436,17 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 54. **A chave do Resend "só envio" não lê a conta.** `GET /domains` responde 401
     "restricted to only send emails". É a chave certa para o site; para saber se
     o domínio está verificado, o lugar é o painel do Resend.
+55. **`onReady` do `next/script` vem uma vez por montagem.** Com o script já
+    carregado, ele chama `onReady` no efeito e marca que chamou; o React de
+    desenvolvimento monta, desmonta e monta de novo, e a segunda montagem não
+    recebe outro. O CAPTCHA sumia ao sair e voltar para a tela, e aparecia ao
+    recarregar. Quem desenha algo de script externo desenha também no próprio
+    efeito, quando o script já existe. O teste que pega isso roda em
+    `StrictMode`, com um `next/script` falso que chama `onReady` uma vez só.
+56. **O Turnstile num navegador automatizado pede o clique.** No navegador do
+    assistente o desafio mostra "Confirme que é humano"; numa pessoa, no modo
+    *Managed*, ele passa sozinho. O assistente não resolve CAPTCHA: o envio com
+    o desafio de verdade é conferido pelo dono do produto.
 
 ## Pendências
 
@@ -443,10 +455,9 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 1. **Termos de Uso e Política de Privacidade** (decisão 030). As rotas existem e
    dizem que o texto está em preparação. O produto **não pode receber cadastro
    de pessoa real** assim. O texto é decisão do dono do produto.
-2. **SMTP próprio no Supabase** — **configurado pelo dono do produto em 17/09**,
-   com o Resend e o remetente ColeXa (decisão 086). Falta conferir com um
-   cadastro de verdade que a confirmação chega com o nome ColeXa. Sem ele, a
-   cota embutida é baixa e do projeto inteiro. Ver `development.md` 6.2.
+2. ~~**SMTP próprio no Supabase**~~ — **resolvido em 17/09**: configurado pelo
+   dono do produto com o Resend, e ele confirmou que o e-mail de cadastro chega
+   com o nome ColeXa (decisão 086).
 3. **Redirect URLs no painel do Supabase** precisam listar
    `<APP_URL>/auth/callback` de cada ambiente.
 4. **`RESEND_API_KEY` e `EMAIL_FROM` no ambiente de produção** (decisão 086).
@@ -730,7 +741,8 @@ O que ficou combinado para depois dela:
   Social. Ela ajusta a Social junto com o resto. A revisão visual e textual tela
   a tela, e os links das cartas, ficam para o fim.
 - **Os bloqueios de lançamento da rede**: Termos de Uso, Política de
-  Privacidade, idade mínima e as variáveis do Resend em produção.
+  Privacidade, idade mínima, e em produção as variáveis do Resend e a chave
+  pública do Turnstile.
 
 A skill `design` está habilitada e funciona; o conector do **Figma** aparece na
 sessão mas está **sem autorização**, e sessões não interativas não conseguem
@@ -928,10 +940,12 @@ Três coisas para não desfazer sem querer:
   das implementações perto do fim.
 - **O que vem depois da Social**: a passada de design nos componentes, ou os
   bloqueios de lançamento.
-- **CAPTCHA no cadastro** (Turnstile, no painel do Supabase). A confirmação de
-  e-mail já impede conta falsa de chegar às nossas tabelas; o CAPTCHA contém o
-  gasto de envio. Ligado, os formulários de entrar e cadastrar precisam mandar o
-  token — é código. Sugerido em 17/09, sem resposta.
+- **Ligar o CAPTCHA no painel do Supabase** (decisão 088, `development.md` 6.4).
+  O código está na `main`, o widget foi criado pelo dono do produto e a chave
+  pública está no `.env` local — o desafio aparece nas três telas. **Não foi
+  confirmado** se o painel já foi ligado e se entrar, criar conta e recuperar
+  senha passam com ele. A ordem importa: o `.env` local usa o mesmo projeto
+  Supabase, então painel ligado sem a chave no ambiente é ninguém entrando.
 - **Duas travas no painel do Supabase**, recomendadas em 17/09: desligar a
   exposição do schema `public` em *Settings → Data API* (o ColeXa não usa), e
   *Network Restrictions* no banco quando a hospedagem existir.
