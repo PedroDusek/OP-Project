@@ -5384,3 +5384,55 @@ decisão 079.**
 ## Data
 
 2026-09-16
+
+---
+
+# Decisão: 085 — A API de dados do Supabase sem permissão nas nossas tabelas
+
+Aprovado pelo dono do produto em 17/09, depois da revisão de segurança que ele
+pediu.
+
+## Contexto
+
+O ColeXa não usa a API de dados do Supabase: o navegador fala com o servidor do
+ColeXa, e só o servidor fala com o banco (decisões 025 e 031). Mas todo projeto
+Supabase expõe o schema `public` à chave pública — que vai no site — pelos papéis
+`anon` e `authenticated`.
+
+Conferido em produção em 17/09:
+
+- com a chave pública, ler `sets`, `users` e `messages` responde "permission
+  denied";
+- as 34 tabelas têm RLS ligado;
+- `anon` e `authenticated` não têm `SELECT`, `INSERT`, `UPDATE` nem `DELETE`;
+- **sobravam `TRUNCATE`, `REFERENCES` e `TRIGGER`**, concedidos pela regra padrão
+  do `postgres` a toda tabela nova.
+
+A API não oferece caminho para usar o que sobrava. Permissão que não serve a nada
+é só superfície.
+
+## Decisão
+
+1. Uma migration tira **todas** as permissões de `anon` e `authenticated` nas
+   tabelas e sequências do schema `public`, e tira a regra padrão, para a próxima
+   tabela não voltar a conceder. `service_role` fica — é a chave secreta do
+   servidor, usada no Storage.
+2. Os papéis só existem no Supabase: no banco local e na CI a migration não faz
+   nada.
+3. **No painel** (tarefa do dono do produto): desligar a exposição do schema
+   `public` em *Settings → Data API*. É a segunda camada, e o ColeXa não depende
+   dela.
+
+## O que fica registrado da revisão
+
+- **O banco** é alcançável pela internet na porta do Postgres, com senha e
+  conexão criptografada, como todo Supabase. *Network Restrictions* limita aos
+  IPs do servidor — vale ligar quando o site estiver publicado.
+- **Cadastro em massa** não enche as nossas tabelas: a confirmação de e-mail é
+  exigida (`mailer_autoconfirm: false`), e a linha em `users` só nasce quando a
+  pessoa entra com a conta confirmada. CAPTCHA (Turnstile) fica a critério do
+  dono do produto.
+
+## Data
+
+2026-09-17
