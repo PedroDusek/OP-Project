@@ -1,8 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { Bell, CircleUser } from 'lucide-react'
+import { CircleUser } from 'lucide-react'
 import { NavDrawer } from './nav-drawer'
+import { NotificationBell } from './notification-bell'
 import { cn } from '@/lib/cn'
 import { Logotype } from '@/components/brand/logo'
 import { Avatar } from '@/components/ui/avatar'
@@ -32,12 +33,10 @@ export interface Viewer {
 
 export interface TopBarProps {
   viewer?: Viewer
-  /** Notificacao nao lida: ponto no sino. A contagem vem depois. */
-  hasUnread?: boolean
   className?: string
 }
 
-export function TopBar({ viewer, hasUnread = false, className }: TopBarProps) {
+export function TopBar({ viewer, className }: TopBarProps) {
   return (
     <header
       className={cn(
@@ -60,21 +59,11 @@ export function TopBar({ viewer, hasUnread = false, className }: TopBarProps) {
 
       <div className="flex-1" />
 
-      <Link
-        href="/conta"
-        aria-label={
-          hasUnread ? 'Notificações, há mensagens não lidas' : 'Notificações'
-        }
-        className="relative inline-flex size-11 items-center justify-center rounded-control text-text-muted transition-colors hover:bg-surface-muted hover:text-text"
-      >
-        <Bell className="size-5" aria-hidden />
-        {hasUnread ? (
-          <span
-            className="absolute top-2.5 right-2.5 size-2 rounded-full bg-danger ring-2 ring-surface"
-            aria-hidden
-          />
-        ) : null}
-      </Link>
+      {/*
+        O sino so existe com sessao: os avisos sao de alguem. Ele busca os proprios
+        avisos (decisao 080), porque este cabecalho nao e refeito ao navegar.
+      */}
+      {viewer ? <NotificationBell /> : null}
 
       {viewer ? (
         <Link
