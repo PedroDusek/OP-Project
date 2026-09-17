@@ -13,3 +13,8 @@ export type UsernameState =
   | FormError
 
 export const USERNAME_IDLE: UsernameState = { status: 'idle' }
+
+/** O formulario de excluir a conta (decisao 091). Quando da certo, a acao redireciona. */
+export type DeletionState = { status: 'idle' } | FormError
+
+export const DELETION_IDLE: DeletionState = { status: 'idle' }

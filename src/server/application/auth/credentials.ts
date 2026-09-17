@@ -24,6 +24,18 @@ export interface Deps {
   cookies: CookieStore
   /** Base da aplicacao, para montar o retorno dos links de e-mail. */
   appUrl: string
+  /**
+   * Cancela o pedido de exclusao de quem acabou de entrar (decisao 091), e diz
+   * se havia pedido. Injetado por quem cria sessao, e nao importado aqui: os
+   * testes destes casos de uso rodam sem banco.
+   */
+  cancelDeletion?: (authUserId: string) => Promise<boolean>
+}
+
+/** O que a tela precisa saber depois de entrar. */
+export interface SignInOutcome {
+  /** Havia um pedido de exclusao de conta, e entrar o cancelou. */
+  deletionCancelled: boolean
 }
 
 /**
@@ -49,7 +61,7 @@ const callbackUrl = (appUrl: string, next?: string) => {
   return url.toString()
 }
 
-export async function signIn(input: unknown, { cookies }: Deps): Promise<void> {
+export async function signIn(input: unknown, { cookies, cancelDeletion }: Deps): Promise<SignInOutcome> {
   const { email, password, captchaToken } = parseOrThrow(signInSchema, input)
 
   /*
@@ -65,7 +77,8 @@ export async function signIn(input: unknown, { cookies }: Deps): Promise<void> {
    */
   consumeRateLimit(`auth:signin:${email}`, AUTH_ATTEMPT_LIMIT)
 
-  await activeAuthProvider(cookies).signInWithPassword(email, password, captchaToken)
+  const { authUserId } = await activeAuthProvider(cookies).signInWithPassword(email, password, captchaToken)
+  return { deletionCancelled: cancelDeletion ? await cancelDeletion(authUserId) : false }
 }
 
 export interface SignUpOutcome {
@@ -118,8 +131,9 @@ export async function setNewPassword(input: unknown, { cookies }: Deps): Promise
   await activeAuthProvider(cookies).updatePassword(password)
 }
 
-export async function completeOAuth(code: string, { cookies }: Deps): Promise<void> {
-  await activeAuthProvider(cookies).exchangeCodeForSession(code)
+export async function completeOAuth(code: string, { cookies, cancelDeletion }: Deps): Promise<SignInOutcome> {
+  const { authUserId } = await activeAuthProvider(cookies).exchangeCodeForSession(code)
+  return { deletionCancelled: cancelDeletion ? await cancelDeletion(authUserId) : false }
 }
 
 export async function startOAuth(

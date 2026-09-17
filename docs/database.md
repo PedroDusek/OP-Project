@@ -68,6 +68,7 @@ serializa `BigInt`: toda resposta de API precisa converter id para string. Isso
 | `plan` | varchar(20) | not null, default `FREE`, check em (`FREE`, `PREMIUM`) |
 | `trial_started_at` | timestamptz | nulo permitido |
 | `premium_until` | timestamptz | nulo permitido |
+| `deletion_requested_at` | timestamptz | nulo permitido; pedido de exclusão pendente (decisão 091) |
 | `deleted_at` | timestamptz | nulo permitido |
 | `created_at` / `updated_at` | timestamptz | not null |
 
@@ -586,6 +587,15 @@ Analisada relação a relação, e não aplicada uniformemente.
 | `conversation_participants.user_id`, `messages.sender_id` | RESTRICT | a conversa é da outra pessoa também; contas são anonimizadas e não excluídas |
 
 ### 4.1 Exclusão de conta
+
+> **Atualizado pela decisão 091.** O pedido suspende a conta por 30 dias
+> (`deletion_requested_at`), e só então a tarefa diária anonimiza. A lista
+> abaixo é a da 015; a 091 acrescenta: excluir a conta no Supabase Auth, limpar
+> nome na rede e link do Trade Binder, apagar bloqueios nos dois sentidos e as
+> fotos dos binders, e cancelar as trocas em andamento já no pedido. Como nenhum
+> caminho faz DELETE do usuário, cada dado próprio é apagado explicitamente, e
+> não pelos cascades. CHECK `users_exclusao_anonimizada_sem_pedido`: conta com
+> `deleted_at` não tem pedido pendente.
 
 Um trade sempre tem dois lados. Cascatear a exclusão de um usuário em
 `trade_participants` apagaria metade de um trade concluído, destruindo histórico

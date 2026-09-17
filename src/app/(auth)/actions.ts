@@ -9,6 +9,7 @@ import {
   signUp,
   startOAuth,
 } from '@/server/application/auth/credentials'
+import { cancelAccountDeletion } from '@/server/application/account'
 import { appUrl } from '@/server/http/app-url'
 import { formErrorFrom } from '@/server/http/form-state'
 import { requestCookies } from '@/server/http/next-cookies'
@@ -39,23 +40,27 @@ export async function signInAction(
 ): Promise<AuthFormState> {
   const remember = checked(data, 'remember')
 
+  let deletionCancelled = false
   try {
-    await signIn(
+    ;({ deletionCancelled } = await signIn(
       {
         email: data.get('email'),
         password: data.get('password'),
         remember,
         captchaToken: captcha(data),
       },
-      { cookies: await requestCookies({ remember }), appUrl: appUrl() },
-    )
+      { cookies: await requestCookies({ remember }), appUrl: appUrl(), cancelDeletion: cancelAccountDeletion },
+    ))
   } catch (error) {
     return formErrorFrom(error)
   }
 
   // Fora do try: `redirect` funciona lancando, e captura-lo aqui viraria um
   // "erro interno" logo depois de um login que deu certo.
-  redirect(safeNext(data.get('next')))
+  //
+  // Quem tinha pedido para excluir a conta vai para o inicio, que diz que o
+  // pedido foi cancelado (decisao 091), e nao para onde ia.
+  redirect(deletionCancelled ? '/inicio?exclusao=cancelada' : safeNext(data.get('next')))
 }
 
 export async function signUpAction(

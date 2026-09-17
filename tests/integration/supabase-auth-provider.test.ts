@@ -27,7 +27,7 @@ const provedor = () => new SupabaseAuthProvider({ getAll: () => [], set: () => {
 
 describe('SupabaseAuthProvider e o CAPTCHA', () => {
   it('manda o token ao entrar, cadastrar e pedir redefinição', async () => {
-    auth.signInWithPassword.mockResolvedValue({ error: null })
+    auth.signInWithPassword.mockResolvedValue({ data: { user: { id: 'auth-1' } }, error: null })
     auth.signUp.mockResolvedValue({ data: { session: null }, error: null })
     auth.resetPasswordForEmail.mockResolvedValue({ error: null })
 
@@ -46,7 +46,7 @@ describe('SupabaseAuthProvider e o CAPTCHA', () => {
   })
 
   it('CAPTCHA recusado vira mensagem de verificação ao entrar', async () => {
-    auth.signInWithPassword.mockResolvedValue(recusa)
+    auth.signInWithPassword.mockResolvedValue({ data: { user: null }, ...recusa })
     const erro = await provedor().signInWithPassword('p@example.test', 'senha').catch((e) => e)
     expect(erro).toBeInstanceOf(AuthenticationError)
     expect(erro.message).toMatch(/robô/)

@@ -158,13 +158,15 @@ export async function readPublicTradeBinder(
       id: true,
       username: true,
       deletedAt: true,
+      deletionRequestedAt: true,
       tradeBinderTokenCreatedAt: true,
     },
   })
 
   // Conta anonimizada nao publica nada: o token some junto na anonimizacao, e
-  // esta checagem e a rede de seguranca (decisao 015).
-  if (!dono || dono.deletedAt || !dono.username || !dono.tradeBinderTokenCreatedAt) {
+  // esta checagem e a rede de seguranca (decisao 015). Com a exclusao pedida, o
+  // link sai do ar ja no pedido, e volta se a pessoa desistir (decisao 091).
+  if (!dono || dono.deletedAt || dono.deletionRequestedAt || !dono.username || !dono.tradeBinderTokenCreatedAt) {
     return null
   }
 

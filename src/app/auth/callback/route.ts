@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { cancelAccountDeletion } from '@/server/application/account'
 import { completeOAuth } from '@/server/application/auth/credentials'
 import { appUrl } from '@/server/http/app-url'
 import { requestCookies } from '@/server/http/next-cookies'
@@ -30,15 +31,21 @@ export async function GET(request: Request): Promise<Response> {
     return NextResponse.redirect(errorUrl(base, description ?? 'Link inválido ou incompleto.'))
   }
 
+  let deletionCancelled = false
   try {
-    await completeOAuth(code, { cookies: await requestCookies(), appUrl: base })
+    ;({ deletionCancelled } = await completeOAuth(code, {
+      cookies: await requestCookies(),
+      appUrl: base,
+      cancelDeletion: cancelAccountDeletion,
+    }))
   } catch (error) {
     const message =
       error instanceof Error ? error.message : 'Não foi possível concluir. Tente de novo.'
     return NextResponse.redirect(errorUrl(base, message))
   }
 
-  return NextResponse.redirect(new URL(next, base))
+  // Entrar de novo cancelou um pedido de exclusao: o inicio diz isso (decisao 091).
+  return NextResponse.redirect(new URL(deletionCancelled ? '/inicio?exclusao=cancelada' : next, base))
 }
 
 function errorUrl(base: string, message: string): URL {
