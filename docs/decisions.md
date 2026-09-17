@@ -5558,3 +5558,58 @@ de senha chega ao Supabase. As cotas por endereço (`AUTH_ATTEMPT_LIMIT`,
 ## Data
 
 2026-09-17
+
+---
+
+# Decisão: 089 — Hospedagem na Fly.io, uma máquina em São Paulo
+
+Escolhido pelo dono do produto em 17/09, com o orçamento apertado como critério,
+depois da comparação entre Vercel, Fly.io e VPS.
+
+## Contexto
+
+- O banco está no Supabase de **São Paulo**, e cada página faz várias consultas.
+  Railway e Render não têm região na América do Sul e ficaram de fora.
+- **Vercel Pro** (US$ 20/mês e uso) é a de menos trabalho, mas custa quase o
+  triplo, e em várias instâncias a cota de tentativas em memória enfraquece.
+- **VPS** sai um pouco mais barato, mas a segurança do sistema operacional passa
+  a ser nossa.
+- **Fly.io** com uma máquina de 1 GB em `gru` fica em torno de US$ 7/mês, com
+  HTTPS e isolamento gerenciados, e com a cota em memória funcionando como hoje.
+
+## Decisão
+
+1. **Uma máquina `shared-cpu-1x` de 1 GB em `gru`, sempre ligada**
+   (`fly.toml`). O deploy passa `--ha=false`: sem isso a Fly cria duas máquinas
+   na primeira vez, e cada uma contaria as cotas sozinha.
+2. **Imagem pelo `Dockerfile`**, com a saída `standalone` do Next: a imagem final
+   leva só o que o servidor usa, roda como o usuário `node`, e nunca contém
+   `.env` — o `.dockerignore` recusa, e o workflow **Imagem** confere em todo PR
+   que mexe no que a imagem depende. `sharp` passou para as dependências de
+   produção, porque o servidor processa as imagens das cartas (decisão 038).
+3. **Publicação à mão**, pelo workflow **Publicar** (`workflow_dispatch`, só na
+   `main`), e não a cada merge. Produção nunca é o alvo padrão (`CLAUDE.md`), e
+   código com migration nova publicado antes de `npm run supabase migrate`
+   derruba a tela inteira. A ordem está em `development.md` 6.6.
+4. **Onde mora cada valor:** segredos em `fly secrets` (senha do banco, chave
+   secreta do Supabase, chave do Resend); valores não secretos em `fly.toml`;
+   os três `NEXT_PUBLIC_*` nas *variables* do GitHub, porque entram no build.
+5. **O banco pelo Session pooler**, que tem IPv4, como o workflow de preços.
+6. **`/api/saude`** responde sem tocar o banco: a checagem da Fly roda a cada 30
+   segundos, e depender do banco reiniciaria a máquina por instabilidade de fora.
+7. Até o domínio apontar, o site responde em `colexa.fly.dev` (`APP_URL`).
+
+## Consequências
+
+- **Alguns segundos fora do ar a cada publicação**, com uma máquina só.
+- **Sem prévia por PR.** A conferência continua no `npm run dev`.
+- ***Network Restrictions* no Supabase não dá para ligar como estava sugerido**:
+  a máquina da Fly e o GitHub Actions dos preços saem por IPs que mudam. Ligar
+  exigiria IP de saída fixo na Fly (pago) e tirar a importação de preços do
+  GitHub. Fica a senha forte do banco, que já é o que protege hoje.
+- **Crescer** para duas máquinas exige antes tirar as cotas da memória (tabela
+  ou serviço externo), que é mudança de modelo e volta como conversa.
+
+## Data
+
+2026-09-17

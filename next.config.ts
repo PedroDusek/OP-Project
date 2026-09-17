@@ -62,6 +62,14 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: localAddresses(),
 
   /**
+   * A saida que a imagem da Fly.io leva (decisao 089): so os arquivos que o
+   * servidor usa, com as dependencias rastreadas, e um `server.js` para subir.
+   * A imagem final fica sem codigo-fonte e sem dependencias de desenvolvimento.
+   * Nao muda nada no `next dev` nem no `next start`.
+   */
+  output: 'standalone',
+
+  /**
    * O `next dev` nao escreve no nosso `CLAUDE.md`.
    *
    * A partir do Next 16 ele acrescenta um bloco proprio ao arquivo toda vez que

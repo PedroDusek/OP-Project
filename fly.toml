@@ -1,0 +1,49 @@
+# A aplicacao na Fly.io (decisao 089).
+#
+# Uma maquina so, em Sao Paulo, sempre ligada. Os tres pontos sao escolha, e nao
+# padrao da Fly:
+#
+# - **Sao Paulo (`gru`)**: o banco do Supabase esta la, e cada pagina faz varias
+#   consultas. Fora do Brasil, cada uma pagaria a ida e volta ate os EUA.
+# - **Uma maquina**: a cota de tentativas (`src/server/http/rate-limit.ts`) mora
+#   na memoria do processo. Com duas maquinas, cada uma contaria sozinha. Por
+#   isso o deploy passa `--ha=false`, senao a Fly cria duas na primeira vez.
+# - **Sempre ligada**: desligar quando ocioso economizaria centavos e custaria a
+#   memoria das cotas e alguns segundos de espera no primeiro acesso.
+#
+# Nada secreto aqui: o repositorio e publico. Senha do banco e chaves ficam em
+# `fly secrets` (development.md 6.6).
+
+app = 'colexa'
+primary_region = 'gru'
+
+[env]
+  # Enquanto o dominio nao aponta para a Fly, o site responde em colexa.fly.dev.
+  # Os links de e-mail e a volta do login saem daqui: ao ligar o dominio, troque
+  # para https://colexa.com.br e publique de novo.
+  APP_URL = 'https://colexa.fly.dev'
+  EMAIL_FROM = 'ColeXa <nao-responda@colexa.com.br>'
+  SUPABASE_STORAGE_BUCKET = 'colexa-imagens'
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = 'off'
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = 'requests'
+    soft_limit = 200
+    hard_limit = 250
+
+  [[http_service.checks]]
+    grace_period = '20s'
+    interval = '30s'
+    timeout = '5s'
+    method = 'GET'
+    path = '/api/saude'
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '1gb'

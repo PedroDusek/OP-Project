@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import { expect, test } from '@playwright/test'
 
 /**
@@ -18,6 +19,19 @@ import { expect, test } from '@playwright/test'
  */
 
 const MOBILE = { width: 360, height: 740 }
+
+/**
+ * Os provedores sociais ligados, pela mesma pergunta que o servidor faz
+ * (`/auth/v1/settings`). Sem Supabase configurado, como na CI, nenhum.
+ */
+async function provedoresLigados(): Promise<string[]> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  if (!url || !key) return []
+  const resposta = await fetch(`${url}/auth/v1/settings`, { headers: { apikey: key } })
+  const settings = (await resposta.json()) as { external?: Record<string, boolean> }
+  return ['google', 'apple'].filter((provedor) => settings.external?.[provedor] === true)
+}
 
 /**
  * Alertas do conteudo, e nao os do framework.
@@ -140,10 +154,21 @@ test.describe('formulário de entrar', () => {
     await expect(page.getByLabel('Senha', { exact: true })).toHaveAttribute('type', 'text')
   })
 
-  test('sem provedor social ligado, nenhum botão social aparece', async ({ page }) => {
+  /*
+   * A regra mudou em 17/09: o dono do produto ligou o Google no Supabase. Este
+   * teste afirmava "nenhum habilitado", que era a configuracao real de entao, e
+   * passou a falhar em toda maquina com o `.env` do projeto — na CI, sem
+   * Supabase, continuava passando. O que se protege agora e o que a decisao 032
+   * diz: a tela mostra exatamente os provedores que o Supabase reporta.
+   */
+  test('os botões sociais são exatamente os que o Supabase reporta ligados', async ({ page }) => {
+    const ligados = await provedoresLigados()
+
     await page.goto('/entrar')
-    // Reflete a configuração real do projeto no Supabase: nenhum habilitado.
-    await expect(page.getByRole('button', { name: /Continuar com/ })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /Continuar com/ })).toHaveCount(ligados.length)
+    if (ligados.includes('google')) {
+      await expect(page.getByRole('button', { name: /Continuar com o Google/ })).toBeVisible()
+    }
   })
 })
 

@@ -1,0 +1,58 @@
+name: Imagem
+
+# Constroi a imagem da Fly.io em todo PR que mexe no que ela depende (decisao
+# 089), sem publicar nada. Ninguem tem Docker na maquina de desenvolvimento: sem
+# isto, um Dockerfile quebrado so apareceria na hora de publicar.
+
+on:
+  pull_request:
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - fly.toml
+      - next.config.ts
+      - package.json
+      - package-lock.json
+      - prisma/**
+      - .github/workflows/imagem.yml
+
+concurrency:
+  group: imagem-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  construir:
+    name: Construir a imagem
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # Valores falsos: aqui so importa que a imagem construa e o servidor suba.
+      - name: Construir
+        run: >-
+          docker build -t colexa:pr
+          --build-arg NEXT_PUBLIC_SUPABASE_URL=https://exemplo.supabase.co
+          --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_ci
+          --build-arg NEXT_PUBLIC_TURNSTILE_SITE_KEY=
+          .
+
+      - name: Nenhum .env dentro da imagem
+        run: |
+          if docker run --rm colexa:pr sh -c 'ls -a /app | grep -E "^\.env"'; then
+            echo "::error::A imagem contem um arquivo .env."
+            exit 1
+          fi
+
+      - name: O servidor sobe e responde a checagem de saude
+        run: |
+          docker run -d --name colexa -p 3000:3000 \
+            -e DATABASE_URL=postgresql://nao-usar:nao-usar@127.0.0.1:5432/nao-usar \
+            colexa:pr
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:3000/api/saude; then exit 0; fi
+            sleep 2
+          done
+          docker logs colexa
+          exit 1
