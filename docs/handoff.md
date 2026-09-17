@@ -22,7 +22,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 112 PRs mergeados, CI verde em todos |
+| Branch | `main`, 113 PRs mergeados, CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -118,7 +118,7 @@ para teste. O domínio `colexa.com.br` **não** aponta para ele ainda.
 | Volume | `colexa_cache`, 1 GB, montado em `.next/cache` (imagens otimizadas das cartas) |
 | Segredos na Fly | `DATABASE_URL` (Session pooler, usuário `postgres.<ref>`, host `aws-0-sa-east-1.pooler.supabase.com`), `SUPABASE_SECRET_KEY`, `RESEND_API_KEY` |
 | Valores em `fly.toml` | `APP_URL=https://colexa.fly.dev`, `EMAIL_FROM`, `SUPABASE_STORAGE_BUCKET` |
-| GitHub | segredo `FLY_API_TOKEN` (token de deploy `publicar-github`); *variables* com os três `NEXT_PUBLIC_*` |
+| GitHub | segredo `FLY_API_TOKEN` (token de deploy `publicar-github`, criado 16:01:34 de 17/09 — **o único ativo**; os cinco das tentativas foram revogados pelo dono do produto, conferido com `fly tokens list --app colexa`; vale até 2046, então vazou é revogar e gerar outro pelo Git Bash, armadilha 59); *variables* com os três `NEXT_PUBLIC_*` |
 | Painéis | Turnstile com `colexa.fly.dev`; Supabase com `https://colexa.fly.dev/**` nas *Redirect URLs* (Site URL continua `http://localhost:3000`); Google com a origem `https://colexa.fly.dev` |
 
 Conferido pelo assistente em 17/09: a checagem de saúde passa, o servidor roda
