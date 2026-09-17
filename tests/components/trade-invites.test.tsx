@@ -19,7 +19,8 @@ const { inviteMemberAction, acceptInviteAction, declineInviteAction, cancelTrade
   declineInviteAction: vi.fn(async (_previous: unknown, _data: FormData) => ({ status: 'done' as const })),
   cancelTradeAction: vi.fn(async (_previous: unknown, _data: FormData) => ({ status: 'done' as const })),
 }))
-vi.mock('next/navigation', () => ({ usePathname: () => '/trocas' }))
+const { push, refresh } = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn() }))
+vi.mock('next/navigation', () => ({ usePathname: () => '/trocas', useRouter: () => ({ push, refresh }) }))
 vi.mock('@/app/(app)/trocas/actions', () => ({
   inviteMemberAction,
   acceptInviteAction,
@@ -106,6 +107,36 @@ describe('o sino com convite (decisão 083)', () => {
     await user.click(await screen.findByRole('button', { name: 'Notificações, 1 pendente' }))
     const aviso = await screen.findByRole('link', { name: /Você recebeu um convite de troca/ })
     expect(aviso).toHaveAttribute('href', '/trocas')
+    vi.unstubAllGlobals()
+  })
+})
+
+describe('esperando o convite ser aceito (decisão 084)', () => {
+  /* Relatado pelo dono do produto: quem convidou so via a troca ao sair e voltar. */
+  it('aceito, leva quem convidou direto para a troca', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ status: 'NEGOTIATING' }))))
+
+    render(
+      <OpenTradeCard
+        trade={{
+          tradeId: '7',
+          status: 'DRAFT',
+          otherName: null,
+          inviteToken: null,
+          invitedUsername: 'bia',
+          reviewRequested: false,
+          exchanged: false,
+        }}
+        appUrl="https://colexa.com.br"
+      />,
+    )
+
+    await vi.advanceTimersByTimeAsync(3_100)
+    await vi.waitFor(() => expect(push).toHaveBeenCalledWith('/trocas/7'))
+    expect(fetch).toHaveBeenCalledWith('/api/trocas/7/estado', { cache: 'no-store' })
+
+    vi.useRealTimers()
     vi.unstubAllGlobals()
   })
 })

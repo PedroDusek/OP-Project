@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Users } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Users } from 'lucide-react'
 import { PageHeader } from '@/components/layout/app-shell'
 import { NetworkMemberBox } from '@/components/social/network-member'
 import { NetworkSearch } from '@/components/social/network-search'
@@ -19,9 +19,10 @@ export const metadata: Metadata = { title: 'Social' }
  * primeiro, depois quem tem mais do que quem olha procura. A busca por carta
  * devolve quem a tem, na mesma apresentação.
  *
- * A lista cresce ao pedir mais pessoas, e não troca de página: o endereço guarda
- * até onde se carregou, e voltar de um binder devolve a lista inteira. O teto
- * de páginas mora no domínio (`NETWORK_MAX_PAGES`).
+ * Sete pessoas por página, e a pessoa passa de página em página (decisão 084): uma
+ * lista que acumulasse muita gente com muitas cartas pesaria a tela. O endereço
+ * guarda a página, e voltar de um binder devolve a mesma. O teto de páginas mora
+ * no domínio (`NETWORK_MAX_PAGES`).
  *
  * A tela continua cobrando o nome de usuário de quem ainda não escolheu: sem
  * ele, a pessoa vê a rede, mas ninguém a vê.
@@ -96,9 +97,15 @@ function Rede({ resultado }: { resultado: NetworkPage }) {
     )
   }
 
-  const mais = new URLSearchParams()
-  if (resultado.query) mais.set('q', resultado.query)
-  mais.set('pagina', String(resultado.page + 1))
+  const pagina = (numero: number) => {
+    const params = new URLSearchParams()
+    if (resultado.query) params.set('q', resultado.query)
+    if (numero > 1) params.set('pagina', String(numero))
+    const texto = params.toString()
+    return texto ? `/social?${texto}` : '/social'
+  }
+  const botao =
+    'inline-flex h-11 items-center gap-1 rounded-control border border-border px-4 text-sm font-medium text-text hover:bg-surface-muted'
 
   return (
     <>
@@ -109,14 +116,28 @@ function Rede({ resultado }: { resultado: NetworkPage }) {
           </li>
         ))}
       </ul>
-      {resultado.hasMore ? (
-        <Link
-          href={`/social?${mais.toString()}`}
-          scroll={false}
-          className="mx-auto inline-flex h-11 items-center rounded-control border border-border px-4 text-sm font-medium text-text hover:bg-surface-muted"
-        >
-          Ver mais pessoas
-        </Link>
+      {resultado.page > 1 || resultado.hasMore ? (
+        <nav aria-label="Páginas da rede" className="flex items-center justify-between gap-2">
+          {resultado.page > 1 ? (
+            <Link href={pagina(resultado.page - 1)} className={botao}>
+              <ChevronLeft className="size-4" aria-hidden />
+              Anterior
+            </Link>
+          ) : (
+            <span />
+          )}
+          <span className="text-sm text-text-muted tabular-nums" aria-current="page">
+            Página {resultado.page}
+          </span>
+          {resultado.hasMore ? (
+            <Link href={pagina(resultado.page + 1)} className={botao}>
+              Próxima
+              <ChevronRight className="size-4" aria-hidden />
+            </Link>
+          ) : (
+            <span />
+          )}
+        </nav>
       ) : null}
     </>
   )

@@ -248,7 +248,11 @@ describe('a busca por carta', () => {
 })
 
 describe('as páginas', () => {
-  it('carrega até a página pedida, e diz se há mais', async () => {
+  /*
+   * Decisao 084, definida pelo dono do produto: sete por pagina, e cada pagina so
+   * com as suas pessoas. Antes, a lista acumulava as paginas ja carregadas.
+   */
+  it('cada página traz só as suas pessoas, e diz se há seguinte', async () => {
     const eu = await pessoa('Eu', 'eu')
     const zoro = await carta('OP01-001')
     for (let i = 0; i < NETWORK_PAGE_SIZE + 3; i++) {
@@ -257,11 +261,12 @@ describe('as páginas', () => {
     }
 
     const primeira = await listNetwork(testPrisma(), eu.user)
-    expect(primeira.members).toHaveLength(NETWORK_PAGE_SIZE)
+    expect(NETWORK_PAGE_SIZE).toBe(7)
+    expect(nomes(primeira)).toEqual(['pessoa00', 'pessoa01', 'pessoa02', 'pessoa03', 'pessoa04', 'pessoa05', 'pessoa06'])
     expect(primeira.hasMore).toBe(true)
 
     const segunda = await listNetwork(testPrisma(), eu.user, { page: '2' })
-    expect(segunda.members).toHaveLength(NETWORK_PAGE_SIZE + 3)
+    expect(nomes(segunda)).toEqual(['pessoa07', 'pessoa08', 'pessoa09'])
     expect(segunda.hasMore).toBe(false)
   })
 })

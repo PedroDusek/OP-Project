@@ -110,19 +110,27 @@ export function ConversationThread({ conversationId, messages, sendBlocked, othe
           </li>
         ) : (
           messages.map((mensagem) => (
-            <li key={mensagem.id} className={cn('flex', mensagem.mine ? 'justify-end' : 'justify-start')}>
-              <div
-                className={cn(
-                  'max-w-[80%] rounded-card px-3 py-2',
-                  mensagem.mine ? 'bg-accent text-white' : 'border border-border bg-surface text-text',
-                )}
-              >
-                <p className="text-sm break-words whitespace-pre-wrap">{mensagem.body}</p>
-                <p className={cn('mt-1 text-right text-[11px] tabular-nums', mensagem.mine ? 'text-white/75' : 'text-text-subtle')}>
-                  <span className="sr-only">{mensagem.mine ? 'Você, ' : ''}</span>
-                  {dia.format(new Date(mensagem.createdAt))} {hora.format(new Date(mensagem.createdAt))}
-                </p>
-              </div>
+            /*
+              O proprio balao se alinha na coluna (`self-end`), e nao um item
+              flexivel que o empurra: relatado pelo dono do produto, no iPhone as
+              mensagens dos dois lados saiam todas a esquerda com o arranjo
+              anterior, que funcionava no navegador de mesa.
+            */
+            <li
+              key={mensagem.id}
+              data-lado={mensagem.mine ? 'meu' : 'outro'}
+              className={cn(
+                'max-w-[80%] rounded-card px-3 py-2',
+                mensagem.mine
+                  ? 'self-end bg-accent text-white'
+                  : 'self-start border border-border bg-surface text-text',
+              )}
+            >
+              <p className="text-sm break-words whitespace-pre-wrap">{mensagem.body}</p>
+              <p className={cn('mt-1 text-right text-[11px] tabular-nums', mensagem.mine ? 'text-white/75' : 'text-text-subtle')}>
+                <span className="sr-only">{mensagem.mine ? 'Você, ' : ''}</span>
+                {dia.format(new Date(mensagem.createdAt))} {hora.format(new Date(mensagem.createdAt))}
+              </p>
             </li>
           ))
         )}

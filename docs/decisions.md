@@ -5172,8 +5172,9 @@ que segue são as escolhas do dono do produto em 16/09 e as de implementação.
    rede para a memória.
 3. **A prévia** tem até sete cartas: com busca, as que casam primeiro; depois as
    que quem olha procura; depois o resto na ordem do catálogo.
-4. **Páginas de dez pessoas, no máximo vinte páginas**: a lista cresce ao pedir
-   mais, e o teto é a profundidade máxima que a 060 pede.
+4. ~~**Páginas de dez pessoas**, a lista crescendo ao pedir mais~~ — **mudado pela
+   decisão 084**: sete por página, uma página por vez. O teto de vinte páginas
+   continua.
 5. **Cotas por pessoa**: listagem e binder, 60 por minuto; busca, 20 por minuto;
    denúncia, 5 por hora. Contadas em memória de processo — seguram abuso
    acidental e script ingênuo, e não alguém determinado (060).
@@ -5349,6 +5350,33 @@ Correções do dono do produto em 16/09, ao conferir o convite direto. **Muda o 
 3. **O sino avisa do convite de troca recebido** — "Você recebeu um convite de
    troca", levando a Trocas —, e o aviso some quando a pessoa aceita ou recusa.
    Fica depois das mensagens e antes das cartas sem armazenamento.
+
+## Data
+
+2026-09-16
+
+---
+
+# Decisão: 084 — A Social em páginas de sete, e duas correções da conversa e da troca
+
+Correções do dono do produto em 16/09, ao conferir no telefone. **Muda o item 4 da
+decisão 079.**
+
+## Decisão
+
+1. **A Social mostra sete pessoas por página**, e a pessoa passa de página em
+   página ("Anterior", "Página N", "Próxima"). Definição do dono do produto: muita
+   gente com muitas cartas numa lista que acumula pesaria a página. Antes eram dez
+   por vez, com "Ver mais pessoas" somando à lista. O teto continua em vinte
+   páginas (140 pessoas), a contenção da decisão 060.
+2. **As mensagens da conversa se alinham pelo próprio balão** (`self-end` e
+   `self-start` na coluna), e não por um item flexível que empurra o balão. No
+   iPhone as mensagens dos dois lados saíam todas à esquerda; no navegador de mesa
+   o arranjo anterior funcionava, e por isso não foi pego.
+3. **Quem convidou é levado à troca quando o convite é aceito.** Enquanto o
+   convite espera, o cartão de Trocas pergunta a cada três segundos pelo estado da
+   troca; aceita, vai direto para a negociação; recusada ou descartada, redesenha
+   Trocas. Antes, era preciso sair de Trocas e voltar.
 
 ## Data
 

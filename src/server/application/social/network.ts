@@ -5,6 +5,7 @@ import { readVisibleTradeStock, type VisibleTradeCard } from '@/server/applicati
 import { NotFoundError, ValidationError } from '@/server/domain/errors'
 import {
   clampNetworkPage,
+  NETWORK_MAX_PAGES,
   NETWORK_PAGE_SIZE,
   normalizeNetworkQuery,
   normalizeReportReason,
@@ -56,8 +57,9 @@ export interface NetworkMember {
 
 export interface NetworkPage {
   members: NetworkMember[]
-  /** A página carregada até agora; a listagem cresce de página em página. */
+  /** A página mostrada: cada página traz só as pessoas dela (decisão 084). */
   page: number
+  /** Há página seguinte, dentro do teto. */
   hasMore: boolean
   /** A busca normalizada, ou `null` sem busca. */
   query: string | null
@@ -115,8 +117,8 @@ async function matchingVariants(prisma: PrismaClient, query: string): Promise<Se
 /**
  * A listagem da rede, até a página pedida.
  *
- * Carrega da primeira até `page` de uma vez: a tela mostra uma lista que cresce
- * ao rolar, e não páginas soltas. O teto de páginas limita o que isso custa.
+ * Uma página por vez, sete pessoas cada (decisão 084): a tela passa de página em
+ * página, e nunca carrega a rede acumulada. O teto de páginas é o da decisão 060.
  *
  * Com busca, entra quem tem alguma carta que casa **ou** cujo nome na rede
  * contém o texto (decisão 082) — e a prévia mostra primeiro as cartas que casam.
@@ -140,7 +142,7 @@ export async function listNetwork(
 
   const quero = [...wanted]
   const casa = matching ? [...matching] : []
-  const limite = page * NETWORK_PAGE_SIZE
+  const inicio = (page - 1) * NETWORK_PAGE_SIZE
 
   const porCarta = casa.length > 0 ? Prisma.sql`COUNT(*) FILTER (WHERE ci.card_variant_id::text = ANY(${casa}::text[])) > 0` : null
   const porNome = nome ? Prisma.sql`u.username LIKE ${`%${nome}%`} ESCAPE '!'` : null
@@ -175,11 +177,11 @@ export async function listNetwork(
               (u.plan = 'PREMIUM' AND (u.premium_until IS NULL OR u.premium_until > ${now})) DESC,
               interest DESC,
               u.username ASC
-     LIMIT ${limite + 1}
+     LIMIT ${NETWORK_PAGE_SIZE + 1} OFFSET ${inicio}
   `)
 
-  const hasMore = rows.length > limite
-  const pagina = rows.slice(0, limite)
+  const hasMore = rows.length > NETWORK_PAGE_SIZE && page < NETWORK_MAX_PAGES
+  const pagina = rows.slice(0, NETWORK_PAGE_SIZE)
   const estoque = await readVisibleTradeStock(
     prisma,
     pagina.map((row) => row.id),

@@ -7,6 +7,7 @@ import type { OpenTrade } from '@/server/application/trades'
  * A acao de servidor arrasta o Prisma no grafo de modulos. Sem o duble, o teste
  * tentaria abrir conexao com o banco para renderizar um botao (armadilha 33).
  */
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }))
 vi.mock('@/app/(app)/trocas/actions', () => ({
   cancelTradeAction: vi.fn(),
 }))

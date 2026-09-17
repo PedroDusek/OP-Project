@@ -50,6 +50,10 @@ describe('a conversa', () => {
     expect(itens[0]).toHaveTextContent('Oi! Você troca a OP01-001?')
     expect(itens[1]).toHaveTextContent('Você, ')
     expect(itens[1]).toHaveTextContent('Troco sim.')
+    // Decisao 084: o proprio balao se alinha — o jsdom nao desenha, entao se
+    // protege a classe que alinha, e nao a posicao.
+    expect(itens[0]).toHaveClass('self-start')
+    expect(itens[1]).toHaveClass('self-end')
 
     const campo = screen.getByRole('textbox', { name: 'Mensagem' })
     const enviar = screen.getByRole('button', { name: 'Enviar mensagem' })

@@ -1,6 +1,7 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useActionState, useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Check, Copy, Handshake, TriangleAlert, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/ui/surface'
@@ -27,7 +28,45 @@ import type { OpenTrade } from '@/server/application/trades'
  * Descartar queima o link junto com a troca, e é isso que se quer: um convite
  * abandonado é um convite que ainda pode vazar (regra 4.6.1).
  */
+/**
+ * Enquanto o convite espera, pergunta a cada poucos segundos se a outra pessoa
+ * entrou (decisão 084). Relatado pelo dono do produto: aceito o convite, quem
+ * convidou continuava vendo "Convite enviado" até sair de Trocas e voltar.
+ *
+ * Aceito, leva direto para a troca — é o que a pessoa estava esperando. Recusado
+ * ou descartado, redesenha Trocas. Pausa com a aba escondida.
+ */
+function useInviteWait(tradeId: string, esperando: boolean) {
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!esperando) return
+    let cancelado = false
+
+    const perguntar = async () => {
+      if (document.visibilityState !== 'visible') return
+      try {
+        const resposta = await fetch(`/api/trocas/${tradeId}/estado`, { cache: 'no-store' })
+        if (cancelado || !resposta.ok) return
+        const { status } = (await resposta.json()) as { status: string }
+        if (status === 'DRAFT') return
+        if (status === 'NEGOTIATING' || status === 'PROPOSED' || status === 'CONFIRMED') router.push(`/trocas/${tradeId}`)
+        else router.refresh()
+      } catch {
+        // Rede instavel: a proxima pergunta tenta de novo.
+      }
+    }
+
+    const timer = setInterval(() => void perguntar(), 3_000)
+    return () => {
+      cancelado = true
+      clearInterval(timer)
+    }
+  }, [tradeId, esperando, router])
+}
+
 export function OpenTradeCard({ trade, appUrl }: { trade: OpenTrade; appUrl: string }) {
+  useInviteWait(trade.tradeId, trade.status === 'DRAFT')
   const [copiado, setCopiado] = useState(false)
   const [descartar, descartarAction, descartando] = useActionState(
     cancelTradeAction,
