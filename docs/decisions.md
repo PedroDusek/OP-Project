@@ -5735,3 +5735,48 @@ produto respondeu quatro perguntas que a 015 não cobria.
 ## Data
 
 2026-09-17
+
+---
+
+# Decisão: 092 — Endurecer o site antes dos testadores
+
+Revisão pedida pelo dono do produto em 17/09, antes de abrir o ColeXa a 15 ou 20
+testadores. Estas são as correções que não dependiam de nenhuma decisão pendente.
+
+## Decisão
+
+1. **Cabeçalhos de segurança em toda resposta** (`next.config.ts`):
+   `frame-ancestors 'none'` e `X-Frame-Options: DENY` (ninguém embute o ColeXa
+   numa moldura, o que permitiria sobrepor botões invisíveis a "Pedir a exclusão
+   da conta"), `nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`
+   (o endereço de um convite de troca carrega token, e não pode vazar no clique
+   para a Liga), `Permissions-Policy` sem câmera, microfone e localização, e HSTS
+   só em produção. `poweredByHeader: false`.
+   **Sem CSP de scripts ainda**: o Next injeta script inline e o Turnstile carrega
+   de fora; política errada derruba o login sem aviso. Fica como próximo passo.
+2. **Página de erro e de endereço inexistente, em português** (`error.tsx`,
+   `global-error.tsx`, `not-found.tsx`). A de erro mostra o **código** (`digest`)
+   — o mesmo do log do servidor, que é o que um testador consegue relatar — e
+   nunca a mensagem do erro.
+3. **Só o domínio oficial é indexável.** O middleware manda
+   `X-Robots-Tag: noindex, nofollow` quando o `Host` não é `colexa.com.br`. Por
+   requisição, e não na metadata: o layout e as páginas estáticas são montados no
+   build, sem saber em que endereço serão servidos. Sem isto, `colexa.fly.dev`
+   apareceria em busca antes do lançamento e depois viraria conteúdo duplicado.
+4. **Documentação alinhada:** `CLAUDE.md` com `contas` e com a publicação à mão;
+   `integrations.md` 3.3 com a tabela dos serviços externos, o que quebra sem
+   cada um e que dado sai daqui — é também o insumo da Política de Privacidade;
+   `architecture.md` 0 com onde o site roda.
+
+## O que a revisão conferiu e estava certo
+
+- Rotas `/dev/*` e a antiga `/admin/denuncias` respondem 404 em produção; as APIs
+  de leitura rápida (`/api/me/notificacoes`, `estado` de troca e de conversa)
+  exigem sessão **e** participação.
+- Nenhuma vulnerabilidade nas dependências de produção (`npm audit --omit=dev`).
+- A máquina usa 157 MB de 1 GB, e o volume do cache 7 MB de 974 MB.
+- 92 decisões numeradas sem salto, e nenhum `TODO` pendente no código.
+
+## Data
+
+2026-09-17

@@ -58,8 +58,49 @@ function supabaseImageHost() {
   }
 }
 
+/**
+ * Cabecalhos de seguranca em toda resposta (decisao 092).
+ *
+ * - **Ninguem embute o ColeXa numa moldura** (`frame-ancestors` e o antigo
+ *   `X-Frame-Options`): uma pagina alheia poderia sobrepor botoes invisiveis a
+ *   "Pedir a exclusao da conta" ou a "Confirmar troca".
+ * - **O navegador nao adivinha tipo de arquivo** (`nosniff`): uma foto enviada
+ *   nunca e interpretada como script.
+ * - **Link externo leva so a origem** (`Referrer-Policy`): o endereco de um
+ *   convite de troca ou de um Trade Binder publico carrega o token, e nao pode
+ *   vazar para a Liga ao clicar num link de carta.
+ * - **Sem camera, microfone e localizacao** para o site: a foto do binder e um
+ *   `<input type="file">`, que nao precisa de permissao.
+ * - **HTTPS lembrado pelo navegador** (HSTS), so em producao: em
+ *   desenvolvimento o servidor e HTTP, e o navegador ignoraria de qualquer jeito.
+ *
+ * Sem CSP de scripts por enquanto: o Next injeta scripts inline e o Turnstile
+ * carrega de fora; uma politica errada aqui derruba o login sem aviso. Fica
+ * registrada como proximo passo na decisao 092.
+ */
+function securityHeaders() {
+  const headers = [
+    { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+    { key: 'X-Frame-Options', value: 'DENY' },
+    { key: 'X-Content-Type-Options', value: 'nosniff' },
+    { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+    { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  ]
+  if (process.env.NODE_ENV === 'production') {
+    headers.push({ key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' })
+  }
+  return headers
+}
+
 const nextConfig: NextConfig = {
   allowedDevOrigins: localAddresses(),
+
+  // Nao anunciar a pilha: `x-powered-by: Next.js` so ajuda quem procura alvo.
+  poweredByHeader: false,
+
+  async headers() {
+    return [{ source: '/:path*', headers: securityHeaders() }]
+  },
 
   /**
    * A saida que a imagem da Fly.io leva (decisao 089): so os arquivos que o

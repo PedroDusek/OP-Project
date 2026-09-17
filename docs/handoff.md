@@ -22,7 +22,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 113 PRs mergeados, CI verde em todos |
+| Branch | `main`, 116 PRs mergeados, CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -45,7 +45,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 13 concluídos, e a Social.** 1.448 testes de unidade, integração e
+**Checkpoints 0 a 13 concluídos, e a Social.** 1.474 testes de unidade, integração e
 componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -106,6 +106,8 @@ componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 | — | Login com Google ligado pelo dono do produto; o primeiro login de conta nova não dá mais erro (#109) |
 | — | Hospedagem na Fly.io, uma máquina em São Paulo, publicação à mão (decisão 089) |
 | — | Imagens das cartas na Fly: esperar 30 s, e o cache num volume (decisão 090) |
+| — | Excluir a conta, com 30 dias para desistir e a tarefa diária que anonimiza (decisão 091) |
+| — | Cabeçalhos de segurança, páginas de erro em português e indexação só no domínio oficial (decisão 092) |
 
 ### Produção, em 17/09/2026
 
@@ -557,8 +559,9 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
    build.
 5. **Idade mínima da rede** (decisão 060). A rede expõe o Trade Binder e abre
    conversa entre estranhos.
-6. **Excluir a conta** (seção "Desenhado, e não construído"). A LGPD dá o direito
-   de pedir a exclusão, e hoje ninguém consegue.
+6. ~~**Excluir a conta**~~ — **construída em 17/09** (decisão 091). Falta o
+   segredo `SUPABASE_SECRET_KEY` já estar no GitHub (está, desde 17/09) e a
+   tarefa diária **Contas** ter rodado pelo menos uma vez para valer.
 7. **Limpar as contas de teste** de produção, nas duas metades (ver "Produção").
 8. **Premium no lançamento.** Hoje o plano não limita nada e não há como pagar;
    lançar tudo liberado precisa ser escolha consciente do dono do produto.
@@ -655,13 +658,10 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 Duas coisas que os documentos descrevem como se existissem. Conferido no código
 em 10/09.
 
-- **Excluir a conta.** A decisão 015 desenha a anonimização — nome e e-mail
-  trocados, vínculo com o provedor desfeito, coleção apagada, trocas
-  preservadas —, e **nenhum gesto no produto a executa**. O único pedaço que
-  existe é a recusa de autenticar conta com `deleted_at`. Hoje ninguém consegue
-  excluir a própria conta. Quando for construída, precisa apagar também
-  `trade_binder_token`, senão um link publicado sobrevive à saída da pessoa. A
-  anonimização foi levada à advogada no dossiê como pergunta.
+- ~~**Excluir a conta.**~~ — **construída em 17/09** (decisão 091): pedido com
+  30 dias para desistir, trocas em andamento canceladas no pedido, e a tarefa
+  diária **Contas** anonimizando depois do prazo, inclusive no Supabase Auth e
+  no Storage. O `trade_binder_token` é limpo, como este parágrafo pedia.
 - **O Premium não limita nada.** O plano é lido e mostrado em Minha conta, mas
   nenhum recurso é bloqueado por ele, e não existe caminho para alguém virar
   Premium — `trial_started_at` nunca é usado, e não há pagamento. A regra 6.1
@@ -828,19 +828,40 @@ Uma conta num navegador, a outra noutro ou numa janela anônima.
 
 ## Próximo passo
 
-**A escolha está aberta**, em 17/09. A Social está completa nas três etapas
-combinadas — rede, convite direto e conversas.
+**Abrir o ColeXa a 15 ou 20 testadores**, escolha do dono do produto em 17/09, em
+`colexa.fly.dev`. A revisão da decisão 092 corrigiu o que dependia só de nós; o
+que falta para receber gente de fora:
 
-O que ficou combinado para depois dela:
+- **Termos de Uso e Política de Privacidade** (decisão 030). Testador é pessoa
+  real, e a LGPD vale para os 20 primeiros como para os próximos. A tabela de
+  `integrations.md` 3.3 diz quais serviços a Política precisa citar.
+- **Idade mínima** (decisão 060), se houver.
+- **Site URL do Supabase** ainda é `http://localhost:3000`: qualquer e-mail que
+  não carregue `redirect_to` manda o testador para a máquina de quem
+  desenvolve. Trocar para `https://colexa.fly.dev` enquanto o domínio não existe.
+- **Limites do Supabase Auth** (*Authentication → Rate Limits*): o padrão conta
+  por IP, e vários testadores na mesma rede — uma loja, um evento — batem no
+  teto juntos. Conferir antes.
+- **Backup do banco**: o plano gratuito não tem. Com dado de gente real, é o
+  maior risco da operação.
+- **Um caminho para o testador relatar**: hoje só existe o e-mail do suporte,
+  que nem aparece na tela. Decisão do dono do produto se entra um item
+  "Enviar feedback" em Minha conta.
+- **A tarefa Contas nunca rodou em produção.** Uma execução à mão pelo GitHub
+  Actions confirma os segredos antes de alguém pedir exclusão de verdade.
+
+O que continua combinado para depois:
 
 - **A passada de Claude Design nos componentes compartilhados** — botão, painel,
   linha de lista, estado vazio —, que o dono do produto adiou para depois da
-  Social. Ela ajusta a Social junto com o resto. A revisão visual e textual tela
-  a tela, e os links das cartas, ficam para o fim.
-- **Os bloqueios de lançamento** (seção "Pendências"): Termos de Uso e Política
-  de Privacidade (que precisam citar Cloudflare, Resend e Google), idade mínima,
-  excluir a conta, e-mail repetido entre provedores, Premium no lançamento,
-  limpar as contas de teste e ligar o domínio.
+  Social. A revisão visual e textual tela a tela, e os links das cartas, ficam
+  para o fim.
+- **Os bloqueios de lançamento** (seção "Pendências"): Termos e Política, idade
+  mínima, e-mail repetido entre provedores, Premium no lançamento, limpar as
+  contas de teste e ligar o domínio.
+- **CSP de scripts** (decisão 092 deixou de fora): fechar de onde o navegador
+  pode carregar script. Feito errado, derruba o login sem aviso, então pede uma
+  passada própria.
 
 A skill `design` está habilitada e funciona; o conector do **Figma** aparece na
 sessão mas está **sem autorização**, e sessões não interativas não conseguem
