@@ -7,6 +7,7 @@ import { StatTile } from '@/components/collection/stat-tile'
 import { ListRow, Panel, PanelList } from '@/components/ui/surface'
 import { getStorageLocation } from '@/server/application/storage'
 import { STORAGE_PURPOSE_LABEL, STORAGE_TYPE_LABEL } from '@/server/domain/storage/locations'
+import { isPremium } from '@/server/application/authorization'
 import { requireViewer } from '@/server/http/viewer'
 
 export const metadata: Metadata = { title: 'Local' }
@@ -41,11 +42,14 @@ export default async function LocalPage({ params }: PageProps<'/binders/[id]'>) 
             label={location.cardCount === 1 ? 'carta' : 'cartas'}
             icon={<Layers className="size-4" aria-hidden />}
           />
-          <StatTile
-            value={String(location.closedPlaysetsHere)}
-            label={location.closedPlaysetsHere === 1 ? 'playset aqui' : 'playsets aqui'}
-            icon={<Star className="size-4" aria-hidden />}
-          />
+          {/* Decisao 093: contagem de playset e analise da colecao, entao e Premium. */}
+          {isPremium(viewer) ? (
+            <StatTile
+              value={String(location.closedPlaysetsHere)}
+              label={location.closedPlaysetsHere === 1 ? 'playset aqui' : 'playsets aqui'}
+              icon={<Star className="size-4" aria-hidden />}
+            />
+          ) : null}
         </div>
 
         <section className="flex flex-col gap-3">

@@ -12,6 +12,8 @@ import { getCatalogVocabulary } from '@/server/application/catalog'
 import { getCollectionSummary, searchCollection } from '@/server/application/collection'
 import { cardCountLabel } from '@/server/domain/catalog/sets'
 import { countActiveFilters, toCatalogQuery } from '@/lib/catalog-params'
+import { PremiumNotice } from '@/components/premium/premium-notice'
+import { isPremium } from '@/server/application/authorization'
 import { requireViewer } from '@/server/http/viewer'
 
 export const metadata: Metadata = { title: 'Coleção' }
@@ -38,15 +40,27 @@ export default async function ColecaoPage({ searchParams }: PageProps<'/colecao'
 
   const filters = toCatalogQuery(params, { pageSize: 100 })
 
+  /*
+   * Decisao 093: a analise da colecao — quantas variantes distintas, quantos
+   * playsets fecharam, o que falta — e Premium. Ver e buscar a colecao inteira
+   * continua de todos.
+   *
+   * Para o Free os recortes nem sao consultados, e o endereco escrito a mao cai
+   * em "todas": esconder a aba e continuar respondendo a ela seria trava de
+   * fachada.
+   */
+  const premium = isPremium(viewer)
+  const recorte: Scope = premium ? scope : 'all'
+
   const [summary, vocabulary, todas, playsets, faltam] = await Promise.all([
     getCollectionSummary(viewer),
     getCatalogVocabulary(),
     searchCollection(viewer, { ...filters, scope: 'all' }),
-    searchCollection(viewer, { ...filters, scope: 'playsets' }),
-    searchCollection(viewer, { ...filters, scope: 'incomplete' }),
+    premium ? searchCollection(viewer, { ...filters, scope: 'playsets' }) : null,
+    premium ? searchCollection(viewer, { ...filters, scope: 'incomplete' }) : null,
   ])
 
-  const atual = scope === 'playsets' ? playsets : scope === 'incomplete' ? faltam : todas
+  const atual = recorte === 'playsets' ? playsets! : recorte === 'incomplete' ? faltam! : todas
 
   if (summary.totalCards === 0) {
     return (
@@ -66,7 +80,11 @@ export default async function ColecaoPage({ searchParams }: PageProps<'/colecao'
     <>
       <PageHeader
         title="Minha Coleção"
-        description={`${cardCountLabel(summary.totalCards)} · ${summary.uniqueVariants} variantes · ${summary.closedPlaysets} playsets`}
+        description={
+          premium
+            ? `${cardCountLabel(summary.totalCards)} · ${summary.uniqueVariants} variantes · ${summary.closedPlaysets} playsets`
+            : cardCountLabel(summary.totalCards)
+        }
       />
 
       <div className="flex flex-col gap-4">
@@ -77,23 +95,32 @@ export default async function ColecaoPage({ searchParams }: PageProps<'/colecao'
           <CatalogFilters vocabulary={vocabulary} activeCount={countActiveFilters(params)} />
         </div>
 
-        <CollectionScope
-          counts={{ all: todas.total, playsets: playsets.total, incomplete: faltam.total }}
-        />
+        {premium ? (
+          <>
+            <CollectionScope
+              counts={{ all: todas.total, playsets: playsets!.total, incomplete: faltam!.total }}
+            />
 
-        <PanelList>
-          <ListRow
-            href="/colecao/playsets"
-            leading={<Star className="size-5 text-text-muted" aria-hidden />}
-            title="Playsets"
-            description="Cartas com 4 ou mais cópias, somando todas as artes."
-            trailing={
-              <span className="text-sm font-semibold text-text tabular-nums">
-                {summary.closedPlaysets}
-              </span>
-            }
+            <PanelList>
+              <ListRow
+                href="/colecao/playsets"
+                leading={<Star className="size-5 text-text-muted" aria-hidden />}
+                title="Playsets"
+                description="Cartas com 4 ou mais cópias, somando todas as artes."
+                trailing={
+                  <span className="text-sm font-semibold text-text tabular-nums">
+                    {summary.closedPlaysets}
+                  </span>
+                }
+              />
+            </PanelList>
+          </>
+        ) : (
+          <PremiumNotice
+            title="A análise da coleção é Premium"
+            description="Playsets fechados, o que ainda falta e o progresso do catálogo aparecem aqui com o Premium. Ver, buscar e filtrar a coleção continua de todos."
           />
-        </PanelList>
+        )}
 
         {atual.total === 0 ? (
           <EmptyState
@@ -106,6 +133,7 @@ export default async function ColecaoPage({ searchParams }: PageProps<'/colecao'
               {cardCountLabel(atual.total)}
             </p>
             <CollectionGrid
+              showPlayset={premium}
               items={atual.items.map((item) => ({
                 ...item,
                 variantId: String(item.variantId),
@@ -116,7 +144,9 @@ export default async function ColecaoPage({ searchParams }: PageProps<'/colecao'
       </div>
 
       <p className="mt-8 text-xs text-text-subtle">
-        Progresso do catálogo: {summary.uniqueVariants} de {summary.catalogVariants} variantes.{' '}
+        {premium ? (
+          <>Progresso do catálogo: {summary.uniqueVariants} de {summary.catalogVariants} variantes. </>
+        ) : null}
         <Link href="/catalogo" className="underline underline-offset-2">
           Explorar o catálogo
         </Link>

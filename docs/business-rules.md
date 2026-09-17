@@ -467,11 +467,13 @@ ficaram para depois do teste com usuários.
 
 1. **Publicar o Trade Binder** num link público (6.1).
 2. **Começar uma troca**, pelo link ou pelo convite direto (4.6.1).
-3. **A análise da coleção** no Início: variantes distintas, playsets fechados,
-   progresso do catálogo (2.2) e, quando existir, o valor estimado.
+3. **A análise da coleção**, onde aparecer: no Início e em Minha Coleção
+   (números do cabeçalho, abas Playsets e Faltam, a lista de playsets e a marca
+   "Playset" na carta), e a contagem de playsets no detalhe do binder. Inclui o
+   progresso (2.2) e, quando existir, o valor estimado.
 4. **Aparecer primeiro na rede** (6.1.3).
 
-**No Free, sem limite:** cadastrar a coleção inteira, binders e caixas, want list
+**No Free, sem limite:** cadastrar, **ver, buscar e filtrar** a coleção inteira, binders e caixas, want list
 e a folha compartilhável dela, catálogo e preços por carta, o total de cartas no
 Início, **entrar em trocas** (por convite ou link) e negociar até o fim,
 conversar, aparecer na rede com o Trade Binder e bloquear ou denunciar.

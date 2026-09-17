@@ -1,7 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { AuthenticatedUser } from '@/server/application/auth'
 import { PREMIUM_REQUIRED } from '@/server/application/authorization'
-import { readDashboard } from '@/server/application/collection/read-collection'
+import { listPlaysets, readDashboard } from '@/server/application/collection/read-collection'
 import { publishTradeBinder, readPublicTradeBinder } from '@/server/application/trades/public-binder'
 import { acceptInvite, inviteMember, joinTrade, startTrade } from '@/server/application/trades/start-trade'
 import { startConversation } from '@/server/application/social/conversations'
@@ -143,6 +143,17 @@ describe('o Início', () => {
     const doPremium = await readDashboard(testPrisma(), premium)
     expect(doPremium).toMatchObject({ totalCards: 4, premium: true, uniqueVariants: 1, closedPlaysets: 1 })
     expect(doPremium.catalogVariants).toBeGreaterThan(0)
+  })
+
+  it('a lista de playsets é Premium', async () => {
+    const free = await pessoa('Free', 'free')
+    const premium = await pessoa('Premium', 'premium', { plan: 'PREMIUM', premiumUntil: AMANHA })
+    const { variant } = await createCardWithVariant()
+    await own(free.collectionId, variant.id, 4)
+    await own(premium.collectionId, variant.id, 4)
+
+    await expect(listPlaysets(testPrisma(), free)).rejects.toMatchObject({ code: PREMIUM_REQUIRED })
+    expect(await listPlaysets(testPrisma(), premium)).toMatchObject([{ closed: true }])
   })
 
   it('coleção vazia não quebra em nenhum dos planos', async () => {

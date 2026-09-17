@@ -5800,10 +5800,18 @@ recursos Premium que a especificação não previa.
 1. **Publicar o Trade Binder** (regra 6.1, trava em `publishTradeBinder`).
 2. **Começar uma troca** — pelo link (`startTrade`) e pelo convite direto
    (`inviteMember`). As duas portas, senão o link seria pago e o convite, grátis.
-3. **A análise da coleção** no Início: variantes distintas, playsets fechados,
-   progresso do catálogo e o valor estimado, quando existir. **O total de cartas
-   fica no Free**: sem ele, quem acabou de cadastrar cinquenta cartas abriria o
-   app e não veria sinal do próprio trabalho.
+3. **A análise da coleção**, onde ela aparecer. No Início: variantes distintas,
+   playsets fechados, progresso do catálogo e o valor estimado, quando existir.
+   Em Minha Coleção: os números do cabeçalho, as abas **Playsets** e **Faltam**,
+   a lista de playsets (`/colecao/playsets`) e a marca "Playset" na carta. No
+   binder: a contagem de playsets daquele local. **O total de cartas fica no
+   Free**, e ver, buscar e filtrar a coleção inteira também: sem isso, quem
+   acabou de cadastrar cinquenta cartas abriria o app e não veria sinal do
+   próprio trabalho.
+
+   Para o Free, os recortes nem são consultados, e o endereço escrito à mão cai
+   em "todas" — esconder a aba e continuar respondendo a ela seria trava de
+   fachada. `listPlaysets` também recusa no caso de uso.
 4. **Aparecer primeiro na rede** (regra 6.1.3, já implementado).
 
 **Free:** todo o resto, sem limite de cartas, binders ou wants — e **entrar em

@@ -38,7 +38,9 @@ async function owner(name = 'Dono'): Promise<Owner> {
       id: created.id,
       email: `${name.toLowerCase()}@example.test`,
       name,
-      plan: 'FREE',
+      // Decisao 093: a analise da colecao (playsets, progresso) e Premium, e
+      // parte destes testes le exatamente isso.
+      plan: 'PREMIUM',
       premiumUntil: null,
     },
     collectionId: created.collection!.id,
