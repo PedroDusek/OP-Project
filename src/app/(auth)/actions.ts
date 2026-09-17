@@ -30,6 +30,9 @@ import type { AuthFormState } from './state'
 /** `FormData` traz "on" para caixa marcada e nada para desmarcada. */
 const checked = (data: FormData, name: string) => data.get(name) !== null
 
+/** O token do Turnstile, que o componente `Captcha` poe no formulario (decisao 088). */
+const captcha = (data: FormData) => String(data.get('captchaToken') ?? '')
+
 export async function signInAction(
   _previous: AuthFormState,
   data: FormData,
@@ -42,6 +45,7 @@ export async function signInAction(
         email: data.get('email'),
         password: data.get('password'),
         remember,
+        captchaToken: captcha(data),
       },
       { cookies: await requestCookies({ remember }), appUrl: appUrl() },
     )
@@ -66,6 +70,7 @@ export async function signUpAction(
         password: data.get('password'),
         passwordConfirmation: data.get('passwordConfirmation'),
         acceptedTerms: checked(data, 'acceptedTerms'),
+        captchaToken: captcha(data),
       },
       { cookies: await requestCookies(), appUrl: appUrl() },
     )
@@ -94,7 +99,10 @@ export async function passwordResetAction(
     .toLowerCase()
 
   try {
-    await requestPasswordReset({ email }, { cookies: await requestCookies(), appUrl: appUrl() })
+    await requestPasswordReset(
+      { email, captchaToken: captcha(data) },
+      { cookies: await requestCookies(), appUrl: appUrl() },
+    )
   } catch (error) {
     return formErrorFrom(error)
   }

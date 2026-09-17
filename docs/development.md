@@ -333,7 +333,26 @@ node -e "require('dotenv').config();fetch(process.env.NEXT_PUBLIC_SUPABASE_URL+'
 O que este comando reportar é exatamente o que a tela vai desenhar. O resultado
 fica em cache por cinco minutos no servidor da aplicação.
 
-### 6.4 Se a conexão direta falhar
+### 6.4 Ligar o CAPTCHA (decisão 088)
+
+Nesta ordem — ao contrário, ninguém entra, inclusive no desenvolvimento local,
+que usa o mesmo projeto Supabase:
+
+1. **Cloudflare → Turnstile → Add widget.** Nome `ColeXa`, hostnames `localhost`
+   e `colexa.com.br`, modo *Managed*. Ela mostra a *Site Key* (pública) e a
+   *Secret Key*.
+2. **A Site Key em `NEXT_PUBLIC_TURNSTILE_SITE_KEY`**, no `.env` e no ambiente de
+   produção. Reinicie o `npm run dev`; em produção, é preciso um build novo,
+   porque a variável entra no pacote do navegador.
+3. **Confira** que entrar, criar conta e recuperar senha mostram o desafio. Com
+   o painel ainda desligado, tudo continua funcionando.
+4. **Supabase → Authentication → Attack Protection → Enable Captcha
+   protection**, provedor *Turnstile*, com a *Secret Key*.
+5. **Confira de novo** os três formulários.
+
+Para desligar, na ordem inversa: o painel primeiro, a chave depois.
+
+### 6.5 Se a conexão direta falhar
 
 O Supabase serve a conexão direta por IPv6. Em rede sem IPv6, a conexão expira
 sem erro claro. Nesse caso use a string do **Session pooler**, que é compatível

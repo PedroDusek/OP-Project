@@ -50,7 +50,7 @@ const callbackUrl = (appUrl: string, next?: string) => {
 }
 
 export async function signIn(input: unknown, { cookies }: Deps): Promise<void> {
-  const { email, password } = parseOrThrow(signInSchema, input)
+  const { email, password, captchaToken } = parseOrThrow(signInSchema, input)
 
   /*
    * A cota e por endereco, e nao por IP.
@@ -65,7 +65,7 @@ export async function signIn(input: unknown, { cookies }: Deps): Promise<void> {
    */
   consumeRateLimit(`auth:signin:${email}`, AUTH_ATTEMPT_LIMIT)
 
-  await activeAuthProvider(cookies).signInWithPassword(email, password)
+  await activeAuthProvider(cookies).signInWithPassword(email, password, captchaToken)
 }
 
 export interface SignUpOutcome {
@@ -74,7 +74,7 @@ export interface SignUpOutcome {
 }
 
 export async function signUp(input: unknown, { cookies, appUrl }: Deps): Promise<SignUpOutcome> {
-  const { name, email, password } = parseOrThrow(signUpSchema, input)
+  const { name, email, password, captchaToken } = parseOrThrow(signUpSchema, input)
 
   consumeRateLimit(`auth:signup:${email}`, EMAIL_SEND_LIMIT)
 
@@ -83,6 +83,7 @@ export async function signUp(input: unknown, { cookies, appUrl }: Deps): Promise
     email,
     password,
     redirectTo: callbackUrl(appUrl, '/inicio'),
+    captchaToken,
   })
 
   return { ...result, email }
@@ -100,13 +101,14 @@ export async function signOut({ cookies }: Deps): Promise<void> {
  * consulta de "quem tem conta aqui".
  */
 export async function requestPasswordReset(input: unknown, { cookies, appUrl }: Deps): Promise<void> {
-  const { email } = parseOrThrow(passwordResetSchema, input)
+  const { email, captchaToken } = parseOrThrow(passwordResetSchema, input)
 
   consumeRateLimit(`auth:reset:${email}`, EMAIL_SEND_LIMIT)
 
   await activeAuthProvider(cookies).sendPasswordReset(
     email,
     callbackUrl(appUrl, '/nova-senha'),
+    captchaToken,
   )
 }
 

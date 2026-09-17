@@ -44,14 +44,14 @@ const fakeProvider: AuthProvider = {
     record('signUp', input)
     return signUpResult
   },
-  async signInWithPassword(email, password) {
-    record('signInWithPassword', email, password)
+  async signInWithPassword(email, password, captchaToken) {
+    record('signInWithPassword', email, password, ...(captchaToken ? [captchaToken] : []))
   },
   async signOut() {
     record('signOut')
   },
-  async sendPasswordReset(email, redirectTo) {
-    record('sendPasswordReset', email, redirectTo)
+  async sendPasswordReset(email, redirectTo, captchaToken) {
+    record('sendPasswordReset', email, redirectTo, ...(captchaToken ? [captchaToken] : []))
   },
   async updatePassword(password) {
     record('updatePassword', password)
@@ -254,4 +254,50 @@ describe('provedor social', () => {
       )
     },
   )
+})
+
+describe('CAPTCHA (decisão 088)', () => {
+  /*
+   * Quem confere o token e o Supabase, com o CAPTCHA ligado no painel. O que e
+   * nosso: o token do formulario chega ao provedor nos tres fluxos, e vazio
+   * chega como ausente.
+   */
+  it('o token chega ao provedor ao entrar, cadastrar e pedir redefinição', async () => {
+    await signIn({ email: 'p@example.test', password: 'senha-boa', captchaToken: 'tok-1' }, deps)
+    expect(lastCall('signInWithPassword')?.args).toEqual(['p@example.test', 'senha-boa', 'tok-1'])
+
+    await signUp(
+      {
+        name: 'Pessoa',
+        email: 'nova@example.test',
+        password: 'senha-longa',
+        passwordConfirmation: 'senha-longa',
+        acceptedTerms: true,
+        captchaToken: 'tok-2',
+      },
+      deps,
+    )
+    expect(lastCall('signUp')?.args[0]).toMatchObject({ captchaToken: 'tok-2' })
+
+    await requestPasswordReset({ email: 'p@example.test', captchaToken: 'tok-3' }, deps)
+    expect(lastCall('sendPasswordReset')?.args.at(-1)).toBe('tok-3')
+  })
+
+  it('sem CAPTCHA configurado, o campo vazio não vira token', async () => {
+    await signIn({ email: 'p@example.test', password: 'senha-boa', captchaToken: '' }, deps)
+    expect(lastCall('signInWithPassword')?.args).toEqual(['p@example.test', 'senha-boa'])
+
+    await signUp(
+      {
+        name: 'Pessoa',
+        email: 'nova@example.test',
+        password: 'senha-longa',
+        passwordConfirmation: 'senha-longa',
+        acceptedTerms: true,
+        captchaToken: '   ',
+      },
+      deps,
+    )
+    expect(lastCall('signUp')?.args[0]).toMatchObject({ captchaToken: undefined })
+  })
 })

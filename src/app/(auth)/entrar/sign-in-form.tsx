@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Mail } from 'lucide-react'
 import { signInAction } from '../actions'
 import { IDLE } from '../state'
+import { Captcha } from '@/components/auth/captcha'
 import { AuthHeading, FieldError, FormAlert, SubmitButton } from '@/components/auth/form-parts'
 import { SocialButtons } from '@/components/auth/social-buttons'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -99,6 +100,8 @@ export function SignInForm({
             Esqueci minha senha
           </Link>
         </div>
+
+        <Captcha resetKey={state} />
 
         <SubmitButton>Entrar</SubmitButton>
       </form>

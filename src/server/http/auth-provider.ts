@@ -48,6 +48,7 @@ export interface SignUpInput {
   name: string
   /** Para onde o link do e-mail de confirmacao volta. */
   redirectTo: string
+  captchaToken?: string
 }
 
 export interface SignUpResult {
@@ -64,8 +65,13 @@ export interface AuthProvider {
 
   signUp(input: SignUpInput): Promise<SignUpResult>
 
-  /** Lanca `AuthenticationError` com mensagem generica quando falha. */
-  signInWithPassword(email: string, password: string): Promise<void>
+  /**
+   * Lanca `AuthenticationError` com mensagem generica quando falha.
+   *
+   * `captchaToken` e o do Turnstile (decisao 088): o provedor so o exige quando
+   * o CAPTCHA esta ligado no painel. Vale o mesmo para cadastrar e redefinir.
+   */
+  signInWithPassword(email: string, password: string, captchaToken?: string): Promise<void>
 
   signOut(): Promise<void>
 
@@ -73,7 +79,7 @@ export interface AuthProvider {
    * Envia o e-mail de redefinicao. **Nao** revela se o endereco existe: quem
    * chama responde a mesma coisa nos dois casos.
    */
-  sendPasswordReset(email: string, redirectTo: string): Promise<void>
+  sendPasswordReset(email: string, redirectTo: string, captchaToken?: string): Promise<void>
 
   /** Troca a senha de quem ja esta autenticado pelo link de redefinicao. */
   updatePassword(password: string): Promise<void>

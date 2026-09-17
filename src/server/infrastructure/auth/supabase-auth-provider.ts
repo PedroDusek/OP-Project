@@ -55,11 +55,11 @@ export class SupabaseAuthProvider implements AuthProvider {
     })
   }
 
-  async signUp({ email, password, name, redirectTo }: SignUpInput): Promise<SignUpResult> {
+  async signUp({ email, password, name, redirectTo, captchaToken }: SignUpInput): Promise<SignUpResult> {
     const { data, error } = await this.client().auth.signUp({
       email,
       password,
-      options: { data: { name }, emailRedirectTo: redirectTo },
+      options: { data: { name }, emailRedirectTo: redirectTo, captchaToken },
     })
 
     if (error) throw translate(error)
@@ -73,8 +73,12 @@ export class SupabaseAuthProvider implements AuthProvider {
     return { needsEmailConfirmation: !data.session }
   }
 
-  async signInWithPassword(email: string, password: string): Promise<void> {
-    const { error } = await this.client().auth.signInWithPassword({ email, password })
+  async signInWithPassword(email: string, password: string, captchaToken?: string): Promise<void> {
+    const { error } = await this.client().auth.signInWithPassword({
+      email,
+      password,
+      options: { captchaToken },
+    })
     if (error) throw translate(error)
   }
 
@@ -82,10 +86,16 @@ export class SupabaseAuthProvider implements AuthProvider {
     await this.client().auth.signOut()
   }
 
-  async sendPasswordReset(email: string, redirectTo: string): Promise<void> {
-    const { error } = await this.client().auth.resetPasswordForEmail(email, { redirectTo })
-    // Endereco desconhecido nao e erro aqui, e nao pode virar um: a diferenca
-    // entre "enviado" e "nao existe" e uma lista de quem tem conta.
+  async sendPasswordReset(email: string, redirectTo: string, captchaToken?: string): Promise<void> {
+    const { error } = await this.client().auth.resetPasswordForEmail(email, { redirectTo, captchaToken })
+    /*
+     * Endereco desconhecido nao e erro aqui, e nao pode virar um: a diferenca
+     * entre "enviado" e "nao existe" e uma lista de quem tem conta.
+     *
+     * Mas o CAPTCHA recusado tambem responde 400, e engoli-lo diria "enviamos"
+     * sem ter enviado nada. Ele nao revela conta nenhuma, entao sobe.
+     */
+    if (error && isCaptchaFailure(error)) throw translate(error)
     if (error && error.status !== 400) throw translate(error)
   }
 
@@ -131,9 +141,22 @@ export class SupabaseAuthProvider implements AuthProvider {
  * qualquer detalhamento nosso — "e-mail nao encontrado" — viraria uma forma de
  * descobrir quem tem conta.
  */
-function translate(error: { message?: string; code?: string; status?: number } | null): Error {
+type ProviderError = { message?: string; code?: string; status?: number }
+
+/** O Supabase recusou o token do Turnstile, ou ele nao veio (decisao 088). */
+function isCaptchaFailure(error: ProviderError): boolean {
+  return error.code === 'captcha_failed' || /captcha/i.test(error.message ?? '')
+}
+
+function translate(error: ProviderError | null): Error {
   const code = error?.code
   const message = error?.message ?? ''
+
+  if (error && isCaptchaFailure(error)) {
+    return new AuthenticationError(
+      'Não conseguimos confirmar que você não é um robô. Aguarde a verificação e tente de novo.',
+    )
+  }
 
   if (code === 'invalid_credentials' || /invalid login credentials/i.test(message)) {
     return new AuthenticationError('E-mail ou senha incorretos.')

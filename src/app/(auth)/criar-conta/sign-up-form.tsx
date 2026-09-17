@@ -12,6 +12,7 @@ import {
   SentToEmail,
   SubmitButton,
 } from '@/components/auth/form-parts'
+import { Captcha } from '@/components/auth/captcha'
 import { SocialButtons } from '@/components/auth/social-buttons'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/field'
@@ -174,6 +175,8 @@ export function SignUpForm({ providers }: { providers: OAuthProviderId[] }) {
             </>
           }
         />
+
+        <Captcha resetKey={state} />
 
         <SubmitButton>Criar conta</SubmitButton>
       </form>

@@ -31,10 +31,22 @@ const password = z
   .min(8, 'A senha precisa ter ao menos 8 caracteres.')
   .max(72, 'A senha pode ter no máximo 72 caracteres.')
 
+/**
+ * O token do CAPTCHA (decisão 088). Opcional aqui: quem exige é o Supabase, e só
+ * quando o CAPTCHA está ligado no painel. Vazio vira ausente, para o provedor
+ * não receber uma string em branco como se fosse token.
+ */
+const captchaToken = z
+  .string()
+  .max(4096)
+  .optional()
+  .transform((value) => (value && value.trim() ? value.trim() : undefined))
+
 export const signInSchema = z.object({
   email,
   password: z.string().min(1, 'Informe sua senha.'),
   remember: z.boolean().default(false),
+  captchaToken,
 })
 
 export const signUpSchema = z
@@ -50,13 +62,14 @@ export const signUpSchema = z
     acceptedTerms: z.literal(true, {
       message: 'É preciso aceitar os Termos de Uso e a Política de Privacidade.',
     }),
+    captchaToken,
   })
   .refine((data) => data.password === data.passwordConfirmation, {
     path: ['passwordConfirmation'],
     message: 'As senhas não coincidem.',
   })
 
-export const passwordResetSchema = z.object({ email })
+export const passwordResetSchema = z.object({ email, captchaToken })
 
 export const newPasswordSchema = z
   .object({
