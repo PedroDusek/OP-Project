@@ -1,11 +1,14 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import { PageHeader } from '@/components/layout/app-shell'
+import { PremiumNotice } from '@/components/premium/premium-notice'
 import { WantSheetPrint } from '@/components/wants/want-sheet-print'
+import { isPremium } from '@/server/application/authorization'
 import { listWants } from '@/server/application/wants'
 import { requireViewer } from '@/server/http/viewer'
 
-export const metadata: Metadata = { title: 'Want list em PDF' }
+export const metadata: Metadata = { title: 'Compartilhar a want list' }
 
 /**
  * A want list em folha, para levar a um grupo local.
@@ -21,6 +24,21 @@ export const metadata: Metadata = { title: 'Want list em PDF' }
  */
 export default async function WantPdfPage() {
   const viewer = await requireViewer('/quero/pdf')
+
+  // Decisao 093: a folha e Premium. A tela anterior ja esconde o caminho; isto
+  // recusa quem escreve o endereco a mao.
+  if (!isPremium(viewer)) {
+    return (
+      <>
+        <PageHeader title="Compartilhar a want list" description="Uma folha com o que falta, para mandar nos grupos." />
+        <PremiumNotice
+          title="Compartilhar a want list é Premium"
+          description="Com o Premium, você gera uma folha com as cartas que faltam, em imagem para mandar nos grupos ou pronta para imprimir."
+        />
+      </>
+    )
+  }
+
   const wants = await listWants(viewer)
 
   return (
@@ -34,7 +52,7 @@ export default async function WantPdfPage() {
           <ArrowLeft className="size-5" aria-hidden />
         </Link>
         <div className="min-w-0 flex-1 pt-2">
-          <h1 className="truncate text-2xl font-bold tracking-tight text-text">Want list em PDF</h1>
+          <h1 className="truncate text-2xl font-bold tracking-tight text-text">Compartilhar a want list</h1>
           <p className="mt-1 text-sm text-text-muted">
             Uma folha com o que falta, para mandar nos grupos.
           </p>

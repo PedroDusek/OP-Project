@@ -471,10 +471,13 @@ ficaram para depois do teste com usuários.
    (números do cabeçalho, abas Playsets e Faltam, a lista de playsets e a marca
    "Playset" na carta), e a contagem de playsets no detalhe do binder. Inclui o
    progresso (2.2) e, quando existir, o valor estimado.
-4. **Aparecer primeiro na rede** (6.1.3).
+4. **Compartilhar a want list** — a folha com o que falta, em imagem ou
+   impressa. Montá-la e usá-la como quiser é o recurso; **manter a want list**
+   continua no Free.
+5. **Aparecer primeiro na rede** (6.1.3).
 
-**No Free, sem limite:** cadastrar, **ver, buscar e filtrar** a coleção inteira, binders e caixas, want list
-e a folha compartilhável dela, catálogo e preços por carta, o total de cartas no
+**No Free, sem limite:** cadastrar, **ver, buscar e filtrar** a coleção inteira, binders e caixas, a want list
+inteira, catálogo e preços por carta, o total de cartas no
 Início, **entrar em trocas** (por convite ou link) e negociar até o fim,
 conversar, aparecer na rede com o Trade Binder e bloquear ou denunciar.
 

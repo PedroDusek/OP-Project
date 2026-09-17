@@ -5812,7 +5812,11 @@ recursos Premium que a especificação não previa.
    Para o Free, os recortes nem são consultados, e o endereço escrito à mão cai
    em "todas" — esconder a aba e continuar respondendo a ela seria trava de
    fachada. `listPlaysets` também recusa no caso de uso.
-4. **Aparecer primeiro na rede** (regra 6.1.3, já implementado).
+4. **Compartilhar a want list**: a folha do que falta, em imagem para mandar nos
+   grupos ou pronta para imprimir (`/quero/pdf`). O atalho em Quero passou a se
+   chamar **Compartilhar**, que é o que a tela faz — "Baixar a lista" descrevia
+   o caminho menos usado. Manter a want list continua no Free.
+5. **Aparecer primeiro na rede** (regra 6.1.3, já implementado).
 
 **Free:** todo o resto, sem limite de cartas, binders ou wants — e **entrar em
 trocas**, por convite ou link, negociando até o fim. Travar as duas pontas
