@@ -5,10 +5,10 @@ Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
 ## Para retomar
 
 1. `npm run dev` — **sempre reinicie**. O servidor guarda o cliente Prisma que
-   carregou ao subir, e duas migrations entraram em 16/09 —
-   `rede_bloqueio_denuncia` e `conversas` (armadilha 40).
+   carregou ao subir (armadilha 40), e só lê o `.env` ao subir — `RESEND_API_KEY`
+   e `EMAIL_FROM` entraram nele em 17/09.
 2. `npm run supabase status` — mostra o que produção tem e o que falta. Em
-   17/09 ela ficou **em dia: 17 de 17 migrations**.
+   17/09 ela ficou **em dia: 18 de 18 migrations**.
 3. Leia "Produção, em 17/09/2026", "A Social" e "Próximo passo", abaixo.
 
 O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
@@ -19,7 +19,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 99 PRs mergeados, CI verde em todos |
+| Branch | `main`, 103 PRs mergeados, CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -33,7 +33,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 | Node | 20.20.2 — o `@supabase/supabase-js` já avisa que 20 está depreciado |
 | PostgreSQL local | 18.6, bancos `optcg` e `optcg_test` |
 | Produção | Supabase, região São Paulo, banco e autenticação |
-| `.env` | 8 variáveis, todas preenchidas, ignorado pelo Git |
+| `.env` | ignorado pelo Git; desde 17/09 com `RESEND_API_KEY` e `EMAIL_FROM` (decisão 086) |
 
 **Produção nunca é alvo padrão.** `DATABASE_URL` é sempre o banco local; o
 Supabase só é alcançado por `npm run supabase <migrate|import|prices|status|storage>`, que
@@ -42,7 +42,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 13 concluídos, e a Social.** 1.426 testes de unidade, integração e
+**Checkpoints 0 a 13 concluídos, e a Social.** 1.434 testes de unidade, integração e
 componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -96,11 +96,19 @@ componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 | — | Convite direto para troca, e busca por nome na rede (decisão 082) |
 | — | Todas as cartas na troca, em dois grupos; convite de troca no sino (decisão 083) |
 | — | Social em páginas de sete; balão da conversa certo no Brave; convite aceito leva à troca (decisão 084) |
+| — | A API de dados do Supabase sem permissão nenhuma nas nossas tabelas (decisão 085) |
+| — | A denúncia chega por e-mail a suporte@colexa.com.br, assunto DENUNCIA, pelo Resend (decisão 086) |
+| — | A página `/admin/denuncias` e `ADMIN_EMAILS` saíram: a denúncia é lida só pelo e-mail (decisão 087) |
 
 ### Produção, em 17/09/2026
 
-**Em dia: 17 de 17 migrations.** Em 17/09 entraram `rede_bloqueio_denuncia` e
-`conversas`, a pedido do dono do produto — as duas só criam tabelas. Em 16/09
+**Em dia: 18 de 18 migrations.** Em 17/09 entraram `rede_bloqueio_denuncia` e
+`conversas` — as duas só criam tabelas — e depois `api_de_dados_sem_permissao`,
+todas a pedido do dono do produto.
+
+A segurança da API de dados foi conferida depois, só leitura: `anon` e
+`authenticated` sem permissão em tabela nem sequência, RLS em 34 de 34 tabelas,
+e a chave pública recebendo 401 em `sets`, `users` e `messages`. Em 16/09
 tinham entrado as seis que faltavam desde 10/09 — `convite_de_troca`,
 `revisao_apos_alteracao`, `nome_de_usuario`, `concluir_a_troca`,
 `trade_binder_publico` e `troca_ao_vivo` — entraram em 16/09 com
@@ -418,6 +426,15 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     200 pelo próprio IP; aí o bloqueio está no telefone. E confira o IP do
     computador (`ipconfig`): o roteador troca, e o `.9` que se tentou era o
     próprio celular.
+53. **A regra padrão do `supabase_admin` não se revoga.** Depois da migration da
+    decisão 085, `pg_default_acl` ainda mostra `anon` e `authenticated` com tudo
+    — mas na regra do dono `supabase_admin`, que o `postgres` não pode alterar.
+    Ela só vale para objeto criado por esse papel; as nossas tabelas são do
+    `postgres`, e a regra dele está limpa. Confira o dono antes de concluir que a
+    migration não funcionou.
+54. **A chave do Resend "só envio" não lê a conta.** `GET /domains` responde 401
+    "restricted to only send emails". É a chave certa para o site; para saber se
+    o domínio está verificado, o lugar é o painel do Resend.
 
 ## Pendências
 
@@ -426,13 +443,16 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 1. **Termos de Uso e Política de Privacidade** (decisão 030). As rotas existem e
    dizem que o texto está em preparação. O produto **não pode receber cadastro
    de pessoa real** assim. O texto é decisão do dono do produto.
-2. **SMTP próprio no Supabase.** O serviço de e-mail embutido tem cota baixa por
-   hora e é do projeto inteiro: estourada, ninguém consegue confirmar conta nem
-   redefinir senha. Ver `development.md` 6.2.
+2. **SMTP próprio no Supabase** — **configurado pelo dono do produto em 17/09**,
+   com o Resend e o remetente ColeXa (decisão 086). Falta conferir com um
+   cadastro de verdade que a confirmação chega com o nome ColeXa. Sem ele, a
+   cota embutida é baixa e do projeto inteiro. Ver `development.md` 6.2.
 3. **Redirect URLs no painel do Supabase** precisam listar
    `<APP_URL>/auth/callback` de cada ambiente.
 4. **`RESEND_API_KEY` e `EMAIL_FROM` no ambiente de produção** (decisão 086).
-   Sem elas, a denúncia fica só gravada e ninguém é avisado.
+   Sem elas, a denúncia fica só gravada e ninguém é avisado. Local já tem, e o
+   primeiro e-mail de denúncia chegou em 17/09. A hospedagem ainda não foi
+   escolhida.
 5. **Idade mínima da rede** (decisão 060). A rede expõe o Trade Binder e abre
    conversa entre estranhos.
 
@@ -446,7 +466,9 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
   consciente. Hoje ele também é a única rota pública que desenha o shell, e é
   onde os testes de responsividade medem.
 - **Google e Apple** estão desligados. Ligar no painel faz os botões aparecerem
-  sozinhos, sem mudança de código (decisão 032). A Apple tem exigências de marca
+  sozinhos, sem mudança de código (decisão 032). **O Google o dono do produto
+  vai ligar** — é por ele que vai criar a conta oficial dele. No Google Cloud, o
+  redirect autorizado é `https://zcyavtxrnpxinkvfnftf.supabase.co/auth/v1/callback`. A Apple tem exigências de marca
   e de fluxo mais estritas, que valem conferir antes.
 
 ### Perguntas em aberto
@@ -657,7 +679,7 @@ Coisas para não desfazer sem querer:
   índice único de `variant_source_products` dá um dono por produto. Mostrar nas
   duas exigiria mudar o modelo, e o dono escolheu deixar como está.
 
-## A Social (decisões 079 a 084)
+## A Social (decisões 079 a 087)
 
 Construída de 16 a 17/09, **direto, sem a passada de design antes** — escolha do
 dono do produto. Conferida por ele no navegador e no iPhone (Safari e Brave).
@@ -906,6 +928,13 @@ Três coisas para não desfazer sem querer:
   das implementações perto do fim.
 - **O que vem depois da Social**: a passada de design nos componentes, ou os
   bloqueios de lançamento.
+- **CAPTCHA no cadastro** (Turnstile, no painel do Supabase). A confirmação de
+  e-mail já impede conta falsa de chegar às nossas tabelas; o CAPTCHA contém o
+  gasto de envio. Ligado, os formulários de entrar e cadastrar precisam mandar o
+  token — é código. Sugerido em 17/09, sem resposta.
+- **Duas travas no painel do Supabase**, recomendadas em 17/09: desligar a
+  exposição do schema `public` em *Settings → Data API* (o ColeXa não usa), e
+  *Network Restrictions* no banco quando a hospedagem existir.
 
 O protocolo continua: uma branch e um PR por checkpoint, o assistente merge
 quando estiver completo e sem pendência, e para antes de iniciar o próximo

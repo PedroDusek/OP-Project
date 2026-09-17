@@ -258,7 +258,7 @@ Três coisas do fluxo de conta **não** se resolvem em código:
 |---|---|---|
 | Redirect URLs | *Authentication → URL Configuration* | precisa listar `<APP_URL>/auth/callback` de cada ambiente |
 | Google e Apple | *Authentication → Providers* | desligados hoje; ver 6.2 |
-| SMTP próprio | *Project Settings → Auth → SMTP* | não configurado |
+| SMTP próprio | *Authentication → Emails → SMTP Settings* | configurado em 17/09, pelo Resend (decisão 086) |
 
 O serviço de e-mail embutido do Supabase serve para desenvolvimento e tem cota
 baixa por hora. Sem SMTP próprio, confirmação de conta e redefinição de senha
