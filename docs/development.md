@@ -398,6 +398,10 @@ Nenhum destes passos passa segredo pela conversa.
    Fly. É o que deixa o workflow **Contas** excluir a conta no Supabase Auth e
    as fotos no Storage; sem ele, a tarefa diária pula.
 
+O build acontece nos builders geridos (`--depot=true`). Não use `--remote-only`:
+ele cria um app `fly-builder-...` com um volume de 50 GB, que é cobrado todo mês
+(decisão 089, armadilha 64).
+
 #### A cada publicação
 
 1. `npm run supabase status`. Se faltar migration, `npm run supabase migrate`
