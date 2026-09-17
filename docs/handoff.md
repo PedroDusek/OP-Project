@@ -538,6 +538,11 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     Local não aparecia porque o cache tinha semanas. A chave do cache é a URL da
     imagem, a largura, a qualidade e o formato — não o domínio do site, então
     trocar para `colexa.com.br` aproveita o volume.
+64. **`fly deploy --remote-only` cria uma máquina de build sua, com 50 GB.** O
+    app `fly-builder-...` aparece sozinho na conta, e o volume dele é cobrado o
+    mês inteiro por causa de builds de dois minutos — mais caro que o site. O
+    certo é `--depot=true`, que usa os builders geridos. Se o app de build
+    reaparecer, confira a flag antes de apagá-lo.
 
 ## Pendências
 

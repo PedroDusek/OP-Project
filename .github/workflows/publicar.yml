@@ -42,15 +42,18 @@ jobs:
       - uses: superfly/flyctl-actions/setup-flyctl@master
         if: steps.token.outputs.pular != 'true'
 
-      # O build roda nos servidores da Fly. Os tres valores publicos vem das
-      # *variables* do repositorio (nao dos *secrets*): vao para o pacote do
-      # navegador de qualquer jeito.
+      # O build roda fora daqui, nos builders geridos (Depot), e nao numa
+      # maquina de build nossa: `--remote-only` criava o app `fly-builder-...`
+      # com uma maquina shared-cpu-4x e um **volume de 50 GB**, cobrado o mes
+      # inteiro por causa de builds de dois minutos (armadilha 64). Os tres
+      # valores publicos vem das *variables* do repositorio (nao dos *secrets*):
+      # vao para o pacote do navegador de qualquer jeito.
       - name: Publicar
         if: steps.token.outputs.pular != 'true'
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: >-
-          flyctl deploy --remote-only --ha=false
+          flyctl deploy --depot=true --ha=false
           --build-arg NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
           --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
           --build-arg NEXT_PUBLIC_TURNSTILE_SITE_KEY=${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}

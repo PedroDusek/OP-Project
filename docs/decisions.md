@@ -5616,6 +5616,10 @@ depois da comparação entre Vercel, Fly.io e VPS.
   GitHub. Fica a senha forte do banco, que já é o que protege hoje.
 - **Crescer** para duas máquinas exige antes tirar as cotas da memória (tabela
   ou serviço externo), que é mudança de modelo e volta como conversa.
+- **O build não usa máquina nossa.** `--remote-only` criava o app
+  `fly-builder-...`, com uma máquina `shared-cpu-4x` e um **volume de 50 GB**
+  (~US$ 7,50/mês, mais que o site). Corrigido em 17/09 para `--depot=true`, e o
+  app de build foi removido.
 
 ## Data
 
