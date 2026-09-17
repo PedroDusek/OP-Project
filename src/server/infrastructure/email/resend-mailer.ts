@@ -12,7 +12,7 @@ import type { EmailMessage, Mailer } from '@/server/http/mailer'
  *
  * Sem `RESEND_API_KEY` ou `EMAIL_FROM` o provedor se declara indisponível. O
  * desenvolvimento local não precisa de conta no Resend para o resto funcionar, e
- * a denúncia continua gravada no banco e em `/admin/denuncias`.
+ * a denúncia continua gravada no banco.
  *
  * O remetente precisa ser de um domínio verificado no Resend — `colexa.com.br`.
  * De outro domínio, a API responde 403 e o e-mail não sai.

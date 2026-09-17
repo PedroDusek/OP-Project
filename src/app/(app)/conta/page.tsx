@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { BlockedList } from '@/components/social/blocked-list'
 import { UsernameForm } from '@/components/social/username-form'
-import { getUsernameState, isAdmin, listBlockedMembers } from '@/server/application/social'
+import { getUsernameState, listBlockedMembers } from '@/server/application/social'
 import { PageHeader } from '@/components/layout/app-shell'
 import { ThemeControl } from '@/components/theme/theme-control'
 import { Panel, PanelList, ListRow } from '@/components/ui/surface'
@@ -56,15 +56,6 @@ export default async function MaisPage() {
             <h2 className="text-sm font-semibold text-text">Sua identidade na rede</h2>
             <UsernameForm state={username} />
             <BlockedList blocked={bloqueados} />
-          </section>
-        ) : null}
-
-        {viewer && isAdmin(viewer) ? (
-          <section className="flex flex-col gap-3">
-            <h2 className="text-sm font-semibold text-text">Administração</h2>
-            <PanelList>
-              <ListRow title="Denúncias da rede" description="O que as pessoas denunciaram." href="/admin/denuncias" />
-            </PanelList>
           </section>
         ) : null}
 

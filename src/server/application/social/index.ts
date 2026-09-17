@@ -1,6 +1,5 @@
 import { prisma } from '@/server/infrastructure/prisma'
 import { ResendMailer } from '@/server/infrastructure/email/resend-mailer'
-import { appUrl } from '@/server/http/app-url'
 import type { AuthenticatedUser } from '@/server/application/auth'
 import {
   blockMember as blockMemberWith,
@@ -10,7 +9,6 @@ import {
   reportMember as reportMemberWith,
   unblockMember as unblockMemberWith,
 } from './network'
-import { listReports as listReportsWith } from './reports'
 import {
   conversationState as conversationStateWith,
   listConversations as listConversationsWith,
@@ -60,11 +58,7 @@ export function listBlockedMembers(user: AuthenticatedUser) {
 }
 
 export function reportMember(user: AuthenticatedUser, username: string, reason: string) {
-  return reportMemberWith(prisma, { mailer, appUrl: appUrl() }, user, username, reason)
-}
-
-export function listReports(user: AuthenticatedUser) {
-  return listReportsWith(prisma, user)
+  return reportMemberWith(prisma, mailer, user, username, reason)
 }
 
 export function startConversation(user: AuthenticatedUser, username: string) {
@@ -87,9 +81,7 @@ export function sendMessage(user: AuthenticatedUser, conversationId: bigint, bod
   return sendMessageWith(prisma, user, conversationId, body)
 }
 
-export { isAdmin } from '@/server/application/authorization'
 export { USERNAME_REQUIRED_TO_CHAT } from './conversations'
 export type { ConversationMessage, ConversationSummary, ConversationView } from './conversations'
 export type { SetUsernameResult, UsernameState } from './set-username'
 export type { BlockedMember, MemberBinder, NetworkMember, NetworkPage } from './network'
-export type { ReportView } from './reports'

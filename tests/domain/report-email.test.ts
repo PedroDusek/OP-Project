@@ -9,7 +9,6 @@ const base = {
   reporter: { username: 'eu', email: 'eu@example.test' },
   reported: { username: 'ana', email: 'ana@example.test' },
   reason: 'Pediu pagamento adiantado.',
-  appUrl: 'https://colexa.com.br/',
 }
 
 describe('reportEmail', () => {
@@ -19,12 +18,11 @@ describe('reportEmail', () => {
     expect(email.subject).toBe('DENUNCIA')
   })
 
-  it('diz quem, quando, o motivo e onde ver as outras — no horário de Brasília', () => {
+  it('diz quem, quando e o motivo — no horário de Brasília', () => {
     const { text } = reportEmail(base)
     expect(text).toContain('Denúncia nº 42, em 17/09/2026, 12:30 (horário de Brasília).')
     expect(text).toContain('Denunciada: @ana <ana@example.test>')
     expect(text).toContain('Quem denunciou: @eu <eu@example.test>')
-    expect(text).toContain('https://colexa.com.br/admin/denuncias')
   })
 
   it('o motivo vem por último, depois das linhas fixas, e quem denunciou pode não ter nome', () => {
