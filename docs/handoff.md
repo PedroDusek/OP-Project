@@ -22,7 +22,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 116 PRs mergeados, CI verde em todos |
+| Branch | `main`, 119 PRs mergeados, CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -45,7 +45,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 13 concluídos, e a Social.** 1.474 testes de unidade, integração e
+**Checkpoints 0 a 13 concluídos, e a Social.** 1.485 testes de unidade, integração e
 componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -108,6 +108,9 @@ componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 | — | Imagens das cartas na Fly: esperar 30 s, e o cache num volume (decisão 090) |
 | — | Excluir a conta, com 30 dias para desistir e a tarefa diária que anonimiza (decisão 091) |
 | — | Cabeçalhos de segurança, páginas de erro em português e indexação só no domínio oficial (decisão 092) |
+| — | Excluir a conta, com 30 dias para desistir (decisão 091) |
+| — | Premium e Free: o que cada plano faz, com as travas aplicadas (decisão 093) |
+| — | As imagens das cartas preparadas depois de publicar (decisão 094) |
 
 ### Produção, em 17/09/2026
 
@@ -122,6 +125,9 @@ para teste. O domínio `colexa.com.br` **não** aponta para ele ainda.
 | Valores em `fly.toml` | `APP_URL=https://colexa.fly.dev`, `EMAIL_FROM`, `SUPABASE_STORAGE_BUCKET` |
 | GitHub | segredo `FLY_API_TOKEN` (token de deploy `publicar-github`, criado 16:01:34 de 17/09 — **o único ativo**; os cinco das tentativas foram revogados pelo dono do produto, conferido com `fly tokens list --app colexa`; vale até 2046, então vazou é revogar e gerar outro pelo Git Bash, armadilha 59); *variables* com os três `NEXT_PUBLIC_*` |
 | Painéis | Turnstile com `colexa.fly.dev`; Supabase com `https://colexa.fly.dev/**` nas *Redirect URLs* (Site URL continua `http://localhost:3000`); Google com a origem `https://colexa.fly.dev` |
+| Cobrança | o trial acabou em 17/09 — **2 horas de máquina ligada, não 7 dias** —, e o dono do produto cadastrou cartão. ~US$ 7/mês da máquina, US$ 0,15 do volume |
+| Build | nos builders geridos (`--depot=true`). `--remote-only` criava um app de build com volume de 50 GB (armadilha 64) |
+| Depois de publicar | o workflow prepara 200 cartas (400 imagens) em ~90 s, sem poder derrubar a publicação (decisão 094) |
 
 Conferido pelo assistente em 17/09: a checagem de saúde passa, o servidor roda
 como `node`, o banco conecta, o CAPTCHA desenha, e a mesma imagem de carta leva
@@ -140,6 +146,27 @@ preços ficam); uma sem a outra deixa login sem conta ou conta que renasce.
 **Backup:** conferir o plano do Supabase antes de receber gente real. No
 gratuito não há backup automático; o Pro (US$ 25/mês) tem diário. Recomendado ao
 dono do produto em 17/09.
+
+### Quanto cabe hoje, medido em 17/09
+
+| Medida | Valor |
+|---|---|
+| Página com banco | ~75 ms |
+| 20 pedidos simultâneos | 541 ms no total (~37/s) |
+| Memória | 157 MB de 1.024 MB |
+| Banco | 20 MB de 500 MB (quase tudo catálogo e preços) |
+| Conexões | 14 de 60 |
+
+Custo por pessoa, que é o que importa: negociando uma troca, **0,5 pedido/s** (a
+cada 2 s); numa conversa, 0,33; navegando, ~0,1; com o app aberto e parado, 0,02
+(só o sino). Daí:
+
+- **30 a 50 pessoas negociando ao mesmo tempo**, ou **200 a 300 navegando**;
+- **milhares de contas** cadastradas — o banco nem sente.
+
+**O que estoura primeiro não é o servidor**: é o **egress de 5 GB/mês** do plano
+gratuito do Supabase, depois os 500 MB de banco. Para 15 ou 20 testadores, a
+folga é grande: todos negociando dariam ~10 pedidos/s contra os ~37 medidos.
 
 **Login com Google ligado** em 17/09 pelo dono do produto (Google Auth Platform,
 cliente *Web application*, redirect do Supabase; `development.md` 6.3). Ele
@@ -543,6 +570,12 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     mês inteiro por causa de builds de dois minutos — mais caro que o site. O
     certo é `--depot=true`, que usa os builders geridos. Se o app de build
     reaparecer, confira a flag antes de apagá-lo.
+65. **O trial da Fly é "2 horas de máquina ligada ou 7 dias, o que vier
+    primeiro".** A nossa fica sempre ligada de propósito (as cotas moram na
+    memória do processo), então o trial acabou no mesmo dia e a Fly suspendeu o
+    app — o aviso de "50% usado" era de tempo, não de gasto. O painel mostrava
+    791 kB de tráfego e volumes em 0 GB: não havia o que economizar. Sem cartão,
+    não há caminho gratuito para manter o site de pé.
 
 ## Pendências
 
@@ -568,6 +601,8 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
    segredo `SUPABASE_SECRET_KEY` já estar no GitHub (está, desde 17/09) e a
    tarefa diária **Contas** ter rodado pelo menos uma vez para valer.
 7. **Limpar as contas de teste** de produção, nas duas metades (ver "Produção").
+   As contas existentes estão em **Free** desde a decisão 093: para testar troca,
+   publicação e análise, `npm run supabase premium <email> --ate=AAAA-MM-DD`.
 8. ~~**Premium no lançamento**~~ — **decidido em 17/09** (decisão 093): Premium
    é publicar o Trade Binder, começar troca, a análise da coleção e aparecer
    primeiro na rede. Falta só escolher **meio de pagamento e preço**, que o dono
@@ -854,8 +889,11 @@ que falta para receber gente de fora:
 - **Um caminho para o testador relatar**: hoje só existe o e-mail do suporte,
   que nem aparece na tela. Decisão do dono do produto se entra um item
   "Enviar feedback" em Minha conta.
-- **A tarefa Contas nunca rodou em produção.** Uma execução à mão pelo GitHub
-  Actions confirma os segredos antes de alguém pedir exclusão de verdade.
+- ~~**A tarefa Contas nunca rodou em produção**~~ — rodada à mão em 17/09: "0
+  vencida(s), 0 anonimizada(s), 0 com falha". Os segredos funcionam.
+- **Premium de cortesia** para cada testador, com prazo
+  (`npm run supabase premium <email> --ate=AAAA-MM-DD`): sem isso eles ficam no
+  Free e não começam troca nem publicam o Trade Binder (decisão 093).
 
 O que continua combinado para depois:
 
