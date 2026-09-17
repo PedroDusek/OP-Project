@@ -11,6 +11,7 @@ import {
   normalizeReportReason,
   previewCards,
 } from '@/server/domain/social/network'
+import { reportEmail } from '@/server/domain/social/report-email'
 import { normalizeUsername } from '@/server/domain/social/username'
 import { remainingToGet } from '@/server/domain/wants/status'
 import {
@@ -19,6 +20,7 @@ import {
   NETWORK_REPORT_LIMIT,
   NETWORK_SEARCH_LIMIT,
 } from '@/server/http/rate-limit'
+import type { Mailer } from '@/server/http/mailer'
 
 /**
  * A rede: quem tem cartas para troca, e o Trade Binder de cada um (regras 6.1.2 a
@@ -316,9 +318,21 @@ export async function listBlockedMembers(prisma: PrismaClient, viewer: Authentic
     .map((row) => ({ username: row.blocked.username!, since: row.createdAt }))
 }
 
-/** Denuncia. O motivo é obrigatório; quem vai ler precisa saber o que aconteceu. */
+export interface ReportDelivery {
+  mailer: Mailer
+  appUrl: string
+}
+
+/**
+ * Denuncia. O motivo é obrigatório; quem vai ler precisa saber o que aconteceu.
+ *
+ * Grava, e depois avisa o suporte por e-mail (decisão 086). O banco é o registro:
+ * se o e-mail falhar ou o provedor não estiver configurado, a denúncia já está em
+ * `/admin/denuncias`, e quem denunciou não vê erro de uma coisa que não é dela.
+ */
 export async function reportMember(
   prisma: PrismaClient,
+  delivery: ReportDelivery,
   viewer: AuthenticatedUser,
   username: string,
   rawReason: string,
@@ -326,5 +340,33 @@ export async function reportMember(
   const reason = normalizeReportReason(rawReason)
   const pessoa = await targetOf(prisma, viewer, username, 'denunciar')
   consumeRateLimit(`rede:denuncia:${viewer.id}`, NETWORK_REPORT_LIMIT)
-  await prisma.userReport.create({ data: { reporterId: viewer.id, reportedId: pessoa.id, reason } })
+  const denuncia = await prisma.userReport.create({
+    data: { reporterId: viewer.id, reportedId: pessoa.id, reason },
+    select: {
+      id: true,
+      createdAt: true,
+      reporter: { select: { username: true, email: true } },
+      reported: { select: { email: true } },
+    },
+  })
+
+  if (!delivery.mailer.available) return
+  try {
+    await delivery.mailer.send(
+      reportEmail({
+        reportId: denuncia.id,
+        createdAt: denuncia.createdAt,
+        reporter: denuncia.reporter,
+        reported: { username: pessoa.username, email: denuncia.reported.email },
+        reason,
+        appUrl: delivery.appUrl,
+      }),
+    )
+  } catch (error) {
+    // Sem o motivo nem os e-mails no log: só o que permite achar a denúncia.
+    console.error('[denuncia] e-mail ao suporte falhou', {
+      reportId: String(denuncia.id),
+      message: error instanceof Error ? error.message : String(error),
+    })
+  }
 }

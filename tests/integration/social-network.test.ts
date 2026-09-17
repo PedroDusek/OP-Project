@@ -9,6 +9,7 @@ import {
   unblockMember,
 } from '@/server/application/social/network'
 import { listReports } from '@/server/application/social/reports'
+import type { EmailMessage, Mailer } from '@/server/http/mailer'
 import { NotFoundError, RateLimitError, ValidationError } from '@/server/domain/errors'
 import { NETWORK_PAGE_SIZE } from '@/server/domain/social/network'
 import { resetRateLimits } from '@/server/http/rate-limit'
@@ -65,9 +66,17 @@ async function querer(quem: Pessoa, variantId: bigint, quantidade = 1) {
 
 const nomes = (page: Awaited<ReturnType<typeof listNetwork>>) => page.members.map((m) => m.username)
 
+/** O e-mail da denúncia vai para a memória, e não para a rede. */
+let enviados: EmailMessage[] = []
+const entrega = {
+  mailer: { name: 'memoria', available: true, send: async (m: EmailMessage) => void enviados.push(m) } satisfies Mailer,
+  appUrl: 'https://colexa.com.br/',
+}
+
 beforeEach(async () => {
   await resetDatabase()
   resetRateLimits()
+  enviados = []
 })
 
 afterEach(() => {
@@ -327,9 +336,9 @@ describe('bloquear e denunciar', () => {
     const eu = await pessoa('Eu', 'eu')
     const ana = await pessoa('Ana', 'ana')
 
-    await expect(reportMember(testPrisma(), eu.user, 'ana', '   ')).rejects.toThrow(ValidationError)
-    await expect(reportMember(testPrisma(), eu.user, 'eu', 'motivo')).rejects.toThrow(ValidationError)
-    await reportMember(testPrisma(), eu.user, 'ana', '  Pediu pagamento adiantado.  ')
+    await expect(reportMember(testPrisma(), entrega, eu.user, 'ana', '   ')).rejects.toThrow(ValidationError)
+    await expect(reportMember(testPrisma(), entrega, eu.user, 'eu', 'motivo')).rejects.toThrow(ValidationError)
+    await reportMember(testPrisma(), entrega, eu.user, 'ana', '  Pediu pagamento adiantado.  ')
 
     await expect(listReports(testPrisma(), eu.user)).rejects.toThrow(NotFoundError)
 
@@ -340,5 +349,45 @@ describe('bloquear e denunciar', () => {
       reporter: { username: 'eu' },
       reported: { username: 'ana', email: ana.user.email },
     })
+  })
+
+  /*
+   * Decisao 086, definida pelo dono do produto: cada denuncia chega a
+   * suporte@colexa.com.br com o assunto DENUNCIA. O banco continua sendo o
+   * registro — e-mail que falha nao desfaz a denuncia nem vira erro na tela.
+   */
+  it('avisa o suporte por e-mail, com endereço e assunto fixos', async () => {
+    const eu = await pessoa('Eu', 'eu')
+    const ana = await pessoa('Ana', 'ana')
+
+    await reportMember(testPrisma(), entrega, eu.user, 'ana', 'Pediu pagamento adiantado.')
+
+    expect(enviados).toHaveLength(1)
+    const [email] = enviados
+    expect(email.to).toBe('suporte@colexa.com.br')
+    expect(email.subject).toBe('DENUNCIA')
+    expect(email.text).toContain(`Denunciada: @ana <${ana.user.email}>`)
+    expect(email.text).toContain(`Quem denunciou: @eu <${eu.user.email}>`)
+    expect(email.text).toContain('Pediu pagamento adiantado.')
+    expect(email.text).toContain('https://colexa.com.br/admin/denuncias')
+  })
+
+  it('e-mail que falha, ou provedor sem configuração, não desfaz a denúncia', async () => {
+    const eu = await pessoa('Eu', 'eu')
+    await pessoa('Ana', 'ana')
+    const erro = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const quebrado: Mailer = { name: 'quebrado', available: true, send: async () => { throw new Error('403') } }
+    await reportMember(testPrisma(), { mailer: quebrado, appUrl: 'https://colexa.com.br' }, eu.user, 'ana', 'Um.')
+    expect(erro).toHaveBeenCalledWith('[denuncia] e-mail ao suporte falhou', expect.objectContaining({ message: '403' }))
+    // O log nao carrega o motivo.
+    expect(JSON.stringify(erro.mock.calls)).not.toContain('Um.')
+
+    const ausente: Mailer = { name: 'ausente', available: false, send: vi.fn() }
+    await reportMember(testPrisma(), { mailer: ausente, appUrl: 'https://colexa.com.br' }, eu.user, 'ana', 'Dois.')
+    expect(ausente.send).not.toHaveBeenCalled()
+
+    expect(await testPrisma().userReport.count()).toBe(2)
+    erro.mockRestore()
   })
 })
