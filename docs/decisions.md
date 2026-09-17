@@ -5286,3 +5286,48 @@ pessoa vê as conversas com outras pessoas da rede.
 ## Data
 
 2026-09-16
+
+---
+
+# Decisão: 082 — O convite direto para troca, e a busca por nome na rede
+
+Pedidos do dono do produto em 16/09: seguir com o convite direto, a segunda etapa
+da Social, e "tornar possível buscar o nick de alguém na Social e isso fazer com
+que apareçam as cartas para troca daquela pessoa". **Acrescenta à regra 4.6.1.**
+
+## O convite direto
+
+1. **"Convidar para trocar"** no Trade Binder de alguém da rede. A troca nasce em
+   `DRAFT` já com as duas pessoas — quem convida como `INITIATOR`, a convidada
+   como `RECIPIENT` — e **sem link**: ninguém de fora entra. Sem tabela nova.
+2. **O consentimento continua no gesto de quem recebe** (regra 4.6.1): antes do
+   aceite, a convidada não abre nem mexe na troca, e quem convidou não vê o
+   cruzamento com ela.
+3. **A convidada vê o convite em Trocas**, com aceitar e recusar. Aceitar leva a
+   troca a `NEGOTIATING`; recusar, a `CANCELLED`. Quem convidou vê "Convite
+   enviado para @nome", sem troca para abrir, e pode descartar.
+4. **Um convite aberto por vez** para quem convida, como o link. Aceitar exige as
+   duas pessoas livres de outra troca ativa (regra 4.5) — quem convidou pode ter
+   entrado noutra enquanto o convite esperava.
+5. **Nome na rede exigido** de quem convida; **bloqueio em qualquer direção**
+   impede, como nas conversas.
+6. **A troca mostra a outra pessoa pelo nome na rede** quando ela tem um (regra
+   6.1.1: é a única identidade que outros veem). O nome real só aparece na troca
+   por link com quem ainda não escolheu nome — que já se conhece por fora. Antes,
+   a troca mostrava sempre o nome real, o que vazaria a quem veio da rede.
+7. **O sino não avisa de convite**: o dono do produto limitou o primeiro corte a
+   cartas sem armazenamento e mensagens. O convite aparece no topo de Trocas.
+
+## A busca por nome
+
+1. A busca da Social casa a carta **ou** o nome na rede: "zoro" traz quem tem a
+   carta e quem se chama algo com "zoro". Começando com `@`, só o nome.
+2. **O nome igual ao buscado vem primeiro** — quem digita um nome inteiro procura
+   aquela pessoa —, depois a ordem da rede.
+3. Quem não tem carta em local de troca **continua fora da rede**, também na busca
+   por nome: a rede é de quem tem o que trocar (decisão 079).
+4. O `_` do nome é letra, e não curinga: é escapado na consulta.
+
+## Data
+
+2026-09-16

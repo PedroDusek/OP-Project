@@ -230,13 +230,18 @@ async function requireParticipant(
     select: {
       status: true,
       offerChangedAt: true,
-      participants: { select: { id: true, userId: true } },
+      participants: { select: { id: true, userId: true, role: true } },
     },
   })
   if (!trade) throw new NotFoundError('Troca não encontrada.')
 
   const mine = trade.participants.find((participant) => participant.userId === user.id)
   if (!mine) throw new AuthorizationError('Você não participa desta troca.')
+  // Convidada direto que ainda nao aceitou nao mexe na troca: aceita ou recusa
+  // pela lista de convites (decisao 082).
+  if (trade.status === 'DRAFT' && mine.role === 'RECIPIENT') {
+    throw new AuthorizationError('Aceite o convite em Trocas antes de mexer na troca.')
+  }
 
   return {
     trade: {

@@ -193,6 +193,39 @@ describe('a busca por carta', () => {
     expect(nomes(await listNetwork(testPrisma(), eu.user, { query: 'Luffy' }))).toEqual([])
   })
 
+  /* Decisao 082: buscar o nome de alguem traz as cartas para troca dela. */
+  it('busca pelo nome na rede, e com @ só pelo nome', async () => {
+    const eu = await pessoa('Eu', 'eu')
+    const zoro = await carta('OP01-001', 'Roronoa Zoro')
+    const ana = await pessoa('Ana', 'ana_zoro')
+    await guardar(ana, (await carta('OP01-016', 'Nami')).id, 1)
+    const bia = await pessoa('Bia', 'bia')
+    await guardar(bia, zoro.id, 1)
+    const semCartas = await pessoa('Caio', 'caio')
+    await guardar(semCartas, zoro.id, 1, 'COLLECTION')
+
+    // "zoro" casa a carta da Bia e o nome da Ana.
+    expect(nomes(await listNetwork(testPrisma(), eu.user, { query: 'zoro' }))).toEqual(['ana_zoro', 'bia'])
+    // Com @, so o nome.
+    const soNome = await listNetwork(testPrisma(), eu.user, { query: '@zoro' })
+    expect(nomes(soNome)).toEqual(['ana_zoro'])
+    expect(soNome.members[0].preview.map((c) => c.cardCode)).toEqual(['OP01-016'])
+    // Quem nao tem carta para troca continua fora da rede.
+    expect(nomes(await listNetwork(testPrisma(), eu.user, { query: '@caio' }))).toEqual([])
+    // O sublinhado e letra, e nao curinga.
+    expect(nomes(await listNetwork(testPrisma(), eu.user, { query: '@a_a' }))).toEqual([])
+  })
+
+  it('o nome igual ao buscado vem primeiro', async () => {
+    const eu = await pessoa('Eu', 'eu')
+    const zoro = await carta('OP01-001')
+    for (const nome of ['ana_b', 'ana']) {
+      const p = await pessoa(nome, nome)
+      await guardar(p, zoro.id, 1)
+    }
+    expect(nomes(await listNetwork(testPrisma(), eu.user, { query: '@ana' }))).toEqual(['ana', 'ana_b'])
+  })
+
   /* Relatado pelo dono do produto: buscar a propria carta dizia "ninguem tem". */
   it('diz quando a carta buscada só está no binder de quem busca', async () => {
     const eu = await pessoa('Eu', 'eu')

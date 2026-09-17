@@ -24,6 +24,7 @@ const aberta = (over: Partial<OpenTrade> = {}): OpenTrade => ({
   status: 'DRAFT',
   otherName: null,
   inviteToken: 'abc123',
+  invitedUsername: null,
   reviewRequested: false,
   exchanged: false,
   ...over,

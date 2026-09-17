@@ -6,7 +6,8 @@ import { SearchBar } from '@/components/ui/search-bar'
 import { NETWORK_QUERY_MIN } from '@/server/domain/social/network'
 
 /**
- * Buscar quem tem uma carta (regra 6.1.3), pelo código ou pelo nome.
+ * Buscar quem tem uma carta (regra 6.1.3), pelo código ou pelo nome, ou uma
+ * pessoa pelo nome na rede — com `@`, só pessoa (decisão 082).
  *
  * Busca ao enviar, e não a cada letra: a busca tem cota mais apertada que a
  * listagem (decisão 060), e consultar enquanto a pessoa digita gastaria a cota
@@ -30,8 +31,8 @@ export function NetworkSearch({ initial }: { initial: string }) {
       }}
     >
       <SearchBar
-        label="Buscar quem tem uma carta"
-        placeholder="Código ou nome da carta — OP01-001, Zoro"
+        label="Buscar uma carta ou uma pessoa"
+        placeholder="Carta ou @nome — OP01-001, Zoro, @ana"
         value={texto}
         onValueChange={setTexto}
         onClear={() => {

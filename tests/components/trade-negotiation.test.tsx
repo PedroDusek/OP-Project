@@ -54,6 +54,7 @@ const troca = (over: Partial<TradeView> = {}): TradeView => ({
   tradeId: '7',
   status: 'NEGOTIATING',
   inviteToken: null,
+  invitedUsername: null,
   me: {
     userId: '1',
     name: 'Ana',

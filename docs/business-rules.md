@@ -225,6 +225,13 @@ cadastrado a quem tentasse (decisão 056).
 O convite é queimado quando alguém entra — um link que continua valendo é um
 link que ainda pode vazar, e um trade efetivo tem exatamente dois participantes.
 
+> **Acrescentado pela decisão 082** (16/09/2026), a pedido do dono do produto:
+> também se convida **direto** alguém da rede, pelo Trade Binder dela na Social.
+> O convite aparece em Trocas de quem recebe, que **aceita ou recusa**. O
+> consentimento continua fechando no gesto de quem recebe: antes do aceite,
+> nenhum dos dois vê o cruzamento, e quem recebeu não mexe na troca. Um convite
+> aberto por vez, como o link.
+
 
 **Dado privado só é cruzado com consentimento das duas partes.** Não existe tela
 que mostre o Trade Binder ou a want list de estranhos: isso violaria a regra 6.2,

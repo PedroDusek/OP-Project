@@ -46,12 +46,18 @@ export function OpenTradeCard({ trade, appUrl }: { trade: OpenTrade; appUrl: str
         </span>
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold text-text">
-            {trade.otherName ? `Troca com ${trade.otherName}` : 'Troca aguardando alguém'}
+            {trade.otherName
+              ? `Troca com ${trade.otherName}`
+              : trade.invitedUsername
+                ? `Convite enviado para @${trade.invitedUsername}`
+                : 'Troca aguardando alguém'}
           </h2>
           <p className="mt-0.5 text-sm text-text-muted">
             {trade.otherName
               ? 'Vocês dois estão dentro. Monte a sua oferta e confirme quando estiver combinado.'
-              : 'Mande o convite para quem vai trocar com você.'}
+              : trade.invitedUsername
+                ? `A troca abre quando @${trade.invitedUsername} aceitar. Dá para combinar em Conversas enquanto isso.`
+                : 'Mande o convite para quem vai trocar com você.'}
           </p>
         </div>
       </div>
@@ -87,9 +93,15 @@ export function OpenTradeCard({ trade, appUrl }: { trade: OpenTrade; appUrl: str
         </div>
       ) : null}
 
-      <Button asChild block>
-        <a href={`/trocas/${trade.tradeId}`}>Abrir a troca</a>
-      </Button>
+      {/*
+        O convite direto ainda nao aceito nao tem troca para abrir: ninguem dos
+        dois ve o cruzamento antes do aceite (decisao 082).
+      */}
+      {trade.invitedUsername ? null : (
+        <Button asChild block>
+          <a href={`/trocas/${trade.tradeId}`}>Abrir a troca</a>
+        </Button>
+      )}
 
       {/*
         So enquanto ninguem entrou. Depois disso a troca tem outra pessoa do

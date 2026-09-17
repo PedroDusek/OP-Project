@@ -74,6 +74,8 @@ export interface TradeView {
   status: TradeStatus
   /** O link de convite, enquanto ainda falta alguém entrar. */
   inviteToken: string | null
+  /** Quem foi convidado direto e ainda não aceitou (decisão 082). */
+  invitedUsername: string | null
   me: TradeSideView
   /** Nulo enquanto o convite não foi aceito: não há outro lado ainda. */
   other: TradeSideView | null
@@ -112,10 +114,11 @@ export async function getTrade(
         select: {
           id: true,
           userId: true,
+          role: true,
           confirmedAt: true,
           reviewRequestedAt: true,
           exchangedAt: true,
-          user: { select: { name: true } },
+          user: { select: { name: true, username: true } },
           items: {
             select: {
               quantity: true,
@@ -144,7 +147,18 @@ export async function getTrade(
     throw new AuthorizationError('Você não participa desta troca.')
   }
 
-  const theirs = trade.participants.find((participant) => participant.userId !== user.id)
+  /*
+   * O convite direto que ainda nao foi aceito (decisao 082). A convidada nao ve a
+   * troca antes de aceitar, e quem convidou nao ve o cruzamento com ela: o
+   * consentimento da regra 4.6.1 fecha no aceite, e antes dele nenhum dado
+   * privado de nenhum dos dois e cruzado.
+   */
+  const pendente = trade.status === 'DRAFT'
+  if (pendente && mine.role === 'RECIPIENT') {
+    throw new AuthorizationError('Aceite o convite em Trocas para ver a troca.')
+  }
+  const convidada = pendente ? trade.participants.find((p) => p.role === 'RECIPIENT') : undefined
+  const theirs = pendente ? undefined : trade.participants.find((participant) => participant.userId !== user.id)
 
   const [myData, theirData] = await Promise.all([
     tradeSideData(prisma, user.id),
@@ -170,6 +184,7 @@ export async function getTrade(
     tradeId: String(trade.id),
     status: trade.status as TradeStatus,
     inviteToken: trade.inviteToken,
+    invitedUsername: convidada?.user.username ?? null,
     me: toSideView(mine),
     other: theirs ? toSideView(theirs) : null,
     iCanOffer: withCards(crossing.fromFirst, cartas),
@@ -178,6 +193,15 @@ export async function getTrade(
     completedAt: trade.completedAt,
     offerChangedAt: trade.offerChangedAt,
   }
+}
+
+/**
+ * Como a outra pessoa aparece: pelo nome na rede quando há, que é a única
+ * identidade que outros veem (regra 6.1.1). O nome real fica para a troca por
+ * link com quem ainda não escolheu nome — que já se conhece por fora.
+ */
+export function displayName(user: { name: string; username: string | null }): string {
+  return user.username ? `@${user.username}` : user.name
 }
 
 type CardLabel = { cardCode: string; cardName: string; imageUrl: string | null }
@@ -228,7 +252,7 @@ type ParticipantRow = {
   confirmedAt: Date | null
   reviewRequestedAt: Date | null
   exchangedAt: Date | null
-  user: { name: string }
+  user: { name: string; username: string | null }
   items: {
     quantity: number
     cardVariant: {
@@ -244,7 +268,7 @@ type ParticipantRow = {
 function toSideView(participant: ParticipantRow): TradeSideView {
   return {
     userId: String(participant.userId),
-    name: participant.user.name,
+    name: displayName(participant.user),
     confirmed: participant.confirmedAt !== null,
     reviewRequested: participant.reviewRequestedAt !== null,
     exchanged: participant.exchangedAt !== null,
@@ -310,6 +334,8 @@ export interface OpenTrade {
   otherName: string | null
   /** O convite, enquanto ainda falta alguém entrar. */
   inviteToken: string | null
+  /** Quem foi convidado direto e ainda não aceitou (decisão 082). */
+  invitedUsername: string | null
   /** A outra pessoa alterou depois de eu confirmar. */
   reviewRequested: boolean
   /** Eu já marquei que as cartas trocaram de mão. */
@@ -334,6 +360,9 @@ export async function getOpenTrade(
     where: {
       userId: user.id,
       trade: { status: { in: ['DRAFT', 'PROPOSED', 'NEGOTIATING', 'CONFIRMED'] } },
+      // O convite direto recebido nao e troca aberta de quem recebeu: e pergunta,
+      // e aparece na lista de convites (decisao 082).
+      NOT: { role: 'RECIPIENT', trade: { status: 'DRAFT' } },
     },
     select: {
       reviewRequestedAt: true,
@@ -343,7 +372,7 @@ export async function getOpenTrade(
           id: true,
           status: true,
           inviteToken: true,
-          participants: { select: { userId: true, user: { select: { name: true } } } },
+          participants: { select: { userId: true, role: true, user: { select: { name: true, username: true } } } },
         },
       },
     },
@@ -358,8 +387,11 @@ export async function getOpenTrade(
   return {
     tradeId: String(escolhida.trade.id),
     status: escolhida.trade.status as TradeStatus,
-    otherName: outro?.user.name ?? null,
+    // No rascunho ninguem entrou ainda: a convidada aparece como convidada, e nao como "o outro lado".
+    otherName: outro && escolhida.trade.status !== 'DRAFT' ? displayName(outro.user) : null,
     inviteToken: escolhida.trade.inviteToken,
+    invitedUsername:
+      escolhida.trade.status === 'DRAFT' ? (outro?.role === 'RECIPIENT' ? outro.user.username : null) : null,
     reviewRequested: escolhida.reviewRequestedAt !== null,
     exchanged: escolhida.exchangedAt !== null,
   }

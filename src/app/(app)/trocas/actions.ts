@@ -1,7 +1,11 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import {
+  acceptInvite,
+  declineInvite,
+  inviteMember,
   cancelTrade,
   confirmTrade,
   joinTrade,
@@ -69,6 +73,59 @@ export async function joinTradeAction(
     if (isAppError(error)) return { status: 'error', message: error.message }
     throw error
   }
+}
+
+/**
+ * Convida alguém da rede direto para uma troca (decisão 082), a partir do Trade
+ * Binder dela. A troca fica esperando a pessoa aceitar, e quem convidou vai para
+ * Trocas, onde vê o convite enviado.
+ */
+export async function inviteMemberAction(
+  _previous: TradeActionState,
+  data: FormData,
+): Promise<TradeActionState> {
+  const viewer = await currentViewer()
+  if (!viewer) return { status: 'error', message: SESSAO_EXPIRADA }
+
+  try {
+    await inviteMember(viewer, String(data.get('username') ?? '').trim())
+  } catch (error) {
+    if (isAppError(error)) return { status: 'error', message: error.message }
+    throw error
+  }
+  revalidatePath('/trocas')
+  // Fora do try: o redirect do Next funciona lancando, e o catch o engoliria.
+  redirect('/trocas')
+}
+
+/** Aceita o convite direto: a troca vira negociação, e a pessoa vai para ela. */
+export async function acceptInviteAction(
+  _previous: TradeActionState,
+  data: FormData,
+): Promise<TradeActionState> {
+  const viewer = await currentViewer()
+  if (!viewer) return { status: 'error', message: SESSAO_EXPIRADA }
+
+  const tradeId = String(data.get('tradeId') ?? '')
+  if (!/^\d+$/.test(tradeId)) return { status: 'error', message: 'Troca inválida.' }
+
+  try {
+    await acceptInvite(viewer, BigInt(tradeId))
+  } catch (error) {
+    if (isAppError(error)) return { status: 'error', message: error.message }
+    throw error
+  }
+  revalidatePath('/trocas')
+  redirect(`/trocas/${tradeId}`)
+}
+
+export async function declineInviteAction(
+  _previous: TradeActionState,
+  data: FormData,
+): Promise<TradeActionState> {
+  return comATroca(data, async (viewer, tradeId) => {
+    await declineInvite(viewer, tradeId)
+  })
 }
 
 /**

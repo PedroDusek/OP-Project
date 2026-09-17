@@ -5,6 +5,7 @@ import { ArrowLeft, Package } from 'lucide-react'
 import { CardArt } from '@/components/catalog/card-art'
 import { StartConversationButton } from '@/components/conversations/start-conversation'
 import { PageHeader } from '@/components/layout/app-shell'
+import { InviteMemberButton } from '@/components/trades/invite-member'
 import { BlockToggle, ReportForm } from '@/components/social/member-actions'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState, ErrorState } from '@/components/ui/states'
@@ -114,6 +115,7 @@ export default async function MemberBinderPage({ params }: PageProps<'/social/[u
 
             <div className="flex flex-wrap items-start gap-2 border-t border-border pt-4">
               <StartConversationButton username={binder.username} />
+              <InviteMemberButton username={binder.username} />
               <BlockToggle username={binder.username} blocked={false} />
               <ReportForm username={binder.username} />
             </div>

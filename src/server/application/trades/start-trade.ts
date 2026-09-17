@@ -1,7 +1,8 @@
 import { randomBytes } from 'node:crypto'
 import type { PrismaClient } from '@prisma/client'
 import type { AuthenticatedUser } from '@/server/application/auth'
-import { ConflictError, NotFoundError } from '@/server/domain/errors'
+import { AuthorizationError, ConflictError, NotFoundError, ValidationError } from '@/server/domain/errors'
+import { normalizeUsername } from '@/server/domain/social/username'
 import { ACTIVE_TRADE_STATUSES } from '@/server/domain/trades/negotiation'
 
 /**
@@ -132,4 +133,154 @@ async function assertNoActiveTrade(prisma: PrismaClient, userId: bigint): Promis
       'Você já tem uma troca em andamento. Conclua ou cancele antes de começar outra.',
     )
   }
+}
+
+/**
+ * Convida alguém da rede direto para uma troca (decisão 082).
+ *
+ * O convite por link continua para quem já conversa por fora; este é para quem
+ * a pessoa achou na Social. A troca nasce em `DRAFT` com as **duas** pessoas, sem
+ * link — ninguém de fora entra — e fica esperando a convidada aceitar. Até lá,
+ * nenhum dado privado de nenhum dos dois é cruzado (regra 4.6.1): o consentimento
+ * continua fechando no gesto de quem recebe.
+ *
+ * Um convite aberto por vez, como o link: quem convida tem de descartar o que já
+ * mandou antes de mandar outro.
+ */
+export async function inviteMember(prisma: PrismaClient, user: AuthenticatedUser, username: string): Promise<bigint> {
+  const eu = await prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { username: true } })
+  if (!eu.username) {
+    throw new ConflictError(
+      'NOME_DE_USUARIO_NECESSARIO',
+      'Escolha seu nome na rede em Minha conta antes de convidar: é ele que a outra pessoa vê.',
+    )
+  }
+
+  const outra = await prisma.user.findUnique({
+    where: { username: normalizeUsername(username) },
+    select: { id: true, username: true, deletedAt: true },
+  })
+  if (!outra || outra.deletedAt || !outra.username) throw new NotFoundError('Ninguém na rede tem esse nome.')
+  if (outra.id === user.id) throw new ValidationError('Você não pode convidar a si mesmo.')
+
+  await assertNotBlocked(prisma, user.id, outra.id)
+  await assertNoActiveTrade(prisma, user.id)
+
+  const rascunho = await prisma.tradeParticipant.findFirst({
+    where: { userId: user.id, role: 'INITIATOR', trade: { status: 'DRAFT' } },
+    select: { tradeId: true },
+  })
+  if (rascunho) {
+    throw new ConflictError(
+      'CONVITE_ABERTO',
+      'Você já tem um convite de troca aberto em Trocas. Descarte-o antes de convidar outra pessoa.',
+    )
+  }
+
+  const trade = await prisma.trade.create({
+    data: {
+      status: 'DRAFT',
+      participants: {
+        create: [
+          { userId: user.id, role: 'INITIATOR' },
+          { userId: outra.id, role: 'RECIPIENT' },
+        ],
+      },
+    },
+    select: { id: true },
+  })
+  return trade.id
+}
+
+export interface ReceivedInvite {
+  tradeId: string
+  /** Quem convidou, pelo nome na rede. */
+  fromUsername: string | null
+  createdAt: Date
+}
+
+/** Os convites diretos que esta pessoa recebeu e ainda não respondeu. */
+export async function listReceivedInvites(prisma: PrismaClient, user: AuthenticatedUser): Promise<ReceivedInvite[]> {
+  const rows = await prisma.tradeParticipant.findMany({
+    where: { userId: user.id, role: 'RECIPIENT', trade: { status: 'DRAFT', inviteToken: null } },
+    select: {
+      trade: {
+        select: {
+          id: true,
+          createdAt: true,
+          participants: { where: { role: 'INITIATOR' }, select: { user: { select: { username: true } } } },
+        },
+      },
+    },
+    orderBy: { id: 'desc' },
+  })
+  return rows.map((row) => ({
+    tradeId: String(row.trade.id),
+    fromUsername: row.trade.participants[0]?.user.username ?? null,
+    createdAt: row.trade.createdAt,
+  }))
+}
+
+async function convitePendente(prisma: PrismaClient, user: AuthenticatedUser, tradeId: bigint) {
+  const trade = await prisma.trade.findUnique({
+    where: { id: tradeId },
+    select: { status: true, inviteToken: true, participants: { select: { userId: true, role: true } } },
+  })
+  const eu = trade?.participants.find((p) => p.userId === user.id)
+  if (!trade || !eu || eu.role !== 'RECIPIENT' || trade.status !== 'DRAFT' || trade.inviteToken !== null) {
+    throw new NotFoundError('Este convite não vale mais.')
+  }
+  return { quemConvidou: trade.participants.find((p) => p.role === 'INITIATOR')!.userId }
+}
+
+/**
+ * Aceita o convite: é aqui que o consentimento fecha, e a troca vira negociação.
+ *
+ * As duas pessoas precisam estar livres de outra troca ativa (regra 4.5) — quem
+ * convidou pode ter começado outra enquanto o convite esperava.
+ */
+export async function acceptInvite(prisma: PrismaClient, user: AuthenticatedUser, tradeId: bigint): Promise<bigint> {
+  const { quemConvidou } = await convitePendente(prisma, user, tradeId)
+  await assertNotBlocked(prisma, user.id, quemConvidou)
+  await assertNoActiveTrade(prisma, user.id)
+
+  const ocupada = await prisma.tradeParticipant.findFirst({
+    where: { userId: quemConvidou, trade: { status: { in: [...ACTIVE_TRADE_STATUSES] } } },
+    select: { tradeId: true },
+  })
+  if (ocupada) {
+    throw new ConflictError('TROCA_ATIVA_DO_OUTRO', 'Quem convidou já está em outra troca. Tente de novo mais tarde.')
+  }
+
+  // A condicao no `updateMany` resolve aceitar duas vezes ao mesmo tempo, ou
+  // aceitar enquanto quem convidou descarta: quem chegar depois nao muda nada.
+  const aceito = await prisma.trade.updateMany({
+    where: { id: tradeId, status: 'DRAFT', inviteToken: null },
+    data: { status: 'NEGOTIATING' },
+  })
+  if (aceito.count === 0) throw new NotFoundError('Este convite não vale mais.')
+  return tradeId
+}
+
+/** Recusa o convite. A troca é cancelada, e some de Trocas para os dois. */
+export async function declineInvite(prisma: PrismaClient, user: AuthenticatedUser, tradeId: bigint): Promise<void> {
+  await convitePendente(prisma, user, tradeId)
+  await prisma.trade.updateMany({
+    where: { id: tradeId, status: 'DRAFT', inviteToken: null },
+    data: { status: 'CANCELLED' },
+  })
+}
+
+/** Bloqueio em qualquer direção impede o convite (regra 6.1.4, como nas conversas). */
+async function assertNotBlocked(prisma: PrismaClient, a: bigint, b: bigint): Promise<void> {
+  const bloqueio = await prisma.userBlock.findFirst({
+    where: {
+      OR: [
+        { blockerId: a, blockedId: b },
+        { blockerId: b, blockedId: a },
+      ],
+    },
+    select: { id: true },
+  })
+  if (bloqueio) throw new AuthorizationError('Não é possível convidar esta pessoa para uma troca.')
 }

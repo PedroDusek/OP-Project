@@ -85,6 +85,19 @@ async function stillWanted(prisma: PrismaClient, viewer: AuthenticatedUser): Pro
   )
 }
 
+/**
+ * O pedaço de nome de usuário que a busca procura, já pronto para `LIKE`, ou
+ * `null` quando o texto não pode ser nome nenhum (espaço, acento).
+ *
+ * Os nomes são guardados em minúsculas, só com letras, números, ponto e
+ * sublinhado (decisão 060). O sublinhado é curinga no `LIKE`, e é escapado.
+ */
+function usernameFragment(query: string): string | null {
+  const texto = query.replace(/^@/, '').toLowerCase()
+  if (!/^[a-z0-9._]+$/.test(texto)) return null
+  return texto.replace(/[!%_]/g, (c) => `!${c}`)
+}
+
 /** As variantes cujo código ou nome casam com a busca. */
 async function matchingVariants(prisma: PrismaClient, query: string): Promise<Set<string>> {
   const variants = await prisma.cardVariant.findMany({
@@ -105,8 +118,10 @@ async function matchingVariants(prisma: PrismaClient, query: string): Promise<Se
  * Carrega da primeira até `page` de uma vez: a tela mostra uma lista que cresce
  * ao rolar, e não páginas soltas. O teto de páginas limita o que isso custa.
  *
- * Com busca, só entra quem tem alguma carta que casa — e a prévia mostra essas
- * primeiro, depois das que quem olha procura.
+ * Com busca, entra quem tem alguma carta que casa **ou** cujo nome na rede
+ * contém o texto (decisão 082) — e a prévia mostra primeiro as cartas que casam.
+ * Começando por `@`, a busca é só por nome. O nome igual ao buscado vem primeiro:
+ * quem digita um nome inteiro procura aquela pessoa.
  */
 export async function listNetwork(
   prisma: PrismaClient,
@@ -119,12 +134,22 @@ export async function listNetwork(
   consumeRateLimit(`rede:${query ? 'busca' : 'lista'}:${viewer.id}`, query ? NETWORK_SEARCH_LIMIT : NETWORK_READ_LIMIT)
 
   const wanted = await stillWanted(prisma, viewer)
-  const matching = query ? await matchingVariants(prisma, query) : null
-  if (matching && matching.size === 0) return { members: [], page, hasMore: false, query, viewerHasMatch: false }
+  const nome = query ? usernameFragment(query) : null
+  const soNome = query?.startsWith('@') ?? false
+  const matching = query && !soNome ? await matchingVariants(prisma, query) : null
 
   const quero = [...wanted]
   const casa = matching ? [...matching] : []
   const limite = page * NETWORK_PAGE_SIZE
+
+  const porCarta = casa.length > 0 ? Prisma.sql`COUNT(*) FILTER (WHERE ci.card_variant_id::text = ANY(${casa}::text[])) > 0` : null
+  const porNome = nome ? Prisma.sql`u.username LIKE ${`%${nome}%`} ESCAPE '!'` : null
+  const filtro = !query
+    ? Prisma.sql`TRUE`
+    : porCarta && porNome
+      ? Prisma.sql`(${porCarta} OR ${porNome})`
+      : (porCarta ?? porNome ?? Prisma.sql`FALSE`)
+  const nomeIgual = nome ? Prisma.sql`(u.username = ${nome.replace(/!(.)/g, '$1')}) DESC,` : Prisma.empty
 
   // Premium primeiro, depois o interesse, depois o nome (regra 6.1.3). A mesma
   // ordem de `compareNetworkMembers`, feita no banco para paginar sem trazer a
@@ -145,8 +170,9 @@ export async function listNetwork(
        AND u.id <> ${viewer.id}
        AND NOT EXISTS (SELECT 1 FROM user_blocks b WHERE b.blocker_id = ${viewer.id} AND b.blocked_id = u.id)
      GROUP BY u.id
-    HAVING ${matching ? Prisma.sql`COUNT(*) FILTER (WHERE ci.card_variant_id::text = ANY(${casa}::text[])) > 0` : Prisma.sql`TRUE`}
-     ORDER BY (u.plan = 'PREMIUM' AND (u.premium_until IS NULL OR u.premium_until > ${now})) DESC,
+    HAVING ${filtro}
+     ORDER BY ${nomeIgual}
+              (u.plan = 'PREMIUM' AND (u.premium_until IS NULL OR u.premium_until > ${now})) DESC,
               interest DESC,
               u.username ASC
      LIMIT ${limite + 1}

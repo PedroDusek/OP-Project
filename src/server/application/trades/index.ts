@@ -6,7 +6,11 @@ import {
   getTrade as getTradeWith,
 } from './read-trade'
 import {
+  acceptInvite as acceptInviteWith,
+  declineInvite as declineInviteWith,
+  inviteMember as inviteMemberWith,
   joinTrade as joinTradeWith,
+  listReceivedInvites as listReceivedInvitesWith,
   startTrade as startTradeWith,
 } from './start-trade'
 import {
@@ -44,6 +48,22 @@ export function startTrade(user: AuthenticatedUser) {
 
 export function joinTrade(user: AuthenticatedUser, inviteToken: string) {
   return joinTradeWith(prisma, user, inviteToken)
+}
+
+export function inviteMember(user: AuthenticatedUser, username: string) {
+  return inviteMemberWith(prisma, user, username)
+}
+
+export function listReceivedInvites(user: AuthenticatedUser) {
+  return listReceivedInvitesWith(prisma, user)
+}
+
+export function acceptInvite(user: AuthenticatedUser, tradeId: bigint) {
+  return acceptInviteWith(prisma, user, tradeId)
+}
+
+export function declineInvite(user: AuthenticatedUser, tradeId: bigint) {
+  return declineInviteWith(prisma, user, tradeId)
 }
 
 export function getOpenTrade(user: AuthenticatedUser) {
@@ -112,7 +132,7 @@ export type {
 } from './public-binder'
 export { ORIGIN_CHOICE_REQUIRED } from './complete-trade'
 export type { TradeBinderCard } from './read-trade-binder'
-export type { StartedTrade } from './start-trade'
+export type { ReceivedInvite, StartedTrade } from './start-trade'
 export type { OfferChange } from './edit-offer'
 export type {
   MarkExchangeResult,
