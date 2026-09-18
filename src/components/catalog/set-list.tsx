@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { SetBadge } from '@/components/catalog/set-badge'
+import { SetCover } from '@/components/catalog/set-cover'
 import { SearchBar } from '@/components/ui/search-bar'
 import { Segmented } from '@/components/ui/segmented'
 import { Panel } from '@/components/ui/surface'
@@ -86,7 +87,14 @@ export function SetList({ sets, initialKind = 'collection' }: { sets: SetSummary
                   href={`/catalogo/sets/${encodeURIComponent(set.code)}`}
                   className="flex items-center gap-3 p-3"
                 >
-                  <SetBadge code={set.displayCode} />
+                  {/* O nome está escrito ao lado: a imagem não repete no leitor de tela. */}
+                  <SetCover
+                    code={set.code}
+                    alt=""
+                    sizes="56px"
+                    className="w-14"
+                    fallback={<SetBadge code={set.displayCode} />}
+                  />
 
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="truncate text-sm font-semibold text-text">
