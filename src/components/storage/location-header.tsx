@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowLeft, SquarePen } from 'lucide-react'
+import { ArrowLeft, ListPlus, SquarePen } from 'lucide-react'
 import { Symbol } from '@/components/brand/logo'
 import { cardCountLabel } from '@/server/domain/catalog/sets'
 import type { StorageLocationDetail } from '@/server/application/storage'
@@ -27,7 +27,24 @@ import type { StorageLocationDetail } from '@/server/application/storage'
  * O contraste, de quebra, ficou mais fácil: o texto branco passa a estar sobre
  * o roxo da marca puro, e não sobre uma imagem que não controlamos.
  */
-export function LocationHeader({ location }: { location: StorageLocationDetail }) {
+/**
+ * O mesmo cabeçalho no detalhe do local e em "Ver cartas": pedido do dono do
+ * produto, para quem abre as cartas continuar sentindo que está **dentro**
+ * daquele binder. Muda só para onde a seta volta e qual ação fica à direita.
+ */
+export function LocationHeader({
+  location,
+  view = 'detalhe',
+}: {
+  location: StorageLocationDetail
+  /** `cartas`: a seta volta ao detalhe, e a ação é acrescentar cartas. */
+  view?: 'detalhe' | 'cartas'
+}) {
+  const voltar =
+    view === 'cartas'
+      ? { href: `/binders/${location.id}`, label: `Voltar para ${location.name}` }
+      : { href: '/binders', label: 'Voltar para Binders' }
+
   return (
     <div className="-mx-4 mb-4 md:mx-0 md:overflow-hidden md:rounded-card">
       <div className="relative isolate overflow-hidden bg-accent px-4 py-6 md:px-6">
@@ -43,8 +60,8 @@ export function LocationHeader({ location }: { location: StorageLocationDetail }
 
         <div className="flex items-start gap-3">
           <Link
-            href="/binders"
-            aria-label="Voltar para Binders"
+            href={voltar.href}
+            aria-label={voltar.label}
             className="-ml-2 inline-flex size-11 shrink-0 items-center justify-center rounded-control text-white/90 transition-colors hover:bg-white/10"
           >
             <ArrowLeft className="size-5" aria-hidden />
@@ -74,11 +91,15 @@ export function LocationHeader({ location }: { location: StorageLocationDetail }
           </div>
 
           <Link
-            href={`/binders/${location.id}/editar`}
-            aria-label="Editar informações"
+            href={view === 'cartas' ? `/binders/${location.id}/adicionar` : `/binders/${location.id}/editar`}
+            aria-label={view === 'cartas' ? 'Adicionar cartas' : 'Editar informações'}
             className="inline-flex size-11 shrink-0 items-center justify-center rounded-control bg-white/15 text-white transition-colors hover:bg-white/25"
           >
-            <SquarePen className="size-4" aria-hidden />
+            {view === 'cartas' ? (
+              <ListPlus className="size-5" aria-hidden />
+            ) : (
+              <SquarePen className="size-4" aria-hidden />
+            )}
           </Link>
         </div>
       </div>

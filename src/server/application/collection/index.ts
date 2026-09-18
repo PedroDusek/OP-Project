@@ -7,6 +7,10 @@ import {
   searchCollection as searchCollectionWith,
   type CollectionQuery,
 } from './read-collection'
+import {
+  readCollectionDashboard as readCollectionDashboardWith,
+  type DashboardFilterInput,
+} from './dashboard'
 import { setCollectionQuantity as setCollectionQuantityWith } from './set-quantity'
 import type { Removal } from '@/server/domain/storage/allocation'
 
@@ -22,6 +26,10 @@ import type { Removal } from '@/server/domain/storage/allocation'
 
 export function getCollectionSummary(user: AuthenticatedUser) {
   return getCollectionSummaryWith(prisma, user)
+}
+
+export function readCollectionDashboard(user: AuthenticatedUser, filters: DashboardFilterInput = {}) {
+  return readCollectionDashboardWith(prisma, user, filters)
 }
 
 export function readDashboard(user: AuthenticatedUser) {
@@ -50,3 +58,5 @@ export type { CollectionItemView, CollectionPage, CollectionSummary, PlaysetRow 
 export type { AllocationSnapshot, SetQuantityResult } from './set-quantity'
 export { QUANTITY_BELOW_ALLOCATED, RESOLUTION_INVALID } from './set-quantity'
 export type { Removal }
+
+export type { CollectionDashboard, DashboardFilterInput } from './dashboard'

@@ -1,14 +1,12 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, ListPlus } from 'lucide-react'
+import { LocationHeader } from '@/components/storage/location-header'
 import { StoredCards } from '@/components/storage/stored-cards'
 import {
   getStorageLocation,
   listCardsInLocation,
   listStorageLocations,
 } from '@/server/application/storage'
-import { cardCountLabel } from '@/server/domain/catalog/sets'
 import { requireViewer } from '@/server/http/viewer'
 
 export const metadata: Metadata = { title: 'Cartas no local' }
@@ -36,26 +34,8 @@ export default async function CartasNoLocalPage({
 
   return (
     <>
-      <div className="flex items-start gap-3 pb-4">
-        <Link
-          href={`/binders/${location.id}`}
-          aria-label={`Voltar para ${location.name}`}
-          className="-ml-2 inline-flex size-11 shrink-0 items-center justify-center rounded-control text-text-muted transition-colors hover:bg-surface-muted"
-        >
-          <ArrowLeft className="size-5" aria-hidden />
-        </Link>
-        <div className="min-w-0 flex-1 pt-2">
-          <h1 className="truncate text-2xl font-bold tracking-tight text-text">{location.name}</h1>
-          <p className="mt-1 text-sm text-text-muted">{cardCountLabel(location.cardCount)}</p>
-        </div>
-        <Link
-          href={`/binders/${location.id}/adicionar`}
-          aria-label="Adicionar cartas"
-          className="inline-flex size-11 shrink-0 items-center justify-center rounded-control bg-accent-soft text-accent-ink transition-colors hover:brightness-95"
-        >
-          <ListPlus className="size-5" aria-hidden />
-        </Link>
-      </div>
+      {/* O mesmo cabecalho do detalhe: a pessoa continua "dentro" do binder. */}
+      <LocationHeader location={location} view="cartas" />
 
       <StoredCards
         cards={cards}

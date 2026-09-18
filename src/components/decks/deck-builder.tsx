@@ -62,6 +62,13 @@ interface Linha extends Carta {
 }
 
 const MAXIMO_POR_CARTA = 4
+
+/**
+ * Dinheiro no formato brasileiro, com ponto no milhar: `62.154,92`. O
+ * `toFixed` com vírgula trocada saía `62154,92` (relatado pelo dono do produto).
+ */
+const dinheiro = (valor: number) =>
+  valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const TAMANHO_DO_DECK = 50
 
 export function DeckBuilder({
@@ -299,6 +306,42 @@ export function DeckBuilder({
 
           {analysis ? (
             <section className="flex flex-col gap-3">
+              {/*
+                Em destaque e primeiro, com o nome que o dono do produto pediu:
+                e o numero que decide se vale montar este deck agora.
+              */}
+              <Panel className="flex flex-col gap-1 border-accent-ink/30 p-4">
+                <p className="text-xs font-medium text-text-muted">Valor estimado para completar o deck</p>
+                <p className="text-2xl font-bold text-text">
+                  <strong className="tabular-nums">
+                    {analysis.cost.brl
+                      ? `R$ ${dinheiro(analysis.cost.brl.value)}`
+                      : `US$ ${dinheiro(analysis.cost.usd)}`}
+                  </strong>
+                </p>
+                {analysis.missingTotal === 0 ? (
+                  <p className="text-xs text-success">Você já tem todas as {analysis.total} cartas.</p>
+                ) : (
+                  <p className="text-xs text-text-muted">
+                    {analysis.missingTotal} {analysis.missingTotal === 1 ? 'carta faltando' : 'cartas faltando'}, pelo preço
+                    de hoje da arte escolhida.
+                  </p>
+                )}
+                {analysis.cost.brl ? (
+                  <p className="text-xs text-text-muted tabular-nums">
+                    US$ {dinheiro(analysis.cost.usd)} · dólar a R${' '}
+                    {analysis.cost.brl.rate.toLocaleString('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 })}
+                  </p>
+                ) : null}
+                {analysis.cost.withoutPrice > 0 ? (
+                  <p className="text-xs text-text-muted">
+                    {analysis.cost.withoutPrice}{' '}
+                    {analysis.cost.withoutPrice === 1 ? 'cópia ficou' : 'cópias ficaram'} fora da conta, por não
+                    ter preço conhecido.
+                  </p>
+                ) : null}
+              </Panel>
+
               <div className="grid grid-cols-3 gap-2 text-center">
                 <Panel className="p-3">
                   <p className="text-lg font-bold text-text tabular-nums">{analysis.total}</p>
@@ -314,29 +357,7 @@ export function DeckBuilder({
                 </Panel>
               </div>
 
-              <Panel className="flex flex-col gap-1 p-4">
-                <p className="text-sm text-text">
-                  Custo do que falta:{' '}
-                  <strong className="tabular-nums">
-                    {analysis.cost.brl
-                      ? `R$ ${analysis.cost.brl.value.toFixed(2).replace('.', ',')}`
-                      : `US$ ${analysis.cost.usd.toFixed(2)}`}
-                  </strong>
-                </p>
-                {analysis.cost.brl ? (
-                  <p className="text-xs text-text-muted tabular-nums">
-                    US$ {analysis.cost.usd.toFixed(2)} · dólar a R${' '}
-                    {analysis.cost.brl.rate.toFixed(4).replace('.', ',')}
-                  </p>
-                ) : null}
-                {analysis.cost.withoutPrice > 0 ? (
-                  <p className="text-xs text-text-muted">
-                    {analysis.cost.withoutPrice}{' '}
-                    {analysis.cost.withoutPrice === 1 ? 'cópia ficou' : 'cópias ficaram'} fora da conta, por não
-                    ter preço conhecido.
-                  </p>
-                ) : null}
-              </Panel>
+
 
               <ul className="flex flex-col gap-2">
                 {[analysis.leader, ...analysis.lines].map((linha) => (
@@ -418,7 +439,7 @@ export function DeckBuilder({
 
                       {linha.missing > 0 && linha.missingUsd !== null ? (
                         <p className="text-xs text-text-muted tabular-nums">
-                          Comprar {linha.missing}: US$ {linha.missingUsd.toFixed(2)}
+                          Comprar {linha.missing}: US$ {dinheiro(linha.missingUsd)}
                         </p>
                       ) : null}
                     </Panel>
