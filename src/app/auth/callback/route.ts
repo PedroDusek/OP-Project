@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { cancelAccountDeletion } from '@/server/application/account'
+import { emailInUse } from '@/server/application/auth'
 import { completeOAuth } from '@/server/application/auth/credentials'
 import { appUrl } from '@/server/http/app-url'
 import { requestCookies } from '@/server/http/next-cookies'
@@ -37,6 +38,7 @@ export async function GET(request: Request): Promise<Response> {
       cookies: await requestCookies(),
       appUrl: base,
       cancelDeletion: cancelAccountDeletion,
+      emailInUse,
     }))
   } catch (error) {
     const message =

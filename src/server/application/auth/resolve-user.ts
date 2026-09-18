@@ -57,8 +57,16 @@ export async function resolveUser(
   } catch (error) {
     if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') throw error
     const criada = await findUser(prisma, identity.authUserId)
-    if (!criada) throw error
-    return unavailable(criada) ? null : toAuthenticated(criada)
+    if (criada) return unavailable(criada) ? null : toAuthenticated(criada)
+
+    /*
+     * O conflito foi o e-mail: ele já é de outra conta, criada por outra forma
+     * de entrar. O login já recusa isso com a mensagem da decisão 097; se uma
+     * sessão assim chegar até aqui mesmo assim (um cookie de antes da regra), a
+     * página trata como quem não entrou, em vez de cair numa tela de erro.
+     */
+    console.warn('[auth] e-mail ja pertence a outra conta', { authUserId: identity.authUserId })
+    return null
   }
 }
 

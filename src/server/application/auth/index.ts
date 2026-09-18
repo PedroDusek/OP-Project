@@ -12,6 +12,7 @@ import type {
   OAuthProviderId,
 } from '@/server/http/auth-provider'
 import { resolveUser, type AuthenticatedUser } from './resolve-user'
+import { emailBelongsToAnotherAccount } from './email-conflict'
 
 /**
  * Composicao da autenticacao.
@@ -74,3 +75,11 @@ export async function enabledOAuthProviders(): Promise<OAuthProviderId[]> {
 }
 
 export type { AuthenticatedUser }
+
+/**
+ * O e-mail de quem acabou de entrar já é de outra conta? Passado a `signIn` e
+ * `completeOAuth` por quem cria sessão (decisão 097).
+ */
+export function emailInUse(authUserId: string, email: string) {
+  return emailBelongsToAnotherAccount(prisma, authUserId, email)
+}

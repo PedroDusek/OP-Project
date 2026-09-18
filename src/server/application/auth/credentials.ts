@@ -7,6 +7,8 @@ import {
   signUpSchema,
 } from '@/server/http/schemas/auth'
 import type { CookieStore, OAuthProviderId } from '@/server/http/auth-provider'
+import { EMAIL_IN_USE_MESSAGE } from '@/server/domain/account/email-conflict'
+import { AuthenticationError } from '@/server/domain/errors'
 import { activeAuthProvider } from './index'
 
 /**
@@ -30,6 +32,26 @@ export interface Deps {
    * testes destes casos de uso rodam sem banco.
    */
   cancelDeletion?: (authUserId: string) => Promise<boolean>
+  /**
+   * O e-mail já é de outra conta do ColeXa? Injetado pelo mesmo motivo do
+   * `cancelDeletion` (decisão 097).
+   */
+  emailInUse?: (authUserId: string, email: string) => Promise<boolean>
+}
+
+/**
+ * Recusa o login cujo e-mail já pertence a outra conta, encerrando a sessão que
+ * o provedor acabou de abrir — senão ela ficaria viva no cookie, e cada página
+ * tentaria criar a conta repetida de novo.
+ */
+async function recusarEmailRepetido(
+  cookies: CookieStore,
+  signedIn: { authUserId: string; email: string },
+  emailInUse: Deps['emailInUse'],
+): Promise<void> {
+  if (!emailInUse || !(await emailInUse(signedIn.authUserId, signedIn.email))) return
+  await activeAuthProvider(cookies).signOut()
+  throw new AuthenticationError(EMAIL_IN_USE_MESSAGE)
 }
 
 /** O que a tela precisa saber depois de entrar. */
@@ -61,7 +83,7 @@ const callbackUrl = (appUrl: string, next?: string) => {
   return url.toString()
 }
 
-export async function signIn(input: unknown, { cookies, cancelDeletion }: Deps): Promise<SignInOutcome> {
+export async function signIn(input: unknown, { cookies, cancelDeletion, emailInUse }: Deps): Promise<SignInOutcome> {
   const { email, password, captchaToken } = parseOrThrow(signInSchema, input)
 
   /*
@@ -77,8 +99,9 @@ export async function signIn(input: unknown, { cookies, cancelDeletion }: Deps):
    */
   consumeRateLimit(`auth:signin:${email}`, AUTH_ATTEMPT_LIMIT)
 
-  const { authUserId } = await activeAuthProvider(cookies).signInWithPassword(email, password, captchaToken)
-  return { deletionCancelled: cancelDeletion ? await cancelDeletion(authUserId) : false }
+  const signedIn = await activeAuthProvider(cookies).signInWithPassword(email, password, captchaToken)
+  await recusarEmailRepetido(cookies, signedIn, emailInUse)
+  return { deletionCancelled: cancelDeletion ? await cancelDeletion(signedIn.authUserId) : false }
 }
 
 export interface SignUpOutcome {
@@ -131,9 +154,13 @@ export async function setNewPassword(input: unknown, { cookies }: Deps): Promise
   await activeAuthProvider(cookies).updatePassword(password)
 }
 
-export async function completeOAuth(code: string, { cookies, cancelDeletion }: Deps): Promise<SignInOutcome> {
-  const { authUserId } = await activeAuthProvider(cookies).exchangeCodeForSession(code)
-  return { deletionCancelled: cancelDeletion ? await cancelDeletion(authUserId) : false }
+export async function completeOAuth(
+  code: string,
+  { cookies, cancelDeletion, emailInUse }: Deps,
+): Promise<SignInOutcome> {
+  const signedIn = await activeAuthProvider(cookies).exchangeCodeForSession(code)
+  await recusarEmailRepetido(cookies, signedIn, emailInUse)
+  return { deletionCancelled: cancelDeletion ? await cancelDeletion(signedIn.authUserId) : false }
 }
 
 export async function startOAuth(

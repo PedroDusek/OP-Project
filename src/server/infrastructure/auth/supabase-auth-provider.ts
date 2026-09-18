@@ -81,7 +81,7 @@ export class SupabaseAuthProvider implements AuthProvider {
       options: { captchaToken },
     })
     if (error || !data.user) throw translate(error)
-    return { authUserId: data.user.id }
+    return { authUserId: data.user.id, email: data.user.email ?? '' }
   }
 
   async signOut(): Promise<void> {
@@ -123,7 +123,7 @@ export class SupabaseAuthProvider implements AuthProvider {
           'ou ter sido aberto em um navegador diferente do que iniciou o cadastro.',
       )
     }
-    return { authUserId: data.user.id }
+    return { authUserId: data.user.id, email: data.user.email ?? '' }
   }
 
   async oauthUrl(provider: OAuthProviderId, redirectTo: string): Promise<string> {

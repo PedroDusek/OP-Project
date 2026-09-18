@@ -5954,3 +5954,40 @@ Definido pelo dono do produto em 17/09.
 ## Data
 
 2026-09-17
+
+---
+
+# Decisão: 097 — O mesmo e-mail por outra forma de entrar é recusado
+
+Definido pelo dono do produto em 18/09. Resolve a pendência "E-mail repetido
+entre provedores", que o handoff registrava desde a ligação do Google.
+
+## Contexto
+
+O Supabase junta sozinho as formas de entrar de um mesmo e-mail **verificado** —
+e-mail e senha e Google viram a mesma identidade, e o ColeXa não vê conflito
+nenhum. Quando ele **não** junta, nasce uma segunda identidade para o mesmo
+endereço, e o índice único de `users.email` recusava a criação da conta com uma
+tela de erro no meio do login.
+
+## Decisão
+
+1. **Recusar com mensagem clara**, e não juntar as contas: "Este e-mail já tem
+   uma conta no ColeXa, criada com outra forma de entrar. Entre do mesmo jeito
+   que da primeira vez — com e-mail e senha, ou com o Google." Juntar entregaria
+   a conta a quem provasse só o e-mail por outro provedor, que é o caminho de
+   tomada de conta quando algum provedor aceita e-mail não verificado.
+2. **A conferência é no login**, com senha e na volta do provedor, logo depois
+   de a sessão nascer: se o e-mail já é de outra conta ativa do ColeXa, a sessão
+   é encerrada e a mensagem aparece na tela de entrar. Encerrar importa — viva no
+   cookie, cada página tentaria criar a conta repetida de novo.
+3. **`resolveUser` deixou de derrubar a página** nesse caso: uma sessão que
+   escape da conferência (um cookie de antes da regra) é tratada como quem não
+   entrou, e o log registra o id no provedor. O teste antigo, que esperava o
+   erro, foi atualizado dizendo que a regra mudou.
+4. Conta anonimizada não conta: o e-mail dela já é
+   `deleted+<id>@deleted.invalid`.
+
+## Data
+
+2026-09-18
