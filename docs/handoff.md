@@ -1,4 +1,4 @@
-# Handoff — estado em 17/09/2026
+# Handoff — estado em 18/09/2026
 
 Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
 
@@ -8,11 +8,12 @@ Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
    carregou ao subir (armadilha 40), e só lê o `.env` ao subir — `RESEND_API_KEY`
    e `EMAIL_FROM` entraram nele em 17/09.
 2. `npm run supabase status` — mostra o que produção tem e o que falta. Em
-   17/09 ela ficou **em dia: 18 de 18 migrations**.
+   18/09 ela estava **em dia: 19 de 19 migrations**.
 3. **O site está publicado em `https://colexa.fly.dev`** desde 17/09 (decisões
    089 e 090), para teste do dono do produto — ainda **não é o lançamento**.
    Publicar de novo é à mão: `development.md` 6.6.
-4. Leia "Produção, em 17/09/2026", "A Social" e "Próximo passo", abaixo.
+4. Leia "Produção, em 17/09/2026", "O dashboard da coleção", "A Social" e
+   "Próximo passo", abaixo.
 
 O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 
@@ -22,7 +23,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 122 PRs mergeados, CI verde em todos |
+| Branch | `main`, 126 PRs mergeados até o dashboard (18/09), CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -45,8 +46,9 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 13 concluídos, a Social e o Deck Builder.** 1.518 testes de unidade, integração e
-componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
+**Checkpoints 0 a 13 concluídos, a Social, o Deck Builder e o dashboard da
+coleção.** 1.546 testes de unidade, integração e componente, mais 34 ponta a
+ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
 |---|---|
@@ -112,6 +114,9 @@ componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 | — | Premium e Free: o que cada plano faz, com as travas aplicadas (decisão 093) |
 | — | As imagens das cartas preparadas depois de publicar (decisão 094) |
 | — | Deck Builder: conferência das 51 cartas, sem guardar deck (decisão 095) |
+| — | Enviar feedback, por e-mail ao suporte (decisão 096) |
+| — | O mesmo e-mail por outra forma de entrar é recusado (decisão 097) |
+| — | O dashboard da coleção no Início, Premium (decisão 098) |
 
 ### Produção, em 17/09/2026
 
@@ -577,6 +582,10 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     app — o aviso de "50% usado" era de tempo, não de gasto. O painel mostrava
     791 kB de tráfego e volumes em 0 GB: não havia o que economizar. Sem cartão,
     não há caminho gratuito para manter o site de pé.
+66. **`toFixed(2)` não põe ponto no milhar.** O Deck Builder mostrava
+    `62154,92`, e o dono do produto pediu `62.154,92`. O certo é
+    `toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })`
+    — o `toFixed` só serve para arredondar número que ainda vai ser somado.
 
 ## Pendências
 
@@ -692,13 +701,9 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 - **Progresso por set** aparece nas telas 10 e 11 e não foi construído: é
   métrica de coleção (`business-rules.md` 2.2), e chega com as telas de coleção.
   O componente `ProgressBar` já existe esperando o número.
-- **E-mail repetido entre provedores.** Se a mesma pessoa criar conta com senha
-  e depois entrar com Google no mesmo endereço, e o Supabase criar um usuário
-  separado em vez de vincular, o nosso `resolveUser` bate no índice único de
-  e-mail. Recusar com mensagem clara é a saída recomendada; vincular é a
-  alternativa, e é caminho de tomada de conta se algum provedor entregar e-mail
-  não verificado. **Aguarda decisão** — e ficou mais urgente: o Google foi ligado
-  em 17/09.
+- ~~**E-mail repetido entre provedores.**~~ — **resolvido pela decisão 097**
+  em 18/09: recusado no login com mensagem clara, e a sessão é encerrada. Juntar
+  as contas ficou de fora por ser caminho de tomada de conta.
 
 ### Desenhado, e não construído
 
@@ -729,7 +734,15 @@ em 10/09.
   mas o provedor de imagens não depende mais disso.
 - O `middleware.ts` está deprecado no Next 16, que agora prefere `proxy.ts`. O
   build avisa a cada execução. Migração mecânica, adiada por ser mudança na
-  fronteira de sessão.
+  fronteira de sessão. Explicado ao dono do produto em 18/09: é renomear o
+  arquivo e a função, sem mudança de comportamento, num PR só dela.
+- **Dinheiro formatado em três lugares.** `inicio/page.tsx`,
+  `collection-dashboard.tsx` e `deck-builder.tsx` repetem o
+  `toLocaleString('pt-BR', …)` com duas casas. Uma função em `src/lib` evitaria
+  que a próxima tela volte ao `toFixed(2)` sem ponto no milhar (armadilha 66).
+- **O dashboard não tem cache** e não foi medido em produção: lê o catálogo
+  inteiro e os preços a cada abertura do Início (~70 ms no banco local). Se o
+  dono do produto achar o Início lento, é o primeiro lugar a olhar.
 - Pagamento (Checkpoint 15): Supabase não processa. Para assinatura recorrente
   no Brasil, conta Stripe brasileira **não** tem Pix Automático; PSPs nacionais
   como Asaas e Mercado Pago têm.
@@ -865,6 +878,39 @@ Coisas para não desfazer sem querer:
 - **O líder fica fora das regras das 50** (cor, quatro cópias, total), mas entra
   em tudo o que é conferência.
 
+## O dashboard da coleção (decisão 098)
+
+Construído em 18/09, com o dono do produto testando a cada rodada. Premium, no
+Início: o Free continua vendo só o total de cartas, e nada do resto é calculado
+para ele.
+
+- **As contas moram em `buildDashboard`** (domínio, puro); o caso de uso
+  `readCollectionDashboard` só junta catálogo, coleção, preços (`DISTINCT ON`,
+  como no Deck Builder) e cotação.
+- **Variantes** são por coleção; **playsets** somam as artes de qualquer
+  coleção (regra 2.1). **Valor** por coleção conta a arte nas duas coleções em
+  que foi impressa; o **total** conta cada cópia uma vez — sem aviso, é ótica.
+- **Filtros na URL** (`colecao`, `raridade`, `cor`), numa linha: a coleção à
+  vista e o resto no painel em folha. Código de coleção inexistente é filtro
+  nenhum, e não tela vazia.
+- **"Valor (hoje)" no topo** é a coleção inteira (`overallValueUsd`): o filtro
+  não mexe nele, e há teste dizendo isso.
+
+Na mesma leva, a pedido do dono do produto:
+
+- **Deck Builder**: "Valor estimado para completar o deck" é o primeiro bloco
+  do resultado.
+- **"Ver cartas" de um binder** mostra o mesmo cabeçalho do local (nome, tipo,
+  cartas) — `LocationHeader` ganhou `view` (`'detalhe' | 'cartas'`).
+- **Dinheiro com ponto no milhar** (armadilha 66).
+
+Coisas para não desfazer sem querer:
+
+- **O dashboard nunca é desenhado no cliente.** A tela sai pronta do servidor, e
+  é por isso que os filtros vivem na URL e não em estado.
+- **Só entram as coleções de que a pessoa tem alguma carta** — a não ser a
+  filtrada de propósito, que aparece mesmo zerada.
+
 ## A Social (decisões 079 a 087)
 
 Construída de 16 a 17/09, **direto, sem a passada de design antes** — escolha do
@@ -922,9 +968,10 @@ que falta para receber gente de fora:
   teto juntos. Conferir antes.
 - **Backup do banco**: o plano gratuito não tem. Com dado de gente real, é o
   maior risco da operação.
-- **Um caminho para o testador relatar**: hoje só existe o e-mail do suporte,
-  que nem aparece na tela. Decisão do dono do produto se entra um item
-  "Enviar feedback" em Minha conta.
+- ~~**Um caminho para o testador relatar**~~ — **construído em 18/09**
+  (decisão 096): "Enviar feedback" em Minha conta, por e-mail a
+  `suporte@colexa.com.br` com o assunto `FEEDBACK`. O dono do produto testou e
+  o e-mail chegou.
 - ~~**A tarefa Contas nunca rodou em produção**~~ — rodada à mão em 17/09: "0
   vencida(s), 0 anonimizada(s), 0 com falha". Os segredos funcionam.
 - **Premium de cortesia** para cada testador, com prazo
@@ -938,7 +985,7 @@ O que continua combinado para depois:
   Social. A revisão visual e textual tela a tela, e os links das cartas, ficam
   para o fim.
 - **Os bloqueios de lançamento** (seção "Pendências"): Termos e Política, idade
-  mínima, e-mail repetido entre provedores, Premium no lançamento, limpar as
+  mínima, meio de pagamento e preço do Premium, limpar as
   contas de teste e ligar o domínio.
 - **CSP de scripts** (decisão 092 deixou de fora): fechar de onde o navegador
   pode carregar script. Feito errado, derruba o login sem aviso, então pede uma
