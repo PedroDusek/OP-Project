@@ -5892,3 +5892,65 @@ Paulo e tira esse tráfego da nossa máquina.
 ## Data
 
 2026-09-17
+
+---
+
+# Decisão: 095 — Deck Builder: conferência, e não guardador de decks
+
+Definido pelo dono do produto em 17/09.
+
+## Decisão
+
+1. **Um líder e 50 cartas**, com a regra oficial: toda carta precisa ter alguma
+   cor do líder, e no máximo 4 cópias da mesma carta, somando as artes. **Trait
+   não é regra**: um líder Straw Hat vermelho aceita uma carta Baroque Works
+   vermelha. A única exigência além das quatro cópias é a cor em comum.
+2. **O deck não é guardado.** Nenhuma tabela nova: a lista vive na tela, e o que
+   sobrevive a ela é o que a pessoa mandar para a want list. O ColeXa confere
+   decks; guardá-los é outro produto.
+3. **A resposta tem três partes:** quantas cópias ela tem, **onde estão** e
+   **quanto custa o que falta** — para as **51 cartas**, o líder incluído
+   (pedido do dono do produto ao testar). O líder entra na posse, nos lugares,
+   no custo e no auto completar, e fica fora das regras das 50: cor, quatro
+   cópias e total.
+4. **As cópias em local de troca contam**, com aviso **em laranja** — a carta é
+   dela e está na casa dela (regra 4.2), mas está oferecida a outras pessoas, e
+   usá-la no deck desfaz essa oferta. **As cópias sem local também contam**, com
+   o mesmo aviso que o sino já dá.
+4a. **Cópia de outra arte é avisada** (pedido do dono do produto ao testar: um
+   Luffy com uma das quatro em AA aparecia só como "completa"). A linha diz
+   quantas das cópias que contaram são de outra arte, e cada lugar diz a arte
+   das cópias que guarda. A arte escolhida cobre primeiro.
+5. **O preço do que falta é o da arte escolhida**, e não o da mais barata: quem
+   montou a lista escolheu aquela arte.
+6. **Auto completar** decide o que conta: ligado, qualquer arte da mesma carta
+   cobre a linha; desligado, só a escolhida. Uma cópia nunca cobre duas linhas —
+   o repartir está no domínio, e é testado.
+7. **O inválido é recusado**, e não avisado (escolha do dono do produto).
+8. **Recurso Premium** (decisão 093), com destino próprio na gaveta.
+9. **A lista é montada carta a carta na tela**, e não colando texto. Colar uma
+   lista exportada de outro site fica para quando alguém pedir.
+10. **A busca usa os mesmos filtros do catálogo** (set, custo, poder, trait,
+    raridade, arte e os demais), pedido do dono do produto: quem monta deck pensa
+    em "custo 4 dos Chapéus de Palha", e não em códigos. A escolha é **cruzada**
+    com as travas do deck (`deckCatalogQuery`): na etapa das cartas, uma cor que o
+    líder não tem ou o tipo Leader não trazem nada, e a tela diz por quê — em vez
+    de oferecer uma carta que o servidor recusaria.
+
+## Detalhes que a implementação obrigou a resolver
+
+- **As cores do líder não vêm da busca do catálogo**, que nunca precisou delas
+  numa lista. A tela lê o detalhe do líder ao escolhê-lo, e é daí que saem as
+  cores que filtram o resto.
+- **Trocar de líder limpa a lista**: as cores mudam, e o servidor recusaria as
+  cartas antigas. Limpar na hora é mais honesto que deixar descobrir depois de
+  montar cinquenta.
+- **A primeira leva de cartas vem do servidor** (líderes) ou do gesto de escolher
+  o líder (cartas da cor). Buscar dentro de um efeito é o que a regra de lint do
+  projeto proíbe, e a razão dela é a mesma aqui.
+- **O preço sai de uma consulta só** (`DISTINCT ON`): uma por carta seriam
+  cinquenta idas ao banco por conferência.
+
+## Data
+
+2026-09-17
