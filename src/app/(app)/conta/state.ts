@@ -18,3 +18,8 @@ export const USERNAME_IDLE: UsernameState = { status: 'idle' }
 export type DeletionState = { status: 'idle' } | FormError
 
 export const DELETION_IDLE: DeletionState = { status: 'idle' }
+
+/** O formulário de feedback (decisão 096). */
+export type FeedbackState = { status: 'idle' } | { status: 'sent' } | FormError
+
+export const FEEDBACK_IDLE: FeedbackState = { status: 'idle' }
