@@ -22,7 +22,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 121 PRs mergeados, CI verde em todos |
+| Branch | `main`, 122 PRs mergeados, CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -604,6 +604,10 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 7. **Limpar as contas de teste** de produção, nas duas metades (ver "Produção").
    As contas existentes estão em **Free** desde a decisão 093: para testar troca,
    publicação e análise, `npm run supabase premium <email> --ate=AAAA-MM-DD`.
+   A conta de teste do dono do produto (`pedrodusek30+teste@gmail.com`) recebeu
+   Premium **até 31/12/2026**, no banco local e em produção, em 17/09 — para
+   testar o Deck Builder. Ela cai para o Free sozinha nessa data, e sai junto na
+   limpeza das contas de teste.
 8. ~~**Premium no lançamento**~~ — **decidido em 17/09** (decisão 093): Premium
    é publicar o Trade Binder, começar troca, a análise da coleção e aparecer
    primeiro na rede. Falta só escolher **meio de pagamento e preço**, que o dono
