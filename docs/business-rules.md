@@ -495,7 +495,9 @@ ficaram para depois do teste com usuários.
 
 1. **Publicar o Trade Binder** num link público (6.1).
 2. **Começar uma troca**, pelo link ou pelo convite direto (4.6.1).
-3. **A análise da coleção**, onde aparecer: no Início e em Minha Coleção
+3. **A análise da coleção**, onde aparecer: no Início (o dashboard da decisão
+   098 — progresso, valor, custo para completar e distribuição, por coleção,
+   raridade e cor) e em Minha Coleção
    (números do cabeçalho, abas Playsets e Faltam, a lista de playsets e a marca
    "Playset" na carta), e a contagem de playsets no detalhe do binder. Inclui o
    progresso (2.2) e, quando existir, o valor estimado.

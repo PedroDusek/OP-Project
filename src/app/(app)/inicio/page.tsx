@@ -7,7 +7,10 @@ import { ProgressBar } from '@/components/ui/progress-bar'
 import { Panel } from '@/components/ui/surface'
 import { EmptyState } from '@/components/ui/states'
 import { PremiumNotice } from '@/components/premium/premium-notice'
-import { readDashboard } from '@/server/application/collection'
+import { CollectionDashboardView } from '@/components/dashboard/collection-dashboard'
+import { DashboardFilters } from '@/components/dashboard/dashboard-filters'
+import { getCatalogVocabulary } from '@/server/application/catalog'
+import { readCollectionDashboard, readDashboard } from '@/server/application/collection'
 import { requireViewer } from '@/server/http/viewer'
 
 export const metadata: Metadata = { title: 'Início' }
@@ -22,13 +25,31 @@ export const metadata: Metadata = { title: 'Início' }
  * Colecão vazia mostra o estado vazio em vez de quatro zeros: zero em tudo não
  * informa, e a próxima ação é a mesma.
  */
-export default async function InicioPage({ searchParams }: { searchParams: Promise<{ exclusao?: string }> }) {
+type Params = { exclusao?: string; colecao?: string; raridade?: string | string[]; cor?: string | string[] }
+
+const lista = (valor: string | string[] | undefined) => (valor === undefined ? [] : Array.isArray(valor) ? valor : [valor])
+
+export default async function InicioPage({ searchParams }: { searchParams: Promise<Params> }) {
   const viewer = await requireViewer('/inicio')
+  const params = await searchParams
   const summary = await readDashboard(viewer)
+
+  // O dashboard e Premium (decisao 098); para o Free nem e calculado. Os filtros
+  // chegam pela URL, entao a tela sai pronta do servidor.
+  const [dashboard, vocabulario] = summary.premium
+    ? await Promise.all([
+        readCollectionDashboard(viewer, {
+          setCode: params.colecao,
+          rarities: lista(params.raridade),
+          colors: lista(params.cor),
+        }),
+        getCatalogVocabulary(),
+      ])
+    : [null, null]
 
   // Entrar de novo cancelou um pedido de exclusao da conta (decisao 091). O
   // parametro so muda o texto desta pagina, entao nao ha o que falsificar.
-  const exclusaoCancelada = (await searchParams).exclusao === 'cancelada' ? (
+  const exclusaoCancelada = params.exclusao === 'cancelada' ? (
     <Panel role="status" className="mb-5 border-success/40 bg-success-soft p-3 text-sm text-text">
       O pedido de exclusão da sua conta foi cancelado. Tudo continua como estava, menos as trocas
       que tinham sido canceladas.
@@ -109,6 +130,21 @@ export default async function InicioPage({ searchParams }: { searchParams: Promi
             Ver minha coleção
           </Link>
         </p>
+
+        {dashboard && vocabulario ? (
+          <section className="flex flex-col gap-4 border-t border-border pt-5">
+            <div>
+              <h2 className="text-base font-semibold text-text">Sua coleção em números</h2>
+              <p className="text-sm text-text-muted">Filtre por coleção, raridade ou cor: todos os números acompanham.</p>
+            </div>
+            <DashboardFilters
+              sets={dashboard.sets.map((set) => ({ code: set.code, label: `${set.displayCode} · ${set.displayName}` }))}
+              rarities={vocabulario.rarities}
+              colors={vocabulario.colors}
+            />
+            <CollectionDashboardView dashboard={dashboard} />
+          </section>
+        ) : null}
       </div>
     </>
   )

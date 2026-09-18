@@ -6008,3 +6008,49 @@ tela de erro no meio do login.
 ## Data
 
 2026-09-18
+
+---
+
+# Decisão: 098 — O dashboard da coleção
+
+Definido pelo dono do produto em 18/09: dados estatísticos da coleção no Início,
+com filtros, **como recurso Premium** — "informações que as pessoas de fato
+queiram pagar o Premium para ter".
+
+## As contas
+
+1. **Por coleção, só as coleções de que a pessoa tem alguma carta**, na ordem de
+   lançamento, cada uma com a capa, o nome e duas barras:
+   - **variantes**: artes impressas naquela coleção que a pessoa tem, sobre as
+     que existem. Duas artes da mesma carta na mesma coleção são duas variantes
+     (regra 2.2);
+   - **playsets**: cartas daquela coleção com 4 cópias, **somando as artes de
+     qualquer coleção** — a carta é uma só (regra 2.1). Leader não conta.
+2. **Valor por coleção**: o que a pessoa tem de cada uma. A mesma arte impressa
+   em duas coleções vale nas duas; **o valor total conta cada cópia uma vez**.
+   Sem aviso na tela: não é soma dupla, é ótica (palavras do dono do produto).
+3. **Valor total**, pelo preço mais recente de cada variante, com as cópias sem
+   preço contadas à parte.
+4. **As cinco mais valiosas**, pelo preço de uma cópia.
+5. **Custo para completar**: uma cópia de cada variante que falta, pelo preço de
+   hoje — por coleção e no recorte todo, onde a variante de duas coleções conta
+   uma vez. Variante sem preço fica fora, e é contada.
+6. **Distribuição** por raridade, cor e tipo, com cópias e valor. Carta de duas
+   cores entra nas duas fatias, e a tela diz isso.
+7. **Filtros: coleção, raridade e cor** (escolha do dono do produto, e não os do
+   catálogo inteiro). Eles recortam o universo — o que a pessoa tem e o que
+   existe —, e todos os números obedecem. Ficam na URL, e a tela sai pronta do
+   servidor. Código de coleção que não existe é filtro nenhum.
+
+## Como está feito
+
+- As contas moram no domínio (`buildDashboard`), puras e testadas; o caso de uso
+  só junta catálogo, coleção, preços e cotação.
+- Tudo numa leitura: catálogo inteiro (~4.400 variantes), a coleção e os preços
+  mais recentes numa consulta só (`DISTINCT ON`). Medido: ~70 ms no banco local,
+  depois da primeira. Sem cache por enquanto.
+- Os valores saem em real quando há cotação, com o dólar ao lado.
+
+## Data
+
+2026-09-18
