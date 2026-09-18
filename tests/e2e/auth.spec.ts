@@ -214,6 +214,32 @@ test.describe('formulário de criar conta', () => {
     await expect(page.getByLabel('Confirmar senha')).toHaveAttribute('aria-invalid', 'true')
   })
 
+  /*
+   * O teste de cima falhou uma vez na suíte inteira, e a causa não era tempo de
+   * resposta: o envio nunca aconteceu. O desafio do Turnstile aparece depois do
+   * `load`, logo acima do botão, e ocupava 7 px além da reserva — o botão descia
+   * no meio do clique e o clique caía dentro do iframe. Sem envio, nenhum erro,
+   * e esperar mais não adiantaria. Isto prende a causa: o botão fica onde estava
+   * quando o desafio se desenha.
+   *
+   * Só roda com a chave pública no ambiente, como na máquina de quem desenvolve;
+   * na CI não há chave e o componente não desenha nada.
+   */
+  test('o desafio do CAPTCHA não empurra o botão de enviar', async ({ page }) => {
+    test.skip(!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY, 'Turnstile desligado neste ambiente')
+
+    await page.goto('/criar-conta')
+    const enviar = page.getByRole('button', { name: 'Criar conta' })
+    const antes = (await enviar.boundingBox())?.y
+
+    // O iframe fica num shadow root fechado; de fora se vê o invólucro, ao lado do
+    // campo de resposta que o widget cria. O campo nasce um quadro antes de o
+    // invólucro ter altura, e esperar só por ele mediria o botão cedo demais.
+    const widget = page.locator('div:has(> input[name="cf-turnstile-response"])')
+    await expect.poll(async () => (await widget.boundingBox())?.height ?? 0).toBeGreaterThan(0)
+    expect((await enviar.boundingBox())?.y).toBe(antes)
+  })
+
   test('os termos e a privacidade têm página', async ({ page }) => {
     await page.goto('/criar-conta')
 

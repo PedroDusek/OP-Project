@@ -600,6 +600,12 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 69. **Os testes ponta a ponta não rodam no `npm test`.** Mudar texto visível
     exige `npm run test:e2e` antes do PR, ou a CI é que descobre — como em 18/09,
     quando `getByText(/Bandai/)` passou a achar a palavra duas vezes no rodapé.
+70. **Teste ponta a ponta que falha "por tempo" pode nem ter enviado.** Em 18/09
+    o do cadastro esperou 6 s por um erro que nunca viria: o Turnstile se
+    desenhava depois do `load`, 7 px maior que a reserva, o botão descia no meio
+    do clique e o clique caía no iframe. Aumentar o timeout não teria mudado
+    nada. Antes de esperar mais, confira se a requisição saiu. Só acontece com
+    `NEXT_PUBLIC_TURNSTILE_SITE_KEY` no `.env`; na CI não há chave.
 
 ## Pendências
 
