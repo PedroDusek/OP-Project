@@ -138,6 +138,15 @@ export const NETWORK_REPORT_LIMIT: RateLimitOptions = {
 }
 
 /**
+ * Mandar feedback ao suporte (decisão 096). Quem tem o que dizer escreve uma ou
+ * duas vezes; mais que isso numa hora é enxurrada na caixa do suporte.
+ */
+export const FEEDBACK_LIMIT: RateLimitOptions = {
+  limit: 5,
+  windowMs: 60 * 60_000,
+}
+
+/**
  * Enviar mensagem numa conversa (decisão 081). Quem conversa de verdade não
  * passa de uma mensagem a cada dois segundos; mais que isso é enxurrada.
  */

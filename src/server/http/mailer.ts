@@ -18,6 +18,11 @@ export interface EmailMessage {
   to: string
   subject: string
   text: string
+  /**
+   * Para onde vai a resposta. O feedback leva o e-mail de quem escreveu, e o
+   * suporte responde direto a ela sem copiar endereço (decisão 096).
+   */
+  replyTo?: string
 }
 
 export interface Mailer {

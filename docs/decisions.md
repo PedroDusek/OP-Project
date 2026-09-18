@@ -5954,3 +5954,27 @@ Definido pelo dono do produto em 17/09.
 ## Data
 
 2026-09-17
+
+---
+
+# Decisão: 096 — Enviar feedback
+
+Definido pelo dono do produto em 18/09, antes do teste com usuários.
+
+## Decisão
+
+1. **Em Minha conta, acima de "Sair da conta"**, um item **Enviar feedback**
+   leva a uma tela com um campo de texto (até 2.000 caracteres).
+2. **Vai por e-mail para `suporte@colexa.com.br`, com o assunto `FEEDBACK`**,
+   como a denúncia (decisão 086). O e-mail diz quem escreveu (nome, e-mail, nome
+   na rede, plano) e traz a mensagem por último, em texto puro.
+3. **A resposta vai direto para quem escreveu**: o e-mail sai com `reply_to` no
+   endereço da pessoa. O contrato `Mailer` ganhou o campo, opcional.
+4. **Não é guardado no banco.** Por isso, ao contrário da denúncia, **falhar no
+   envio é erro para quem escreveu** — sem registro de reserva, dizer "enviado"
+   sem ter enviado perderia a mensagem calado. O log da falha não leva o texto.
+5. **Para todos os planos**, com cota de 5 por hora por pessoa.
+
+## Data
+
+2026-09-18

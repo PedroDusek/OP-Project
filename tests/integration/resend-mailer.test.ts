@@ -62,3 +62,15 @@ describe('ResendMailer', () => {
     await expect(falha).rejects.not.toThrow('re_de_teste')
   })
 })
+
+describe('resposta direta (decisão 096)', () => {
+  it('com replyTo, manda reply_to; sem ele, não manda o campo', async () => {
+    await new ResendMailer().send({ ...mensagem, replyTo: 'ana@example.test' })
+    expect(JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body))).toMatchObject({
+      reply_to: 'ana@example.test',
+    })
+
+    await new ResendMailer().send(mensagem)
+    expect(JSON.parse(String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body))).not.toHaveProperty('reply_to')
+  })
+})
