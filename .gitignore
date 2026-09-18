@@ -68,3 +68,6 @@ paralelas-candidatas.json
 liga-conflitos.json
 
 certificates
+# As imagens originais das colecoes e dos decks (48 MB). O que vai para o
+# site sai delas por `scripts/preparar-capas.ts`, em `public/sets/`.
+Imagens OPTCG/

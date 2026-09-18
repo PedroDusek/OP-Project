@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { Symbol } from '@/components/brand/logo'
+import { hasSetCover, SetCover } from '@/components/catalog/set-cover'
 import { cardCountLabel, SET_KIND_LABEL } from '@/server/domain/catalog/sets'
 import type { SetSummary } from '@/server/application/catalog/list-sets'
 
@@ -26,6 +27,13 @@ import type { SetSummary } from '@/server/application/catalog/list-sets'
  * 8.97:1 no claro, os dois acima do mínimo de 4.5:1. Aumentar a opacidade da
  * arte derruba esse piso.
  *
+ * ## A imagem do produto, quando existe
+ *
+ * O pacote ou a caixa, desenhados pelo dono do produto (`SetCover`), ficam à
+ * direita, nítidos: esses sim identificam o set. O símbolo da marca em marca
+ * d'água sai quando ela entra — a imagem já traz a forma da marca atrás do
+ * produto, e os dois no mesmo canto brigavam.
+ *
  * ## As informações escritas continuam
  *
  * Código, nome, tipo e contagem seguem em texto, como pediu o dono do produto.
@@ -33,6 +41,7 @@ import type { SetSummary } from '@/server/application/catalog/list-sets'
  */
 export function SetHeader({ set }: { set: SetSummary }) {
   const backHref = `/catalogo/sets?tipo=${set.kind}`
+  const comCapa = hasSetCover(set.code)
 
   return (
     <div className="-mx-4 mb-4 md:mx-0 md:overflow-hidden md:rounded-card">
@@ -55,10 +64,12 @@ export function SetHeader({ set }: { set: SetSummary }) {
           className="absolute inset-0 -z-10 bg-linear-to-r from-accent via-accent/85 to-accent/60"
         />
 
-        <Symbol
-          label={null}
-          className="pointer-events-none absolute -top-8 -right-6 -z-10 h-40 w-auto opacity-10 [&_path]:fill-white"
-        />
+        {comCapa ? null : (
+          <Symbol
+            label={null}
+            className="pointer-events-none absolute -top-8 -right-6 -z-10 h-40 w-auto opacity-10 [&_path]:fill-white"
+          />
+        )}
 
         <Link
           href={backHref}
@@ -68,13 +79,25 @@ export function SetHeader({ set }: { set: SetSummary }) {
           {SET_KIND_LABEL[set.kind]}
         </Link>
 
-        <p className="text-sm font-semibold text-white/80 tabular-nums">{set.displayCode}</p>
-        <h1 className="mt-0.5 text-2xl leading-tight font-bold tracking-tight text-white">
-          {set.displayName}
-        </h1>
-        <p className="mt-2 text-sm text-white/80 tabular-nums">
-          {cardCountLabel(set.variantCount)}
-        </p>
+        <div className="flex items-end gap-4">
+          <div className={comCapa ? 'min-w-0 flex-1 pr-24 md:pr-32' : 'min-w-0 flex-1'}>
+            <p className="text-sm font-semibold text-white/80 tabular-nums">{set.displayCode}</p>
+            <h1 className="mt-0.5 text-2xl leading-tight font-bold tracking-tight text-white">
+              {set.displayName}
+            </h1>
+            <p className="mt-2 text-sm text-white/80 tabular-nums">
+              {cardCountLabel(set.variantCount)}
+            </p>
+          </div>
+          {/* No canto, rente: a forma roxa da imagem continua para fora do quadro. */}
+          <SetCover
+            code={set.code}
+            alt=""
+            sizes="128px"
+            esmaecer={false}
+            className="absolute right-0 bottom-0 h-[92%] md:h-full"
+          />
+        </div>
       </div>
     </div>
   )

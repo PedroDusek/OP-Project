@@ -6066,3 +6066,40 @@ queiram pagar o Premium para ter".
 ## Data
 
 2026-09-18
+
+---
+
+# Decisão: 099 — As imagens dos sets são as do dono do produto
+
+Pedido do dono do produto em 18/09: as imagens que ele fez passam a representar
+as coleções e os starter decks. "Faça como achar melhor" quanto ao fundo.
+
+## Decisão
+
+1. **58 sets têm imagem** — OP-01 a OP-17 (com OP14-EB04 e OP15-EB04), EB-01 a
+   EB-03, PRB-01, PRB-02 e ST-01 a ST-36 —, cada uma em versão clara e escura.
+   Promocionais e o que sair depois continuam com a reserva de antes.
+2. **Onde aparecem:** na lista de sets do catálogo (no lugar do quadro com o
+   código), no cabeçalho do set (à direita, nítida, sobre o roxo) e em cada
+   coleção do dashboard do Início (no lugar da carta Leader).
+3. **O fundo liso das originais sai**, recortado a partir das bordas, e a imagem
+   se mistura a qualquer superfície. Escolhido em vez de acertar a cor: o fundo
+   delas (`#f1f2f4`, `#242328`) é próximo, mas não igual, a nenhuma das quatro
+   superfícies das telas.
+4. **A versão segue o tema**, inclusive a escolha da pessoa por cima do sistema.
+   As duas vão na página e o CSS esconde a outra; o navegador só baixa a
+   visível.
+5. **A forma roxa sai cortada** pela direita e por baixo nas originais. No
+   cabeçalho, a imagem encosta no canto e o corte coincide com a borda; na lista
+   e no dashboard, as duas bordas esmaecem.
+6. **As originais (48 MB) ficam fora do Git e da imagem do Docker.** O site usa
+   WebP de 540 px, 6,7 MB no total, gerados por `scripts/preparar-capas.ts` —
+   roda de novo quando chegar imagem nova, e a lista de `set-cover.tsx` ganha o
+   código (um teste confere que lista e arquivos andam juntos).
+
+A arte desfocada da carta Leader continua no fundo do cabeçalho: ela ambienta,
+e a imagem do produto identifica.
+
+## Data
+
+2026-09-18

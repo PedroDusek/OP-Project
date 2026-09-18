@@ -28,3 +28,6 @@ blob-report/
 *.log
 liga-conflitos.json
 paralelas-candidatas.json
+
+# As originais das capas: o site usa as de `public/sets/`.
+Imagens OPTCG/

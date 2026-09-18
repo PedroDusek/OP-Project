@@ -25,6 +25,12 @@ import { cn } from '@/lib/cn'
  *
  * No cabeçalho do set, onde há espaço, a arte continua: lá ela ambienta em vez
  * de identificar.
+ *
+ * ## Hoje é a reserva
+ *
+ * Desde 18/09 a lista mostra a imagem do produto desenhada pelo dono do
+ * produto (`SetCover`), que resolve o que o logo resolveria. Este quadro fica
+ * para os sets sem imagem — os promocionais, e o que sair antes de ela existir.
  */
 export function SetBadge({ code, className }: { code: string; className?: string }) {
   return (

@@ -204,3 +204,31 @@
     color: #000000 !important;
   }
 }
+
+/*
+ * As duas versoes da imagem de um set (`SetCover`): so a do tema que vale
+ * aparece. Nao da para ser um token, como o resto do tema: `light-dark()`
+ * resolve cor, nao imagem. Os tres casos sao os mesmos dos tokens — escolha da
+ * pessoa nos dois sentidos, e o sistema quando ela nao escolheu.
+ */
+.so-tema-escuro {
+  display: none;
+}
+
+:root[data-theme="dark"] .so-tema-claro {
+  display: none;
+}
+
+:root[data-theme="dark"] .so-tema-escuro {
+  display: block;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .so-tema-claro {
+    display: none;
+  }
+
+  :root:not([data-theme="light"]) .so-tema-escuro {
+    display: block;
+  }
+}

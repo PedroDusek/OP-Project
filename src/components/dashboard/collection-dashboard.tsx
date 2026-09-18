@@ -1,5 +1,6 @@
 import { Crown, Wallet } from 'lucide-react'
 import { CardArt } from '@/components/catalog/card-art'
+import { SetCover } from '@/components/catalog/set-cover'
 import { ProgressBar } from '@/components/ui/progress-bar'
 import { Panel } from '@/components/ui/surface'
 import type { CollectionDashboard } from '@/server/application/collection'
@@ -81,11 +82,19 @@ export function CollectionDashboardView({ dashboard }: { dashboard: CollectionDa
               <li key={progresso.set.id}>
                 <Panel className="flex gap-3 p-3">
                   <span className="w-16 shrink-0 sm:w-20">
-                    <CardArt
-                      src={progresso.set.coverUrl}
+                    <SetCover
+                      code={progresso.set.code}
                       alt={progresso.set.displayName}
-                      fallback={progresso.set.displayCode}
                       sizes="80px"
+                      className="w-full"
+                      fallback={
+                        <CardArt
+                          src={progresso.set.coverUrl}
+                          alt={progresso.set.displayName}
+                          fallback={progresso.set.displayCode}
+                          sizes="80px"
+                        />
+                      }
                     />
                   </span>
                   <div className="flex min-w-0 flex-1 flex-col gap-2">
