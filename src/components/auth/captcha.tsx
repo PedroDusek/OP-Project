@@ -97,7 +97,16 @@ export function Captcha({ resetKey }: { resetKey: unknown }) {
     <>
       {/* `onReady` roda também quando o script já estava carregado por outra tela. */}
       <Script src={SCRIPT} strategy="afterInteractive" onReady={desenhar} />
-      <div ref={container} className="min-h-[65px]" />
+      {/*
+       * Os 65 px são a altura do widget, reservada para o botão de enviar não
+       * pular quando ele aparece — e ele aparece depois do `load`, vindo da rede
+       * da Cloudflare. O `leading-[0]` é o que faz a reserva valer: o iframe do
+       * Turnstile é inline dentro de um shadow root, e com a altura de linha
+       * herdada (24 px) a linha ganhava o vão da linha de base, 7 px a mais.
+       * O botão descia 7 px na hora em que se clica nele, e o teste ponta a
+       * ponta do cadastro chegou a clicar dentro do iframe em vez do botão.
+       */}
+      <div ref={container} className="min-h-[65px] leading-[0]" />
       <input type="hidden" name="captchaToken" value={token} />
     </>
   )
