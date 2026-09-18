@@ -6048,9 +6048,11 @@ queiram pagar o Premium para ter".
    completar continua em cada coleção.
 9. **No Deck Builder, "Valor estimado para completar o deck"** vira o primeiro
    bloco do resultado, em destaque (antes era "Custo do que falta", abaixo das
-   contagens). Eles recortam o universo — o que a pessoa tem e o que
-   existe —, e todos os números obedecem. Ficam na URL, e a tela sai pronta do
-   servidor. Código de coleção que não existe é filtro nenhum.
+   contagens).
+10. **Os filtros recortam o universo** — o que a pessoa tem e o que existe —, e
+    todos os números obedecem, menos o valor do topo (item 8). Ficam na URL, e a
+    tela sai pronta do servidor. Código de coleção que não existe é filtro
+    nenhum.
 
 ## Como está feito
 
