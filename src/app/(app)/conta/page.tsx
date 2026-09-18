@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { SignOutButton } from '@/components/auth/sign-out-button'
 import { currentViewer } from '@/server/http/viewer'
 import { isPremium } from '@/server/application/authorization'
+import { INDEPENDENCE_NOTICE } from '@/components/legal/attribution-footer'
 
 export const metadata: Metadata = { title: 'Minha conta' }
 
@@ -83,7 +84,7 @@ export default async function MaisPage() {
             */}
             <ListRow
               title="Fonte do catálogo"
-              description="Dados de cartas do site oficial do One Piece Card Game, da Bandai. O ColeXa não tem vínculo, parceria ou endosso da Bandai."
+              description={INDEPENDENCE_NOTICE}
               hideChevron
             />
           </PanelList>

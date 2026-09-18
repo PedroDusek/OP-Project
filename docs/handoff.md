@@ -926,12 +926,14 @@ Coisas para não desfazer sem querer:
 
 Ajustes pedidos pelo dono do produto em 18/09, publicados no mesmo dia.
 
-- **O rodapé de toda tela** leva a atribuição da decisão 020, agora com o
-  crédito de direitos que ela pedia e faltava: "One Piece © Eiichiro
-  Oda/Shueisha, Toei Animation. One Piece Card Game © Bandai Namco
-  Entertainment." Um componente só, `AttributionFooter`, nas molduras do app,
-  das telas de conta, da página inicial, do Trade Binder público e das páginas
-  legais. Página nova fora dessas molduras precisa colocá-lo à mão.
+- **O rodapé de toda tela** leva a atribuição da decisão 020, com o crédito de
+  direitos que ela pedia e faltava. **O texto é do dono do produto**, palavra
+  por palavra (a independência da ColeXa e a origem dos dados; depois "One
+  Piece © Eiichiro Oda/Shueisha. © Toei Animation. One Piece Card Game © Bandai
+  Namco Entertainment Inc."), e mora em `attribution-footer.tsx`. Um componente
+  só, `AttributionFooter`, nas molduras do app, das telas de conta, da página
+  inicial, do Trade Binder público e das páginas legais. Página nova fora
+  dessas molduras precisa colocá-lo à mão. Minha conta reusa a primeira frase.
 - **A folha da want list** leva o próprio crédito ao lado de `colexa.com.br`:
   "Imagens das cartas © Bandai. Todos os direitos reservados."
 - **A tela de compartilhar a want list** perdeu o texto abaixo dos botões
@@ -939,10 +941,9 @@ Ajustes pedidos pelo dono do produto em 18/09, publicados no mesmo dia.
   ao preparar continua avisada.
 - **O resumo do Trade Binder** diz "com base em sua(s) binder(s) de troca".
 
-**Texto do rodapé: o dono do produto decidiu manter como está.** Foi sugerida
-uma forma com "Todos os direitos reservados aos seus respectivos titulares" e
-o nome completo da Bandai também na folha; ele preferiu não mudar. Vale levar
-as duas frases à advogada junto com os Termos de Uso.
+**O texto do rodapé foi escrito pelo dono do produto** no mesmo dia, depois da
+primeira versão publicada, e substituiu a nossa. Vale levar o rodapé e o
+crédito da folha à advogada junto com os Termos de Uso.
 
 ## As imagens dos sets (decisão 099)
 

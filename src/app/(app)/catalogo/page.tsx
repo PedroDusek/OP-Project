@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { Layers, Library } from 'lucide-react'
 import { PageHeader } from '@/components/layout/app-shell'
 import { CatalogFilters } from '@/components/catalog/catalog-filters'
@@ -61,15 +60,7 @@ export default async function CatalogoPage({ searchParams }: PageProps<'/catalog
 
         <CatalogResults result={result} query={query} origin={currentPath('/catalogo', params)} />
       </div>
-
-      <p className="mt-8 text-xs text-text-subtle">
-        Dados de cartas do site oficial do One Piece Card Game, da Bandai. O ColeXa não tem
-        vínculo, parceria ou endosso da Bandai.{' '}
-        <Link href="/conta" className="underline underline-offset-2">
-          Mais informações
-        </Link>
-        .
-      </p>
+      {/* A atribuição que ficava aqui passou ao rodapé de toda tela (decisão 100). */}
     </>
   )
 }

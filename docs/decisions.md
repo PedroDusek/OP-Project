@@ -6134,6 +6134,26 @@ As telas de erro que não passam por nenhuma moldura (a página inexistente e o
 erro global) não têm o rodapé. Não mostram carta, e o erro global substitui a
 página inteira quando o resto falhou.
 
+## Mudança, no mesmo dia: o texto do dono do produto
+
+O item 2 acima registra o texto da primeira versão. Ainda em 18/09, depois de
+publicada, o dono do produto escreveu as duas frases, e elas substituíram as
+anteriores palavra por palavra:
+
+> A ColeXa é uma plataforma independente e não é afiliada, patrocinada ou
+> endossada pela Bandai Namco Entertainment, Bandai ou quaisquer empresas
+> relacionadas. Dados de cartas baseados em informações disponibilizadas
+> publicamente pelo site oficial do One Piece Card Game.
+>
+> One Piece © Eiichiro Oda/Shueisha. © Toei Animation. One Piece Card Game ©
+> Bandai Namco Entertainment Inc.
+
+- A primeira frase também substitui a antiga em Minha conta ("Fonte do
+  catálogo") e no `README.md`.
+- O parágrafo de atribuição no fim do catálogo saiu: repetia a frase antiga logo
+  acima do rodapé, que agora diz o mesmo em toda tela.
+- O crédito da folha da want list (item 3) não mudou.
+
 ## Data
 
 2026-09-18

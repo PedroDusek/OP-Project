@@ -52,7 +52,11 @@ teste — estão em [`docs/development.md`](docs/development.md).
 
 ## Atribuição
 
-Os dados de cartas vêm do site oficial do One Piece Card Game, da Bandai. O
-ColeXa não tem vínculo, parceria ou endosso da Bandai nem de qualquer detentor
-de franquia. As imagens de carta são referenciadas na origem e nunca
-rearmazenadas.
+A ColeXa é uma plataforma independente e não é afiliada, patrocinada ou
+endossada pela Bandai Namco Entertainment, Bandai ou quaisquer empresas
+relacionadas. Dados de cartas baseados em informações disponibilizadas
+publicamente pelo site oficial do One Piece Card Game. As imagens de carta são
+referenciadas na origem e nunca rearmazenadas.
+
+One Piece © Eiichiro Oda/Shueisha. © Toei Animation. One Piece Card Game ©
+Bandai Namco Entertainment Inc.
