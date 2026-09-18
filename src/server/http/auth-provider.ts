@@ -57,6 +57,8 @@ export interface SignUpInput {
  */
 export interface SignedIn {
   authUserId: string
+  /** O e-mail da conta no provedor, para conferir se já pertence a outra (decisão 097). */
+  email: string
 }
 
 export interface SignUpResult {

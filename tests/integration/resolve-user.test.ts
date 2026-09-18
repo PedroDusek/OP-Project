@@ -1,4 +1,5 @@
-import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { emailBelongsToAnotherAccount } from '@/server/application/auth/email-conflict'
 import { resolveUser } from '@/server/application/auth/resolve-user'
 import { disconnect, resetDatabase, testPrisma } from '../helpers'
 
@@ -39,11 +40,29 @@ describe('resolveUser', () => {
     expect(await testPrisma().collection.count()).toBe(1)
   })
 
-  it('e-mail que já pertence a outra identidade continua sendo erro', async () => {
+  /*
+   * A regra mudou com a decisao 097: antes, o e-mail de outra identidade subia
+   * como erro e derrubava a pagina. Agora o login recusa isso com mensagem
+   * clara, e se uma sessao assim chegar ate aqui, ela e tratada como quem nao
+   * entrou — sem criar conta repetida e sem tela de erro.
+   */
+  it('e-mail que já pertence a outra identidade não cria conta, e não derruba a página', async () => {
     await resolveUser(testPrisma(), identidade)
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
     await expect(
       resolveUser(testPrisma(), { authUserId: 'outra-identidade', email: 'nova@example.test' }),
-    ).rejects.toMatchObject({ code: 'P2002' })
+    ).resolves.toBeNull()
+    expect(await testPrisma().user.count()).toBe(1)
+    warn.mockRestore()
+  })
+
+  it('confere se o e-mail já é de outra conta (decisão 097)', async () => {
+    await resolveUser(testPrisma(), identidade)
+
+    expect(await emailBelongsToAnotherAccount(testPrisma(), 'outra-identidade', ' NOVA@example.test ')).toBe(true)
+    expect(await emailBelongsToAnotherAccount(testPrisma(), identidade.authUserId, 'nova@example.test')).toBe(false)
+    expect(await emailBelongsToAnotherAccount(testPrisma(), 'outra-identidade', 'livre@example.test')).toBe(false)
   })
 
   it('conta anonimizada não autentica', async () => {

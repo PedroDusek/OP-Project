@@ -10,6 +10,7 @@ import {
   startOAuth,
 } from '@/server/application/auth/credentials'
 import { cancelAccountDeletion } from '@/server/application/account'
+import { emailInUse } from '@/server/application/auth'
 import { appUrl } from '@/server/http/app-url'
 import { formErrorFrom } from '@/server/http/form-state'
 import { requestCookies } from '@/server/http/next-cookies'
@@ -49,7 +50,12 @@ export async function signInAction(
         remember,
         captchaToken: captcha(data),
       },
-      { cookies: await requestCookies({ remember }), appUrl: appUrl(), cancelDeletion: cancelAccountDeletion },
+      {
+        cookies: await requestCookies({ remember }),
+        appUrl: appUrl(),
+        cancelDeletion: cancelAccountDeletion,
+        emailInUse,
+      },
     ))
   } catch (error) {
     return formErrorFrom(error)

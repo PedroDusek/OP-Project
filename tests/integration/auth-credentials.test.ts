@@ -47,7 +47,7 @@ const fakeProvider: AuthProvider = {
   },
   async signInWithPassword(email, password, captchaToken) {
     record('signInWithPassword', email, password, ...(captchaToken ? [captchaToken] : []))
-    return { authUserId: 'auth-falso' }
+    return { authUserId: 'auth-falso', email: 'falso@example.test' }
   },
   async signOut() {
     record('signOut')
@@ -60,7 +60,7 @@ const fakeProvider: AuthProvider = {
   },
   async exchangeCodeForSession(code) {
     record('exchangeCodeForSession', code)
-    return { authUserId: 'auth-falso' }
+    return { authUserId: 'auth-falso', email: 'falso@example.test' }
   },
   async oauthUrl(provider, redirectTo) {
     record('oauthUrl', provider, redirectTo)
@@ -326,5 +326,39 @@ describe('entrar de novo cancela o pedido de exclusão (decisão 091)', () => {
     nextError = new AuthenticationError('E-mail ou senha incorretos.')
     await expect(signIn({ email: 'p@example.test', password: 'errada' }, { ...deps, cancelDeletion })).rejects.toThrow()
     expect(cancelDeletion).not.toHaveBeenCalled()
+  })
+})
+
+describe('o mesmo e-mail por outra forma de entrar (decisão 097)', () => {
+  /*
+   * Definido pelo dono do produto: recusar com mensagem clara, e nao juntar as
+   * contas. A sessao que o provedor acabou de abrir e encerrada, senao ficaria
+   * viva no cookie.
+   */
+  it('recusa entrar pelo Google com um e-mail que já tem conta, e encerra a sessão', async () => {
+    const emailInUse = vi.fn(async () => true)
+    const erro = await completeOAuth('codigo', { ...deps, emailInUse }).catch((e) => e)
+
+    expect(erro).toBeInstanceOf(AuthenticationError)
+    expect(erro.message).toMatch(/outra forma de entrar/)
+    expect(emailInUse).toHaveBeenCalledWith('auth-falso', 'falso@example.test')
+    expect(lastCall('signOut')).toBeDefined()
+  })
+
+  it('recusa também no login com senha', async () => {
+    const emailInUse = vi.fn(async () => true)
+    await expect(
+      signIn({ email: 'p@example.test', password: 'senha-boa' }, { ...deps, emailInUse }),
+    ).rejects.toThrow(/outra forma de entrar/)
+  })
+
+  it('e-mail livre entra normalmente, e o pedido de exclusão só é conferido depois', async () => {
+    const emailInUse = vi.fn(async () => false)
+    const cancelDeletion = vi.fn(async () => false)
+    await expect(completeOAuth('codigo', { ...deps, emailInUse, cancelDeletion })).resolves.toEqual({
+      deletionCancelled: false,
+    })
+    expect(lastCall('signOut')).toBeUndefined()
+    expect(cancelDeletion).toHaveBeenCalled()
   })
 })
