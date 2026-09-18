@@ -23,7 +23,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 126 PRs mergeados até o dashboard (18/09), CI verde em todos |
+| Branch | `main`, 128 PRs mergeados até as imagens dos sets (18/09), CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -47,7 +47,7 @@ existe comando de reset para produção, de propósito.
 ## O que está pronto
 
 **Checkpoints 0 a 13 concluídos, a Social, o Deck Builder e o dashboard da
-coleção.** 1.546 testes de unidade, integração e componente, mais 34 ponta a
+coleção.** 1.550 testes de unidade, integração e componente, mais 34 ponta a
 ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -117,6 +117,7 @@ ponta. Lint, typecheck e build passando.
 | — | Enviar feedback, por e-mail ao suporte (decisão 096) |
 | — | O mesmo e-mail por outra forma de entrar é recusado (decisão 097) |
 | — | O dashboard da coleção no Início, Premium (decisão 098) |
+| — | As imagens das coleções e dos decks, feitas pelo dono do produto (decisão 099) |
 
 ### Produção, em 17/09/2026
 
@@ -586,6 +587,11 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     `62154,92`, e o dono do produto pediu `62.154,92`. O certo é
     `toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })`
     — o `toFixed` só serve para arredondar número que ainda vai ser somado.
+67. **O otimizador de imagens responde no formato que o cliente aceita.** Sem
+    `Accept`, o `curl` recebe a capa de set em JPEG — sem transparência, com
+    fundo preto. Navegador pede WebP ou AVIF e recebe com o fundo recortado.
+    Conferir imagem transparente com `curl` exige
+    `-H "Accept: image/avif,image/webp,*/*"`.
 
 ## Pendências
 
@@ -647,12 +653,9 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
   referência internacional convertida; não converter mostra dólar a quem negocia
   em real. Decisão do dono do produto.
 
-- **Logo oficial do set.** A Bandai tem um, mas só nas páginas de produto dos
-  lançamentos recentes, com URL contendo hash aleatório
-  (`/onepiececg/bccard/en/products/2026/03/26/FQ6NL0F7vwkybKBR/logo.webp`) e não
-  derivável do código. `op01.html`, `st01.html` e `eb01.html` devolvem 404 — só
-  os produtos novos têm página. Cobrir os 60 sets exigiria hospedar as imagens
-  por conta própria, como a LigaOnePiece faz. Hoje a capa é o Leader do set.
+- ~~**Logo oficial do set.**~~ — **resolvido pela decisão 099** em 18/09: o dono
+  do produto fez as imagens dos 58 sets de coleção e deck, e elas são
+  hospedadas por nós, em `public/sets/`. Os promocionais seguem sem imagem.
 
 - ~~**Uma variante sem set.** `ST14-010_r1`~~ — **resolvido pela decisão 052.**
   O palpite anotado aqui estava certo: `_r1` não é o mesmo que `_pN`. É
@@ -910,6 +913,34 @@ Coisas para não desfazer sem querer:
   é por isso que os filtros vivem na URL e não em estado.
 - **Só entram as coleções de que a pessoa tem alguma carta** — a não ser a
   filtrada de propósito, que aparece mesmo zerada.
+
+## As imagens dos sets (decisão 099)
+
+Feitas pelo dono do produto, uma versão clara e uma escura para cada um dos 58
+sets de coleção e deck. Aparecem na lista de sets, no cabeçalho do set e em cada
+coleção do dashboard. O componente é `SetCover`.
+
+- **As originais (48 MB) ficam em `Imagens OPTCG/`**, fora do Git e do Docker. O
+  site usa WebP de 540 px em `public/sets/{claro,escuro}/`, 6,7 MB no total.
+- **Imagem nova:** pôr a original em `Imagens OPTCG/{Ops,Decks}/{Light,Dark}/`,
+  rodar `npx tsx scripts/preparar-capas.ts` e acrescentar o código à lista
+  `COM_CAPA` de `set-cover.tsx`. Um teste recusa arquivo fora da lista.
+- **O fundo liso das originais foi recortado** a partir das bordas, e a imagem
+  se mistura a qualquer superfície. O teste de mesa foi composto sobre as quatro
+  cores de superfície dos dois temas.
+
+Coisas para não desfazer sem querer:
+
+- **As duas versões vão na página e o CSS escolhe** (`.so-tema-claro` e
+  `.so-tema-escuro`, em `globals.css`). `<picture>` com `prefers-color-scheme`
+  ignoraria a escolha de tema da pessoa. Funciona porque o `next/image` é
+  preguiçoso: a versão escondida não é baixada. Pôr `priority` numa delas baixa
+  as duas.
+- **A forma roxa sai cortada** pela direita e por baixo nas originais. No
+  cabeçalho a imagem fica rente ao canto (`esmaecer={false}`); em quadro solto
+  as duas bordas esmaecem. Mudar a posição no cabeçalho traz o corte de volta.
+- **Não foi visto em screenshot pelo assistente**: o painel do navegador não
+  desenhou. A conferência foi pelo DOM, e o dono do produto aprovou olhando.
 
 ## A Social (decisões 079 a 087)
 
