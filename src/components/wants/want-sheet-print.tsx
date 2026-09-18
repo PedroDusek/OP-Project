@@ -9,6 +9,7 @@ import { EmptyState } from '@/components/ui/states'
 import { useToast } from '@/components/ui/toast'
 import { catalogImageForCanvas } from '@/lib/catalog-image'
 import { CARDS_PER_SHEET, renderWantSheets } from '@/lib/want-sheet-image'
+import { SHEET_RIGHTS_NOTICE } from '@/lib/want-sheet-notice'
 import type { WantView } from '@/server/application/wants'
 
 /**
@@ -70,20 +71,7 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
 
   const faltando = wants.filter((want) => want.status !== 'satisfied')
   const copias = faltando.reduce((total, want) => total + want.remaining, 0)
-  /*
-   * Duas contas, porque sao dois avisos diferentes. Sem vinculo mas com imagem
-   * no catalogo, a carta sai com a arte da Bandai e a marca "SAMPLE"; sem nenhuma
-   * das duas, sai com o codigo escrito no lugar. Hoje toda variante tem imagem
-   * no catalogo — medido —, mas o aviso nao pode prometer isso.
-   */
-  const comAmostra = faltando.filter(
-    (want) => want.sheetImageUrl === null && want.imageUrl !== null,
-  ).length
-  const semArte = faltando.filter(
-    (want) => want.sheetImageUrl === null && want.imageUrl === null,
-  ).length
   const folhasDeDoze = emFolhas(faltando)
-  const folhas = Math.max(1, folhasDeDoze.length)
 
   /*
    * A assinatura da lista, e nao a lista: `faltando` e um array novo a cada
@@ -279,15 +267,18 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
           </div>
         ) : null}
 
-        <p className="text-sm text-text-muted">
-          {explicacao({
-            falhou,
-            preparando,
-            compartilhavel,
-            folhas: arquivos?.length ?? folhas,
-          })}{' '}
-          {avisoDeArte({ comAmostra, semArte })}
-        </p>
+        {/*
+          O texto que explicava cada estado — quantas imagens vão, o aviso da
+          marca SAMPLE, o "Salvar como PDF" — saiu a pedido do dono do produto em
+          18/09: os botões já dizem o que fazem. Fica só a falha, que sem aviso
+          seria um botão que some sem explicação.
+        */}
+        {falhou ? (
+          <p className="text-sm text-text-muted">
+            Não foi possível preparar as imagens neste aparelho. A impressão continua funcionando, e nela
+            todas as cartas saem com a arte.
+          </p>
+        ) : null}
       </div>
 
       {/*
@@ -367,50 +358,15 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
             ))}
           </ul>
 
-          <footer className="relative mt-6 border-t border-black/10 pt-3 text-[10px] text-black/50 print:mt-3 print:pt-2">
-            Lista gerada no ColeXa · colexa.com.br
+          <footer className="relative mt-6 flex flex-wrap justify-between gap-x-4 gap-y-1 border-t border-black/10 pt-3 text-[10px] text-black/50 print:mt-3 print:pt-2">
+            <span>Lista gerada no ColeXa · colexa.com.br</span>
+            <span>{SHEET_RIGHTS_NOTICE}</span>
           </footer>
         </article>
       ))}
       </div>
     </div>
   )
-}
-
-/**
- * A frase que explica o que vai acontecer, para o estado em que a tela está.
- *
- * Fora do JSX porque são quatro estados, e quatro ternários aninhados no meio de
- * um parágrafo escondem qual deles está faltando.
- */
-function explicacao({
-  falhou,
-  preparando,
-  compartilhavel,
-  folhas,
-}: {
-  falhou: boolean
-  preparando: boolean
-  compartilhavel: boolean
-  folhas: number
-}): string {
-  const quantas = folhas > 1 ? `${folhas} imagens` : 'uma imagem'
-  const cada = `de até ${CARDS_PER_SHEET} cartas cada`
-
-  if (falhou) {
-    return 'Não foi possível preparar as imagens neste aparelho. A impressão continua funcionando, e nela todas as cartas saem com a arte.'
-  }
-  if (preparando) {
-    return `Preparando ${quantas}, ${cada}.`
-  }
-  if (compartilhavel) {
-    return folhas > 1
-      ? `Vão ${quantas}, ${cada} — as ${folhas} de uma vez, no grupo que você escolher.`
-      : `Vai ${quantas}, ${cada}, para o grupo que você escolher.`
-  }
-  return folhas > 1
-    ? `São ${quantas}, ${cada}. Baixe uma por vez.`
-    : 'A imagem baixa direto.'
 }
 
 /**
@@ -450,27 +406,6 @@ function emFolhas(wants: readonly WantView[]): WantView[][] {
     folhas.push(wants.slice(i, i + CARDS_PER_SHEET))
   }
   return folhas
-}
-
-/**
- * O que a pessoa precisa saber sobre a arte da imagem, antes de mandar no grupo.
- *
- * A marca "SAMPLE" é dita em voz alta: quem manda a lista no grupo vai ver a marca
- * nas cartas, e descobrir depois de enviar é pior do que saber antes.
- */
-function avisoDeArte({ comAmostra, semArte }: { comAmostra: number; semArte: number }): string {
-  const partes: string[] = []
-  if (comAmostra > 0) {
-    partes.push(
-      `${comAmostra} ${comAmostra === 1 ? 'carta sai' : 'cartas saem'} com a imagem do catálogo, que traz a marca SAMPLE.`,
-    )
-  }
-  if (semArte > 0) {
-    partes.push(
-      `${semArte} ${semArte === 1 ? 'carta sai' : 'cartas saem'} com o código no lugar da arte; imprimindo, todas saem com a arte.`,
-    )
-  }
-  return partes.length > 0 ? partes.join(' ') : 'Imprimindo, escolha “Salvar como PDF” no diálogo.'
 }
 
 function nomeDaFolha(indice: number, total: number): string {

@@ -1,4 +1,5 @@
 import { SYMBOL, LOGOTYPE } from './marca'
+import { SHEET_RIGHTS_NOTICE } from '@/lib/want-sheet-notice'
 
 /**
  * Desenhar a want list como uma imagem, no aparelho de quem usa.
@@ -280,11 +281,14 @@ async function drawWatermark(ctx: CanvasRenderingContext2D, height: number): Pro
 }
 
 function drawFooter(ctx: CanvasRenderingContext2D, height: number): void {
-  ctx.textAlign = 'left'
+  const y = height - PADDING + 12
   ctx.textBaseline = 'alphabetic'
   ctx.fillStyle = MUTED
   ctx.font = '400 18px system-ui, sans-serif'
-  ctx.fillText('Lista gerada no ColeXa · colexa.com.br', PADDING, height - PADDING + 12)
+  ctx.textAlign = 'left'
+  ctx.fillText('Lista gerada no ColeXa · colexa.com.br', PADDING, y)
+  ctx.textAlign = 'right'
+  ctx.fillText(SHEET_RIGHTS_NOTICE, WIDTH - PADDING, y)
 }
 
 /**

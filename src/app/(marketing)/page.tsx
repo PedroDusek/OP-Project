@@ -5,6 +5,7 @@ import { BrandWatermark } from '@/components/brand/watermark'
 import { Logotype } from '@/components/brand/logo'
 import { Button } from '@/components/ui/button'
 import { currentViewer } from '@/server/http/viewer'
+import { AttributionFooter } from '@/components/legal/attribution-footer'
 
 /**
  * A landing (tela 02).
@@ -103,12 +104,7 @@ export default async function LandingPage() {
         </div>
       </main>
 
-      <footer className="mx-auto w-full max-w-lg px-4 pb-8">
-        <p className="text-xs text-text-subtle">
-          Dados de cartas do site oficial do One Piece Card Game, da Bandai. O ColeXa não tem
-          vínculo, parceria ou endosso da Bandai.
-        </p>
-      </footer>
+      <AttributionFooter className="mx-auto w-full max-w-lg px-4 pb-8" />
     </div>
   )
 }

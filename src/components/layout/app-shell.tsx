@@ -1,6 +1,7 @@
 import { cn } from '@/lib/cn'
 import { SideNav } from './side-nav'
 import { TopBar, type Viewer } from './top-bar'
+import { AttributionFooter } from '@/components/legal/attribution-footer'
 
 /**
  * O esqueleto das areas autenticadas.
@@ -65,6 +66,8 @@ export function AppShell({ viewer, children, className }: AppShellProps) {
         >
           {children}
         </main>
+        {/* Dentro da coluna do conteúdo, e não embaixo da barra lateral. */}
+        <AttributionFooter className="mx-auto w-full max-w-6xl border-t border-border px-4 pt-4 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] md:pb-6" />
       </div>
 
     </div>

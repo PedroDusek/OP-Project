@@ -61,10 +61,23 @@ test.describe('landing', () => {
     await expect(page).toHaveURL('/entrar')
   })
 
-  /** A atribuição da fonte é mitigação obrigatória da decisão 020. */
-  test('atribui a fonte do catálogo', async ({ page }) => {
+  /**
+   * A atribuição da fonte é mitigação obrigatória da decisão 020.
+   *
+   * A regra mudou em 18/09 (decisão 100): o rodapé ganhou uma segunda linha,
+   * com o crédito de direitos, e "Bandai" passou a aparecer nas duas. O teste
+   * confere as duas frases, e não mais a palavra solta.
+   */
+  test('atribui a fonte do catálogo e os direitos', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByText(/Bandai/)).toBeVisible()
+    await expect(page.getByText(/não tem vínculo, parceria ou endosso da Bandai/)).toBeVisible()
+    await expect(page.getByText(/© Eiichiro Oda\/Shueisha, Toei Animation/)).toBeVisible()
+  })
+
+  /* Toda tela, e não só a inicial: a de entrar tem a moldura própria. */
+  test('tem a atribuição também na tela de entrar', async ({ page }) => {
+    await page.goto('/entrar')
+    await expect(page.getByText(/© Eiichiro Oda\/Shueisha, Toei Animation/)).toBeVisible()
   })
 })
 

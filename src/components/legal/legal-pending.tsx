@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Logotype } from '@/components/brand/logo'
 import { Panel } from '@/components/ui/surface'
+import { AttributionFooter } from '@/components/legal/attribution-footer'
 
 /**
  * Página legal ainda sem texto.
@@ -39,6 +40,8 @@ export function LegalPending({ title, description }: { title: string; descriptio
           </p>
         </Panel>
       </main>
+
+      <AttributionFooter className="pt-8 pb-8" />
     </div>
   )
 }

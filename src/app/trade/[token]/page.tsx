@@ -6,6 +6,7 @@ import { CardArt } from '@/components/catalog/card-art'
 import { Logotype } from '@/components/brand/logo'
 import { Badge } from '@/components/ui/badge'
 import { readPublicTradeBinder } from '@/server/application/trades'
+import { AttributionFooter } from '@/components/legal/attribution-footer'
 
 /**
  * O Trade Binder publicado, em `/trade/<token>` (regra 6.1).
@@ -127,10 +128,7 @@ export default async function TradeBinderPublicoPage({ params }: PageProps<'/tra
           A atribuicao acompanha toda tela que mostra carta, e esta e publica —
           e a unica alcancavel por quem nunca entrou no produto.
         */}
-        <p className="text-xs text-text-subtle">
-          Dados de cartas do site oficial do One Piece Card Game, da Bandai. O ColeXa não tem
-          vínculo, parceria ou endosso da Bandai.
-        </p>
+        <AttributionFooter as="div" />
       </footer>
     </main>
   )

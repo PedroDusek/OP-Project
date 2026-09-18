@@ -39,11 +39,17 @@ describe('o resumo', () => {
     expect(screen.getByText(/1 carta · 1 cópia/)).toBeInTheDocument()
   })
 
-  /** Sem isto o nome da tela promete uma reserva que nao existe. */
-  it('diz que estar aqui nao reserva nada', () => {
+  /*
+   * A regra mudou em 18/09: "Estar aqui não reserva nada: os binders de troca é
+   * que definem o que entra" virou "com base em sua(s) binder(s) de troca", a
+   * pedido do dono do produto. O que continua protegido é a origem: o texto
+   * aponta os binders de troca, com o link.
+   */
+  it('diz que a conta vem dos binders de troca', () => {
     render(<TradeBinderSummary cards={2} copies={5} />)
 
-    expect(screen.getByText(/não reserva nada/i)).toBeInTheDocument()
+    expect(screen.getByText(/disponíveis para troca, com base em sua\(s\)/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'binder(s) de troca' })).toHaveAttribute('href', '/binders')
   })
 
   it('some quando nao ha nada, para o vazio falar sozinho', () => {

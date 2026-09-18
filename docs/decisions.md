@@ -6103,3 +6103,37 @@ e a imagem do produto identifica.
 ## Data
 
 2026-09-18
+
+---
+
+# Decisão: 100 — A atribuição no rodapé de toda tela, e o crédito na folha
+
+Pedido do dono do produto em 18/09.
+
+## Decisão
+
+1. **A atribuição da decisão 020 vai para o rodapé de toda tela**: a moldura do
+   app, as telas de conta, a página inicial, o Trade Binder público e as páginas
+   legais. Até aqui ela estava só na página inicial, no Trade Binder público e em
+   Minha conta. Um componente só (`AttributionFooter`), para o texto não
+   divergir.
+2. **O texto ganhou o crédito de direitos** que a 020 pedia e faltava: "One
+   Piece © Eiichiro Oda/Shueisha, Toei Animation. One Piece Card Game © Bandai
+   Namco Entertainment", além da frase que já existia sobre a origem dos dados e
+   a ausência de vínculo com a Bandai.
+3. **A folha da want list leva o próprio crédito**, ao lado de `colexa.com.br`,
+   na imagem e na impressa: "Imagens das cartas © Bandai. Todos os direitos
+   reservados." É a forma formal do que o dono do produto pediu ("Todos os
+   direitos de imagem das cartas reservados a Bandai"). A folha circula longe
+   das telas, e por isso não depende do rodapé delas.
+4. **Fora da impressão**, o rodapé das telas some: a folha tem o dela.
+
+## O que ficou de fora
+
+As telas de erro que não passam por nenhuma moldura (a página inexistente e o
+erro global) não têm o rodapé. Não mostram carta, e o erro global substitui a
+página inteira quando o resto falhou.
+
+## Data
+
+2026-09-18

@@ -53,7 +53,7 @@ export default async function QueroPage() {
               href="/quero/pdf"
               leading={<FileDown className="size-5 text-text-muted" aria-hidden />}
               title="Compartilhar"
-              description="Uma folha com as cartas que faltam, em imagem ou impressa."
+              description="Gera imagem com as cartas que você procura"
             />
           ) : null}
         </PanelList>
