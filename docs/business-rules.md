@@ -463,13 +463,15 @@ ou modificar recursos privados de outro usuário.
 Definido pelo dono do produto em 17/09 (decisão 095).
 
 Um deck tem **1 líder e 50 cartas**, e **toda carta precisa ter alguma cor do
-líder** — líder de duas cores aceita as duas. No máximo **4 cópias da mesma
+líder** — líder de duas cores aceita as duas. O trait não importa: a cor em
+comum é a única exigência de combinação. No máximo **4 cópias da mesma
 carta**, somando as artes: duas artes da mesma carta são a mesma carta.
 
 O ColeXa **não guarda decks**. A pessoa monta a lista na tela e o produto
 responde três coisas:
 
-1. **quantas cópias ela já tem**;
+1. **quantas cópias ela já tem**, das **51 cartas** — o líder é conferido
+   junto;
 2. **onde estão** — em qual binder ou caixa, com aviso quando estão em local de
    troca (regra 4.2) ou quando não têm local definido; as duas contam;
 3. **quanto custa o que falta**, pelo preço da **arte escolhida**.

@@ -112,7 +112,9 @@ describe('as regras do deck', () => {
       autoComplete: true,
     })
     expect(analise.leader.colors).toEqual(expect.arrayContaining(['Red', 'Green']))
-    expect(analise.total).toBe(2)
+    // Desde que o lider entrou na conferencia (pedido do dono do produto: 51
+    // cartas), o total conta ele; o que falta para as 50 continua sem ele.
+    expect(analise.total).toBe(3)
     expect(analise.remaining).toBe(48)
   })
 
@@ -212,7 +214,8 @@ describe('o que eu tenho, e onde está', () => {
     })
 
     expect(analise.ownedTotal).toBe(1)
-    expect(analise.missingTotal).toBe(3)
+    // Tres da carta, mais o lider, que ninguem nesta conta possui.
+    expect(analise.missingTotal).toBe(4)
   })
 })
 
@@ -238,7 +241,8 @@ describe('o custo do que falta', () => {
     expect(analise.lines[0]).toMatchObject({ missing: 2, unitUsd: 1.5, missingUsd: 3 })
     expect(analise.lines[1]).toMatchObject({ missing: 1, unitUsd: 30, missingUsd: 30 })
     expect(analise.cost.usd).toBe(33)
-    expect(analise.cost.withoutPrice).toBe(0)
+    // O lider falta e nao tem preco neste teste: fica fora da soma, e a tela sabe.
+    expect(analise.cost.withoutPrice).toBe(1)
   })
 
   it('carta sem preço fica fora da conta, e a tela sabe quantas', async () => {
@@ -258,7 +262,8 @@ describe('o custo do que falta', () => {
     })
 
     expect(analise.cost.usd).toBe(2)
-    expect(analise.cost.withoutPrice).toBe(3)
+    // As tres sem preco, mais o lider sem preco.
+    expect(analise.cost.withoutPrice).toBe(4)
     expect(analise.lines[1].missingUsd).toBeNull()
   })
 
@@ -278,5 +283,75 @@ describe('o custo do que falta', () => {
     })
 
     expect(analise.cost.brl).toEqual({ value: 50, rate: 5 })
+  })
+})
+
+describe('o líder também é conferido (51 cartas)', () => {
+  /*
+   * Pedido do dono do produto: "conferir o que tenho" olha as 51 cartas. O
+   * lider tem posse, lugar e preco como qualquer outra, e fica fora das regras
+   * das 50 — cor, quatro copias e total.
+   */
+  it('diz se tem o líder, onde está, e soma o preço dele se faltar', async () => {
+    const dona = await pessoa()
+    const { variants: lider } = await carta('OP01-001', 'Leader', ['Red'])
+    const { variants: personagem } = await carta('OP01-016', 'Character', ['Red'])
+    await preco(lider[0].id, 12)
+    await preco(personagem[0].id, 1)
+
+    const pedido = {
+      leaderVariantId: String(lider[0].id),
+      lines: [{ variantId: String(personagem[0].id), copies: 1 }],
+      autoComplete: true,
+    }
+
+    const semLider = await analyzeDeck(testPrisma(), dona, pedido)
+    expect(semLider.leader).toMatchObject({ copies: 1, owned: 0, missing: 1, unitUsd: 12, missingUsd: 12 })
+    expect(semLider.cost.usd).toBe(13)
+    expect(semLider.total).toBe(2)
+
+    const item = await own(dona.collectionId, lider[0].id, 1)
+    const binder = await createStorage(dona.id, 'BINDER', 'COLLECTION', 'Líderes')
+    await allocate(item.id, binder.id, 1)
+
+    const comLider = await analyzeDeck(testPrisma(), dona, pedido)
+    expect(comLider.leader).toMatchObject({ owned: 1, missing: 0, missingUsd: 0 })
+    expect(comLider.leader.places).toEqual([{ location: 'Líderes', forTrade: false, quantity: 1 }])
+    expect(comLider.cost.usd).toBe(1)
+  })
+
+  it('o auto completar vale para o líder: outra arte do mesmo líder conta', async () => {
+    const dona = await pessoa()
+    const { variants: lider } = await carta('OP01-001', 'Leader', ['Red'], ['Normal', 'Parallel'])
+    const { variants: personagem } = await carta('OP01-016', 'Character', ['Red'])
+    await own(dona.collectionId, lider[1].id, 1) // só tem a paralela
+
+    const pedido = {
+      leaderVariantId: String(lider[0].id),
+      lines: [{ variantId: String(personagem[0].id), copies: 1 }],
+    }
+
+    expect((await analyzeDeck(testPrisma(), dona, { ...pedido, autoComplete: true })).leader.owned).toBe(1)
+    expect((await analyzeDeck(testPrisma(), dona, { ...pedido, autoComplete: false })).leader.owned).toBe(0)
+  })
+
+  it('um deck completo são 51 cartas conferidas', async () => {
+    const dona = await pessoa()
+    const { variants: lider } = await carta('OP01-001', 'Leader', ['Red'])
+    const linhas = []
+    for (let i = 0; i < 13; i++) {
+      const { variants } = await carta(`OP09-${String(i).padStart(3, '0')}`, 'Character', ['Red'])
+      linhas.push({ variantId: String(variants[0].id), copies: i < 12 ? 4 : 2 })
+    }
+
+    const analise = await analyzeDeck(testPrisma(), dona, {
+      leaderVariantId: String(lider[0].id),
+      lines: linhas,
+      autoComplete: true,
+    })
+
+    expect(analise.total).toBe(51)
+    expect(analise.remaining).toBe(0)
+    expect(analise.missingTotal).toBe(51)
   })
 })

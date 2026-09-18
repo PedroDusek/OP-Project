@@ -145,7 +145,8 @@ export function DeckBuilder({
   }
 
   const analysis = resultado.status === 'ok' ? resultado.analysis : null
-  const faltantes = analysis?.lines.filter((linha) => linha.missing > 0) ?? []
+  // O lider entra na conta do que falta, como as outras 50 (decisao 095).
+  const faltantes = analysis ? [analysis.leader, ...analysis.lines].filter((linha) => linha.missing > 0) : []
 
   return (
     <div className="flex flex-col gap-6">
@@ -228,7 +229,13 @@ export function DeckBuilder({
                           {linha.variantType !== 'Normal' ? ` · ${linha.variantType}` : ''}
                         </p>
                       </div>
+                      {/*
+                        Largura fixa: o campo do meio cresce ate onde puder, e numa
+                        linha com a arte e o nome ele empurrava o botao de somar
+                        para fora da tela (relatado pelo dono do produto).
+                      */}
                       <QuantitySelector
+                        className="w-36 shrink-0"
                         value={linha.copies}
                         onValueChange={(valor) => mudarCopias(linha.variantId, valor)}
                         label={`Cópias de ${linha.cardCode}`}
@@ -241,8 +248,8 @@ export function DeckBuilder({
               </ul>
             ) : (
               <p className="text-sm text-text-muted">
-                Toque numa carta para acrescentá-la. Só aparecem cartas da cor do líder, e no máximo{' '}
-                {MAXIMO_POR_CARTA} cópias de cada.
+                Toque numa carta para acrescentá-la. Vale qualquer trait — a única regra é ter uma cor em
+                comum com o líder —, e no máximo {MAXIMO_POR_CARTA} cópias de cada carta.
               </p>
             )}
           </section>
@@ -332,7 +339,7 @@ export function DeckBuilder({
               </Panel>
 
               <ul className="flex flex-col gap-2">
-                {analysis.lines.map((linha) => (
+                {[analysis.leader, ...analysis.lines].map((linha) => (
                   <li key={linha.variantId}>
                     <Panel className="flex flex-col gap-2 p-3">
                       <div className="flex items-center gap-3">
@@ -340,7 +347,12 @@ export function DeckBuilder({
                           <CardArt src={linha.imageUrl} alt={linha.cardName} fallback={linha.cardCode} sizes="48px" />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-text">{linha.cardName}</p>
+                          <p className="truncate text-sm font-medium text-text">
+                            {linha.cardName}
+                            {linha.variantId === analysis.leader.variantId ? (
+                              <span className="ml-1.5 text-xs font-semibold text-accent-ink">Líder</span>
+                            ) : null}
+                          </p>
                           <p className="text-xs text-text-muted tabular-nums">
                             {linha.cardCode} · {linha.owned} de {linha.copies}
                           </p>
@@ -456,28 +468,42 @@ function BuscaDeCartas({
   const [termo, setTermo] = useState('')
   const [filtros, setFiltros] = useState<CatalogSearchParams>({})
   const [cartas, setCartas] = useState<Carta[]>(inicial)
+  const [pagina, setPagina] = useState(1)
+  // Sem saber o total da primeira leva, supoe que ha mais: o botao some na
+  // primeira pagina que vier incompleta.
+  const [temMais, setTemMais] = useState(inicial.length >= 12)
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [foraDaTrava, setForaDaTrava] = useState(false)
 
   // Buscar e disparado pelos gestos — enviar o termo, aplicar filtros —, e
   // nunca por um efeito.
+  /*
+   * `proxima` pede a pagina seguinte e soma a grade; sem ela, a busca recomeca.
+   * Relatado pelo dono do produto: so as doze primeiras cartas apareciam, e
+   * parecia que o deck aceitava so um trait — o resto do catalogo existia, mas
+   * nao havia como chegar nele sem digitar.
+   */
   const buscar = useCallback(
-    async (termoAtual: string, filtrosAtuais: CatalogSearchParams) => {
+    async (termoAtual: string, filtrosAtuais: CatalogSearchParams, proxima?: number) => {
       const query = deckCatalogQuery(filtrosAtuais, termoAtual, tipos, cores)
       setErro(null)
       if (!query) {
         setForaDaTrava(true)
         setCartas([])
+        setTemMais(false)
         return
       }
       setForaDaTrava(false)
       setCarregando(true)
+      const alvo = proxima ?? 1
       try {
-        const resposta = await fetch(`/api/catalog?${query}`, { cache: 'no-store' })
+        const resposta = await fetch(`/api/catalog?${query}&page=${alvo}`, { cache: 'no-store' })
         if (!resposta.ok) throw new Error('falhou')
-        const dados = (await resposta.json()) as { items: Carta[] }
-        setCartas(dados.items)
+        const dados = (await resposta.json()) as { items: Carta[]; totalPages: number }
+        setCartas((atual) => (proxima ? [...atual, ...dados.items] : dados.items))
+        setPagina(alvo)
+        setTemMais(alvo < dados.totalPages)
       } catch {
         setErro('Não foi possível buscar agora. Tente de novo.')
       } finally {
@@ -557,6 +583,16 @@ function BuscaDeCartas({
           ))}
         </ul>
       )}
+
+      {temMais && !foraDaTrava && cartas.length > 0 ? (
+        <Button
+          variant="secondary"
+          loading={carregando}
+          onClick={() => void buscar(termo, filtros, pagina + 1)}
+        >
+          Mostrar mais
+        </Button>
+      ) : null}
     </div>
   )
 }

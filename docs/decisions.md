@@ -5902,12 +5902,17 @@ Definido pelo dono do produto em 17/09.
 ## Decisão
 
 1. **Um líder e 50 cartas**, com a regra oficial: toda carta precisa ter alguma
-   cor do líder, e no máximo 4 cópias da mesma carta, somando as artes.
+   cor do líder, e no máximo 4 cópias da mesma carta, somando as artes. **Trait
+   não é regra**: um líder Straw Hat vermelho aceita uma carta Baroque Works
+   vermelha. A única exigência além das quatro cópias é a cor em comum.
 2. **O deck não é guardado.** Nenhuma tabela nova: a lista vive na tela, e o que
    sobrevive a ela é o que a pessoa mandar para a want list. O ColeXa confere
    decks; guardá-los é outro produto.
 3. **A resposta tem três partes:** quantas cópias ela tem, **onde estão** e
-   **quanto custa o que falta**.
+   **quanto custa o que falta** — para as **51 cartas**, o líder incluído
+   (pedido do dono do produto ao testar). O líder entra na posse, nos lugares,
+   no custo e no auto completar, e fica fora das regras das 50: cor, quatro
+   cópias e total.
 4. **As cópias em local de troca contam**, com aviso — a carta é dela e está na
    casa dela (regra 4.2). **As cópias sem local também contam**, com o mesmo
    aviso que o sino já dá.

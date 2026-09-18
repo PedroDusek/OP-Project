@@ -57,8 +57,13 @@ export interface DeckAnalysisLine {
 }
 
 export interface DeckAnalysis {
-  leader: { variantId: string; cardCode: string; cardName: string; imageUrl: string | null; colors: string[] }
+  /**
+   * O líder, conferido como qualquer carta (pedido do dono do produto: a
+   * conferência olha as 51 cartas). As cores ficam aqui porque filtram o resto.
+   */
+  leader: DeckAnalysisLine & { colors: string[] }
   autoComplete: boolean
+  /** Cartas conferidas: o líder mais as do deck. */
   total: number
   remaining: number
   ownedTotal: number
@@ -107,17 +112,27 @@ export async function analyzeDeck(
 
   assertDeckRules(lines)
 
-  const posse = await posseDe(prisma, user, lines.map((line) => line.cardCode))
+  /*
+   * O líder é conferido junto (pedido do dono do produto: são 51 cartas). Ele
+   * entra como a primeira linha na hora de repartir o que a pessoa tem, e fica
+   * fora das regras das 50 — cor, quatro cópias e total —, que já foram
+   * conferidas acima só com as cartas do deck. O código dele nunca é o de uma
+   * carta do deck, então repartir junto não rouba cópia de ninguém.
+   */
+  const linhaDoLider: DeckLine = { variantId: input.leaderVariantId, cardCode: leader.cardCode, copies: 1 }
+  const conferidas = [linhaDoLider, ...lines]
+
+  const posse = await posseDe(prisma, user, conferidas.map((line) => line.cardCode))
   const ownedByVariant = new Map([...posse].map(([variantId, dados]) => [variantId, dados.quantity]))
   const ownedByCode = new Map<string, number>()
   for (const dados of posse.values()) {
     ownedByCode.set(dados.cardCode, (ownedByCode.get(dados.cardCode) ?? 0) + dados.quantity)
   }
 
-  const reparte = distributeOwned(lines, ownedByVariant, ownedByCode, input.autoComplete)
-  const precos = await precosDe(prisma, lines.map((line) => line.variantId))
+  const reparte = distributeOwned(conferidas, ownedByVariant, ownedByCode, input.autoComplete)
+  const precos = await precosDe(prisma, conferidas.map((line) => line.variantId))
 
-  const analisadas: DeckAnalysisLine[] = lines.map((line, i) => {
+  const todas: DeckAnalysisLine[] = conferidas.map((line, i) => {
     const variante = escolhidas.get(line.variantId)!
     const unitUsd = precos.get(line.variantId) ?? null
     const { owned, missing } = reparte[i]
@@ -137,27 +152,20 @@ export async function analyzeDeck(
     }
   })
 
-  const semPreco = analisadas
+  const [liderConferido, ...analisadas] = todas
+  const semPreco = todas
     .filter((line) => line.unitUsd === null)
     .reduce((soma, line) => soma + line.missing, 0)
-  const usd = Number(
-    analisadas.reduce((soma, line) => soma + (line.missingUsd ?? 0), 0).toFixed(2),
-  )
+  const usd = Number(todas.reduce((soma, line) => soma + (line.missingUsd ?? 0), 0).toFixed(2))
   const rate = await getUsdBrlRate(prisma, now)
 
   return {
-    leader: {
-      variantId: input.leaderVariantId,
-      cardCode: leader.cardCode,
-      cardName: leader.cardName,
-      imageUrl: leader.imageUrl,
-      colors: leader.colors,
-    },
+    leader: { ...liderConferido, colors: leader.colors },
     autoComplete: input.autoComplete,
-    total: deckTotal(lines),
+    total: deckTotal(lines) + 1,
     remaining: Math.max(0, 50 - deckTotal(lines)),
-    ownedTotal: analisadas.reduce((soma, line) => soma + line.owned, 0),
-    missingTotal: analisadas.reduce((soma, line) => soma + line.missing, 0),
+    ownedTotal: todas.reduce((soma, line) => soma + line.owned, 0),
+    missingTotal: todas.reduce((soma, line) => soma + line.missing, 0),
     cost: {
       usd,
       brl: rate ? { value: Number((usd * rate.rate).toFixed(2)), rate: rate.rate } : null,
