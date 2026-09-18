@@ -22,7 +22,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 119 PRs mergeados, CI verde em todos |
+| Branch | `main`, 121 PRs mergeados, CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -45,7 +45,7 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 13 concluídos, e a Social.** 1.485 testes de unidade, integração e
+**Checkpoints 0 a 13 concluídos, a Social e o Deck Builder.** 1.518 testes de unidade, integração e
 componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -111,6 +111,7 @@ componente, mais 31 ponta a ponta. Lint, typecheck e build passando.
 | — | Excluir a conta, com 30 dias para desistir (decisão 091) |
 | — | Premium e Free: o que cada plano faz, com as travas aplicadas (decisão 093) |
 | — | As imagens das cartas preparadas depois de publicar (decisão 094) |
+| — | Deck Builder: conferência das 51 cartas, sem guardar deck (decisão 095) |
 
 ### Produção, em 17/09/2026
 
@@ -127,7 +128,7 @@ para teste. O domínio `colexa.com.br` **não** aponta para ele ainda.
 | Painéis | Turnstile com `colexa.fly.dev`; Supabase com `https://colexa.fly.dev/**` nas *Redirect URLs* (Site URL continua `http://localhost:3000`); Google com a origem `https://colexa.fly.dev` |
 | Cobrança | o trial acabou em 17/09 — **2 horas de máquina ligada, não 7 dias** —, e o dono do produto cadastrou cartão. ~US$ 7/mês da máquina, US$ 0,15 do volume |
 | Build | nos builders geridos (`--depot=true`). `--remote-only` criava um app de build com volume de 50 GB (armadilha 64) |
-| Depois de publicar | o workflow prepara 200 cartas (400 imagens) em ~90 s, sem poder derrubar a publicação (decisão 094) |
+| Depois de publicar | o workflow prepara 200 cartas (400 imagens), sem poder derrubar a publicação (decisão 094). A primeira vez levou ~90 s; com o volume guardando o cache, a segunda achou 392 de 400 prontas e levou 32 s |
 
 Conferido pelo assistente em 17/09: a checagem de saúde passa, o servidor roda
 como `node`, o banco conecta, o CAPTCHA desenha, e a mesma imagem de carta leva
@@ -828,6 +829,37 @@ Coisas para não desfazer sem querer:
   normal. A normal mantém o preço, mas fica sem o botão "Veja no TCGplayer": o
   índice único de `variant_source_products` dá um dono por produto. Mostrar nas
   duas exigiria mudar o modelo, e o dono escolheu deixar como está.
+
+## O Deck Builder (decisão 095)
+
+Construído em 17/09, com o dono do produto testando a cada rodada. Premium, em
+`/deck`, com destino próprio na gaveta.
+
+- **Conferência, não guardador:** a lista vive na tela. Nenhuma tabela nova.
+- **Um líder e 50 cartas.** A única regra de combinação é **uma cor em comum
+  com o líder** — trait não importa (um líder Straw Hat vermelho aceita uma
+  Baroque Works vermelha). No máximo 4 cópias por código, somando as artes. O
+  inválido é **recusado** no caso de uso, e a busca nem oferece.
+- **A resposta cobre as 51 cartas**, o líder incluído: quantas a pessoa tem,
+  onde estão (binder, caixa, **local de troca em laranja**, sem local definido)
+  e quanto custa o que falta, **pelo preço da arte escolhida**.
+- **Auto completar** (ligado por padrão): qualquer arte da mesma carta conta, a
+  escolhida primeiro, e a tela avisa quantas cópias são de outra arte e onde
+  está cada uma. Uma cópia nunca cobre duas linhas (`distributeOwned`).
+- **Busca com os filtros do catálogo** e "Mostrar mais". A escolha é cruzada com
+  as travas do deck em `src/lib/deck-query.ts`: cor fora do líder ou tipo
+  Leader na etapa das cartas trazem nada, com a explicação na tela.
+- **O que falta vai para a want list** num botão, na arte escolhida.
+
+Coisas para não desfazer sem querer:
+
+- **A busca do catálogo não devolve cores.** A tela lê o detalhe do líder para
+  saber as dele. Acrescentar cor à busca seria mais rápido, mas muda a rota do
+  catálogo para todas as telas.
+- **A primeira leva vem do servidor ou de um gesto**, nunca de um efeito: é o que
+  a regra de lint `set-state-in-effect` do projeto exige, e ela já pegou isto.
+- **O líder fica fora das regras das 50** (cor, quatro cópias, total), mas entra
+  em tudo o que é conferência.
 
 ## A Social (decisões 079 a 087)
 
