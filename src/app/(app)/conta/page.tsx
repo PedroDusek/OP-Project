@@ -90,6 +90,12 @@ export default async function MaisPage() {
         </section>
 
         <PanelList>
+          {/* Acima de sair, onde o dono do produto pediu (decisao 096). */}
+          <ListRow
+            title="Enviar feedback"
+            description="Conte o que funcionou e o que falta. Chega direto ao suporte."
+            href="/conta/feedback"
+          />
           <SignOutButton />
           <ListRow
             title="Excluir conta"

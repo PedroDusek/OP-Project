@@ -6,6 +6,7 @@ import {
   cancelAccountDeletion as cancelAccountDeletionWith,
   requestAccountDeletion as requestAccountDeletionWith,
 } from './delete-account'
+import { sendFeedback as sendFeedbackWith } from './feedback'
 
 /**
  * Ponto de composição da conta.
@@ -22,9 +23,14 @@ export function requestAccountDeletion(user: AuthenticatedUser, confirmation: st
   return requestAccountDeletionWith(prisma, { mailer, appUrl: appUrl() }, user, confirmation)
 }
 
+export function sendFeedback(user: AuthenticatedUser, message: string) {
+  return sendFeedbackWith(prisma, mailer, user, message)
+}
+
 /** Entrar de novo dentro do prazo desiste do pedido. Passado a `signIn` e `completeOAuth`. */
 export function cancelAccountDeletion(authUserId: string) {
   return cancelAccountDeletionWith(prisma, authUserId)
 }
 
+export { FEEDBACK_MAX } from '@/server/domain/account/feedback'
 export { ACCOUNT_DELETION_CONFIRMATION, ACCOUNT_DELETION_GRACE_DAYS } from '@/server/domain/account/deletion'

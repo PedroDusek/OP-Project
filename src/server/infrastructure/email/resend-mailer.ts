@@ -42,14 +42,14 @@ export class ResendMailer implements Mailer {
     return readConfig() !== null
   }
 
-  async send({ to, subject, text }: EmailMessage): Promise<void> {
+  async send({ to, subject, text, replyTo }: EmailMessage): Promise<void> {
     const config = readConfig()
     if (!config) throw new Error('RESEND_API_KEY e EMAIL_FROM precisam estar definidas.')
 
     const response = await fetch(ENDPOINT, {
       method: 'POST',
       headers: { Authorization: `Bearer ${config.apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: config.from, to: [to], subject, text }),
+      body: JSON.stringify({ from: config.from, to: [to], subject, text, ...(replyTo ? { reply_to: replyTo } : {}) }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     })
     if (!response.ok) {
