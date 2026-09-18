@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { BrandWatermark } from '@/components/brand/watermark'
 import { Logotype } from '@/components/brand/logo'
+import { AttributionFooter } from '@/components/legal/attribution-footer'
 
 /**
  * Moldura das telas de conta.
@@ -38,6 +39,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           {children}
         </div>
       </main>
+
+      <AttributionFooter className="mx-auto w-full max-w-sm px-4 pb-8" />
+
     </div>
   )
 }

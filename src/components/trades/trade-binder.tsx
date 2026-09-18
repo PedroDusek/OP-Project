@@ -146,7 +146,10 @@ function labelsFor(card: TradeBinderCard): string[] {
 }
 
 /**
- * O cabeçalho: as duas contagens e o aviso de que isto não é reserva.
+ * O cabeçalho: as duas contagens e de onde elas vêm — os binders de troca.
+ *
+ * Até 18/09 dizia "Estar aqui não reserva nada: os binders de troca é que
+ * definem o que entra". O dono do produto trocou pelo texto mais curto.
  *
  * Fica no servidor, e não aqui dentro, porque não depende de nada que o cliente
  * saiba — e assim aparece na primeira pintura, junto do resto da página.
@@ -157,11 +160,11 @@ export function TradeBinderSummary({ cards, copies }: { cards: number; copies: n
   return (
     <p className="text-sm text-text-muted">
       {cards === 1 ? '1 carta' : `${cards} cartas`} · {copies === 1 ? '1 cópia' : `${copies} cópias`}{' '}
-      disponíveis para troca. Estar aqui não reserva nada:{' '}
+      disponíveis para troca, com base em sua(s){' '}
       <Link href="/binders" className="font-medium text-accent-ink underline underline-offset-2">
-        os binders de troca
-      </Link>{' '}
-      é que definem o que entra.
+        binder(s) de troca
+      </Link>
+      .
     </p>
   )
 }

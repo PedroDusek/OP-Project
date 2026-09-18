@@ -3,6 +3,7 @@ import { render as renderRaw, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { WantSheetPrint } from '@/components/wants/want-sheet-print'
 import { ToastProvider } from '@/components/ui/toast'
+import { SHEET_RIGHTS_NOTICE } from '@/lib/want-sheet-notice'
 import type { WantView } from '@/server/application/wants'
 
 /** A folha avisa por toast quando o desenho falha, e o aviso precisa de um lar. */
@@ -104,11 +105,24 @@ describe('gerar o arquivo', () => {
     vi.unstubAllGlobals()
   })
 
-  /** Sem a instrucao, o dialogo de impressao parece o botao errado. */
-  it('diz onde escolher salvar como PDF', () => {
+  /*
+   * A regra mudou em 18/09: o texto abaixo dos botoes — quantas imagens vao, o
+   * aviso da marca SAMPLE e o "Salvar como PDF" — saiu a pedido do dono do
+   * produto. Os botoes dizem o que fazem. So a falha continua avisada, logo
+   * abaixo.
+   */
+  it('nao explica os botoes em texto', () => {
     render(<WantSheetPrint wants={[want()]} />)
 
-    expect(screen.getByText(/salvar como pdf/i)).toBeInTheDocument()
+    expect(screen.queryByText(/salvar como pdf/i)).not.toBeInTheDocument()
+  })
+
+  /* A folha circula em grupos, longe do rodape das telas: leva o credito junto. */
+  it('credita os direitos das imagens no rodape da folha', () => {
+    render(<WantSheetPrint wants={[want()]} />)
+
+    expect(screen.getByText(SHEET_RIGHTS_NOTICE)).toBeInTheDocument()
+    expect(SHEET_RIGHTS_NOTICE).toMatch(/© Bandai/)
   })
 
   /*
@@ -190,11 +204,16 @@ describe('a imagem', () => {
     vi.doUnmock('@/lib/want-sheet-image')
   })
 
-  /** Sem vinculo a carta nao some: sai com o codigo no lugar da arte. */
-  it('avisa quantas cartas saem sem arte', () => {
+  /*
+   * Sem vinculo a carta nao some da folha. A regra mudou em 18/09: a tela deixou
+   * de avisar quantas saem sem arte (o texto abaixo dos botoes saiu a pedido do
+   * dono do produto); o que se protege agora e so que ela continua na folha.
+   */
+  it('mantem na folha a carta sem arte', () => {
     render(<WantSheetPrint wants={[want({ sheetImageUrl: null })]} />)
 
-    expect(screen.getByText(/1 carta sai com o código no lugar da arte/i)).toBeInTheDocument()
+    expect(screen.getByText('Roronoa Zoro')).toBeInTheDocument()
+    expect(screen.queryByText(/no lugar da arte/i)).not.toBeInTheDocument()
   })
 })
 
@@ -204,21 +223,20 @@ describe('a paginacao', () => {
    * que o WhatsApp recomprime ate o numero da carta borrar — e o numero e o
    * dado que a folha existe para carregar.
    */
-  it('avisa quantas imagens saem quando passa de doze', () => {
+  /*
+   * A regra mudou em 18/09: a frase "Preparando 3 imagens, de até 12 cartas
+   * cada" saiu com o resto do texto abaixo dos botoes. Quantas folhas sao
+   * continua visivel na propria folha ("folha 1 de 3", testado adiante) e no
+   * botao de compartilhar ("Compartilhar as 3 imagens").
+   */
+  it('corta em folhas de doze quando passa de doze', () => {
     const muitas = Array.from({ length: 25 }, (_, i) =>
       want({ variantId: String(i), cardCode: `OP01-${i}` }),
     )
     render(<WantSheetPrint wants={muitas} />)
 
-    // A frase mudou de tempo: enquanto prepara, ela diz o que esta sendo feito.
-    expect(screen.getByText(/Preparando 3 imagens, de até 12 cartas cada/)).toBeInTheDocument()
-  })
-
-  it('nao fala em varias imagens quando cabe numa folha', () => {
-    render(<WantSheetPrint wants={[want()]} />)
-
-    expect(screen.queryByText(/\d+ imagens/)).not.toBeInTheDocument()
-    expect(screen.getByText(/Preparando uma imagem/)).toBeInTheDocument()
+    expect(screen.getByText(/folha 1 de 3/)).toBeInTheDocument()
+    expect(screen.queryByText(/Preparando 3 imagens/)).not.toBeInTheDocument()
   })
 })
 
@@ -710,16 +728,14 @@ describe('a arte quando falta o vinculo', () => {
     vi.resetModules()
   })
 
-  /* Quem vai mandar no grupo precisa saber da marca antes de enviar. */
-  it('avisa que a imagem do catalogo traz a marca SAMPLE', () => {
+  /*
+   * A regra mudou em 18/09: a tela avisava, antes de enviar, quantas cartas
+   * saiam com a marca SAMPLE. O aviso saiu com o resto do texto abaixo dos
+   * botoes, a pedido do dono do produto. Qual imagem vai para cada carta
+   * continua protegido pelo teste acima.
+   */
+  it('nao avisa mais da marca SAMPLE na tela', () => {
     render(<WantSheetPrint wants={[want({ sheetImageUrl: null, imageUrl: BANDAI })]} />)
-
-    expect(screen.getByText(/1 carta sai com a imagem do catálogo, que traz a marca SAMPLE/i)).toBeInTheDocument()
-    expect(screen.queryByText(/código no lugar da arte/i)).not.toBeInTheDocument()
-  })
-
-  it('prefere a imagem do TCGplayer quando ha vinculo', () => {
-    render(<WantSheetPrint wants={[want({ imageUrl: BANDAI })]} />)
 
     expect(screen.queryByText(/SAMPLE/)).not.toBeInTheDocument()
   })
