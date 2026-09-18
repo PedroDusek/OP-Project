@@ -65,7 +65,7 @@ export default async function ColecaoPage({ searchParams }: PageProps<'/colecao'
   if (summary.totalCards === 0) {
     return (
       <>
-        <PageHeader title="Minha Coleção" description="Suas cartas, com busca, filtros e playsets." />
+        <PageHeader back={{ href: '/inicio', label: 'o Início' }} title="Minha Coleção" description="Suas cartas, com busca, filtros e playsets." />
         <EmptyState
           icon={<Layers className="size-10" aria-hidden />}
           title="Nenhuma carta ainda"
@@ -78,7 +78,7 @@ export default async function ColecaoPage({ searchParams }: PageProps<'/colecao'
 
   return (
     <>
-      <PageHeader
+      <PageHeader back={{ href: '/inicio', label: 'o Início' }}
         title="Minha Coleção"
         description={
           premium

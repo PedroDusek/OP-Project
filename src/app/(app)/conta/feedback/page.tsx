@@ -15,7 +15,7 @@ export default async function FeedbackPage() {
 
   return (
     <>
-      <PageHeader
+      <PageHeader back={{ href: '/conta', label: 'Minha conta' }}
         title="Enviar feedback"
         description="Conte o que funcionou, o que atrapalhou e o que faria o ColeXa melhor para você."
       />

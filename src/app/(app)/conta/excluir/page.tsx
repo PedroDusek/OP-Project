@@ -19,7 +19,7 @@ export default async function ExcluirContaPage() {
 
   return (
     <>
-      <PageHeader
+      <PageHeader back={{ href: '/conta', label: 'Minha conta' }}
         title="Excluir conta"
         description={`Você tem ${ACCOUNT_DELETION_GRACE_DAYS} dias para desistir.`}
       />

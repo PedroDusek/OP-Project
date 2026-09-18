@@ -30,7 +30,7 @@ export default async function DeckPage() {
 
   return (
     <>
-      <PageHeader
+      <PageHeader back={{ href: '/inicio', label: 'o Início' }}
         title="Deck Builder"
         description="Monte a lista e veja o que você já tem, onde está e quanto custa o que falta."
       />

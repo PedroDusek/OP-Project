@@ -47,7 +47,7 @@ export default async function TrocasPage() {
 
   return (
     <>
-      <PageHeader title="Trocas" />
+      <PageHeader back={{ href: '/inicio', label: 'o Início' }} title="Trocas" />
 
       <div className="flex flex-col gap-6">
         {/* Primeiro os convites: e alguem esperando uma resposta (decisao 082). */}

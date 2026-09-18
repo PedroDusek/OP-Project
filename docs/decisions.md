@@ -6157,3 +6157,32 @@ anteriores palavra por palavra:
 ## Data
 
 2026-09-18
+---
+
+# Decisão: 101 — Voltar em toda tela
+
+Pedido do dono do produto em 18/09: o voltar do navegador não basta, e ter o
+próprio é boa prática de IHC que o produto não pode dispensar.
+
+## Decisão
+
+1. **Toda tela tem voltar, menos o Início**, que é a raiz do app. O mesmo vale
+   para a página inicial pública e para o Trade Binder público, que é aberto
+   por link de fora e não tem tela de cima no ColeXa.
+2. **O destino é fixo — a tela de cima na hierarquia —, e não o histórico.**
+   Quem chega por um link compartilhado não tem histórico no ColeXa, e
+   `history.back()` o levaria para fora do site. É também como as telas de
+   detalhe já faziam, e como o detalhe da carta volta à lista de onde veio
+   (decisão 044).
+3. **As seções da gaveta voltam para o Início**: Catálogo, Minha Coleção,
+   Binders, Want list, Trocas, Social, Conversas, Deck Builder e Minha conta.
+   As telas dentro delas voltam para a seção (Sets → Catálogo, Playsets →
+   Minha Coleção, Novo binder → Binders, Editar → o binder, Enviar feedback e
+   Excluir conta → Minha conta, Compartilhar → want list, entrar por convite →
+   Trocas). Termos e Privacidade voltam à página inicial.
+4. **Um componente só**: `PageHeader` ganhou `back`, e `BackButton` é a mesma
+   seta de 44 px que as telas de detalhe já usavam.
+
+## Data
+
+2026-09-18
