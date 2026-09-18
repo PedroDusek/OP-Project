@@ -3,24 +3,32 @@ import { render, screen } from '@testing-library/react'
 import { AttributionFooter } from '@/components/legal/attribution-footer'
 
 /**
- * A atribuição da decisão 020, no rodapé de toda tela (pedido do dono do
- * produto em 18/09). Um componente só serve a todas as molduras, então testar
- * o texto aqui cobre todas.
+ * A atribuição da decisão 020, no rodapé de toda tela (decisão 100). Um
+ * componente só serve a todas as molduras, então testar o texto aqui cobre
+ * todas.
+ *
+ * O texto mudou em 18/09: o dono do produto escreveu as duas frases, e elas
+ * substituíram as anteriores ("Dados de cartas do site oficial... O ColeXa não
+ * tem vínculo, parceria ou endosso da Bandai.").
  */
 describe('AttributionFooter', () => {
-  it('diz de onde vêm os dados e que não há vínculo com a Bandai', () => {
+  it('diz que a ColeXa é independente e de onde vêm os dados', () => {
     render(<AttributionFooter />)
 
-    expect(screen.getByText(/dados de cartas do site oficial do one piece card game/i)).toBeInTheDocument()
-    expect(screen.getByText(/não tem vínculo, parceria ou endosso da bandai/i)).toBeInTheDocument()
+    expect(
+      screen.getByText(/não é afiliada, patrocinada ou endossada pela Bandai Namco Entertainment/),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/disponibilizadas publicamente pelo site oficial do One Piece Card Game/)).toBeInTheDocument()
   })
 
-  /* A 020 pede o crédito aos três titulares, e ele faltava até 18/09. */
   it('credita os titulares dos direitos', () => {
     render(<AttributionFooter />)
 
-    expect(screen.getByText(/© Eiichiro Oda\/Shueisha, Toei Animation/)).toBeInTheDocument()
-    expect(screen.getByText(/© Bandai Namco Entertainment/)).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'One Piece © Eiichiro Oda/Shueisha. © Toei Animation. One Piece Card Game © Bandai Namco Entertainment Inc.',
+      ),
+    ).toBeInTheDocument()
   })
 
   it('vira div dentro de outro rodapé, que não pode conter footer', () => {

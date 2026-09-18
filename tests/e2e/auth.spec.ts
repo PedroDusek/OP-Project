@@ -66,18 +66,19 @@ test.describe('landing', () => {
    *
    * A regra mudou em 18/09 (decisão 100): o rodapé ganhou uma segunda linha,
    * com o crédito de direitos, e "Bandai" passou a aparecer nas duas. O teste
-   * confere as duas frases, e não mais a palavra solta.
+   * confere as duas frases, e não mais a palavra solta. No mesmo dia o dono do
+   * produto reescreveu as duas, e o teste acompanhou.
    */
   test('atribui a fonte do catálogo e os direitos', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByText(/não tem vínculo, parceria ou endosso da Bandai/)).toBeVisible()
-    await expect(page.getByText(/© Eiichiro Oda\/Shueisha, Toei Animation/)).toBeVisible()
+    await expect(page.getByText(/não é afiliada, patrocinada ou endossada pela Bandai/)).toBeVisible()
+    await expect(page.getByText(/© Eiichiro Oda\/Shueisha\. © Toei Animation/)).toBeVisible()
   })
 
   /* Toda tela, e não só a inicial: a de entrar tem a moldura própria. */
   test('tem a atribuição também na tela de entrar', async ({ page }) => {
     await page.goto('/entrar')
-    await expect(page.getByText(/© Eiichiro Oda\/Shueisha, Toei Animation/)).toBeVisible()
+    await expect(page.getByText(/© Eiichiro Oda\/Shueisha\. © Toei Animation/)).toBeVisible()
   })
 })
 
