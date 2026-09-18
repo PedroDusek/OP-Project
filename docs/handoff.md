@@ -23,7 +23,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 128 PRs mergeados até as imagens dos sets (18/09), CI verde em todos |
+| Branch | `main`, 130 PRs mergeados até a atribuição no rodapé (18/09), CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -47,7 +47,7 @@ existe comando de reset para produção, de propósito.
 ## O que está pronto
 
 **Checkpoints 0 a 13 concluídos, a Social, o Deck Builder e o dashboard da
-coleção.** 1.550 testes de unidade, integração e componente, mais 34 ponta a
+coleção.** 1.552 testes de unidade, integração e componente, mais 35 ponta a
 ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -118,6 +118,7 @@ ponta. Lint, typecheck e build passando.
 | — | O mesmo e-mail por outra forma de entrar é recusado (decisão 097) |
 | — | O dashboard da coleção no Início, Premium (decisão 098) |
 | — | As imagens das coleções e dos decks, feitas pelo dono do produto (decisão 099) |
+| — | A atribuição no rodapé de toda tela, e o crédito na folha da want list (decisão 100) |
 
 ### Produção, em 17/09/2026
 
@@ -592,6 +593,13 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     fundo preto. Navegador pede WebP ou AVIF e recebe com o fundo recortado.
     Conferir imagem transparente com `curl` exige
     `-H "Accept: image/avif,image/webp,*/*"`.
+68. **Os testes da folha da want list trocam `want-sheet-image.ts` por um
+    falso** (`vi.doMock`), e o falso só exporta o que ele lista. Uma constante
+    nova ali quebra 14 testes com "No export is defined on the mock". Texto que
+    a tela e o desenho dividem mora em `want-sheet-notice.ts` por isso.
+69. **Os testes ponta a ponta não rodam no `npm test`.** Mudar texto visível
+    exige `npm run test:e2e` antes do PR, ou a CI é que descobre — como em 18/09,
+    quando `getByText(/Bandai/)` passou a achar a palavra duas vezes no rodapé.
 
 ## Pendências
 
@@ -913,6 +921,28 @@ Coisas para não desfazer sem querer:
   é por isso que os filtros vivem na URL e não em estado.
 - **Só entram as coleções de que a pessoa tem alguma carta** — a não ser a
   filtrada de propósito, que aparece mesmo zerada.
+
+## Textos e atribuição (decisão 100)
+
+Ajustes pedidos pelo dono do produto em 18/09, publicados no mesmo dia.
+
+- **O rodapé de toda tela** leva a atribuição da decisão 020, agora com o
+  crédito de direitos que ela pedia e faltava: "One Piece © Eiichiro
+  Oda/Shueisha, Toei Animation. One Piece Card Game © Bandai Namco
+  Entertainment." Um componente só, `AttributionFooter`, nas molduras do app,
+  das telas de conta, da página inicial, do Trade Binder público e das páginas
+  legais. Página nova fora dessas molduras precisa colocá-lo à mão.
+- **A folha da want list** leva o próprio crédito ao lado de `colexa.com.br`:
+  "Imagens das cartas © Bandai. Todos os direitos reservados."
+- **A tela de compartilhar a want list** perdeu o texto abaixo dos botões
+  (quantas imagens, o aviso da marca SAMPLE, o "Salvar como PDF"); só a falha
+  ao preparar continua avisada.
+- **O resumo do Trade Binder** diz "com base em sua(s) binder(s) de troca".
+
+**Texto do rodapé: o dono do produto decidiu manter como está.** Foi sugerida
+uma forma com "Todos os direitos reservados aos seus respectivos titulares" e
+o nome completo da Bandai também na folha; ele preferiu não mudar. Vale levar
+as duas frases à advogada junto com os Termos de Uso.
 
 ## As imagens dos sets (decisão 099)
 
