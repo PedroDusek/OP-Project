@@ -37,6 +37,10 @@ export interface DeckPlace {
   /** O local é de troca: a carta está oferecida a outras pessoas (regra 4.2). */
   forTrade: boolean
   quantity: number
+  /** A arte das cópias neste lugar: com o auto completar, pode não ser a escolhida. */
+  variantType: string
+  /** Estas cópias são de outra arte da mesma carta. */
+  otherArt: boolean
 }
 
 export interface DeckAnalysisLine {
@@ -48,6 +52,12 @@ export interface DeckAnalysisLine {
   copies: number
   owned: number
   missing: number
+  /**
+   * Quantas das cópias que contaram são de **outra arte** — só acontece com o
+   * auto completar ligado. A tela avisa, porque quem montou pediu uma arte e
+   * vai jogar com outra (relatado pelo dono do produto).
+   */
+  fromOtherArt: number
   /** Onde estão as cópias que contaram, incluindo as sem local definido. */
   places: DeckPlace[]
   /** Preço unitário da arte escolhida, em dólar, ou `null` sem preço conhecido. */
@@ -146,6 +156,8 @@ export async function analyzeDeck(
       copies: line.copies,
       owned,
       missing,
+      // A arte escolhida cobre primeiro; o resto do que contou veio de outra.
+      fromOtherArt: Math.max(0, owned - Math.min(owned, ownedByVariant.get(line.variantId) ?? 0)),
       places: lugaresDe(posse, line, input.autoComplete),
       unitUsd,
       missingUsd: unitUsd === null ? null : Number((unitUsd * missing).toFixed(2)),
@@ -217,8 +229,9 @@ async function variantesDe(prisma: PrismaClient, ids: string[]): Promise<Map<str
 
 interface PosseDaVariante {
   cardCode: string
+  variantType: string
   quantity: number
-  places: DeckPlace[]
+  places: Omit<DeckPlace, 'otherArt'>[]
 }
 
 /**
@@ -245,7 +258,7 @@ async function posseDe(
     select: {
       quantity: true,
       cardVariantId: true,
-      cardVariant: { select: { card: { select: { code: true } } } },
+      cardVariant: { select: { variantType: true, card: { select: { code: true } } } },
       locations: {
         where: { quantity: { gt: 0 } },
         select: { quantity: true, storageLocation: { select: { name: true, purpose: true } } },
@@ -256,17 +269,19 @@ async function posseDe(
   return new Map(
     itens.map((item) => {
       const alocado = item.locations.reduce((soma, local) => soma + local.quantity, 0)
-      const places: DeckPlace[] = item.locations.map((local) => ({
+      const variantType = item.cardVariant.variantType
+      const places: Omit<DeckPlace, 'otherArt'>[] = item.locations.map((local) => ({
         location: local.storageLocation.name,
         forTrade: local.storageLocation.purpose === 'TRADE',
         quantity: local.quantity,
+        variantType,
       }))
       if (item.quantity > alocado) {
-        places.push({ location: null, forTrade: false, quantity: item.quantity - alocado })
+        places.push({ location: null, forTrade: false, quantity: item.quantity - alocado, variantType })
       }
       return [
         String(item.cardVariantId),
-        { cardCode: item.cardVariant.card.code, quantity: item.quantity, places },
+        { cardCode: item.cardVariant.card.code, variantType, quantity: item.quantity, places },
       ]
     }),
   )
@@ -282,14 +297,15 @@ function lugaresDe(
     autoComplete ? dados.cardCode === line.cardCode : variantId === line.variantId,
   )
 
-  // Agrupa por lugar: a mesma carta em duas artes no mesmo binder e uma linha so.
+  // Agrupa por lugar **e arte**: duas artes no mesmo binder sao dois avisos,
+  // porque a tela precisa dizer qual das copias e de outra arte.
   const somados = new Map<string, DeckPlace>()
-  for (const [, dados] of relevantes) {
+  for (const [variantId, dados] of relevantes) {
     for (const place of dados.places) {
-      const chave = `${place.location ?? ''}|${place.forTrade}`
+      const chave = `${place.location ?? ''}|${place.forTrade}|${variantId}`
       const atual = somados.get(chave)
       if (atual) atual.quantity += place.quantity
-      else somados.set(chave, { ...place })
+      else somados.set(chave, { ...place, otherArt: variantId !== line.variantId })
     }
   }
   return [...somados.values()].sort((a, b) => b.quantity - a.quantity)

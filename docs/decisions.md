@@ -5913,9 +5913,14 @@ Definido pelo dono do produto em 17/09.
    (pedido do dono do produto ao testar). O líder entra na posse, nos lugares,
    no custo e no auto completar, e fica fora das regras das 50: cor, quatro
    cópias e total.
-4. **As cópias em local de troca contam**, com aviso — a carta é dela e está na
-   casa dela (regra 4.2). **As cópias sem local também contam**, com o mesmo
-   aviso que o sino já dá.
+4. **As cópias em local de troca contam**, com aviso **em laranja** — a carta é
+   dela e está na casa dela (regra 4.2), mas está oferecida a outras pessoas, e
+   usá-la no deck desfaz essa oferta. **As cópias sem local também contam**, com
+   o mesmo aviso que o sino já dá.
+4a. **Cópia de outra arte é avisada** (pedido do dono do produto ao testar: um
+   Luffy com uma das quatro em AA aparecia só como "completa"). A linha diz
+   quantas das cópias que contaram são de outra arte, e cada lugar diz a arte
+   das cópias que guarda. A arte escolhida cobre primeiro.
 5. **O preço do que falta é o da arte escolhida**, e não o da mais barata: quem
    montou a lista escolheu aquela arte.
 6. **Auto completar** decide o que conta: ligado, qualquer arte da mesma carta

@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useMemo, useState, useTransition } from 'react'
-import { AlertTriangle, Check, Package, Plus } from 'lucide-react'
+import { AlertTriangle, ArrowLeftRight, Check, Package, Plus, Sparkles } from 'lucide-react'
 import { CardArt } from '@/components/catalog/card-art'
 import { CatalogFilters } from '@/components/catalog/catalog-filters'
 import { Badge } from '@/components/ui/badge'
@@ -366,12 +366,31 @@ export function DeckBuilder({
                         )}
                       </div>
 
+                      {/*
+                        Pedido do dono do produto: avisar quando a copia que conta e
+                        de outra arte (o auto completar aceita qualquer uma), e
+                        pintar de laranja o que esta em local de troca — a carta
+                        esta oferecida a outras pessoas, e usar no deck e desfazer
+                        essa oferta.
+                      */}
+                      {linha.fromOtherArt > 0 ? (
+                        <p className="inline-flex items-center gap-1 text-xs font-medium text-accent-ink">
+                          <Sparkles className="size-3.5" aria-hidden />
+                          {linha.fromOtherArt} {linha.fromOtherArt === 1 ? 'cópia é' : 'cópias são'} de outra arte
+                          desta carta
+                        </p>
+                      ) : null}
+
                       {linha.places.length > 0 ? (
                         <ul className="flex flex-wrap gap-1.5">
                           {linha.places.map((place) => (
                             <li
-                              key={`${place.location ?? 'sem-local'}-${place.forTrade}`}
-                              className="inline-flex items-center gap-1 rounded-control bg-surface-muted px-2 py-1 text-xs text-text-muted"
+                              key={`${place.location ?? 'sem-local'}-${place.forTrade}-${place.variantType}`}
+                              className={
+                                place.forTrade
+                                  ? 'inline-flex items-center gap-1 rounded-control bg-warning-soft px-2 py-1 text-xs font-medium text-warning'
+                                  : 'inline-flex items-center gap-1 rounded-control bg-surface-muted px-2 py-1 text-xs text-text-muted'
+                              }
                             >
                               {place.location === null ? (
                                 <>
@@ -380,11 +399,18 @@ export function DeckBuilder({
                                 </>
                               ) : (
                                 <>
-                                  <Package className="size-3.5" aria-hidden />
+                                  {place.forTrade ? (
+                                    <ArrowLeftRight className="size-3.5" aria-hidden />
+                                  ) : (
+                                    <Package className="size-3.5" aria-hidden />
+                                  )}
                                   {place.quantity} em {place.location}
                                   {place.forTrade ? ' · local de troca' : ''}
                                 </>
                               )}
+                              {place.otherArt ? (
+                                <span className="font-semibold text-accent-ink">· {place.variantType}</span>
+                              ) : null}
                             </li>
                           ))}
                         </ul>

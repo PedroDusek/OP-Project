@@ -173,9 +173,9 @@ describe('o que eu tenho, e onde está', () => {
     expect(linha).toMatchObject({ owned: 3, missing: 1 })
     expect(linha.places).toEqual(
       expect.arrayContaining([
-        { location: 'Binder vermelho', forTrade: false, quantity: 1 },
-        { location: 'Caixa de troca', forTrade: true, quantity: 1 },
-        { location: null, forTrade: false, quantity: 1 },
+        { location: 'Binder vermelho', forTrade: false, quantity: 1, variantType: 'Normal', otherArt: false },
+        { location: 'Caixa de troca', forTrade: true, quantity: 1, variantType: 'Normal', otherArt: false },
+        { location: null, forTrade: false, quantity: 1, variantType: 'Normal', otherArt: false },
       ]),
     )
   })
@@ -192,7 +192,7 @@ describe('o que eu tenho, e onde está', () => {
     }
 
     const ligado = await analyzeDeck(testPrisma(), dona, { ...pedido, autoComplete: true })
-    expect(ligado.lines[0]).toMatchObject({ owned: 2, missing: 0 })
+    expect(ligado.lines[0]).toMatchObject({ owned: 2, missing: 0, fromOtherArt: 2 })
 
     const desligado = await analyzeDeck(testPrisma(), dona, { ...pedido, autoComplete: false })
     expect(desligado.lines[0]).toMatchObject({ owned: 0, missing: 2 })
@@ -316,7 +316,9 @@ describe('o líder também é conferido (51 cartas)', () => {
 
     const comLider = await analyzeDeck(testPrisma(), dona, pedido)
     expect(comLider.leader).toMatchObject({ owned: 1, missing: 0, missingUsd: 0 })
-    expect(comLider.leader.places).toEqual([{ location: 'Líderes', forTrade: false, quantity: 1 }])
+    expect(comLider.leader.places).toEqual([
+      { location: 'Líderes', forTrade: false, quantity: 1, variantType: 'Normal', otherArt: false },
+    ])
     expect(comLider.cost.usd).toBe(1)
   })
 
@@ -353,5 +355,53 @@ describe('o líder também é conferido (51 cartas)', () => {
     expect(analise.total).toBe(51)
     expect(analise.remaining).toBe(0)
     expect(analise.missingTotal).toBe(51)
+  })
+})
+
+describe('o aviso de outra arte', () => {
+  /*
+   * Relatado pelo dono do produto: um Luffy com uma das quatro copias em AA
+   * aparecia so como "completa". Com o auto completar, a tela diz quantas copias
+   * sao de outra arte, e em qual lugar esta cada uma.
+   */
+  it('diz quantas cópias são de outra arte, e marca o lugar delas', async () => {
+    const dona = await pessoa()
+    const { variants: lider } = await carta('OP01-001', 'Leader', ['Red'])
+    const { variants } = await carta('OP07-109', 'Character', ['Red'], ['Normal', 'Alternate Art'])
+
+    await own(dona.collectionId, variants[0].id, 3)
+    const aa = await own(dona.collectionId, variants[1].id, 1)
+    const caixa = await createStorage(dona.id, 'BOX', 'COLLECTION', 'Box EB03')
+    await allocate(aa.id, caixa.id, 1)
+
+    const analise = await analyzeDeck(testPrisma(), dona, {
+      leaderVariantId: String(lider[0].id),
+      lines: [{ variantId: String(variants[0].id), copies: 4 }],
+      autoComplete: true,
+    })
+
+    const linha = analise.lines[0]
+    expect(linha).toMatchObject({ owned: 4, missing: 0, fromOtherArt: 1 })
+    expect(linha.places).toEqual(
+      expect.arrayContaining([
+        { location: 'Box EB03', forTrade: false, quantity: 1, variantType: 'Alternate Art', otherArt: true },
+        { location: null, forTrade: false, quantity: 3, variantType: 'Normal', otherArt: false },
+      ]),
+    )
+  })
+
+  it('com a arte escolhida bastando, nada é de outra arte', async () => {
+    const dona = await pessoa()
+    const { variants: lider } = await carta('OP01-001', 'Leader', ['Red'])
+    const { variants } = await carta('OP07-109', 'Character', ['Red'], ['Normal', 'Alternate Art'])
+    await own(dona.collectionId, variants[0].id, 4)
+    await own(dona.collectionId, variants[1].id, 2)
+
+    const analise = await analyzeDeck(testPrisma(), dona, {
+      leaderVariantId: String(lider[0].id),
+      lines: [{ variantId: String(variants[0].id), copies: 4 }],
+      autoComplete: true,
+    })
+    expect(analise.lines[0].fromOtherArt).toBe(0)
   })
 })
