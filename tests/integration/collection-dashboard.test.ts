@@ -85,6 +85,9 @@ describe('readCollectionDashboard', () => {
     const op01 = await readCollectionDashboard(testPrisma(), dona, { setCode: 'OP-01' })
     expect(op01.totalValueUsd).toBe(6)
     expect(op01.bySet.map((s) => s.set.code)).toEqual(['OP-01'])
+    // O valor do topo do Inicio e da colecao inteira: o filtro nao mexe nele.
+    expect(op01.overallValueUsd).toBe(16)
+    expect(tudo.overallValueUsd).toBe(16)
 
     // Codigo que nao existe e filtro nenhum, e nao uma tela vazia.
     const inventado = await readCollectionDashboard(testPrisma(), dona, { setCode: 'NAO-EXISTE' })

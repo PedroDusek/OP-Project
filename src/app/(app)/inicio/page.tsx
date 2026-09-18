@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { BookOpen, Layers, Star } from 'lucide-react'
+import { BookOpen, Layers, Star, Wallet } from 'lucide-react'
 import { PageHeader } from '@/components/layout/app-shell'
 import { StatTile } from '@/components/collection/stat-tile'
 import { ProgressBar } from '@/components/ui/progress-bar'
@@ -25,6 +25,12 @@ export const metadata: Metadata = { title: 'Início' }
  * Colecão vazia mostra o estado vazio em vez de quatro zeros: zero em tudo não
  * informa, e a próxima ação é a mesma.
  */
+/** Sem centavos no número grande do topo: cabe no quadro de um celular estreito. */
+function valorHoje(usd: number, rate: number | null) {
+  const opcoes = { maximumFractionDigits: 0 }
+  return rate ? `R$ ${(usd * rate).toLocaleString('pt-BR', opcoes)}` : `US$ ${usd.toLocaleString('pt-BR', opcoes)}`
+}
+
 type Params = { exclusao?: string; colecao?: string; raridade?: string | string[]; cor?: string | string[] }
 
 const lista = (valor: string | string[] | undefined) => (valor === undefined ? [] : Array.isArray(valor) ? valor : [valor])
@@ -101,6 +107,18 @@ export default async function InicioPage({ searchParams }: { searchParams: Promi
                 label="Playsets"
                 icon={<Star className="size-4" />}
               />
+              {/*
+                O valor no topo, e nao so no dashboard la embaixo: pedido do dono
+                do produto, para ver um numero que importa sem rolar a tela. E o
+                valor da colecao inteira, e nao muda com os filtros de baixo.
+              */}
+              {dashboard ? (
+                <StatTile
+                  value={valorHoje(dashboard.overallValueUsd, dashboard.rate)}
+                  label="Valor (hoje)"
+                  icon={<Wallet className="size-4" />}
+                />
+              ) : null}
             </>
           ) : null}
         </div>

@@ -1,4 +1,4 @@
-import { Crown, Layers, Wallet } from 'lucide-react'
+import { Crown, Wallet } from 'lucide-react'
 import { CardArt } from '@/components/catalog/card-art'
 import { ProgressBar } from '@/components/ui/progress-bar'
 import { Panel } from '@/components/ui/surface'
@@ -28,10 +28,10 @@ export function CollectionDashboardView({ dashboard }: { dashboard: CollectionDa
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3">
         <Panel className="flex flex-col gap-1 p-4">
           <p className="inline-flex items-center gap-1.5 text-xs font-medium text-text-muted">
-            <Wallet className="size-4" aria-hidden /> Valor da coleção
+            <Wallet className="size-4" aria-hidden /> Valor da coleção (hoje)
           </p>
           <p className="text-2xl font-bold text-text tabular-nums">{dinheiro(dashboard.totalValueUsd, rate)}</p>
           <p className="text-xs text-text-muted tabular-nums">
@@ -39,13 +39,6 @@ export function CollectionDashboardView({ dashboard }: { dashboard: CollectionDa
             {rate ? ` · ${dolar(dashboard.totalValueUsd)}` : ''}
             {dashboard.copiesWithoutPrice > 0 ? ` · ${dashboard.copiesWithoutPrice} sem preço conhecido` : ''}
           </p>
-        </Panel>
-        <Panel className="flex flex-col gap-1 p-4">
-          <p className="inline-flex items-center gap-1.5 text-xs font-medium text-text-muted">
-            <Layers className="size-4" aria-hidden /> Para completar este recorte
-          </p>
-          <p className="text-2xl font-bold text-text tabular-nums">{dinheiro(dashboard.completeUsd, rate)}</p>
-          <p className="text-xs text-text-muted">Uma cópia de cada variante que falta, pelo preço de hoje.</p>
         </Panel>
       </div>
 

@@ -28,6 +28,11 @@ export interface DashboardFilterInput {
 }
 
 export interface CollectionDashboard extends Dashboard {
+  /**
+   * O valor da coleção inteira, sem filtro: é o número do topo do Início, que
+   * não muda quando a pessoa recorta os gráficos de baixo.
+   */
+  overallValueUsd: number
   /** Cotação do dólar, quando há uma utilizável: a tela mostra em real. */
   rate: number | null
   /** As coleções que o filtro oferece, na ordem de lançamento. */
@@ -58,8 +63,14 @@ export async function readCollectionDashboard(
     colors: filterInput.colors?.length ? filterInput.colors : undefined,
   }
 
+  const recortado = buildDashboard({ sets, variants, owned, prices, filters })
+  const semFiltro = filters.setId || filters.rarities || filters.colors
+    ? buildDashboard({ sets, variants, owned, prices, filters: {} })
+    : recortado
+
   return {
-    ...buildDashboard({ sets, variants, owned, prices, filters }),
+    ...recortado,
+    overallValueUsd: semFiltro.totalValueUsd,
     rate: rate?.rate ?? null,
     sets,
   }

@@ -6038,7 +6038,17 @@ queiram pagar o Premium para ter".
 6. **Distribuição** por raridade, cor e tipo, com cópias e valor. Carta de duas
    cores entra nas duas fatias, e a tela diz isso.
 7. **Filtros: coleção, raridade e cor** (escolha do dono do produto, e não os do
-   catálogo inteiro). Eles recortam o universo — o que a pessoa tem e o que
+   catálogo inteiro), **numa linha só**: a coleção à vista, e raridade e cor no
+   painel em folha do catálogo — com as fileiras de botões abertas, os números
+   só apareciam depois de rolar (ajuste do dono do produto ao testar).
+8. **O valor da coleção sobe para o topo** do Início, como mais um quadro ao lado
+   de cartas, variantes e playsets, com "(hoje)" — é o número que importa ver
+   sem rolar. É o valor da coleção inteira, e os filtros não mexem nele. O quadro
+   "para completar este recorte" saiu a pedido do dono do produto; o custo para
+   completar continua em cada coleção.
+9. **No Deck Builder, "Valor estimado para completar o deck"** vira o primeiro
+   bloco do resultado, em destaque (antes era "Custo do que falta", abaixo das
+   contagens). Eles recortam o universo — o que a pessoa tem e o que
    existe —, e todos os números obedecem. Ficam na URL, e a tela sai pronta do
    servidor. Código de coleção que não existe é filtro nenhum.
 

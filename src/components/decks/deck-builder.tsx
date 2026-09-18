@@ -299,6 +299,42 @@ export function DeckBuilder({
 
           {analysis ? (
             <section className="flex flex-col gap-3">
+              {/*
+                Em destaque e primeiro, com o nome que o dono do produto pediu:
+                e o numero que decide se vale montar este deck agora.
+              */}
+              <Panel className="flex flex-col gap-1 border-accent-ink/30 p-4">
+                <p className="text-xs font-medium text-text-muted">Valor estimado para completar o deck</p>
+                <p className="text-2xl font-bold text-text">
+                  <strong className="tabular-nums">
+                    {analysis.cost.brl
+                      ? `R$ ${analysis.cost.brl.value.toFixed(2).replace('.', ',')}`
+                      : `US$ ${analysis.cost.usd.toFixed(2)}`}
+                  </strong>
+                </p>
+                {analysis.missingTotal === 0 ? (
+                  <p className="text-xs text-success">Você já tem todas as {analysis.total} cartas.</p>
+                ) : (
+                  <p className="text-xs text-text-muted">
+                    {analysis.missingTotal} {analysis.missingTotal === 1 ? 'carta faltando' : 'cartas faltando'}, pelo preço
+                    de hoje da arte escolhida.
+                  </p>
+                )}
+                {analysis.cost.brl ? (
+                  <p className="text-xs text-text-muted tabular-nums">
+                    US$ {analysis.cost.usd.toFixed(2)} · dólar a R${' '}
+                    {analysis.cost.brl.rate.toFixed(4).replace('.', ',')}
+                  </p>
+                ) : null}
+                {analysis.cost.withoutPrice > 0 ? (
+                  <p className="text-xs text-text-muted">
+                    {analysis.cost.withoutPrice}{' '}
+                    {analysis.cost.withoutPrice === 1 ? 'cópia ficou' : 'cópias ficaram'} fora da conta, por não
+                    ter preço conhecido.
+                  </p>
+                ) : null}
+              </Panel>
+
               <div className="grid grid-cols-3 gap-2 text-center">
                 <Panel className="p-3">
                   <p className="text-lg font-bold text-text tabular-nums">{analysis.total}</p>
@@ -314,29 +350,7 @@ export function DeckBuilder({
                 </Panel>
               </div>
 
-              <Panel className="flex flex-col gap-1 p-4">
-                <p className="text-sm text-text">
-                  Custo do que falta:{' '}
-                  <strong className="tabular-nums">
-                    {analysis.cost.brl
-                      ? `R$ ${analysis.cost.brl.value.toFixed(2).replace('.', ',')}`
-                      : `US$ ${analysis.cost.usd.toFixed(2)}`}
-                  </strong>
-                </p>
-                {analysis.cost.brl ? (
-                  <p className="text-xs text-text-muted tabular-nums">
-                    US$ {analysis.cost.usd.toFixed(2)} · dólar a R${' '}
-                    {analysis.cost.brl.rate.toFixed(4).replace('.', ',')}
-                  </p>
-                ) : null}
-                {analysis.cost.withoutPrice > 0 ? (
-                  <p className="text-xs text-text-muted">
-                    {analysis.cost.withoutPrice}{' '}
-                    {analysis.cost.withoutPrice === 1 ? 'cópia ficou' : 'cópias ficaram'} fora da conta, por não
-                    ter preço conhecido.
-                  </p>
-                ) : null}
-              </Panel>
+
 
               <ul className="flex flex-col gap-2">
                 {[analysis.leader, ...analysis.lines].map((linha) => (
