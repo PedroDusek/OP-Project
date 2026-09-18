@@ -3,12 +3,16 @@
 import { useCallback, useMemo, useState, useTransition } from 'react'
 import { AlertTriangle, Check, Package, Plus } from 'lucide-react'
 import { CardArt } from '@/components/catalog/card-art'
+import { CatalogFilters } from '@/components/catalog/catalog-filters'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { QuantitySelector } from '@/components/ui/quantity-selector'
 import { SearchBar } from '@/components/ui/search-bar'
 import { Panel } from '@/components/ui/surface'
 import { Switch } from '@/components/ui/switch'
+import { countActiveFilters, type CatalogSearchParams } from '@/lib/catalog-params'
+import { deckCatalogQuery } from '@/lib/deck-query'
+import type { CatalogVocabulary } from '@/server/application/catalog/vocabulary'
 import {
   adicionarFaltantesAction,
   conferirDeckAction,
@@ -60,7 +64,13 @@ interface Linha extends Carta {
 const MAXIMO_POR_CARTA = 4
 const TAMANHO_DO_DECK = 50
 
-export function DeckBuilder({ initialLeaders }: { initialLeaders: Carta[] }) {
+export function DeckBuilder({
+  initialLeaders,
+  vocabulary,
+}: {
+  initialLeaders: Carta[]
+  vocabulary: CatalogVocabulary
+}) {
   const [leader, setLeader] = useState<Lider | null>(null)
   const [sugestoes, setSugestoes] = useState<Carta[]>([])
   const [lendoLider, setLendoLider] = useState(false)
@@ -169,6 +179,7 @@ export function DeckBuilder({ initialLeaders }: { initialLeaders: Carta[] }) {
           <>
             <BuscaDeCartas
               tipos={['Leader']}
+              vocabulary={vocabulary}
               inicial={initialLeaders}
               onEscolher={escolherLider}
               desabilitado={lendoLider}
@@ -196,6 +207,7 @@ export function DeckBuilder({ initialLeaders }: { initialLeaders: Carta[] }) {
               key={leader.variantId}
               tipos={['Character', 'Event', 'Stage']}
               cores={leader.colors}
+              vocabulary={vocabulary}
               inicial={sugestoes}
               onEscolher={acrescentar}
               desabilitado={total >= TAMANHO_DO_DECK}
@@ -415,51 +427,54 @@ export function DeckBuilder({ initialLeaders }: { initialLeaders: Carta[] }) {
 
 /** A primeira leva de uma busca, pedida fora de qualquer efeito. */
 async function primeiraLeva(tipos: string[], cores: string[]): Promise<Carta[]> {
-  const params = new URLSearchParams()
-  for (const tipo of tipos) params.append('type', tipo)
-  for (const cor of cores) params.append('color', cor)
-  params.set('pageSize', '12')
+  const query = deckCatalogQuery({}, '', tipos, cores)
+  if (!query) return []
 
-  const resposta = await fetch(`/api/catalog?${params.toString()}`, { cache: 'no-store' })
+  const resposta = await fetch(`/api/catalog?${query}`, { cache: 'no-store' })
   if (!resposta.ok) return []
   const dados = (await resposta.json()) as { items: Carta[] }
   return dados.items
 }
 
-/** A busca que alimenta as duas etapas, com os filtros que cada uma pede. */
+/** A busca que alimenta as duas etapas, com os filtros do catálogo. */
 function BuscaDeCartas({
   tipos,
   cores,
+  vocabulary,
   inicial,
   onEscolher,
   desabilitado = false,
 }: {
   tipos: string[]
   cores?: string[]
-  /** A primeira leva, que vem pronta: buscar num efeito e o que a regra de lint proibe. */
+  vocabulary: CatalogVocabulary
+  /** A primeira leva, que vem pronta: buscar num efeito é o que a regra de lint proíbe. */
   inicial: Carta[]
   onEscolher: (carta: Carta) => void
   desabilitado?: boolean
 }) {
   const [termo, setTermo] = useState('')
+  const [filtros, setFiltros] = useState<CatalogSearchParams>({})
   const [cartas, setCartas] = useState<Carta[]>(inicial)
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const [foraDaTrava, setForaDaTrava] = useState(false)
 
-  const filtros = useMemo(() => ({ tipos, cores: cores ?? [] }), [tipos, cores])
-
+  // Buscar e disparado pelos gestos — enviar o termo, aplicar filtros —, e
+  // nunca por um efeito.
   const buscar = useCallback(
-    async (termoAtual: string) => {
-      setCarregando(true)
+    async (termoAtual: string, filtrosAtuais: CatalogSearchParams) => {
+      const query = deckCatalogQuery(filtrosAtuais, termoAtual, tipos, cores)
       setErro(null)
+      if (!query) {
+        setForaDaTrava(true)
+        setCartas([])
+        return
+      }
+      setForaDaTrava(false)
+      setCarregando(true)
       try {
-        const params = new URLSearchParams()
-        if (termoAtual.trim()) params.set('search', termoAtual.trim())
-        for (const tipo of filtros.tipos) params.append('type', tipo)
-        for (const cor of filtros.cores) params.append('color', cor)
-        params.set('pageSize', '12')
-
-        const resposta = await fetch(`/api/catalog?${params.toString()}`, { cache: 'no-store' })
+        const resposta = await fetch(`/api/catalog?${query}`, { cache: 'no-store' })
         if (!resposta.ok) throw new Error('falhou')
         const dados = (await resposta.json()) as { items: Carta[] }
         setCartas(dados.items)
@@ -469,7 +484,7 @@ function BuscaDeCartas({
         setCarregando(false)
       }
     },
-    [filtros],
+    [tipos, cores],
   )
 
   return (
@@ -478,7 +493,7 @@ function BuscaDeCartas({
         className="flex gap-2"
         onSubmit={(evento) => {
           evento.preventDefault()
-          void buscar(termo)
+          void buscar(termo, filtros)
         }}
       >
         <SearchBar
@@ -488,6 +503,15 @@ function BuscaDeCartas({
           onClear={() => setTermo('')}
           placeholder="Nome ou código"
           className="flex-1"
+        />
+        <CatalogFilters
+          vocabulary={vocabulary}
+          activeCount={countActiveFilters(filtros)}
+          values={filtros}
+          onApply={(novos) => {
+            setFiltros(novos)
+            void buscar(termo, novos)
+          }}
         />
         <Button type="submit" variant="secondary" loading={carregando}>
           Buscar
@@ -500,8 +524,13 @@ function BuscaDeCartas({
         </p>
       ) : null}
 
-      {cartas.length === 0 && !carregando ? (
-        <p className="text-sm text-text-muted">Nada encontrado com esse termo.</p>
+      {foraDaTrava ? (
+        <p className="text-sm text-text-muted">
+          Esses filtros saem das regras do deck: {cores ? `só entram cartas ${cores.join(' ou ')}` : 'aqui só entram líderes'}
+          {cores ? ', e nenhum Leader' : ''}.
+        </p>
+      ) : cartas.length === 0 && !carregando ? (
+        <p className="text-sm text-text-muted">Nada encontrado com essa busca.</p>
       ) : (
         <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
           {cartas.map((carta) => (
@@ -520,6 +549,9 @@ function BuscaDeCartas({
                 />
                 <span className="truncate text-xs font-semibold text-text tabular-nums">{carta.cardCode}</span>
                 <span className="truncate text-xs text-text-muted">{carta.cardName}</span>
+                {carta.variantType !== 'Normal' ? (
+                  <span className="truncate text-xs text-accent-ink">{carta.variantType}</span>
+                ) : null}
               </button>
             </li>
           ))}

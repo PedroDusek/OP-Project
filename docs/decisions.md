@@ -5920,6 +5920,12 @@ Definido pelo dono do produto em 17/09.
 8. **Recurso Premium** (decisão 093), com destino próprio na gaveta.
 9. **A lista é montada carta a carta na tela**, e não colando texto. Colar uma
    lista exportada de outro site fica para quando alguém pedir.
+10. **A busca usa os mesmos filtros do catálogo** (set, custo, poder, trait,
+    raridade, arte e os demais), pedido do dono do produto: quem monta deck pensa
+    em "custo 4 dos Chapéus de Palha", e não em códigos. A escolha é **cruzada**
+    com as travas do deck (`deckCatalogQuery`): na etapa das cartas, uma cor que o
+    líder não tem ou o tipo Leader não trazem nada, e a tela diz por quê — em vez
+    de oferecer uma carta que o servidor recusaria.
 
 ## Detalhes que a implementação obrigou a resolver
 
