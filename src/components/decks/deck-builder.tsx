@@ -62,6 +62,13 @@ interface Linha extends Carta {
 }
 
 const MAXIMO_POR_CARTA = 4
+
+/**
+ * Dinheiro no formato brasileiro, com ponto no milhar: `62.154,92`. O
+ * `toFixed` com vírgula trocada saía `62154,92` (relatado pelo dono do produto).
+ */
+const dinheiro = (valor: number) =>
+  valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const TAMANHO_DO_DECK = 50
 
 export function DeckBuilder({
@@ -308,8 +315,8 @@ export function DeckBuilder({
                 <p className="text-2xl font-bold text-text">
                   <strong className="tabular-nums">
                     {analysis.cost.brl
-                      ? `R$ ${analysis.cost.brl.value.toFixed(2).replace('.', ',')}`
-                      : `US$ ${analysis.cost.usd.toFixed(2)}`}
+                      ? `R$ ${dinheiro(analysis.cost.brl.value)}`
+                      : `US$ ${dinheiro(analysis.cost.usd)}`}
                   </strong>
                 </p>
                 {analysis.missingTotal === 0 ? (
@@ -322,8 +329,8 @@ export function DeckBuilder({
                 )}
                 {analysis.cost.brl ? (
                   <p className="text-xs text-text-muted tabular-nums">
-                    US$ {analysis.cost.usd.toFixed(2)} · dólar a R${' '}
-                    {analysis.cost.brl.rate.toFixed(4).replace('.', ',')}
+                    US$ {dinheiro(analysis.cost.usd)} · dólar a R${' '}
+                    {analysis.cost.brl.rate.toLocaleString('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 })}
                   </p>
                 ) : null}
                 {analysis.cost.withoutPrice > 0 ? (
@@ -432,7 +439,7 @@ export function DeckBuilder({
 
                       {linha.missing > 0 && linha.missingUsd !== null ? (
                         <p className="text-xs text-text-muted tabular-nums">
-                          Comprar {linha.missing}: US$ {linha.missingUsd.toFixed(2)}
+                          Comprar {linha.missing}: US$ {dinheiro(linha.missingUsd)}
                         </p>
                       ) : null}
                     </Panel>
