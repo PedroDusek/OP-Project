@@ -606,6 +606,19 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     do clique e o clique caía no iframe. Aumentar o timeout não teria mudado
     nada. Antes de esperar mais, confira se a requisição saiu. Só acontece com
     `NEXT_PUBLIC_TURNSTILE_SITE_KEY` no `.env`; na CI não há chave.
+71. **O Session pooler do Supabase aceita 15 clientes ao todo.** Em 19/09 a
+    Coleção caiu na tela de erro por 6 segundos com `EMAXCONNSESSION`. O build
+    do Next copia `src/server/infrastructure/prisma.ts` em quatro pedaços do
+    servidor, e a guarda no `globalThis` valia só em desenvolvimento: cada cópia
+    abria o próprio pool, de até 10. Agora a guarda vale sempre, o site tem teto
+    de 8 (`APP_POOL_MAX`) e cada comando de `npm run supabase`, de 4. Medido no
+    build local, na rota pública: pico de 10 conexões antes e de 8 depois.
+    Conexão nova em produção precisa caber nessa conta.
+72. **Preço e cotação do banco local não se atualizam sozinhos.** A tarefa
+    diária **Preços** escreve só em produção. No local, `npm run prices:import`
+    à mão; sem isso, passados três dias a cotação fica velha e o real some da
+    tela (`MAX_RATE_AGE_IN_DAYS`), o que parece defeito e não é. Em 19/09 o
+    local estava com a cotação de 15/09.
 
 ## Pendências
 
