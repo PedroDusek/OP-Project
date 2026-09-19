@@ -29,6 +29,8 @@ const POOL_MAX = 4
  *   npm run supabase premium <email> --ate=2026-12-31   da Premium ate a data
  *   npm run supabase aquecer            pede as imagens das cartas mais vistas
  *   npm run supabase premium <email> --remover          volta a conta para Free
+ *   npm run supabase limpar-contas      mostra as contas que existem, sem apagar
+ *   npm run supabase limpar-contas --confirmar   apaga todas as contas
  *
  * Prefira `--from` quando o snapshot ja existir: rebaixar o catalogo inteiro a
  * cada importacao e carga evitavel sobre a origem (decisao 020).
@@ -349,6 +351,63 @@ async function main(): Promise<void> {
     return
   }
 
+  if (command === 'limpar-contas') {
+    /*
+     * Zera os usuarios (pedido do dono do produto em 19/09). Sem `--confirmar`
+     * so mostra o que seria apagado. Apagar nao tem volta e nao tem backup no
+     * plano gratuito: por isso o levantamento vem sempre primeiro, e quem roda
+     * com `--confirmar` e o dono do produto, no terminal dele.
+     */
+    const confirmar = args.includes('--confirmar')
+    const prisma = createPrisma(url, { max: POOL_MAX })
+    try {
+      const { surveyAccounts, purgeAllAccounts } = await import('@/server/application/account/purge-accounts')
+      const { SupabaseAuthAdmin } = await import('@/server/infrastructure/auth/supabase-auth-admin')
+      const { SupabaseImageStorage } = await import('@/server/infrastructure/storage/supabase-image-storage')
+      const auth = new SupabaseAuthAdmin()
+
+      const survey = await surveyAccounts(prisma, auth)
+      console.log(`[supabase] limpar-contas: ${survey.users.length} conta(s) no banco, ${survey.authUsers} no Supabase Auth`)
+      for (const user of survey.users) {
+        console.log(
+          `  ${user.email}  desde ${user.createdAt.toISOString().slice(0, 10)}  ` +
+            `cartas ${user.cards} | locais ${user.locations} | want list ${user.wants}`,
+        )
+      }
+      console.log(
+        `[supabase] limpar-contas: trocas ${survey.trades} | conversas ${survey.conversations} | ` +
+          `denuncias ${survey.reports} | fotos ${survey.images}`,
+      )
+      console.log('[supabase] limpar-contas: catalogo, precos e cotacao ficam.')
+
+      if (!confirmar) {
+        console.log('[supabase] limpar-contas: nada foi apagado. Para apagar tudo acima, rode de novo com --confirmar.')
+        return
+      }
+
+      const report = await purgeAllAccounts(prisma, {
+        authAdmin: auth,
+        directory: auth,
+        images: new SupabaseImageStorage(),
+      })
+      console.log(
+        `[supabase] limpar-contas: apagadas ${report.users} conta(s), ${report.trades} troca(s), ` +
+          `${report.conversations} conversa(s), ${report.reports} denuncia(s)`,
+      )
+      console.log(
+        `[supabase] limpar-contas: Supabase Auth ${report.authDeleted} apagada(s), ${report.authFailed} com falha | ` +
+          `fotos ${report.imagesRemoved} apagada(s), ${report.imagesFailed} com falha`,
+      )
+      if (report.authFailed > 0) {
+        console.log('[supabase] limpar-contas: rode de novo com --confirmar para terminar o Supabase Auth.')
+        process.exitCode = 1
+      }
+    } finally {
+      await prisma.$disconnect()
+    }
+    return
+  }
+
   if (command === 'status') {
     const prisma = createPrisma(url, { max: POOL_MAX })
     try {
@@ -451,7 +510,7 @@ async function main(): Promise<void> {
 
   throw new Error(
     `Comando desconhecido: ${command ?? '(nenhum)'}. ` +
-      'Use migrate, import, prices, contas, premium, aquecer, status ou storage.',
+      'Use migrate, import, prices, contas, premium, aquecer, limpar-contas, status ou storage.',
   )
 }
 
