@@ -646,6 +646,13 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
    segredo `SUPABASE_SECRET_KEY` já estar no GitHub (está, desde 17/09) e a
    tarefa diária **Contas** ter rodado pelo menos uma vez para valer.
 7. **Limpar as contas de teste** de produção, nas duas metades (ver "Produção").
+   **Decidido em 19/09: apagar todas**, e o dono do produto cria a dele de novo.
+   O comando existe: `npm run supabase limpar-contas` mostra o que existe sem
+   apagar (em 19/09: 3 contas no banco, 5 no Supabase Auth — duas nunca
+   entraram); com `--confirmar`, apaga as contas, trocas, conversas,
+   denúncias e fotos, no banco e no Supabase Auth, e deixa catálogo e preços.
+   **Quem roda com `--confirmar` é o dono do produto**, no terminal dele:
+   apagar em produção não tem volta nem backup no plano gratuito.
    As contas existentes estão em **Free** desde a decisão 093: para testar troca,
    publicação e análise, `npm run supabase premium <email> --ate=AAAA-MM-DD`.
    A conta de teste do dono do produto (`pedrodusek30+teste@gmail.com`) recebeu

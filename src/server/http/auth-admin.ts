@@ -15,3 +15,15 @@ export interface AuthAdmin {
   /** Exclui a conta no provedor. Já não existir não é erro: é o estado desejado. */
   deleteUser(authUserId: string): Promise<void>
 }
+
+/**
+ * Listar todas as contas do provedor, para zerar os usuários (19/09).
+ *
+ * Separado de `AuthAdmin` porque só a limpeza precisa: a anonimização exclui
+ * uma conta que ela já conhece. A limpeza precisa também das que nunca
+ * ganharam linha em `users` — um cadastro que não confirmou o e-mail existe no
+ * provedor e em nenhum outro lugar.
+ */
+export interface AuthUserDirectory {
+  listUsers(): Promise<{ id: string; email: string | null }[]>
+}
