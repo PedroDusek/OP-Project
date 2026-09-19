@@ -6194,3 +6194,48 @@ listadas nele, cada uma com o motivo.
 ## Data
 
 2026-09-18
+
+---
+
+# Decisão: 102 — Pagamento: Stripe, preço e transição
+
+Definido pelo dono do produto em 19/09, antes do teste com usuários. Fecha a
+parte comercial que a decisão 093 deixou em aberto ("falta escolher meio de
+pagamento e preço").
+
+## Decisão
+
+1. **Stripe**, com **cartão** (assinatura que renova sozinha) e **Pix avulso**
+   (a pessoa paga de novo a cada ciclo, com lembrete antes do vencimento).
+2. **Preço: R$ 14,90 por mês, ou R$ 149,00 por ano** — dez meses pelo preço de
+   doze, R$ 12,42 por mês.
+3. **Os dois ciclos são oferecidos**, e a pessoa escolhe.
+4. **Quem testou ganha 6 meses de Premium** contados do lançamento da cobrança,
+   com aviso antes de acabar. Depois disso, assina como qualquer pessoa.
+5. **Sem teste grátis de 7 dias** por enquanto. O campo `trial_started_at`
+   continua sem uso, e ligar isso é decisão de outro dia.
+
+## Por que Stripe, e o que se perde
+
+O **Pix Automático** — o que debita sozinho, como o cartão — o Stripe não
+oferece no Brasil. Asaas e Mercado Pago oferecem. O dono do produto escolheu
+Stripe assumindo isso: o cartão resolve a renovação, e o Pix avulso atende quem
+não tem cartão, ao custo de a pessoa precisar pagar de novo a cada ciclo.
+
+Se muita gente pedir Pix recorrente, a troca de provedor é o caminho, e o custo
+dela é a integração inteira — por isso o código de cobrança fica atrás de uma
+porta (`http`), como o resto do que é externo.
+
+**Taxas do cartão nacional: 3,99% + R$ 0,39** por cobrança. Em R$ 14,90, sobram
+cerca de R$ 14,01.
+
+## O que ainda falta o dono do produto decidir ou providenciar
+
+- **Conta na Stripe**, com CPF ou CNPJ, e os dados bancários.
+- **Obrigações fiscais** da receita recorrente, com o contador.
+- **Política de cancelamento e reembolso**, que precisa constar nos Termos de
+  Uso (decisão 030) antes de a cobrança abrir.
+
+## Data
+
+2026-09-19

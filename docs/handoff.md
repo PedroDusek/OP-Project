@@ -667,8 +667,11 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
    publicação e análise.
 8. ~~**Premium no lançamento**~~ — **decidido em 17/09** (decisão 093): Premium
    é publicar o Trade Binder, começar troca, a análise da coleção e aparecer
-   primeiro na rede. Falta só escolher **meio de pagamento e preço**, que o dono
-   do produto deixou para depois do teste com usuários.
+   primeiro na rede. **Meio de pagamento e preço, decididos em 19/09**
+   (decisão 102): Stripe, cartão recorrente e Pix avulso, R$ 14,90/mês ou
+   R$ 149,00/ano, e quem testou fica 6 meses de cortesia depois do lançamento
+   da cobrança. **Nada disso está construído** — é o Checkpoint 15, e ele exige
+   colunas novas em `users`, que é conversa antes de código.
 
 ### Decisões que o dono do produto ainda pode querer revisitar
 
@@ -790,7 +793,19 @@ em 10/09.
   dono do produto achar o Início lento, é o primeiro lugar a olhar.
 - Pagamento (Checkpoint 15): Supabase não processa. Para assinatura recorrente
   no Brasil, conta Stripe brasileira **não** tem Pix Automático; PSPs nacionais
-  como Asaas e Mercado Pago têm.
+  como Asaas e Mercado Pago têm. A escolha está fechada (decisão 102): Stripe,
+  com cartão recorrente e Pix avulso. O que falta construir:
+  - colunas em `users` para o cliente e a assinatura na Stripe (**mudança do
+    modelo de dados, precisa de aprovação**);
+  - a tela de assinar e a de gerenciar (portal da Stripe);
+  - o webhook que recebe pagamento, renovação, atraso e cancelamento, e move
+    `plan`/`premium_until` — a **única** fonte de verdade do acesso continua
+    sendo o nosso banco, nunca uma resposta de tela;
+  - o lembrete de vencimento do Pix avulso, que não renova sozinho;
+  - o aviso aos testadores antes de acabar a cortesia de 6 meses.
+  Antes de tudo isso, o dono do produto precisa da conta na Stripe, das chaves
+  (que vão para os segredos, nunca para a conversa) e da política de
+  cancelamento e reembolso nos Termos.
 
 ## O Trade Binder público, e a dívida que ele deixou
 
