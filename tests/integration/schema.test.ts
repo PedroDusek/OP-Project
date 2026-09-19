@@ -43,9 +43,12 @@ const EXPECTED_TABLES = [
   'exchange_rates',
   'mechanics',
   'messages',
+  // Decisao 102: a assinatura do Premium e os avisos do provedor.
+  'payment_events',
   'price_imports',
   'sets',
   'storage_locations',
+  'subscriptions',
   'trade_item_origins',
   'trade_items',
   'trade_participants',
@@ -90,6 +93,13 @@ const EXPECTED_DELETE_ACTIONS: Record<string, 'CASCADE' | 'RESTRICT'> = {
   // Participante e mensagem pertencem a conversa.
   'conversation_participants.conversation_id': 'CASCADE',
   'messages.conversation_id': 'CASCADE',
+
+  /*
+   * A assinatura e so da pessoa, como a colecao: some com ela (decisao 102).
+   * O historico que ela guarda serve a quem assinou, e nao a outro usuario —
+   * diferente da troca e da conversa, que sao de dois lados.
+   */
+  'subscriptions.user_id': 'CASCADE',
 
   'card_variants.card_id': 'RESTRICT',
   // A denuncia e registro de moderacao, como o participante de uma troca.

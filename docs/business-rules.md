@@ -488,8 +488,9 @@ em construção passa a maior parte do tempo incompleto.
 
 ## 8. Planos: Free e Premium
 
-Definido pelo dono do produto em 17/09 (decisão 093). Preço e meio de pagamento
-ficaram para depois do teste com usuários.
+Definido pelo dono do produto em 17/09 (decisão 093). **Preço e meio de
+pagamento, em 19/09** (decisão 102): R$ 14,90 por mês ou R$ 149,00 por ano, na
+Stripe, com cartão ou Pix.
 
 **Só no Premium:**
 
@@ -515,6 +516,24 @@ conversar, aparecer na rede com o Trade Binder e bloquear ou denunciar.
 **Por que entrar numa troca é de todos:** travar as duas pontas deixaria o
 assinante sem ninguém para trocar. Quem paga ganha a iniciativa e a vitrine, não
 o direito de negociar.
+
+### 8.1 A assinatura (decisão 102)
+
+1. **O acesso vem de `users.premium_until`**, e de nada mais. A assinatura na
+   Stripe é o que explica **por que** aquela data está lá; as travas de Premium
+   não sabem que a Stripe existe.
+2. **Só o aviso assinado da Stripe libera acesso.** A volta pela tela não
+   libera: o endereço de sucesso é adivinhável.
+3. **Cartão renova sozinho. Pix não**: cada pagamento compra um ciclo, contado
+   do nosso lado, e a tela diz isso antes de a pessoa escolher.
+4. **Atraso e cancelamento não cortam o ciclo já pago.** O dinheiro daquele
+   período entrou; o acesso cai sozinho quando a data chega.
+5. **Pagar nunca encurta um Premium mais longo** — é o caso de quem tem
+   cortesia e resolve assinar.
+6. **Pagar antes de vencer emenda no que falta**; pagar depois recomeça no dia
+   do pagamento.
+7. **Quem testou tem 6 meses de cortesia** depois que a cobrança abrir, com
+   aviso antes de acabar.
 
 ## 9. Testes obrigatórios de domínio
 

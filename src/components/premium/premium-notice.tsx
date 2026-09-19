@@ -1,12 +1,15 @@
+import Link from 'next/link'
 import { Sparkles } from 'lucide-react'
 import { Panel } from '@/components/ui/surface'
 
 /**
  * O que está no Premium, dito no lugar onde a pessoa esbarrou (decisão 093).
  *
- * Sem preço e sem botão de assinar: o meio de pagamento é decisão do dono do
- * produto para depois do beta, e um botão que não leva a lugar nenhum é pior que
- * a ausência dele. Enquanto isso, diz onde pedir.
+ * **Leva para a tela de assinar** desde a decisão 102, que fechou preço e meio
+ * de pagamento. Até então dizia para escrever ao suporte, porque um botão que
+ * não leva a lugar nenhum é pior que a ausência dele. O preço não aparece aqui:
+ * quem esbarrou na trava está no meio de outra coisa, e a tela de Premium é que
+ * existe para comparar planos.
  */
 export function PremiumNotice({ title, description }: { title: string; description: string }) {
   return (
@@ -15,9 +18,12 @@ export function PremiumNotice({ title, description }: { title: string; descripti
       <div className="flex flex-col gap-1">
         <h2 className="text-sm font-semibold text-text">{title}</h2>
         <p className="text-sm text-text-muted">{description}</p>
-        <p className="text-xs text-text-subtle">
-          A assinatura ainda não está aberta. Durante o teste, peça o acesso em suporte@colexa.com.br.
-        </p>
+        <Link
+          href="/conta/premium"
+          className="mt-1 text-sm font-medium text-accent-ink underline underline-offset-2"
+        >
+          Ver o Premium
+        </Link>
       </div>
     </Panel>
   )
