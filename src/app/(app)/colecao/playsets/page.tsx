@@ -23,7 +23,7 @@ export default async function PlaysetsPage() {
   if (!isPremium(viewer)) {
     return (
       <>
-        <PageHeader title="Playsets" description="Cartas com 4 ou mais cópias." />
+        <PageHeader back={{ href: '/colecao', label: 'Minha Coleção' }} title="Playsets" description="Cartas com 4 ou mais cópias." />
         <PremiumNotice
           title="A lista de playsets é Premium"
           description="Ela mostra quantas cartas já fecharam quatro cópias e quantas faltam, somando todas as artes."
@@ -38,7 +38,7 @@ export default async function PlaysetsPage() {
 
   return (
     <>
-      <PageHeader
+      <PageHeader back={{ href: '/colecao', label: 'Minha Coleção' }}
         title="Playsets"
         description={
           rows.length === 0

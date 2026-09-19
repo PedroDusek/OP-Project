@@ -33,7 +33,7 @@ export default async function SetsPage({ searchParams }: PageProps<'/catalogo/se
 
   return (
     <>
-      <PageHeader
+      <PageHeader back={{ href: '/catalogo', label: 'o Catálogo' }}
         title="Sets"
         description={`${sets.length} coletâneas e decks no catálogo.`}
       />

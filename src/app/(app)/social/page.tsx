@@ -42,7 +42,7 @@ export default async function SocialPage({ searchParams }: PageProps<'/social'>)
 
   return (
     <>
-      <PageHeader title="Social" description="Quem tem o que você procura, e quem procura o que você tem." />
+      <PageHeader back={{ href: '/inicio', label: 'o Início' }} title="Social" description="Quem tem o que você procura, e quem procura o que você tem." />
 
       <div className="flex flex-col gap-4">
         {username ? null : (

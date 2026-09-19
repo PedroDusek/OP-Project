@@ -34,7 +34,7 @@ export default async function MaisPage() {
 
   return (
     <>
-      <PageHeader title="Minha conta" description="Seus dados, sua identidade na rede e as preferências." />
+      <PageHeader back={{ href: '/inicio', label: 'o Início' }} title="Minha conta" description="Seus dados, sua identidade na rede e as preferências." />
 
       <div className="flex flex-col gap-6">
         {viewer ? (

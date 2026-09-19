@@ -24,6 +24,7 @@ export default async function EditarLocalPage({
   return (
     <>
       <PageHeader
+        back={{ href: `/binders/${location.id}`, label: location.name }}
         title="Editar local"
         description={location.name}
         action={

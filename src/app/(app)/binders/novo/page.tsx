@@ -13,7 +13,7 @@ export default async function NovoLocalPage() {
 
   return (
     <>
-      <PageHeader
+      <PageHeader back={{ href: '/binders', label: 'Binders' }}
         title="Novo local"
         description="Um binder, uma caixa ou um deck para organizar suas cartas."
       />

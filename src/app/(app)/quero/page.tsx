@@ -30,7 +30,7 @@ export default async function QueroPage() {
 
   return (
     <>
-      <PageHeader
+      <PageHeader back={{ href: '/inicio', label: 'o Início' }}
         title="Want list"
         description={
           summary.variants === 0

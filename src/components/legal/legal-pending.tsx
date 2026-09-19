@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Logotype } from '@/components/brand/logo'
 import { Panel } from '@/components/ui/surface'
 import { AttributionFooter } from '@/components/legal/attribution-footer'
+import { BackButton } from '@/components/layout/app-shell'
 
 /**
  * Página legal ainda sem texto.
@@ -20,7 +21,9 @@ import { AttributionFooter } from '@/components/legal/attribution-footer'
 export function LegalPending({ title, description }: { title: string; description: string }) {
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col px-4">
-      <header className="flex h-14 shrink-0 items-center">
+      {/* Voltar em toda tela (18/09). Quem chega aqui vem do cadastro ou do rodapé. */}
+      <header className="flex h-14 shrink-0 items-center gap-2">
+        <BackButton href="/" label="o início" />
         <Link href="/" aria-label="ColeXa">
           <Logotype className="h-5" label={null} />
         </Link>

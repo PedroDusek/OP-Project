@@ -30,7 +30,7 @@ export default async function CatalogoPage({ searchParams }: PageProps<'/catalog
 
   return (
     <>
-      <PageHeader
+      <PageHeader back={{ href: '/inicio', label: 'o Início' }}
         title="Catálogo"
         description="Explore todas as cartas do One Piece Card Game."
       />
