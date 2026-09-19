@@ -32,7 +32,7 @@ export default async function BindersPage() {
   if (locations.length === 0) {
     return (
       <>
-        <PageHeader
+        <PageHeader back={{ href: '/inicio', label: 'o Início' }}
           title="Binders"
           description="Organize suas cartas por binders, caixas e decks."
         />
@@ -48,7 +48,7 @@ export default async function BindersPage() {
 
   return (
     <>
-      <PageHeader
+      <PageHeader back={{ href: '/inicio', label: 'o Início' }}
         title="Binders"
         description="Organize suas cartas por binders, caixas e decks."
       />

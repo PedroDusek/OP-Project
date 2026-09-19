@@ -30,7 +30,7 @@ export default async function WantPdfPage() {
   if (!isPremium(viewer)) {
     return (
       <>
-        <PageHeader title="Compartilhar a want list" description="Uma folha com o que falta, para mandar nos grupos." />
+        <PageHeader back={{ href: '/quero', label: 'a want list' }} title="Compartilhar a want list" description="Uma folha com o que falta, para mandar nos grupos." />
         <PremiumNotice
           title="Compartilhar a want list é Premium"
           description="Com o Premium, você gera uma folha com as cartas que faltam, em imagem para mandar nos grupos ou pronta para imprimir."

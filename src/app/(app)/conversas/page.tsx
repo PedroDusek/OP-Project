@@ -23,7 +23,7 @@ export default async function ConversasPage() {
 
   return (
     <>
-      <PageHeader title="Conversas" description="Combine as trocas com quem você achou na rede." />
+      <PageHeader back={{ href: '/inicio', label: 'o Início' }} title="Conversas" description="Combine as trocas com quem você achou na rede." />
 
       {conversas.length === 0 ? (
         <EmptyState

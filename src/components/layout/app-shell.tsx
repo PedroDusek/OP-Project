@@ -1,3 +1,5 @@
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { SideNav } from './side-nav'
 import { TopBar, type Viewer } from './top-bar'
@@ -80,25 +82,59 @@ export function AppShell({ viewer, children, className }: AppShellProps) {
  * `h1` porque e o titulo da pagina. O shell nao tem um: o logotipo da barra
  * superior e navegacao, nao cabecalho, e uma pagina sem `h1` deixa quem navega
  * por titulos sem ponto de entrada.
+ *
+ * ## Voltar
+ *
+ * Toda tela tem voltar, menos o Inicio, que e a raiz (pedido do dono do produto
+ * em 18/09: o do navegador nao basta, e boa pratica de IHC). O destino e fixo,
+ * a tela de cima na hierarquia, e nao o historico: quem chega por um link
+ * compartilhado nao tem historico no ColeXa, e `history.back()` o levaria para
+ * fora do site. As secoes da gaveta voltam para o Inicio.
  */
+export interface BackTarget {
+  href: string
+  /** Para onde, dito ao leitor de tela: "Voltar para Binders". */
+  label: string
+}
+
 export function PageHeader({
   title,
   description,
   action,
+  back,
   className,
 }: {
   title: string
   description?: string
   action?: React.ReactNode
+  back?: BackTarget
   className?: string
 }) {
   return (
     <div className={cn('flex items-start gap-3 pb-4', className)}>
-      <div className="min-w-0 flex-1">
+      {back ? <BackButton {...back} /> : null}
+      <div className={cn('min-w-0 flex-1', back && 'pt-2')}>
         <h1 className="text-2xl font-bold tracking-tight text-text">{title}</h1>
         {description ? <p className="mt-1 text-sm text-text-muted">{description}</p> : null}
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>
+  )
+}
+
+/**
+ * A seta de voltar, no formato que as telas de detalhe ja usavam: 44 px de
+ * alvo, alinhada ao titulo.
+ */
+export function BackButton({ href, label }: BackTarget) {
+  return (
+    <Link
+      href={href}
+      aria-label={`Voltar para ${label}`}
+      title={`Voltar para ${label}`}
+      className="-ml-2 inline-flex size-11 shrink-0 items-center justify-center rounded-control text-text-muted transition-colors hover:bg-surface-muted hover:text-text"
+    >
+      <ArrowLeft className="size-5" aria-hidden />
+    </Link>
   )
 }
