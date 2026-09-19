@@ -305,7 +305,7 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 6. **`tsc` guarda cache** em `.tsbuildinfo`; erro de tipo que insiste depois da
    correção costuma ser isso.
 7. **Escrever no Supabase é lento.** A importação completa levou 25 minutos
-   contra 40 segundos no local. Use `npm run supabase import --from=DIR`.
+   contra 40 segundos no local. Use `npm run supabase -- import --from=DIR`.
 8. **O roxo escuro da paleta não serve como cor de texto.** `#504797` sobre a
    superfície escura dá 2.18:1, e sobre `accent-soft` cai para 1.82:1. Ele foi
    feito para **receber** texto branco por cima (7.8:1). Para ênfase como tinta
@@ -621,6 +621,14 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     à mão; sem isso, passados três dias a cotação fica velha e o real some da
     tela (`MAX_RATE_AGE_IN_DAYS`), o que parece defeito e não é. Em 19/09 o
     local estava com a cotação de 15/09.
+73. **O `npm run` engole as opções sem `--`.** `npm run supabase limpar-contas
+    --confirmar` executa **sem** o `--confirmar` (npm 10: a opção vira
+    configuração do npm e não chega ao script). O dono do produto tropeçou
+    nisso em 19/09, e a limpeza não aconteceu na primeira tentativa. A forma
+    certa é `npm run supabase -- limpar-contas --confirmar`. Vale para
+    `--ate=`, `--remover`, `--from=` e `--limite=`. O modo de falha é
+    silencioso quando a opção só liga algo: o comando roda como se ela não
+    existisse.
 
 ## Pendências
 
@@ -645,20 +653,18 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 6. ~~**Excluir a conta**~~ — **construída em 17/09** (decisão 091). Falta o
    segredo `SUPABASE_SECRET_KEY` já estar no GitHub (está, desde 17/09) e a
    tarefa diária **Contas** ter rodado pelo menos uma vez para valer.
-7. **Limpar as contas de teste** de produção, nas duas metades (ver "Produção").
-   **Decidido em 19/09: apagar todas**, e o dono do produto cria a dele de novo.
-   O comando existe: `npm run supabase limpar-contas` mostra o que existe sem
-   apagar (em 19/09: 3 contas no banco, 5 no Supabase Auth — duas nunca
-   entraram); com `--confirmar`, apaga as contas, trocas, conversas,
-   denúncias e fotos, no banco e no Supabase Auth, e deixa catálogo e preços.
-   **Quem roda com `--confirmar` é o dono do produto**, no terminal dele:
-   apagar em produção não tem volta nem backup no plano gratuito.
-   As contas existentes estão em **Free** desde a decisão 093: para testar troca,
-   publicação e análise, `npm run supabase premium <email> --ate=AAAA-MM-DD`.
-   A conta de teste do dono do produto (`pedrodusek30+teste@gmail.com`) recebeu
-   Premium **até 31/12/2026**, no banco local e em produção, em 17/09 — para
-   testar o Deck Builder. Ela cai para o Free sozinha nessa data, e sai junto na
-   limpeza das contas de teste.
+7. ~~**Limpar as contas de teste** de produção~~ — **feito em 19/09**: o dono do
+   produto decidiu apagar todas e criar a dele de novo, e rodou
+   `npm run supabase -- limpar-contas --confirmar`. Conferido depois: **0 contas
+   no banco e 0 no Supabase Auth**, nenhuma troca, conversa, denúncia ou foto;
+   catálogo, preços e cotação intactos. O comando continua para quando for
+   preciso repetir — sem `--confirmar` ele só mostra o que existe, e quem roda
+   com `--confirmar` é o dono do produto, porque apagar em produção não tem
+   volta nem backup no plano gratuito.
+   Produção agora **não tem nenhuma conta Premium**: a cortesia dos testadores
+   é `npm run supabase -- premium <email> --ate=AAAA-MM-DD` (decisão 093), e a
+   conta que o dono do produto criar de novo precisa dela para testar troca,
+   publicação e análise.
 8. ~~**Premium no lançamento**~~ — **decidido em 17/09** (decisão 093): Premium
    é publicar o Trade Binder, começar troca, a análise da coleção e aparecer
    primeiro na rede. Falta só escolher **meio de pagamento e preço**, que o dono
@@ -755,7 +761,7 @@ em 10/09.
   no Storage. O `trade_binder_token` é limpo, como este parágrafo pedia.
 - ~~**O Premium não limita nada.**~~ — **resolvido em 17/09** (decisão 093): as
   travas estão em `publishTradeBinder`, `startTrade` e `inviteMember`, e a
-  análise do Início é Premium. O acesso é dado por `npm run supabase premium
+  análise do Início é Premium. O acesso é dado por `npm run supabase -- premium
   <email> --ate=AAAA-MM-DD` enquanto não há pagamento. O trial de 7 dias
   (`trial_started_at`) continua sem uso, para quando existir cobrança.
 
@@ -1087,7 +1093,7 @@ que falta para receber gente de fora:
 - ~~**A tarefa Contas nunca rodou em produção**~~ — rodada à mão em 17/09: "0
   vencida(s), 0 anonimizada(s), 0 com falha". Os segredos funcionam.
 - **Premium de cortesia** para cada testador, com prazo
-  (`npm run supabase premium <email> --ate=AAAA-MM-DD`): sem isso eles ficam no
+  (`npm run supabase -- premium <email> --ate=AAAA-MM-DD`): sem isso eles ficam no
   Free e não começam troca nem publicam o Trade Binder (decisão 093).
 
 O que continua combinado para depois:
