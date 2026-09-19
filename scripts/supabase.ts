@@ -9,6 +9,13 @@ import { FileCatalogProvider } from '@/server/infrastructure/catalog/file-catalo
 import { createPrisma } from '@/server/infrastructure/prisma'
 
 /**
+ * Conexoes de cada comando de producao. O Session pooler do Supabase aceita 15
+ * clientes ao todo, e o site ja usa ate 8 (`APP_POOL_MAX`): a tarefa de precos
+ * rodando junto com gente navegando nao pode passar do total (19/09).
+ */
+const POOL_MAX = 4
+
+/**
  * Operacoes contra o banco de producao no Supabase.
  *
  *   npm run supabase migrate           aplica as migrations pendentes
@@ -105,7 +112,7 @@ async function main(): Promise<void> {
         : '[supabase] baixando da fonte oficial',
     )
 
-    const prisma = createPrisma(url)
+    const prisma = createPrisma(url, { max: POOL_MAX })
     try {
       const report = await importCatalog(prisma, provider, {
         seriesIds: seriesIds.length > 0 ? seriesIds : undefined,
@@ -118,7 +125,7 @@ async function main(): Promise<void> {
   }
 
   if (command === 'prices') {
-    const prisma = createPrisma(url)
+    const prisma = createPrisma(url, { max: POOL_MAX })
     try {
       const { importPrices } = await import('@/server/application/prices/import-prices')
       const { importExchangeRate } = await import(
@@ -198,7 +205,7 @@ async function main(): Promise<void> {
 
     const { optimizedImageUrl, WARMUP_WIDTHS } = await import('@/server/domain/catalog/optimized-image')
 
-    const prisma = createPrisma(url)
+    const prisma = createPrisma(url, { max: POOL_MAX })
     try {
       /*
        * A ordem e o que faz caber num numero pequeno: primeiro o que esta em
@@ -294,7 +301,7 @@ async function main(): Promise<void> {
       if (premiumUntil <= new Date()) throw new Error('A data ja passou.')
     }
 
-    const prisma = createPrisma(url)
+    const prisma = createPrisma(url, { max: POOL_MAX })
     try {
       const { count } = await prisma.user.updateMany({
         where: { email, deletedAt: null },
@@ -321,7 +328,7 @@ async function main(): Promise<void> {
   if (command === 'contas') {
     // Decisao 091: quem pediu para excluir a conta ha mais de 30 dias. Precisa
     // da chave secreta, porque exclui a conta no Supabase Auth tambem.
-    const prisma = createPrisma(url)
+    const prisma = createPrisma(url, { max: POOL_MAX })
     try {
       const { anonymizeDueAccounts } = await import('@/server/application/account/delete-account')
       const { SupabaseAuthAdmin } = await import('@/server/infrastructure/auth/supabase-auth-admin')
@@ -343,7 +350,7 @@ async function main(): Promise<void> {
   }
 
   if (command === 'status') {
-    const prisma = createPrisma(url)
+    const prisma = createPrisma(url, { max: POOL_MAX })
     try {
       // Banco novo nao tem tabela nenhuma. Perguntar ao catalogo primeiro evita
       // quebrar no comando que todo mundo roda antes de qualquer outro.
