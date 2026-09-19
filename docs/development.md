@@ -210,7 +210,7 @@ explícitos:
 | `npm run supabase migrate` | aplica as migrations pendentes |
 | `npm run supabase import` | importa o catálogo, baixando da fonte |
 | `npm run supabase import 569117` | importa apenas as séries informadas |
-| `npm run supabase import --from=DIR` | importa de um snapshot local |
+| `npm run supabase -- import --from=DIR` | importa de um snapshot local |
 | `npm run supabase storage` | cria (ou confere) o bucket das imagens do usuário |
 
 **Prefira `--from` quando o snapshot já existir.** Rebaixar o catálogo inteiro a
@@ -407,8 +407,8 @@ ele cria um app `fly-builder-...` com um volume de 50 GB, que é cobrado todo m�
 Enquanto não existe pagamento, o Premium é dado por comando, contra produção:
 
 ```
-npm run supabase premium pessoa@exemplo.com --ate=2026-12-31
-npm run supabase premium pessoa@exemplo.com --remover
+npm run supabase -- premium pessoa@exemplo.com --ate=2026-12-31
+npm run supabase -- premium pessoa@exemplo.com --remover
 ```
 
 O prazo é obrigatório de propósito: cortesia sem data não cai sozinha quando o

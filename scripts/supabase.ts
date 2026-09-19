@@ -21,16 +21,16 @@ const POOL_MAX = 4
  *   npm run supabase migrate           aplica as migrations pendentes
  *   npm run supabase import             importa o catalogo, baixando da fonte
  *   npm run supabase import 569117      importa apenas as series informadas
- *   npm run supabase import --from=DIR  importa de um snapshot local
+ *   npm run supabase -- import --from=DIR  importa de um snapshot local
  *   npm run supabase status             mostra o que existe la hoje
  *   npm run supabase storage            cria o bucket das imagens do usuario
  *   npm run supabase prices             importa precos de arte comum e cambio
  *   npm run supabase contas             anonimiza as contas com exclusao vencida
- *   npm run supabase premium <email> --ate=2026-12-31   da Premium ate a data
+ *   npm run supabase -- premium <email> --ate=2026-12-31   da Premium ate a data
  *   npm run supabase aquecer            pede as imagens das cartas mais vistas
- *   npm run supabase premium <email> --remover          volta a conta para Free
+ *   npm run supabase -- premium <email> --remover          volta a conta para Free
  *   npm run supabase limpar-contas      mostra as contas que existem, sem apagar
- *   npm run supabase limpar-contas --confirmar   apaga todas as contas
+ *   npm run supabase -- limpar-contas --confirmar   apaga todas as contas
  *
  * Prefira `--from` quando o snapshot ja existir: rebaixar o catalogo inteiro a
  * cada importacao e carga evitavel sobre a origem (decisao 020).
@@ -286,7 +286,7 @@ async function main(): Promise<void> {
     const remover = args.includes('--remover')
     const ate = args.find((a) => a.startsWith('--ate='))?.slice('--ate='.length)
 
-    if (!email) throw new Error('Informe o e-mail: npm run supabase premium <email> --ate=AAAA-MM-DD')
+    if (!email) throw new Error('Informe o e-mail: npm run supabase -- premium <email> --ate=AAAA-MM-DD')
     if (!remover && !ate) {
       throw new Error(
         'Informe o prazo (--ate=AAAA-MM-DD) ou use --remover. Premium sem prazo nao cai sozinho no fim do beta.',
@@ -381,7 +381,12 @@ async function main(): Promise<void> {
       console.log('[supabase] limpar-contas: catalogo, precos e cotacao ficam.')
 
       if (!confirmar) {
-        console.log('[supabase] limpar-contas: nada foi apagado. Para apagar tudo acima, rode de novo com --confirmar.')
+        // O `--` na instrucao importa: sem ele o npm engole o `--confirmar`
+        // (armadilha 73), e foi o que aconteceu na primeira tentativa.
+        console.log(
+          '[supabase] limpar-contas: nada foi apagado. Para apagar tudo acima: ' +
+            'npm run supabase -- limpar-contas --confirmar',
+        )
         return
       }
 
