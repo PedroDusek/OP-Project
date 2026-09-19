@@ -23,7 +23,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 130 PRs mergeados até a atribuição no rodapé (18/09), CI verde em todos |
+| Branch | `main`, 135 PRs mergeados até o voltar em toda tela (19/09), CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -47,7 +47,7 @@ existe comando de reset para produção, de propósito.
 ## O que está pronto
 
 **Checkpoints 0 a 13 concluídos, a Social, o Deck Builder e o dashboard da
-coleção.** 1.552 testes de unidade, integração e componente, mais 35 ponta a
+coleção.** 1.588 testes de unidade, integração e componente, mais 36 ponta a
 ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -119,6 +119,8 @@ ponta. Lint, typecheck e build passando.
 | — | O dashboard da coleção no Início, Premium (decisão 098) |
 | — | As imagens das coleções e dos decks, feitas pelo dono do produto (decisão 099) |
 | — | A atribuição no rodapé de toda tela, e o crédito na folha da want list (decisão 100) |
+| — | Voltar em toda tela, para a tela de cima, com um teste que garante (decisão 101) |
+| — | Um cliente do banco por processo e teto de conexões abaixo do pooler (armadilha 71) |
 
 ### Produção, em 17/09/2026
 
@@ -940,6 +942,28 @@ Coisas para não desfazer sem querer:
   é por isso que os filtros vivem na URL e não em estado.
 - **Só entram as coleções de que a pessoa tem alguma carta** — a não ser a
   filtrada de propósito, que aparece mesmo zerada.
+
+## Voltar em toda tela (decisão 101)
+
+Pedido do dono do produto em 18/09 — o voltar do navegador não basta —, e
+reforçado em 19/09, quando ele achou a tela Sets sem voltar (no site ainda sem
+o PR). Publicado em 19/09.
+
+- **Toda tela tem voltar, menos o Início**, a raiz. Também sem voltar, de
+  propósito: a página inicial pública, o Trade Binder público (aberto por link
+  de fora) e o guia de estilo. As telas de conta têm o voltar na moldura, e as
+  de erro têm "Ir para o início".
+- **O destino é fixo, a tela de cima, e não o histórico.** Quem chega por link
+  compartilhado não tem histórico no ColeXa, e `history.back()` o levaria para
+  fora do site. As seções da gaveta voltam para o Início; as telas dentro
+  delas, para a seção.
+- **Como pôr numa tela nova:** `PageHeader` com
+  `back={{ href, label }}`, ou `BackButton` onde o cabeçalho é próprio.
+
+**O teste que garante** (`tests/components/page-header.test.tsx`, "toda tela
+tem voltar"): lê cada `page.tsx` de `src/app` e falha se não achar uma das
+formas de voltar do projeto. Tela nova sem voltar não passa na CI. Se for uma
+exceção de verdade, ela entra na lista `SEM_VOLTAR` do teste, com o motivo.
 
 ## Textos e atribuição (decisão 100)
 

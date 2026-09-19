@@ -6183,6 +6183,14 @@ próprio é boa prática de IHC que o produto não pode dispensar.
 4. **Um componente só**: `PageHeader` ganhou `back`, e `BackButton` é a mesma
    seta de 44 px que as telas de detalhe já usavam.
 
+## A garantia (19/09)
+
+O dono do produto achou a tela Sets sem voltar no site ainda sem este PR, e
+pediu garantia de que todas tenham. Revisar a olho não garante a próxima tela:
+um teste (`tests/components/page-header.test.tsx`) lê cada `page.tsx` e falha
+se não achar uma das formas de voltar do projeto. As exceções do item 1 estão
+listadas nele, cada uma com o motivo.
+
 ## Data
 
 2026-09-18
