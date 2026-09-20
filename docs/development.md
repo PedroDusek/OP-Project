@@ -207,6 +207,8 @@ explícitos:
 | Comando | O que faz |
 |---|---|
 | `npm run supabase status` | conta o que existe lá hoje |
+| `npx tsx scripts/medir-banco.ts` | quantas consultas cada tela faz, no banco local |
+| `npx tsx scripts/medir-indices.ts` | os índices que existem e o plano das consultas pesadas |
 | `npm run supabase migrate` | aplica as migrations pendentes |
 | `npm run supabase import` | importa o catálogo, baixando da fonte |
 | `npm run supabase import 569117` | importa apenas as séries informadas |
