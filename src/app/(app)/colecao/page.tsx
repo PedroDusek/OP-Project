@@ -4,14 +4,14 @@ import { Layers, Star } from 'lucide-react'
 import { PageHeader } from '@/components/layout/app-shell'
 import { CatalogFilters } from '@/components/catalog/catalog-filters'
 import { CatalogSearch } from '@/components/catalog/catalog-search'
-import { CollectionGrid } from '@/components/collection/collection-grid'
+import { InfiniteCollectionGrid } from '@/components/collection/infinite-collection-grid'
 import { CollectionScope } from '@/components/collection/collection-scope'
 import { ListRow, PanelList } from '@/components/ui/surface'
 import { EmptyState } from '@/components/ui/states'
 import { getCatalogVocabulary } from '@/server/application/catalog'
 import { getCollectionSummary, searchCollection } from '@/server/application/collection'
 import { cardCountLabel } from '@/server/domain/catalog/sets'
-import { countActiveFilters, toCatalogQuery } from '@/lib/catalog-params'
+import { countActiveFilters, toApiQuery, toCatalogQuery } from '@/lib/catalog-params'
 import { PremiumNotice } from '@/components/premium/premium-notice'
 import { isPremium } from '@/server/application/authorization'
 import { requireViewer } from '@/server/http/viewer'
@@ -28,8 +28,9 @@ type Scope = (typeof SCOPES)[number]
  * pessoa possui — filtrar a coleção por cor ou raridade é a mesma pergunta,
  * feita num universo menor.
  *
- * A grade não pagina como o catálogo: uma coleção começa pequena, e a rolagem
- * infinita entra quando alguma coleção real pedir. O limite está no `pageSize`.
+ * A grade carrega mais como a do catálogo, desde 20/09. Até então trazia no
+ * máximo 100 cartas e parava ali, calada: um testador com 131 não via 31 delas.
+ * O comentário antigo dizia para esperar "alguma coleção real pedir" — pediu.
  */
 export default async function ColecaoPage({ searchParams }: PageProps<'/colecao'>) {
   const viewer = await requireViewer('/colecao')
@@ -38,7 +39,8 @@ export default async function ColecaoPage({ searchParams }: PageProps<'/colecao'
   const requested = Array.isArray(params.recorte) ? params.recorte[0] : params.recorte
   const scope: Scope = SCOPES.includes(requested as Scope) ? (requested as Scope) : 'all'
 
-  const filters = toCatalogQuery(params, { pageSize: 100 })
+  // A mesma leva do catálogo; as seguintes vêm por `/api/colecao`.
+  const filters = toCatalogQuery(params, { pageSize: 24 })
 
   /*
    * Decisao 093: a analise da colecao — quantas variantes distintas, quantos
@@ -129,12 +131,19 @@ export default async function ColecaoPage({ searchParams }: PageProps<'/colecao'
           />
         ) : (
           <>
-            <p className="text-sm text-text-muted tabular-nums" role="status">
-              {cardCountLabel(atual.total)}
-            </p>
-            <CollectionGrid
+            {/* A contagem do recorte vem dentro da grade, como no catálogo. */}
+            <InfiniteCollectionGrid
+              /*
+               * A chave amarra a grade ao recorte e aos filtros: trocar de aba
+               * monta uma grade nova, em vez de emendar cartas de outro recorte
+               * nas que já estavam na tela.
+               */
+              key={`${recorte}:${toApiQuery(filters)}`}
               showPlayset={premium}
-              items={atual.items.map((item) => ({
+              total={atual.total}
+              pageSize={atual.pageSize}
+              apiQuery={`${toApiQuery(filters)}&scope=${recorte}`}
+              initialItems={atual.items.map((item) => ({
                 ...item,
                 variantId: String(item.variantId),
               }))}

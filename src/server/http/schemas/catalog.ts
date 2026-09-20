@@ -86,6 +86,18 @@ export const catalogQuerySchema = z.object({
 
 export type CatalogQueryInput = z.infer<typeof catalogQuerySchema>
 
+/**
+ * A busca na coleção: os mesmos filtros do catálogo, mais o recorte das abas.
+ *
+ * O recorte é Premium (decisão 093), e quem confere isso é o caso de uso — aqui
+ * só se diz quais valores existem.
+ */
+export const collectionQuerySchema = catalogQuerySchema.extend({
+  scope: z.enum(['all', 'playsets', 'incomplete']).optional(),
+})
+
+export type CollectionQueryInput = z.infer<typeof collectionQuerySchema>
+
 /** Id de rota. Vem como string e vira BigInt, porque todo id do modelo e bigint. */
 export const variantIdSchema = z
   .string()
