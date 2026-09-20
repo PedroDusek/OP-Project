@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { BulkAdd } from '@/components/storage/bulk-add'
 import { getCatalogVocabulary, searchCatalog } from '@/server/application/catalog'
-import { getStorageLocation } from '@/server/application/storage'
+import { getStorageLocation, MAX_BULK_ENTRIES } from '@/server/application/storage'
 import { requireViewer } from '@/server/http/viewer'
 
 export const metadata: Metadata = { title: 'Adicionar cartas' }
@@ -54,6 +54,7 @@ export default async function AdicionarPage({ params }: PageProps<'/binders/[id]
         storageLocationId={location.id}
         locationName={location.name}
         vocabulary={vocabulary}
+        maxCards={MAX_BULK_ENTRIES}
         initialTotal={primeira.total}
         initialCards={primeira.items.map((item) => ({
           // `bigint` vira string na fronteira: JSON não serializa BigInt.

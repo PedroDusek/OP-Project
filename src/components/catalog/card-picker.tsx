@@ -103,6 +103,7 @@ export function CardPicker({
   vocabulary,
   initialCards,
   initialTotal,
+  maxCards,
 }: {
   action: (previous: PickerState, data: FormData) => Promise<PickerState>
   /** Campos que a acao precisa alem das cartas, como o local de destino. */
@@ -112,6 +113,12 @@ export function CardPicker({
   /** A primeira leva, renderizada no servidor. */
   initialCards: Card[]
   initialTotal: number
+  /**
+   * Cartas **diferentes** por leva. Vem do servidor, do mesmo numero que o caso
+   * de uso recusa — sem isso os dois divergiriam, e a tela prometeria uma leva
+   * que o servidor devolve com erro.
+   */
+  maxCards: number
 }) {
   const [filters, setFilters] = useState<CatalogSearchParams>({})
   const [term, setTerm] = useState('')
@@ -122,6 +129,8 @@ export function CardPicker({
   const [error, setError] = useState<string | null>(null)
   const [picks, setPicks] = useState<Record<string, number>>({})
   const [confirming, setConfirming] = useState(false)
+  /** Ligado quando a pessoa tenta a carta seguinte ao teto. */
+  const [noTeto, setNoTeto] = useState(false)
 
   const [state, submit, saving] = useActionState(action, PICKER_IDLE)
   const form = useRef<HTMLFormElement>(null)
@@ -236,16 +245,34 @@ export function CardPicker({
     })
   }, [state, copy, toast])
 
-  const set = (variantId: string, value: number) =>
+  /*
+   * O teto conta cartas **diferentes**, e nao copias: 200 cartas com quatro
+   * copias cada sao 800 cartas numa leva, e isso e permitido.
+   *
+   * Quem ja esta no teto continua podendo mudar a quantidade do que escolheu —
+   * o que trava e comecar a carta 201. Travar em silencio seria pior que o
+   * defeito que isto evita, entao a tela diz o que aconteceu.
+   */
+  const set = (variantId: string, value: number) => {
+    const cartaNova = value > 0 && picks[variantId] === undefined
+    if (cartaNova && Object.keys(picks).length >= maxCards) {
+      setNoTeto(true)
+      return
+    }
+
     setPicks((current) => {
       const next = { ...current }
       if (value <= 0) delete next[variantId]
       else next[variantId] = value
       return next
     })
+    // Tirou uma carta: cabe outra, e o aviso deixa de valer.
+    if (value <= 0) setNoTeto(false)
+  }
 
   const chosen = Object.entries(picks)
   const copies = chosen.reduce((sum, [, value]) => sum + value, 0)
+  const cheio = chosen.length >= maxCards
 
   return (
     <div className="flex flex-col gap-4">
@@ -337,7 +364,8 @@ export function CardPicker({
                 {copies} {copies === 1 ? 'cópia' : 'cópias'}
               </span>
               <span className="truncate text-xs text-text-muted tabular-nums">
-                {chosen.length} {chosen.length === 1 ? 'carta' : 'cartas'} · {copy.destination}
+                {chosen.length} {chosen.length === 1 ? 'carta' : 'cartas'}
+                {cheio ? ` de ${maxCards}` : ''} · {copy.destination}
               </span>
             </span>
             <Button onClick={() => setConfirming(true)} disabled={saving}>
@@ -345,6 +373,13 @@ export function CardPicker({
             </Button>
           </div>
         </div>
+      ) : null}
+
+      {noTeto ? (
+        <p role="alert" className="text-sm text-danger">
+          Uma adição em massa leva no máximo {maxCards} cartas diferentes. Confirme estas e faça
+          outra leva — a quantidade de cópias de cada carta não tem esse limite.
+        </p>
       ) : null}
 
       {state.status === 'error' ? (

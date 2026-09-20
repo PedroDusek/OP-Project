@@ -770,7 +770,7 @@ describe('BulkAdd', () => {
     vi.unstubAllGlobals()
   })
 
-  const montar = async () => {
+  const montar = async (maxCards = 200) => {
     withToast(
       <BulkAdd
         storageLocationId="9"
@@ -778,6 +778,7 @@ describe('BulkAdd', () => {
         vocabulary={VOCABULARY}
         initialCards={CARDS}
         initialTotal={CARDS.length}
+        maxCards={maxCards}
       />,
     )
     // O codigo aparece duas vezes no DOM — texto e lugar da arte —, entao a
@@ -831,6 +832,49 @@ describe('BulkAdd', () => {
     await montar()
 
     expect(screen.getByRole('button', { name: 'Tirar uma cópia de OP01-001' })).toBeDisabled()
+  })
+
+  /*
+   * O teto conta cartas **diferentes** por leva (`MAX_BULK_ENTRIES`). Até 20/09
+   * a tela deixava passar e o servidor é que recusava, depois de a pessoa ter
+   * marcado tudo. Aqui o teto é 1 para caber no fixture de duas cartas.
+   */
+  it('avisa ao escolher a carta seguinte ao teto, sem perder o que já foi escolhido', async () => {
+    await montar(1)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Acrescentar uma cópia de OP01-001' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Acrescentar uma cópia de OP01-002' }))
+
+    expect(screen.getByRole('alert')).toHaveTextContent('no máximo 1 cartas diferentes')
+    // A segunda carta não entrou, e a primeira continua onde estava.
+    expect(screen.getByText(/1 carta de 1 · Binder Principal/)).toBeInTheDocument()
+  })
+
+  /* Mais cópias da mesma carta não esbarram no teto: ele é por carta. */
+  it('no teto, ainda dá para aumentar as cópias do que já está escolhido', async () => {
+    await montar(1)
+
+    const zoro = screen.getByRole('button', { name: 'Acrescentar uma cópia de OP01-001' })
+    await userEvent.click(zoro)
+    await userEvent.click(zoro)
+    await userEvent.click(zoro)
+
+    expect(screen.getByText('3 cópias')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('tirar uma carta abre espaço e apaga o aviso', async () => {
+    await montar(1)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Acrescentar uma cópia de OP01-001' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Acrescentar uma cópia de OP01-002' }))
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Tirar uma cópia de OP01-001' }))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Acrescentar uma cópia de OP01-002' }))
+    expect(screen.getByText(/1 carta de 1 · Binder Principal/)).toBeInTheDocument()
   })
 
   /** A confirmação diz quantas, onde, e que a coleção também muda. */
