@@ -23,7 +23,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 141 PRs mergeados até a cobrança e a correção da leva (20/09), CI verde em todos |
+| Branch | `main`, 147 PRs mergeados até o rascunho da leva (20/09), CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -47,7 +47,7 @@ existe comando de reset para produção, de propósito.
 ## O que está pronto
 
 **Checkpoints 0 a 13 concluídos, a Social, o Deck Builder e o dashboard da
-coleção.** 1.640 testes de unidade, integração e componente, mais 36 ponta a
+coleção.** 1.657 testes de unidade, integração e componente, mais 36 ponta a
 ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -121,6 +121,8 @@ ponta. Lint, typecheck e build passando.
 | — | A atribuição no rodapé de toda tela, e o crédito na folha da want list (decisão 100) |
 | — | Voltar em toda tela, para a tela de cima, com um teste que garante (decisão 101) |
 | — | A cobrança do Premium na Stripe — **construída e desligada** até as chaves existirem (decisão 102) |
+| — | As imagens do catálogo preparadas em rodízio, toda noite (decisão 103) |
+| — | Carregar mais em Minha Coleção, e o rascunho da leva no navegador (20/09) |
 | — | Um cliente do banco por processo e teto de conexões abaixo do pooler (armadilha 71) |
 
 ### Produção, em 17/09/2026
@@ -677,6 +679,19 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     produto ia fazer. `git checkout main && git pull` antes de `git checkout
     -b`, sempre; e `git log --oneline main..HEAD` antes de abrir o PR mostra o
     que vai junto.
+76. **Tela que mostra lista precisa de "carregar mais", e não de um teto mudo.**
+    Minha Coleção trazia 100 cartas e parava ali sem dizer nada: quem tinha 131
+    não via 31, e nada na tela sugeria que faltava. O comentário no código
+    dizia para esperar "alguma coleção real pedir" — pediu, em 20/09. Ao criar
+    lista nova, ou ela pagina, ou o teto é dito em voz alta.
+77. **`vi.mock` sobe para o topo do arquivo.** Um dublê declarado com `const`
+    acima dele ainda não existe quando ele roda, e o teste falha com "Cannot
+    access ... before initialization" **na coleta**, sem rodar teste nenhum. A
+    saída é `vi.hoisted`, como em `leva-rascunho.test.tsx`.
+78. **`useSyncExternalStore` compara a leitura por identidade.** Devolver um
+    objeto novo a cada renderização — `JSON.parse` direto do `localStorage`, por
+    exemplo — renderiza para sempre. `leva-rascunho.ts` guarda o texto lido ao
+    lado do resultado para a identidade ser estável.
 
 ## Pendências
 
@@ -1110,6 +1125,47 @@ Coisas para não desfazer sem querer:
   cortesia longa e resolve assinar.
 - **O corpo do webhook é lido como texto cru.** `request.json()` reserializa e
   a assinatura deixa de conferir.
+
+## A leva de cartas, depois do defeito de 20/09
+
+Três correções que saíram do mesmo relato — um testador marcou 131 cartas,
+confirmou, esperou, recarregou a página e perdeu tudo.
+
+- **A leva salva** (armadilha 74): eram três consultas por carta dentro de uma
+  transação, e o prazo estourava. Agora são duas instruções para a leva inteira.
+- **A escolha não se perde.** Ela já sobrevivia ao erro — o que apagava era
+  recarregar. Agora um **rascunho no navegador** de quem escolhe, gravado a cada
+  toque no contador (`src/lib/leva-rascunho.ts`), e a tela **oferece** retomar
+  ao voltar. Não restaura sozinha: a escolha de ontem apareceria no meio da leva
+  de hoje.
+- **O erro diz o que importa**: "Suas cartas continuam marcadas. Toque em
+  Revisar para tentar de novo." Sem essa frase, quem lê "Erro interno" presume
+  que perdeu tudo e recarrega — que era exatamente o que fazia perder.
+
+Coisas para não desfazer sem querer:
+
+- **O rascunho é do aparelho**, e de propósito: guardar no banco seria escrita a
+  cada toque, de cada pessoa. Quem troca de celular não leva a escolha junto.
+- **Tudo em volta do `localStorage` falha em silêncio.** Janela anônima e disco
+  cheio não podem derrubar a tela de escolher cartas.
+- **A retomada depende de um gesto.** Restaurar calado é o que a decisão evita.
+- **O teto de 200 é por variante**, não por cópia, e a tela avisa ao tentar a
+  201ª (20/09). O número vem do servidor, do mesmo valor que o caso de uso
+  recusa.
+
+## Minha Coleção carrega mais (20/09)
+
+Ela trazia 100 cartas e parava ali, calada. Agora usa a mesma mecânica do
+catálogo: a primeira leva de 24 vem pronta do servidor, e as seguintes por
+rolagem ou pelo botão.
+
+- **O gancho `use-infinite-items` é compartilhado** pelas duas grades. Duas
+  cópias divergiriam no primeiro ajuste — a trava contra chamada dupla, o
+  reinício ao trocar de filtro, a margem de 600 px.
+- **Rota nova `/api/colecao`**, com a cota do catálogo. Ela devolve **só a
+  coleção de quem pede**: o usuário vem da sessão, nunca da consulta.
+- **O recorte das abas continua Premium no servidor** (decisão 093); para o Free
+  ele cai em "todas", como na tela.
 
 ## As imagens dos sets (decisão 099)
 
