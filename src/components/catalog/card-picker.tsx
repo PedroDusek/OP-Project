@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useRef, useState } from 'react'
+import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Loader2, Minus, Plus, SearchX } from 'lucide-react'
 import { CardArt } from '@/components/catalog/card-art'
 import { CatalogFilters } from '@/components/catalog/catalog-filters'
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { SearchBar } from '@/components/ui/search-bar'
 import { EmptyState } from '@/components/ui/states'
+import { Panel } from '@/components/ui/surface'
 import { useToast } from '@/components/ui/toast'
 import {
   countActiveFilters,
@@ -18,6 +19,13 @@ import {
 } from '@/lib/catalog-params'
 import type { CatalogVocabulary } from '@/server/application/catalog/vocabulary'
 import { cn } from '@/lib/cn'
+import {
+  chaveDaLeva,
+  gravarRascunho,
+  lerRascunho,
+  limparRascunho,
+  observarRascunho,
+} from '@/lib/leva-rascunho'
 
 /**
  * Escolher várias cartas do catálogo de uma vez, com um contador em cada uma.
@@ -132,6 +140,24 @@ export function CardPicker({
   /** Ligado quando a pessoa tenta a carta seguinte ao teto. */
   const [noTeto, setNoTeto] = useState(false)
 
+  /*
+   * O rascunho da leva, guardado no navegador de quem escolhe (20/09).
+   *
+   * Lido por `useSyncExternalStore` porque o servidor não tem `localStorage`:
+   * no HTML do servidor não há rascunho, e o navegador lê o dele depois da
+   * hidratação, sem divergência entre os dois.
+   *
+   * A retomada **não** é automática: a tela oferece, e quem decide é a pessoa.
+   * Restaurar calado faria a escolha de ontem aparecer no meio da leva de hoje.
+   */
+  const chaveDoRascunho = chaveDaLeva(hiddenFields.storageLocationId ?? copy.destination)
+  const rascunho = useSyncExternalStore(
+    observarRascunho,
+    () => lerRascunho(chaveDoRascunho),
+    () => null,
+  )
+  const ofereceRetomar = rascunho !== null && Object.keys(picks).length === 0
+
   const [state, submit, saving] = useActionState(action, PICKER_IDLE)
   const form = useRef<HTMLFormElement>(null)
   const { toast } = useToast()
@@ -232,6 +258,8 @@ export function CardPicker({
     if (state.status === 'added') {
       setPicks({})
       setConfirming(false)
+      // A leva entrou: o rascunho cumpriu o papel dele e sai do caminho.
+      limparRascunho(chaveDoRascunho)
     }
   }
 
@@ -260,14 +288,27 @@ export function CardPicker({
       return
     }
 
-    setPicks((current) => {
-      const next = { ...current }
-      if (value <= 0) delete next[variantId]
-      else next[variantId] = value
-      return next
-    })
+    const proximo = { ...picks }
+    if (value <= 0) delete proximo[variantId]
+    else proximo[variantId] = value
+
+    setPicks(proximo)
+    // O rascunho acompanha cada toque: o que salva é a escolha estar gravada
+    // **antes** de a pessoa recarregar, e não depois de confirmar.
+    gravarRascunho(chaveDoRascunho, proximo)
     // Tirou uma carta: cabe outra, e o aviso deixa de valer.
     if (value <= 0) setNoTeto(false)
+  }
+
+  /** Retoma o que ficou da última vez, a pedido da pessoa. */
+  const retomar = () => {
+    if (!rascunho) return
+    setPicks(rascunho)
+    setNoTeto(false)
+  }
+
+  const descartar = () => {
+    limparRascunho(chaveDoRascunho)
   }
 
   const chosen = Object.entries(picks)
@@ -292,6 +333,27 @@ export function CardPicker({
           onApply={setFilters}
         />
       </div>
+
+      {/*
+        A escolha que ficou de antes. Aparece antes da grade, porque depois de
+        recomeçar a marcar ela não serve mais para nada — e some assim que a
+        pessoa escolhe qualquer carta.
+      */}
+      {ofereceRetomar ? (
+        <Panel className="flex flex-wrap items-center gap-3 p-3">
+          <p className="min-w-0 flex-1 text-sm text-text">
+            Você tinha {Object.keys(rascunho).length}{' '}
+            {Object.keys(rascunho).length === 1 ? 'carta marcada' : 'cartas marcadas'} aqui e não
+            chegou a confirmar.
+          </p>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={descartar}>
+              Descartar
+            </Button>
+            <Button onClick={retomar}>Retomar</Button>
+          </div>
+        </Panel>
+      ) : null}
 
       {/*
         A falha aparece **fora** do ramo da grade. Antes ela morava dentro dele,
