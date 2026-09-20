@@ -207,6 +207,7 @@ explícitos:
 | Comando | O que faz |
 |---|---|
 | `npm run supabase status` | conta o que existe lá hoje |
+| `npm run supabase -- aquecer --rodizio --limite=800` | prepara a fatia da noite (decisão 103) |
 | `npx tsx scripts/medir-banco.ts` | quantas consultas cada tela faz, no banco local |
 | `npx tsx scripts/medir-indices.ts` | os índices que existem e o plano das consultas pesadas |
 | `npm run supabase migrate` | aplica as migrations pendentes |

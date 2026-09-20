@@ -6239,3 +6239,48 @@ cerca de R$ 14,01.
 ## Data
 
 2026-09-19
+---
+
+# Decisão: 103 — As imagens preparadas em rodízio, toda noite
+
+Pedido do dono do produto em 20/09, depois de um testador relatar que as cartas
+paravam de carregar ao rolar a lista. Nos logs: `upstream image response timed
+out` contra o servidor da Bandai.
+
+## Contexto
+
+A arte de cada carta vem do servidor da Bandai, no Japão, e a primeira vez custa
+~3 s (a original tem até 2,2 MB). Depois disso a versão encolhida fica no volume
+da Fly (decisão 090) e sai em 0,1 s. Até aqui, só as **200 cartas mais
+relevantes** eram preparadas, e só depois de publicar (decisão 094) — quem
+passava disso pagava a espera, e às vezes o tempo esgotava.
+
+## Decisão
+
+1. **Uma tarefa noturna**, às 4:00 de Brasília, prepara **800 cartas por
+   noite**, em rodízio pelo catálogo. São 4.431 variantes em duas larguras:
+   **seis noites** cobrem tudo, e aí recomeça.
+2. **O prazo manda no rodízio.** A imagem preparada dura 30 dias em disco
+   (`minimumCacheTTL`); uma volta a cada seis noites renova com folga larga.
+3. **A fatia da noite sai da data**, e não de uma marca no banco: o que já está
+   preparado mora no disco da Fly, que o banco não vê. Guardar posição daria a
+   ilusão de saber, e uma noite perdida desalinharia as seguintes.
+4. **Três pedidos por vez**, o mesmo ritmo de cortesia da decisão 020. No total
+   isto **reduz** as idas à fonte: hoje cada pessoa que abre uma carta fria
+   gera uma.
+5. **Continua sendo cache, e não cópia.** Nada aqui contraria a decisão 020: a
+   imagem segue referenciada na origem, e o que fica em disco é a versão
+   encolhida e temporária do otimizador.
+
+## Medido em 20/09
+
+- 19 KB e 37 KB por carta, nas duas larguras: **~250 MB** para o catálogo
+  inteiro, dentro do volume de 1 GB.
+- 10 imagens em 5 s com dois pedidos por vez; com três, 800 cartas levam ~10
+  minutos.
+- Repetida a mesma fatia, "10 prontas (10 já estavam)" em 0 s — preparar de novo
+  o que já está pronto é barato, que é o que torna o rodízio cego aceitável.
+
+## Data
+
+2026-09-20

@@ -1,0 +1,96 @@
+name: Aquecer
+
+# Prepara as imagens das cartas, uma fatia por noite (decisao 103).
+#
+# 07:00 UTC e 04:00 em Brasilia, o mesmo horario dos precos — o Brasil nao tem
+# mais horario de verao, entao a conta nao muda no meio do ano. Os dois nao se
+# atrapalham: precos escreve no banco, e este aqui so pede imagens ao site.
+#
+# ## O que ele faz, e por que
+#
+# A arte de cada carta vem do servidor da Bandai, no Japao: ~3 s na primeira
+# vez. Pedir a imagem ao **nosso** site faz o servidor buscar la uma vez,
+# encolher e guardar no volume da Fly (decisao 090); a partir dai ela sai em
+# 0,1 s para qualquer pessoa. Sem isto, quem rola a lista alem das 200 cartas
+# preparadas na publicacao paga essa espera — e foi o que um testador relatou
+# em 20/09, com `upstream image response timed out` no log.
+#
+# Sao 4.431 variantes, duas larguras cada. Com 800 por noite, o catalogo inteiro
+# fica pronto em **seis noites**, e o rodizio recomeca — bem dentro dos 30 dias
+# que a imagem preparada dura em disco (`minimumCacheTTL`).
+#
+# ## Cortesia com a fonte
+#
+# Tres pedidos por vez, de madrugada. E o mesmo ritmo que a decisao 020 exige, e
+# no fim **reduz** o total de idas a Bandai: hoje cada pessoa que abre uma carta
+# fria gera uma.
+#
+# ## Isto nao guarda imagem nossa
+#
+# O volume e cache, com prazo. Nada aqui contraria a decisao 020: continuamos
+# referenciando a origem, e o que fica em disco e a versao encolhida e temporaria
+# que o otimizador do Next produz.
+
+on:
+  schedule:
+    - cron: '0 7 * * *'
+  # A mao, que e como se confere o agendamento sem esperar um dia.
+  workflow_dispatch:
+    inputs:
+      limite:
+        description: Cartas nesta rodada
+        required: false
+        default: '800'
+
+concurrency:
+  group: aquecer
+  cancel-in-progress: false
+
+jobs:
+  aquecer:
+    name: Preparar a fatia da noite
+    runs-on: ubuntu-latest
+    # 800 cartas sao 1.600 imagens, tres por vez: ~12 minutos. O teto cobre uma
+    # noite ruim sem deixar o runner pendurado se a fonte parar de responder.
+    timeout-minutes: 45
+
+    env:
+      # Inutil de proposito: producao chega por SUPABASE_DATABASE_URL, e so por
+      # ela. O `prisma.config.ts` exige que DATABASE_URL exista na carga.
+      DATABASE_URL: postgresql://nao-usar:nao-usar@127.0.0.1:5432/nao-usar
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Verificar se o destino esta configurado
+        id: destino
+        env:
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        run: |
+          if [ -z "$SUPABASE_DATABASE_URL" ]; then
+            echo "::notice::SUPABASE_DATABASE_URL nao esta configurado. Nada a fazer."
+            echo "configurado=nao" >> "$GITHUB_OUTPUT"
+          else
+            echo "configurado=sim" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Instalar dependencias
+        if: steps.destino.outputs.configurado == 'sim'
+        run: npm ci
+
+      - name: Gerar Prisma Client
+        if: steps.destino.outputs.configurado == 'sim'
+        run: npx prisma generate
+
+      # O banco aqui so diz **quais** cartas entram na fatia; quem guarda a
+      # imagem e o volume da Fly, do outro lado do pedido HTTP.
+      - name: Preparar as imagens da noite
+        if: steps.destino.outputs.configurado == 'sim'
+        env:
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        run: npm run supabase -- aquecer --rodizio --limite=${{ inputs.limite || '800' }} --paralelas=3

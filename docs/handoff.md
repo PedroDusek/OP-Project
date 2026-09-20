@@ -139,6 +139,7 @@ para teste. O domínio `colexa.com.br` **não** aponta para ele ainda.
 | Cobrança | o trial acabou em 17/09 — **2 horas de máquina ligada, não 7 dias** —, e o dono do produto cadastrou cartão. ~US$ 7/mês da máquina, US$ 0,15 do volume |
 | Build | nos builders geridos (`--depot=true`). `--remote-only` criava um app de build com volume de 50 GB (armadilha 64) |
 | Depois de publicar | o workflow prepara 200 cartas (400 imagens), sem poder derrubar a publicação (decisão 094). A primeira vez levou ~90 s; com o volume guardando o cache, a segunda achou 392 de 400 prontas e levou 32 s |
+| Toda noite | o workflow **Aquecer** prepara 800 cartas em rodízio, às 4:00 de Brasília (decisão 103). Seis noites cobrem o catálogo, e a imagem dura 30 dias em disco. Rodar à mão: `npm run supabase -- aquecer --rodizio --limite=800 --url=https://colexa.fly.dev` — **o `--url` importa fora da CI**, senão vale o `APP_URL` do `.env`, que é o localhost |
 
 Conferido pelo assistente em 17/09: a checagem de saúde passa, o servidor roda
 como `node`, o banco conecta, o CAPTCHA desenha, e a mesma imagem de carta leva
