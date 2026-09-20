@@ -905,6 +905,33 @@ describe('BulkAdd', () => {
     expect(enviado.getAll('carta')).toEqual(['1:1', '2:1'])
   })
 
+  /*
+   * A mensagem de erro do servidor não diz o que a pessoa mais precisa saber
+   * naquele instante: que a escolha continua de pé. Sem isto, quem marcou
+   * oitenta cartas presume que perdeu tudo e recarrega a página — foi o que um
+   * testador fez em 20/09, e aí perdia de verdade.
+   */
+  it('no erro, diz que as cartas continuam marcadas', async () => {
+    bulkAddAction.mockResolvedValueOnce({
+      status: 'error',
+      message: 'Erro interno. Se persistir, informe o identificador abc.',
+    } as never)
+    await montar()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Acrescentar uma cópia de OP01-001' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Acrescentar uma cópia de OP01-002' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Revisar' }))
+    await userEvent.click(
+      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Confirmar' }),
+    )
+
+    const aviso = await screen.findByRole('alert')
+    expect(aviso).toHaveTextContent('Erro interno')
+    expect(aviso).toHaveTextContent('cartas continuam marcadas')
+    // E continuam mesmo: a barra de confirmação segue lá.
+    expect(screen.getByRole('button', { name: 'Revisar' })).toBeInTheDocument()
+  })
+
   it('limpa as escolhas depois de adicionar', async () => {
     await montar()
 
