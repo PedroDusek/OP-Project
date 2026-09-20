@@ -16,6 +16,10 @@ comentários, commits, rotas e conversa.
 Os outros: `architecture.md`, `database.md`, `integrations.md`,
 `development.md`.
 
+**`docs/fundacao.md`** é a base conceitual: por que o projeto é assim, o que é
+genérico e o que é de One Piece. Leia antes de mexer em algo que o próximo jogo
+(Pokémon, Magic) vai herdar.
+
 ## O acordo de trabalho
 
 Estas regras são do dono do produto e valem sobre qualquer instinto contrário:
