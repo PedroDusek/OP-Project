@@ -52,6 +52,21 @@ export function SubscriptionPanel({
   const plano = PLANS[ciclo]
   const erro = estado.status === 'error' ? estado.message : estadoPortal.status === 'error' ? estadoPortal.message : null
 
+  /*
+   * Quem já é Premium e não precisa fazer nada não vê plano nenhum (pedido do
+   * dono do produto em 20/09): assinar por cima não adianta — o acesso nunca é
+   * encurtado, então a pessoa pagaria sem ganhar um dia sequer.
+   *
+   * Duas exceções, e são as que precisam de ação: o **Pix**, que não renova
+   * sozinho, e a assinatura **cancelada ou com cobrança atrasada**, que vai
+   * acabar na data. Para elas, o caminho de pagar continua à vista.
+   */
+  const precisaAgir =
+    billing.subscription?.method === 'PIX' ||
+    billing.subscription?.status === 'CANCELED' ||
+    billing.subscription?.status === 'PAST_DUE'
+  const mostrarPlanos = !billing.premium || precisaAgir
+
   return (
     <div className="flex flex-col gap-4">
       {voltouDoPagamento ? (
@@ -95,7 +110,7 @@ export function SubscriptionPanel({
         </form>
       ) : null}
 
-      {!billing.available ? (
+      {!mostrarPlanos ? null : !billing.available ? (
         <Panel className="p-4">
           <p className="text-sm text-text-muted">
             A assinatura ainda não está aberta. Durante o teste, peça o acesso em

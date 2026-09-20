@@ -534,6 +534,10 @@ o direito de negociar.
    do pagamento.
 7. **Quem testou tem 6 meses de cortesia** depois que a cobrança abrir, com
    aviso antes de acabar.
+8. **Quem já é Premium não vê os planos** — assinar por cima cobraria sem dar
+   um dia a mais, porque o acesso nunca é encurtado. Continuam à vista para
+   quem paga no Pix, que renova na mão, e para quem cancelou ou está com
+   cobrança atrasada.
 
 ## 9. Testes obrigatórios de domínio
 

@@ -75,8 +75,12 @@ describe('SubscriptionPanel', () => {
     expect(screen.getByRole('button', { name: /gerenciar pagamento/i })).toBeInTheDocument()
   })
 
-  /* Quem tem cortesia não vê botão de gerenciar: não há o que gerenciar. */
-  it('cortesia não oferece gerenciar pagamento', () => {
+  /*
+   * Quem tem cortesia não vê botão de gerenciar — não há o que gerenciar — nem
+   * os planos: assinar por cima cobraria sem dar um dia a mais, porque o acesso
+   * nunca é encurtado (pedido do dono do produto em 20/09).
+   */
+  it('cortesia não oferece gerenciar nem assinar', () => {
     render(
       <SubscriptionPanel
         billing={{ ...base, premium: true, premiumUntil: new Date('2046-09-19T00:00:00Z') }}
@@ -85,6 +89,77 @@ describe('SubscriptionPanel', () => {
     )
 
     expect(screen.queryByRole('button', { name: /gerenciar pagamento/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /cartão/i })).not.toBeInTheDocument()
+  })
+
+  it('assinatura no cartão em dia não mostra os planos de novo', () => {
+    render(
+      <SubscriptionPanel
+        billing={{
+          premium: true,
+          premiumUntil: new Date('2026-11-15T12:00:00Z'),
+          subscription: {
+            status: 'ACTIVE',
+            cycle: 'MONTHLY',
+            method: 'CARD',
+            currentPeriodEnd: new Date('2026-11-15T12:00:00Z'),
+            cancelAtPeriodEnd: false,
+          },
+          available: true,
+        }}
+        voltouDoPagamento={false}
+      />,
+    )
+
+    expect(screen.queryByRole('button', { name: /pix/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /gerenciar pagamento/i })).toBeInTheDocument()
+  })
+
+  /* O Pix não renova sozinho: esconder o caminho de pagar faria a pessoa
+     perder o acesso sem ter como evitar. */
+  it('quem pagou no Pix continua vendo como pagar de novo', () => {
+    render(
+      <SubscriptionPanel
+        billing={{
+          premium: true,
+          premiumUntil: new Date('2026-11-15T12:00:00Z'),
+          subscription: {
+            status: 'ACTIVE',
+            cycle: 'MONTHLY',
+            method: 'PIX',
+            currentPeriodEnd: new Date('2026-11-15T12:00:00Z'),
+            cancelAtPeriodEnd: true,
+          },
+          available: true,
+        }}
+        voltouDoPagamento={false}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: /pix/i })).toBeInTheDocument()
+  })
+
+  /* Cancelada ainda vale até a data, e vai acabar: o caminho de voltar fica. */
+  it('assinatura cancelada continua oferecendo assinar', () => {
+    render(
+      <SubscriptionPanel
+        billing={{
+          premium: true,
+          premiumUntil: new Date('2026-11-15T12:00:00Z'),
+          subscription: {
+            status: 'CANCELED',
+            cycle: 'ANNUAL',
+            method: 'CARD',
+            currentPeriodEnd: new Date('2026-11-15T12:00:00Z'),
+            cancelAtPeriodEnd: true,
+          },
+          available: true,
+        }}
+        voltouDoPagamento={false}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: /cartão/i })).toBeInTheDocument()
   })
 
   /* Sem chaves configuradas, nenhum botão que não leva a lugar nenhum. */
