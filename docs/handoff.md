@@ -23,7 +23,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Repositório | `C:\dev\optcg` — **fora do OneDrive**, de propósito (decisão 001) |
 | Remote | `github.com/PedroDusek/OP-Project`, **público**, por SSH |
-| Branch | `main`, 135 PRs mergeados até o voltar em toda tela (19/09), CI verde em todos |
+| Branch | `main`, 141 PRs mergeados até a cobrança e a correção da leva (20/09), CI verde em todos |
 | Produto | **ColeXa**, domínio `colexa.com.br` |
 | Snapshot do catálogo | `C:\dev\optcg-snapshot` — 60 páginas HTML, **fora do repositório** |
 | PDFs de modelagem | `docs/modelagem/` |
@@ -47,7 +47,7 @@ existe comando de reset para produção, de propósito.
 ## O que está pronto
 
 **Checkpoints 0 a 13 concluídos, a Social, o Deck Builder e o dashboard da
-coleção.** 1.588 testes de unidade, integração e componente, mais 36 ponta a
+coleção.** 1.640 testes de unidade, integração e componente, mais 36 ponta a
 ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -120,6 +120,7 @@ ponta. Lint, typecheck e build passando.
 | — | As imagens das coleções e dos decks, feitas pelo dono do produto (decisão 099) |
 | — | A atribuição no rodapé de toda tela, e o crédito na folha da want list (decisão 100) |
 | — | Voltar em toda tela, para a tela de cima, com um teste que garante (decisão 101) |
+| — | A cobrança do Premium na Stripe — **construída e desligada** até as chaves existirem (decisão 102) |
 | — | Um cliente do banco por processo e teto de conexões abaixo do pooler (armadilha 71) |
 
 ### Produção, em 17/09/2026
@@ -629,6 +630,19 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     `--ate=`, `--remover`, `--from=` e `--limite=`. O modo de falha é
     silencioso quando a opção só liga algo: o comando roda como se ela não
     existisse.
+74. **Uma consulta por item numa transação estoura o prazo em produção.** A
+    leva de 131 cartas de um testador, em 20/09, fazia três consultas por carta
+    e passou dos 5 segundos padrão do Prisma: `P2028`, e o banco desfez tudo —
+    "confirmei, esperei, e nada foi salvo". Local não aparecia, porque a
+    latência é quase zero. Leva agora é `INSERT ... ON CONFLICT` com todas as
+    linhas de uma vez, e o prazo é explícito. **Ao escrever leva nova, conte as
+    idas ao banco antes de contar os itens.**
+75. **Branch nova sai da `main`, e não da branch em que você está.** Em 20/09 a
+    correção da leva saiu da branch da Stripe, e ao mergear a correção a
+    cobrança inteira entrou junto — contornando a conferência que o dono do
+    produto ia fazer. `git checkout main && git pull` antes de `git checkout
+    -b`, sempre; e `git log --oneline main..HEAD` antes de abrir o PR mostra o
+    que vai junto.
 
 ## Pendências
 
@@ -672,6 +686,20 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
    R$ 149,00/ano, e quem testou fica 6 meses de cortesia depois do lançamento
    da cobrança. **Nada disso está construído** — é o Checkpoint 15, e ele exige
    colunas novas em `users`, que é conversa antes de código.
+
+9. **Ligar a cobrança na Stripe** (decisão 102). O código está publicado e
+   desligado. Falta, **no painel da Stripe e com o dono do produto**: dois
+   preços recorrentes (R$ 14,90/mês e R$ 149,00/ano), o Pix ligado, o webhook
+   para `https://colexa.fly.dev/api/pagamentos/stripe` com cinco eventos, o
+   portal do cliente, e as quatro variáveis nos segredos (`development.md`
+   6.8). Antes de abrir a cobrança de verdade: política de cancelamento e
+   reembolso nos Termos, e o contador para a nota.
+10. **Duas contas com cortesia vitalícia** em produção desde 19 e 20/09:
+    `pedrodusek30@gmail.com` (o dono do produto) e `joaoguerra444@gmail.com`
+    (quem ajudou no desenho do produto), as duas **até 19/09/2046**. Não há
+    marca de "cortesia" no banco, de propósito: o acesso é só a data. Quando a
+    cobrança abrir, estas duas continuam Premium sem pagar, e os testadores
+    terão a data de seis meses da decisão 102.
 
 ### Decisões que o dono do produto ainda pode querer revisitar
 
@@ -1015,6 +1043,36 @@ Ajustes pedidos pelo dono do produto em 18/09, publicados no mesmo dia.
 **O texto do rodapé foi escrito pelo dono do produto** no mesmo dia, depois da
 primeira versão publicada, e substituiu a nossa. Vale levar o rodapé e o
 crédito da folha à advogada junto com os Termos de Uso.
+
+## A cobrança do Premium (decisão 102)
+
+Construída em 19 e 20/09 e **publicada desligada**: sem as chaves da Stripe, a
+tela de Premium diz que a assinatura não está aberta e o webhook responde 503.
+Ligar é configurar, não programar — o passo a passo está em `development.md`
+6.8, e o que falta ao dono do produto está em "Pendências".
+
+- **O acesso continua em `users.premium_until`.** A tabela `subscriptions` diz
+  o que a Stripe sabe; aquela coluna diz o que o ColeXa libera. Nenhuma trava
+  de Premium conhece a Stripe, e trocar de provedor não mexe em tela nenhuma.
+- **Só o aviso assinado libera acesso** (`/api/pagamentos/stripe`). A volta pela
+  tela (`?pago=1`) não libera: o endereço é adivinhável.
+- **`payment_events` é a trava contra processar o mesmo aviso duas vezes**, e o
+  rastro para cobrança contestada. Falha deixa `handled_at` nulo de propósito,
+  para o reenvio da Stripe poder ser processado.
+- **Pix é pagamento avulso**: cada um compra um ciclo, contado por nós. Cartão
+  renova sozinho.
+- **Quem já é Premium não vê os planos**, menos no Pix e em assinatura
+  cancelada ou atrasada, que precisam de ação.
+
+Coisas para não desfazer sem querer:
+
+- **A tela mostra o preço vindo do domínio** (`plans.ts`), e não do que a Stripe
+  devolve. Um teste compara os dois: se divergirem, a tela promete um preço e a
+  cobrança faz outro.
+- **`liberar` nunca encurta `premium_until`.** É o que protege quem tem
+  cortesia longa e resolve assinar.
+- **O corpo do webhook é lido como texto cru.** `request.json()` reserializa e
+  a assinatura deixa de conferir.
 
 ## As imagens dos sets (decisão 099)
 
