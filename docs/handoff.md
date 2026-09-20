@@ -180,6 +180,39 @@ cada 2 s); numa conversa, 0,33; navegando, ~0,1; com o app aberto e parado, 0,02
 gratuito do Supabase, depois os 500 MB de banco. Para 15 ou 20 testadores, a
 folga é grande: todos negociando dariam ~10 pedidos/s contra os ~37 medidos.
 
+### Idas ao banco por tela, medido em 20/09
+
+Depois do defeito da leva (armadilha 74), toda tela foi medida com
+`npx tsx scripts/medir-banco.ts`, que conta as consultas de cada caso de uso no
+banco local. **O número que importa é a contagem**, não o tempo: em produção
+cada ida custa ~4 ms contra São Paulo, e é a multiplicação que mata.
+
+| Tela | Consultas |
+|---|---|
+| Início, dashboard Premium | 10 |
+| Social, primeira página | 11 |
+| Minha Coleção, primeira página | 8 |
+| Want list | 7 |
+| Catálogo, primeira página | 6 |
+| Início (contagens) e Minha Coleção (cabeçalho) | 5 |
+| Playsets | 4 |
+| Binders | 2 |
+| Sets | 1 |
+
+**Nenhuma tela tem N+1.** O pior caso, 11 consultas, são ~44 ms de rede.
+
+Os índices foram conferidos no mesmo dia com `scripts/medir-indices.ts`: as 36
+tabelas têm índice, e as três consultas mais pesadas rodam em **5,5 ms** (preço
+mais recente de 4.341 variantes), **2 ms** (catálogo inteiro) e **0,1 ms** (quem
+tem carta para troca).
+
+**Onde ainda há laço por item** (grava uma linha por carta dentro de uma
+transação): a **conclusão de troca**. Medido: 60 cartas de cada lado são ~240
+gravações, mais de 1 s só de rede em produção. O prazo foi posto em 30 s para
+não haver penhasco, e trocar os laços por instruções em lote — como a leva já
+faz — está em "Pendências que não bloqueiam". As telas de leitura e as duas
+levas já são em lote.
+
 **Login com Google ligado** em 17/09 pelo dono do produto (Google Auth Platform,
 cliente *Web application*, redirect do Supabase; `development.md` 6.3). Ele
 entrou com a conta Google pelo `localhost`: a conta nasceu no **banco local**
@@ -817,6 +850,9 @@ em 10/09.
   `collection-dashboard.tsx` e `deck-builder.tsx` repetem o
   `toLocaleString('pt-BR', …)` com duas casas. Uma função em `src/lib` evitaria
   que a próxima tela volte ao `toFixed(2)` sem ponto no milhar (armadilha 66).
+- **A conclusão de troca grava carta a carta** dentro da transação, e não há
+  teto de cartas por troca. Prazo em 30 s desde 20/09, e o lote continua
+  pendente: as duas gravações da leva (`bulk.ts`) são o modelo a seguir.
 - **O dashboard não tem cache** e não foi medido em produção: lê o catálogo
   inteiro e os preços a cada abertura do Início (~70 ms no banco local). Se o
   dono do produto achar o Início lento, é o primeiro lugar a olhar.

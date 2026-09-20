@@ -181,6 +181,20 @@ export async function markExchange(
 
     await completeTrade(tx, tradeId)
     return { completed: true }
+  }, {
+    /*
+     * Cinco segundos é o padrão do Prisma, e ele não serve aqui.
+     *
+     * A conclusão grava carta a carta — tira do local de troca e mexe na
+     * coleção dos dois lados —, e **não há teto de cartas por troca**. Medido em
+     * 20/09: 60 cartas de cada lado são ~240 gravações, o que em produção é
+     * mais de um segundo só de ida e volta ao Supabase. O dobro disso estouraria
+     * o padrão e desfaria a troca inteira no fim, que é o pior momento possível.
+     *
+     * O teto maior remove o penhasco; trocar os laços por instruções em lote,
+     * como na leva (armadilha 74), continua pendente no handoff.
+     */
+    timeout: 30_000,
   })
 }
 
