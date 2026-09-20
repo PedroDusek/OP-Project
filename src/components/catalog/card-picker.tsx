@@ -445,9 +445,21 @@ export function CardPicker({
       ) : null}
 
       {state.status === 'error' ? (
-        <p role="alert" className="text-sm text-danger">
-          {state.message}
-        </p>
+        <div role="alert" className="flex flex-col gap-1">
+          <p className="text-sm text-danger">{state.message}</p>
+          {/*
+            O que a pessoa precisa saber naquele instante, e que a mensagem de
+            erro não diz: a escolha continua de pé. Sem isto, quem acabou de
+            marcar oitenta cartas presume que perdeu tudo e recarrega a página —
+            foi o que um testador fez em 20/09, e aí perdia mesmo.
+          */}
+          {chosen.length > 0 ? (
+            <p className="text-sm text-text-muted">
+              Suas {chosen.length === 1 ? 'carta continua marcada' : 'cartas continuam marcadas'}.
+              Toque em Revisar para tentar de novo.
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       <form ref={form} action={submit} className="hidden">
