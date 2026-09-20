@@ -207,6 +207,7 @@ explícitos:
 | Comando | O que faz |
 |---|---|
 | `npm run supabase status` | conta o que existe lá hoje |
+| `npm run supabase -- aquecer --rodizio --limite=800` | prepara a fatia da noite (decisão 103) |
 | `npm run supabase migrate` | aplica as migrations pendentes |
 | `npm run supabase import` | importa o catálogo, baixando da fonte |
 | `npm run supabase import 569117` | importa apenas as séries informadas |

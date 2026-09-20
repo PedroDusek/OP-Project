@@ -28,6 +28,7 @@ const POOL_MAX = 4
  *   npm run supabase contas             anonimiza as contas com exclusao vencida
  *   npm run supabase -- premium <email> --ate=2026-12-31   da Premium ate a data
  *   npm run supabase aquecer            pede as imagens das cartas mais vistas
+ *   npm run supabase -- aquecer --rodizio --limite=800   a fatia do dia (decisao 103)
  *   npm run supabase -- premium <email> --remover          volta a conta para Free
  *   npm run supabase limpar-contas      mostra as contas que existem, sem apagar
  *   npm run supabase -- limpar-contas --confirmar   apaga todas as contas
@@ -200,6 +201,17 @@ async function main(): Promise<void> {
     const site = (args.find((a) => a.startsWith('--url='))?.slice('--url='.length) ?? process.env.APP_URL ?? 'https://colexa.fly.dev').trim()
     const limite = Number(args.find((a) => a.startsWith('--limite='))?.slice('--limite='.length) ?? 200)
     const paralelas = Number(args.find((a) => a.startsWith('--paralelas='))?.slice('--paralelas='.length) ?? 3)
+    /*
+     * `--rodizio`: em vez das mesmas cartas todo dia, uma fatia diferente a cada
+     * noite, ate o catalogo inteiro (decisao 103).
+     *
+     * A fatia sai da **data**, e nao de uma marca no banco: o que ja esta
+     * preparado mora no disco da Fly, que o banco nao ve, entao guardar posicao
+     * daria a ilusao de saber. Com a data, a sequencia e previsivel, nao depende
+     * de estado nenhum, e uma noite perdida nao desalinha as seguintes — a
+     * fatia do dia seguinte e a do dia seguinte.
+     */
+    const rodizio = args.includes('--rodizio')
     if (!Number.isFinite(limite) || limite < 1) throw new Error('--limite precisa ser um numero maior que zero.')
     if (!Number.isFinite(paralelas) || paralelas < 1 || paralelas > 6) {
       throw new Error('--paralelas precisa ficar entre 1 e 6: a fonte e de terceiro.')
@@ -215,7 +227,9 @@ async function main(): Promise<void> {
        * possui, e so entao o resto — do mais novo para o mais antigo, que e a
        * ordem em que o catalogo foi importado.
        */
-      const variantes = await prisma.$queryRaw<{ image_url: string }[]>`
+      const variantes = rodizio
+        ? await fatiaDoDia(prisma, limite)
+        : await prisma.$queryRaw<{ image_url: string }[]>`
         SELECT v.image_url
           FROM card_variants v
          WHERE v.image_url IS NOT NULL
@@ -517,6 +531,49 @@ async function main(): Promise<void> {
     `Comando desconhecido: ${command ?? '(nenhum)'}. ` +
       'Use migrate, import, prices, contas, premium, aquecer, limpar-contas, status ou storage.',
   )
+}
+
+/**
+ * A fatia do catalogo que toca a esta noite (decisao 103).
+ *
+ * Ordena por `id`, que e estavel: a ordem por prioridade muda conforme as
+ * pessoas guardam cartas, e com ela o rodizio pularia e repetiria cartas sem
+ * nunca fechar a volta.
+ *
+ * A posicao vem dos dias desde 1970, e nao de uma marca no banco — ver o
+ * comentario em `--rodizio`. Quando a fatia chega ao fim do catalogo, ela
+ * **da a volta** e completa com o comeco: uma noite curta no fim da volta
+ * desperdicaria metade do trabalho combinado.
+ */
+async function fatiaDoDia(
+  prisma: ReturnType<typeof createPrisma>,
+  limite: number,
+): Promise<{ image_url: string }[]> {
+  const [{ total }] = await prisma.$queryRaw<{ total: bigint }[]>`
+    SELECT count(1)::bigint AS total FROM card_variants WHERE image_url IS NOT NULL
+  `
+  const quantas = Number(total)
+  if (quantas === 0) return []
+
+  const dia = Math.floor(Date.now() / 86_400_000)
+  const inicio = ((dia * limite) % quantas + quantas) % quantas
+  const noites = Math.ceil(quantas / limite)
+  console.log(
+    `[supabase] aquecer: rodizio na posicao ${inicio} de ${quantas} ` +
+      `(${noites} noites para o catalogo inteiro)`,
+  )
+
+  const daPosicao = async (offset: number, quantidade: number) =>
+    prisma.$queryRaw<{ image_url: string }[]>`
+      SELECT image_url FROM card_variants
+       WHERE image_url IS NOT NULL
+       ORDER BY id
+       LIMIT ${quantidade} OFFSET ${offset}
+    `
+
+  const fatia = await daPosicao(inicio, limite)
+  if (fatia.length >= limite || fatia.length >= quantas) return fatia
+  return [...fatia, ...(await daPosicao(0, limite - fatia.length))]
 }
 
 /**
