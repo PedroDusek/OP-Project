@@ -31,6 +31,7 @@ export function BulkAdd({
   vocabulary,
   initialCards,
   initialTotal,
+  maxCards,
 }: {
   storageLocationId: string
   locationName: string
@@ -38,6 +39,8 @@ export function BulkAdd({
   /** A primeira leva, renderizada no servidor. */
   initialCards: Card[]
   initialTotal: number
+  /** Cartas diferentes por leva, vindo do caso de uso. */
+  maxCards: number
 }) {
   return (
     <CardPicker
@@ -46,6 +49,7 @@ export function BulkAdd({
       vocabulary={vocabulary}
       initialCards={initialCards}
       initialTotal={initialTotal}
+      maxCards={maxCards}
       copy={{
         destination: locationName,
         confirmTitle: (copies) =>

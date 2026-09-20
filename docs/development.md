@@ -453,6 +453,45 @@ Connection string*, na aba do pooler em modo *session*.
 O *Transaction pooler* não serve para migrations: ele não mantém estado de
 sessão, e o Prisma precisa disso para aplicar DDL.
 
+### 6.8 Ligar a cobrança na Stripe (decisão 102)
+
+O código está pronto e **desligado enquanto faltar chave**: sem elas,
+`StripePaymentProvider.available` é `false`, a tela de Premium diz que a
+assinatura não está aberta e o webhook responde 503. Ligar é configurar, não
+programar.
+
+No painel da Stripe, com a conta já verificada:
+
+1. **Dois preços recorrentes**, em *Product catalog*, num produto "ColeXa
+   Premium": **R$ 14,90/mês** e **R$ 149,00/ano**. Anote os dois `price_...`.
+   O Pix **não** usa preço cadastrado — o valor vai inline, vindo de
+   `src/server/domain/billing/plans.ts`, e um teste compara os dois números.
+2. **Pix ligado** em *Settings → Payment methods*. Sem isso a sessão de Pix é
+   recusada na criação, e só o cartão funciona.
+3. **Webhook** em *Developers → Webhooks*, apontando para
+   `https://colexa.fly.dev/api/pagamentos/stripe`, com os eventos
+   `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`,
+   `customer.subscription.updated` e `customer.subscription.deleted`. Anote o
+   `whsec_...`.
+4. **Portal do cliente** em *Settings → Billing → Customer portal*: ative
+   cancelamento e troca de cartão. É essa tela que o botão "Gerenciar
+   pagamento" abre, e ela precisa estar certa para a cobrança ser legítima.
+
+No ambiente, as quatro variáveis de `.env.example` (`STRIPE_SECRET_KEY`,
+`STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_ANNUAL`). Em
+produção, as duas primeiras são segredos (`fly secrets set`), e as duas últimas
+também podem ir por lá — nenhuma entra no pacote do navegador, porque a tela
+mostra o preço a partir do domínio, e não do que a Stripe devolve.
+
+**Para testar sem cobrar ninguém**, use as chaves de teste da própria Stripe
+(`sk_test_...`), o cartão `4242 4242 4242 4242` e o `stripe listen` para
+encaminhar os avisos ao `localhost`. O Pix em modo de teste tem um botão de
+"pagar" simulado na própria tela.
+
+**O que nunca fazer:** liberar Premium a partir da volta da tela
+(`/conta/premium?pago=1`). Esse endereço é adivinhável. Quem libera é o aviso
+assinado, em `handle-payment-event.ts`.
+
 ## 7. Git
 
 Estado atual: repositório em `C:\dev\optcg`, remote `origin` em

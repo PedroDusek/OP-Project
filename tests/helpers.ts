@@ -23,6 +23,8 @@ const TABLES_IN_TRUNCATION_ORDER = [
   'conversations',
   'user_reports',
   'user_blocks',
+  'subscriptions',
+  'payment_events',
   'collection_item_locations',
   'collection_items',
   'want_items',

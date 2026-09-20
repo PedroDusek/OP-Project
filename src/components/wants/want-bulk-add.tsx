@@ -19,11 +19,14 @@ export function WantBulkAdd({
   vocabulary,
   initialCards,
   initialTotal,
+  maxCards,
 }: {
   vocabulary: CatalogVocabulary
   /** A primeira leva, renderizada no servidor. */
   initialCards: Card[]
   initialTotal: number
+  /** Cartas diferentes por leva, vindo do caso de uso. */
+  maxCards: number
 }) {
   return (
     <CardPicker
@@ -31,6 +34,7 @@ export function WantBulkAdd({
       vocabulary={vocabulary}
       initialCards={initialCards}
       initialTotal={initialTotal}
+      maxCards={maxCards}
       copy={{
         destination: 'want list',
         confirmTitle: (copies) =>

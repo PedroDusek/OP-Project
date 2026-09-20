@@ -1,5 +1,5 @@
-import type { PrismaClient } from '@prisma/client'
-import { ConflictError, NotFoundError, ValidationError } from '@/server/domain/errors'
+import { Prisma, type PrismaClient } from '@prisma/client'
+import { NotFoundError, ValidationError } from '@/server/domain/errors'
 import type { AuthenticatedUser } from '@/server/application/auth'
 
 /**
@@ -75,39 +75,54 @@ export async function bulkAddToLocation(
       throw new NotFoundError('Uma das cartas escolhidas não existe mais.')
     }
 
-    let copies = 0
+    /*
+     * Duas instruções para a leva inteira, e não três por carta.
+     *
+     * Eram três — somar, reler o id, guardar —, o que dá quase 400 idas ao
+     * banco numa leva de 131 cartas. Com o banco em outra máquina, isso passou
+     * dos 5 segundos da transação e o Postgres desfez tudo: o relato de 20/09
+     * foi "confirmei, esperei, e nada foi salvo", com `P2028` no log. A conta
+     * não mudou; o que mudou é que ela acontece num lugar só.
+     *
+     * `quantity + EXCLUDED.quantity` continua somando **no banco**, que é o que
+     * impede duas levas simultâneas lerem o mesmo total e gravarem por cima uma
+     * da outra.
+     */
+    const linhas = Prisma.join(
+      valid.map((entry) => Prisma.sql`(${entry.cardVariantId}::bigint, ${entry.copies}::int)`),
+    )
 
-    for (const entry of valid) {
-      /*
-       * Cria a linha se ela ainda não existe, e soma no próprio banco quando já
-       * existe: `quantity + N` numa instrução é o que impede duas levas
-       * simultâneas lerem o mesmo total e gravarem por cima uma da outra.
-       */
-      await tx.$executeRaw`
-        INSERT INTO collection_items (collection_id, card_variant_id, quantity)
-        VALUES (${collection.id}, ${entry.cardVariantId}, ${entry.copies})
-        ON CONFLICT (collection_id, card_variant_id)
-        DO UPDATE SET quantity = collection_items.quantity + ${entry.copies}
-      `
+    await tx.$executeRaw`
+      INSERT INTO collection_items (collection_id, card_variant_id, quantity)
+      SELECT ${collection.id}::bigint, entrada.card_variant_id, entrada.quantity
+        FROM (VALUES ${linhas}) AS entrada(card_variant_id, quantity)
+      ON CONFLICT (collection_id, card_variant_id)
+      DO UPDATE SET quantity = collection_items.quantity + EXCLUDED.quantity
+    `
 
-      const item = await tx.collectionItem.findFirst({
-        where: { collectionId: collection.id, cardVariantId: entry.cardVariantId },
-        select: { id: true },
-      })
-      if (!item) throw new ConflictError('ITEM_AUSENTE', 'Não foi possível registrar a carta.')
+    // Possuir primeiro, guardar depois: o trigger de alocação roda por linha,
+    // e a soma precisa já estar no lugar quando ele conferir.
+    await tx.$executeRaw`
+      INSERT INTO collection_item_locations (collection_item_id, storage_location_id, quantity)
+      SELECT item.id, ${location.id}::bigint, entrada.quantity
+        FROM (VALUES ${linhas}) AS entrada(card_variant_id, quantity)
+        JOIN collection_items item
+          ON item.collection_id = ${collection.id}::bigint
+         AND item.card_variant_id = entrada.card_variant_id
+      ON CONFLICT (collection_item_id, storage_location_id)
+      DO UPDATE SET quantity = collection_item_locations.quantity + EXCLUDED.quantity
+    `
 
-      // Possuir primeiro, guardar depois: o trigger de alocação roda por linha.
-      await tx.$executeRaw`
-        INSERT INTO collection_item_locations (collection_item_id, storage_location_id, quantity)
-        VALUES (${item.id}, ${location.id}, ${entry.copies})
-        ON CONFLICT (collection_item_id, storage_location_id)
-        DO UPDATE SET quantity = collection_item_locations.quantity + ${entry.copies}
-      `
-
-      copies += entry.copies
-    }
-
+    const copies = valid.reduce((total, entry) => total + entry.copies, 0)
     return { cards: valid.length, copies }
+  }, {
+    /*
+     * Cinco segundos é o padrão do Prisma, e era o teto que estourava. A leva
+     * agora são duas instruções, mas o teto continua explícito e maior: numa
+     * leva de 200 cartas, com o banco em outra máquina e a rede ruim, o custo
+     * de esperar mais um pouco é menor que o de desfazer tudo.
+     */
+    timeout: 20_000,
   })
 }
 

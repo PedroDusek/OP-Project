@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@prisma/client'
+import { Prisma, type PrismaClient } from '@prisma/client'
 import { ConflictError } from '@/server/domain/errors'
 import type { AuthenticatedUser } from '@/server/application/auth'
 
@@ -18,15 +18,17 @@ import type { AuthenticatedUser } from '@/server/application/auth'
  * também tira exigiria um controle capaz de dizer "menos que zero" e um jeito
  * de distinguir "não mexi" de "quero zero" — complexidade que não paga.
  *
- * ## Uma transação, e por que o teto existe
+ * ## Uma instrução, e por que o teto existe
  *
- * O mesmo teto da leva de armazenamento, pelo mesmo motivo: acima de duzentas a
- * transação fica longa demais para uma tela esperar.
+ * A leva inteira é um `INSERT ... ON CONFLICT` só. Até 20/09 era um `upsert`
+ * por carta dentro de uma transação, que é como a mesma operação nos binders
+ * estourou o prazo e desfez tudo. O teto continua, igual ao do armazenamento:
+ * duzentas cartas é o que cabe numa tela sem virar espera.
  *
  * ## Sem lock, como a escrita de um want só
  *
- * Um want não sustenta invariante entre linhas — ninguém aloca contra ele. O
- * `upsert` sobre a chave única resolve a corrida, e duas telas gravando ao mesmo
+ * Um want não sustenta invariante entre linhas — ninguém aloca contra ele. A
+ * soma na própria instrução resolve a corrida, e duas telas gravando ao mesmo
  * tempo terminam somando as duas levas, que é o esperado de "acrescentar".
  */
 
@@ -71,20 +73,28 @@ export async function bulkAddWants(
     throw new ConflictError('VARIANTE_AUSENTE', 'Alguma carta da leva não existe mais.')
   }
 
-  await prisma.$transaction(async (tx) => {
-    for (const entry of merged) {
-      await tx.wantItem.upsert({
-        where: {
-          userId_cardVariantId: { userId: user.id, cardVariantId: entry.cardVariantId },
-        },
-        create: { userId: user.id, cardVariantId: entry.cardVariantId, quantity: entry.copies },
-        // `increment` e não um número calculado antes: a soma acontece no banco,
-        // então duas levas simultâneas somam as duas em vez de uma sobrescrever
-        // a outra.
-        update: { quantity: { increment: entry.copies } },
-      })
-    }
-  })
+  /*
+   * Uma instrução para a leva inteira, e não um `upsert` por carta.
+   *
+   * Era um por carta, e foi assim que a mesma operação nos binders estourou os
+   * 5 segundos da transação numa leva de 131 cartas, em 20/09 (`P2028`, tudo
+   * desfeito). Aqui o defeito ainda não tinha aparecido, e a correção é a
+   * mesma: uma ida ao banco em vez de duzentas.
+   *
+   * `quantity + EXCLUDED.quantity` mantém a soma **no banco**, então duas levas
+   * simultâneas somam as duas em vez de uma sobrescrever a outra.
+   */
+  const linhas = Prisma.join(
+    merged.map((entry) => Prisma.sql`(${entry.cardVariantId}::bigint, ${entry.copies}::int)`),
+  )
+
+  await prisma.$executeRaw`
+    INSERT INTO want_items (user_id, card_variant_id, quantity)
+    SELECT ${user.id}::bigint, entrada.card_variant_id, entrada.quantity
+      FROM (VALUES ${linhas}) AS entrada(card_variant_id, quantity)
+    ON CONFLICT (user_id, card_variant_id)
+    DO UPDATE SET quantity = want_items.quantity + EXCLUDED.quantity
+  `
 
   return {
     variants: merged.length,

@@ -80,6 +80,7 @@ model User {
   reportsReceived   UserReport[]        @relation("reported")
   conversations     ConversationParticipant[]
   messagesSent      Message[]
+  subscriptions     Subscription[]
 
   @@map("users")
 }
@@ -696,4 +697,72 @@ model Message {
 
   @@index([conversationId, createdAt])
   @@map("messages")
+}
+
+// ---------------------------------------------------------------- assinaturas
+
+// A assinatura do Premium (decisao 102).
+//
+// Tabela propria, e nao colunas em `users`, por escolha do dono do produto: ela
+// guarda historico. Quem assinou, cancelou e voltou deixa rastro, e isso e o
+// que responde "desde quando essa pessoa paga?" no dia em que alguem contestar
+// uma cobranca.
+//
+// **O acesso continua em `users.plan` e `users.premium_until`.** Esta tabela
+// diz o que a Stripe sabe; aquelas duas colunas dizem o que o ColeXa libera. O
+// webhook e quem traduz uma coisa na outra. Assim, trocar de provedor um dia
+// nao mexe em nenhuma tela, e nenhuma trava de Premium precisa saber que a
+// Stripe existe.
+//
+// `subscription_id` e nulo no Pix: la nao ha assinatura, ha um pagamento avulso
+// por ciclo (decisao 102).
+model Subscription {
+  id                BigInt    @id @default(autoincrement())
+  userId            BigInt    @map("user_id")
+  provider          String    @default("stripe") @db.VarChar(20)
+  customerId        String    @map("customer_id") @db.VarChar(64)
+  subscriptionId    String?   @unique @map("subscription_id") @db.VarChar(64)
+  /// ACTIVE, PAST_DUE, CANCELED ou EXPIRED.
+  status            String    @db.VarChar(20)
+  /// MONTHLY ou ANNUAL.
+  cycle             String    @db.VarChar(10)
+  /// CARD ou PIX.
+  method            String    @db.VarChar(10)
+  /// Ate quando o ciclo pago vai. E daqui que sai `users.premium_until`.
+  currentPeriodEnd  DateTime? @map("current_period_end") @db.Timestamptz(6)
+  cancelAtPeriodEnd Boolean   @default(false) @map("cancel_at_period_end")
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([customerId])
+  @@map("subscriptions")
+}
+
+// O que a Stripe avisou, guardado antes de ser processado.
+//
+// Existe por causa de uma garantia do proprio provedor: ele **reenvia** o mesmo
+// aviso ate receber 200, e pode reenviar mesmo depois. Sem o identificador
+// gravado, uma renovacao chegaria duas vezes e estenderia o acesso em dobro. A
+// unicidade de `event_id` e a trava, e ela mora no banco porque e onde a corrida
+// entre dois avisos simultaneos se resolve.
+//
+// `payload` guardado inteiro: quando uma cobranca for contestada, o que a
+// Stripe disse e quando e a unica prova do nosso lado.
+model PaymentEvent {
+  id         BigInt   @id @default(autoincrement())
+  provider   String   @default("stripe") @db.VarChar(20)
+  eventId    String   @unique @map("event_id") @db.VarChar(80)
+  type       String   @db.VarChar(80)
+  payload    Json
+  /// Nulo enquanto nao foi processado; preenchido quando termina.
+  handledAt  DateTime? @map("handled_at") @db.Timestamptz(6)
+  /// A mensagem, quando o processamento falhou. Nunca traz dado de cartao.
+  failure    String?   @db.VarChar(500)
+  receivedAt DateTime  @default(now()) @map("received_at") @db.Timestamptz(6)
+
+  @@index([type, receivedAt])
+  @@map("payment_events")
 }

@@ -91,6 +91,16 @@ export default async function MaisPage() {
         </section>
 
         <PanelList>
+          {/* Decisao 102: assinar, ou ver ate quando o Premium vale. */}
+          <ListRow
+            title={isPremium(viewer!) ? 'Sua assinatura' : 'Assinar o Premium'}
+            description={
+              isPremium(viewer!)
+                ? 'Até quando vale, e onde trocar o cartão ou cancelar.'
+                : 'O dashboard da coleção, começar trocas e publicar o Trade Binder.'
+            }
+            href="/conta/premium"
+          />
           {/* Acima de sair, onde o dono do produto pediu (decisao 096). */}
           <ListRow
             title="Enviar feedback"

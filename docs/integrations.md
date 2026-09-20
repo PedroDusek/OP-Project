@@ -401,6 +401,7 @@ o que a Política de Privacidade precisa descrever.
 | **TCGplayer, via TCGCSV** | preços (decisão 047) | a tela deixa de mostrar preço | nada nosso |
 | **Banco Central (PTAX)** | cotação do dólar (decisão 051) | o preço aparece só em dólar | nada nosso |
 | **GitHub Actions** | preços (diário), contas a excluir (diário) e publicar (à mão) | as tarefas param; o site continua | nada além do que já está em produção |
+| **Stripe** | cobrança do Premium: cartão recorrente e Pix avulso (decisão 102) | a tela diz que a assinatura não está aberta; o resto funciona | e-mail de quem assina, e o identificador da conta no ColeXa. **Cartão e Pix são digitados na Stripe: nenhum dado de pagamento passa pelo ColeXa** |
 
 ## 4. Observabilidade
 

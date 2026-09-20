@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { WantBulkAdd } from '@/components/wants/want-bulk-add'
 import { getCatalogVocabulary, searchCatalog } from '@/server/application/catalog'
+import { MAX_BULK_WANTS } from '@/server/application/wants'
 import { requireViewer } from '@/server/http/viewer'
 
 export const metadata: Metadata = { title: 'Adicionar à want list' }
@@ -48,6 +49,7 @@ export default async function AdicionarWantPage() {
 
       <WantBulkAdd
         vocabulary={vocabulary}
+        maxCards={MAX_BULK_WANTS}
         initialTotal={primeira.total}
         initialCards={primeira.items.map((item) => ({
           // `bigint` vira string na fronteira: JSON não serializa BigInt.

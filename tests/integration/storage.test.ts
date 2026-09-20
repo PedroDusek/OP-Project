@@ -931,6 +931,39 @@ describe('adicionar em massa', () => {
   })
 
   /**
+   * O defeito relatado em 20/09: uma leva de 131 cartas passou dos 5 segundos
+   * da transacao (`P2028`) e o banco desfez tudo — "confirmei, esperei, e nada
+   * foi salvo". A causa eram tres consultas por carta; agora sao duas para a
+   * leva inteira.
+   *
+   * O teste roda o pior caso permitido, 200 cartas, e confere que tudo entrou.
+   * Ele nao mede tempo de proposito: um limite de segundos aqui reprovaria em
+   * maquina lenta sem dizer nada sobre a regra.
+   */
+  it('da conta de uma leva grande, de ponta a ponta', async () => {
+    const { user } = await owner()
+    const binder = await createStorage(user.id, 'BINDER', 'COLLECTION')
+    const cartas = []
+    for (let i = 0; i < MAX_BULK_ENTRIES; i++) {
+      cartas.push(await createCardWithVariant('Character', `OP99-${String(i).padStart(3, '0')}`))
+    }
+
+    const resultado = await bulkAddToLocation(
+      testPrisma(),
+      user,
+      binder.id,
+      cartas.map((carta) => ({ cardVariantId: carta.variant.id, copies: 2 })),
+    )
+
+    expect(resultado).toEqual({ cards: MAX_BULK_ENTRIES, copies: MAX_BULK_ENTRIES * 2 })
+    const detail = await getStorageLocation(testPrisma(), user, binder.id)
+    expect(detail).toMatchObject({
+      cardCount: MAX_BULK_ENTRIES * 2,
+      uniqueVariants: MAX_BULK_ENTRIES,
+    })
+  })
+
+  /**
    * Tudo ou nada: aplicar metade seria pior que falhar inteiro, porque a pessoa
    * nao saberia quais cartas entraram sem conferir uma a uma.
    */
