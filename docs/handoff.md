@@ -1,4 +1,4 @@
-# Handoff — estado em 18/09/2026
+﻿# Handoff — estado em 18/09/2026
 
 Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
 
@@ -9,7 +9,7 @@ Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
    e `EMAIL_FROM` entraram nele em 17/09.
 2. `npm run supabase status` — mostra o que produção tem e o que falta. Em
    18/09 ela estava **em dia: 19 de 19 migrations**.
-3. **O site está publicado em `https://colexa.fly.dev`** desde 17/09 (decisões
+3. **O site está em `https://colexa.com.br`** desde 21/09 (decisões
    089 e 090), para teste do dono do produto — ainda **não é o lançamento**.
    Publicar de novo é à mão: `development.md` 6.6.
 4. Leia "Produção, em 17/09/2026", "O dashboard da coleção", "A Social" e
@@ -36,7 +36,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Node | 20.20.2 — o `@supabase/supabase-js` já avisa que 20 está depreciado |
 | PostgreSQL local | 18.6, bancos `optcg` e `optcg_test` |
-| Produção | Supabase em São Paulo (banco, autenticação, Storage) e o site na Fly.io em São Paulo, `colexa.fly.dev` |
+| Produção | Supabase em São Paulo (banco, autenticação, Storage) e o site na Fly.io em São Paulo, `colexa.com.br` |
 | `.env` | ignorado pelo Git; desde 17/09 com `RESEND_API_KEY`, `EMAIL_FROM` (decisão 086) e `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (decisão 088) |
 
 **Produção nunca é alvo padrão.** `DATABASE_URL` é sempre o banco local; o
@@ -135,13 +135,13 @@ para teste. O domínio `colexa.com.br` **não** aponta para ele ainda.
 | Aplicação | `colexa`, uma máquina `shared-cpu-1x` de 1 GB em `gru`, sempre ligada |
 | Volume | `colexa_cache`, 1 GB, montado em `.next/cache` (imagens otimizadas das cartas) |
 | Segredos na Fly | `DATABASE_URL` (Session pooler, usuário `postgres.<ref>`, host `aws-0-sa-east-1.pooler.supabase.com`), `SUPABASE_SECRET_KEY`, `RESEND_API_KEY` |
-| Valores em `fly.toml` | `APP_URL=https://colexa.fly.dev`, `EMAIL_FROM`, `SUPABASE_STORAGE_BUCKET` |
+| Valores em `fly.toml` | `APP_URL=https://colexa.com.br`, `ALLOW_INDEXING=0` (decisão 105), `EMAIL_FROM`, `SUPABASE_STORAGE_BUCKET` |
 | GitHub | segredo `FLY_API_TOKEN` (token de deploy `publicar-github`, criado 16:01:34 de 17/09 — **o único ativo**; os cinco das tentativas foram revogados pelo dono do produto, conferido com `fly tokens list --app colexa`; vale até 2046, então vazou é revogar e gerar outro pelo Git Bash, armadilha 59); *variables* com os três `NEXT_PUBLIC_*` |
-| Painéis | Turnstile com `colexa.fly.dev`; Supabase com `https://colexa.fly.dev/**` nas *Redirect URLs* (Site URL continua `http://localhost:3000`); Google com a origem `https://colexa.fly.dev` |
+| Painéis | **Tudo no domínio oficial desde 21/09**: Turnstile com `colexa.com.br` e `www` (o `.fly.dev` saiu, porque lá nada chega a desenhar antes do redirecionamento); Supabase com Site URL `https://colexa.com.br` e o `/**` dos dois domínios nas *Redirect URLs*; Google com os três links de branding em `colexa.com.br`, o logo, e os domínios autorizados `colexa.com.br`, `colexa.fly.dev` e o do Supabase |
 | Cobrança | o trial acabou em 17/09 — **2 horas de máquina ligada, não 7 dias** —, e o dono do produto cadastrou cartão. ~US$ 7/mês da máquina, US$ 0,15 do volume |
 | Build | nos builders geridos (`--depot=true`). `--remote-only` criava um app de build com volume de 50 GB (armadilha 64) |
 | Depois de publicar | o workflow prepara 200 cartas (400 imagens), sem poder derrubar a publicação (decisão 094). A primeira vez levou ~90 s; com o volume guardando o cache, a segunda achou 392 de 400 prontas e levou 32 s |
-| Toda noite | o workflow **Aquecer** prepara 800 cartas em rodízio, às 4:00 de Brasília (decisão 103). Seis noites cobrem o catálogo, e a imagem dura 30 dias em disco. Rodar à mão: `npm run supabase -- aquecer --rodizio --limite=800 --url=https://colexa.fly.dev` — **o `--url` importa fora da CI**, senão vale o `APP_URL` do `.env`, que é o localhost |
+| Toda noite | o workflow **Aquecer** prepara 800 cartas em rodízio, às 4:00 de Brasília (decisão 103). Seis noites cobrem o catálogo, e a imagem dura 30 dias em disco. Rodar à mão: `npm run supabase -- aquecer --rodizio --limite=800 --url=https://colexa.com.br` — **o `--url` importa fora da CI**, senão vale o `APP_URL` do `.env`, que é o localhost |
 
 Conferido pelo assistente em 17/09: a checagem de saúde passa, o servidor roda
 como `node`, o banco conecta, o CAPTCHA desenha, e a mesma imagem de carta leva
@@ -692,6 +692,17 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     objeto novo a cada renderização — `JSON.parse` direto do `localStorage`, por
     exemplo — renderiza para sempre. `leva-rascunho.ts` guarda o texto lido ao
     lado do resultado para a identidade ser estável.
+79. **Domínio oficial não é o mesmo que "pronto para o Google".** Ao migrar em
+    21/09, salvar o branding do OAuth falhava com "a ação falhou, tente
+    novamente" — sem dizer o motivo. A causa: **domínio autorizado precisa
+    estar verificado no Search Console**. A verificação é um TXT na zona DNS, e
+    a primeira tentativa falha enquanto ele não propaga. Confira com
+    `Resolve-DnsName colexa.com.br -Type TXT -Server 8.8.8.8` antes de clicar em
+    verificar de novo — mexer no DNS de novo só reinicia a espera.
+80. **Redirecionar o domínio antigo não pode incluir a checagem de saúde.** A
+    Fly consulta `/api/saude` a cada 30 segundos e espera 2xx; um 308 ali seria
+    lido como máquina doente e derrubaria a publicação. A exceção está em
+    `lib/dominio.ts`, com teste.
 
 ## Pendências
 
@@ -703,11 +714,19 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 2. ~~**SMTP próprio no Supabase**~~ — **resolvido em 17/09**: configurado pelo
    dono do produto com o Resend, e ele confirmou que o e-mail de cadastro chega
    com o nome ColeXa (decisão 086).
-3. **O domínio.** `fly certs add colexa.com.br`, os registros de DNS, `APP_URL`
-   para `https://colexa.com.br` em `fly.toml`, e nos painéis: `https://colexa.com.br/**`
-   nas *Redirect URLs* e **Site URL** do Supabase, e a origem no Google
-   (`development.md` 6.6). A Site URL é o destino quando o endereço de volta não
-   está na lista (armadilha 61).
+3. ~~**O domínio**~~ — **feito em 21/09.** `colexa.com.br` e `www` com
+   certificado emitido pela Fly, DNS no `registro.br` (A e AAAA para os dois),
+   `APP_URL` publicado, e os três painéis atualizados. `colexa.fly.dev`
+   continua respondendo e **redireciona** com 308 para o oficial — menos a
+   checagem de saúde, que a Fly precisa que responda 2xx.
+   **Cuidados que ficaram:**
+   - o `.fly.dev` segue nas *Redirect URLs* do Supabase, porque e-mails enviados
+     antes da migração apontam para lá; **remover depois de uma semana**;
+   - o logo no Google só entrou agora; pedir a **verificação do app** exige
+     Termos e Política de verdade, e hoje ela seria recusada;
+   - a tela de consentimento do Google continua mostrando o endereço do
+     Supabase. Trocar exige domínio personalizado: **US$ 10/mês**, e só em
+     plano pago (US$ 25/mês), que já está recomendado pelo backup.
 4. ~~**`RESEND_API_KEY` e `EMAIL_FROM` no ambiente de produção**~~ — **resolvido
    em 17/09**: na Fly (segredo e `fly.toml`), assim como a chave do Turnstile no
    build.
