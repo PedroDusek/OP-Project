@@ -780,8 +780,13 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 
 9. **Abrir a cobrança de verdade** (decisão 102). O **modo de teste está ligado
    e foi testado de ponta a ponta em 21/09**: dois preços, webhook para
-   `https://colexa.com.br/api/pagamentos/stripe` com cinco eventos, portal do
-   cliente e as chaves de teste nos segredos da Fly. Falta:
+   `https://colexa.com.br/api/pagamentos/stripe`, portal do cliente e as chaves
+   nos segredos da Fly. **O modo ao vivo entrou em 21/09** e foi conferido com
+   uma compra mensal de verdade: aviso assinado e aceito, ciclo mensal, data um
+   mês à frente. Falta:
+   - **Marcar `charge.refunded` no webhook**, nos dois modos. É o sexto evento,
+     e sem ele quem for estornado fica com o ciclo inteiro de Premium de graça
+     (decisão 102, mudança de 21/09). Foi assim que o defeito apareceu.
    - **Modo ao vivo** (etapa B): o roteiro está em `development.md` **6.9**,
      pela ordem certa. Nenhuma linha de código muda — é troca de segredo. O que
      custa tempo a quem não sabe: **o modo ao vivo é outro mundo dentro da mesma
@@ -1182,6 +1187,12 @@ nada — limpá-las antes do lançamento está em "Pendências".
 - **`payment_events` é a trava contra processar o mesmo aviso duas vezes**, e o
   rastro para cobrança contestada. Falha deixa `handled_at` nulo de propósito,
   para o reenvio da Stripe poder ser processado.
+- **Estorno total corta o acesso na hora** (decisão 102, mudança de 21/09), e é
+  a única exceção à regra de nunca encurtar. Ela tem limites de propósito: só
+  estorno **total**, e só o que **aquele pagamento** deu — quem tem cortesia
+  mais longa não perde nada. Depende de `charge.refunded` estar marcado no
+  painel. Contestação de cobrança (chargeback) **não** está tratada, e é
+  pergunta em aberto para o dono do produto.
 - **Pix é pagamento avulso**: cada um compra um ciclo, contado por nós. Cartão
   renova sozinho. **O Pix está desligado e fica fora do lançamento** (decisão
   102, mudança de 21/09): o botão some e o caso de uso recusa `forma=PIX`. O

@@ -33,6 +33,7 @@ const TRATADOS = new Set([
   'invoice.payment_failed',
   'customer.subscription.updated',
   'customer.subscription.deleted',
+  'charge.refunded',
 ])
 
 export interface EventOutcome {
@@ -136,6 +137,9 @@ interface StripeObjeto {
   cancel_at_period_end?: boolean
   current_period_end?: number | null
   metadata?: Record<string, string> | null
+  /** Na cobrança estornada: o total e o quanto já voltou, em centavos. */
+  amount?: number | null
+  amount_refunded?: number | null
   items?: { data?: { current_period_end?: number | null }[] } | null
   parent?: {
     subscription_details?: {
@@ -232,6 +236,14 @@ async function aplicar(prisma: PrismaClient, event: PaymentEventData, now: Date)
       cancelAtPeriodEnd: false,
     })
     if (fim) await liberar(prisma, userId, fim)
+    return userId
+  }
+
+  if (event.type === 'charge.refunded') {
+    // Estorno parcial nao corta: devolver parte do valor nao e desfazer a
+    // compra, e cortar tudo por causa de R$ 1 seria punir quem foi ressarcido.
+    if (!estornoTotal(objeto)) return userId
+    await cortarAcesso(prisma, userId)
     return userId
   }
 
@@ -372,6 +384,56 @@ async function atualizarStatus(prisma: PrismaClient, userId: bigint, status: Sub
     select: { id: true },
   })
   if (atual) await prisma.subscription.update({ where: { id: atual.id }, data: { status } })
+}
+
+/**
+ * O dinheiro voltou inteiro?
+ *
+ * A Stripe manda `charge.refunded` tanto no estorno total quanto no parcial —
+ * o que separa os dois é `amount_refunded` ter alcançado `amount`. Sem esta
+ * conta, devolver R$ 1 de R$ 14,90 cortaria o mês inteiro.
+ */
+function estornoTotal(objeto: StripeObjeto): boolean {
+  const total = objeto.amount
+  const devolvido = objeto.amount_refunded
+  if (typeof total !== 'number' || typeof devolvido !== 'number') return false
+  return devolvido >= total
+}
+
+/**
+ * Estorno corta o acesso na hora (decisão 102, mudança de 21/09).
+ *
+ * É a **exceção** à regra de nunca encurtar: devolveu o dinheiro, acabou o
+ * serviço. Sem isto, o direito de arrependimento do CDC — sete dias, e ele vale
+ * querendo ou não — daria um ciclo inteiro de Premium de graça a quem pedisse o
+ * dinheiro de volta.
+ *
+ * ## O que ela não corta
+ *
+ * Quem tem acesso **mais longo do que o ciclo estornado** não perde nada: a
+ * data veio de outro lugar (cortesia, decisão 102 item 4), e o estorno só
+ * desfaz o que aquele pagamento deu. Sem esta conferência, um assinante com
+ * cortesia até 2046 que pedisse estorno de um mês perderia vinte anos.
+ *
+ * Quando não dá para saber o que o pagamento deu — ficha sem fim de ciclo —, o
+ * acesso **cai**. Das duas falhas possíveis, deixar Premium de graça para quem
+ * foi ressarcido é a que custa dinheiro toda vez; a outra se conserta com
+ * `npm run supabase -- premium <email> --ate=...`.
+ */
+async function cortarAcesso(prisma: PrismaClient, userId: bigint): Promise<void> {
+  const [usuario, ficha] = await Promise.all([
+    prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { premiumUntil: true } }),
+    prisma.subscription.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: { currentPeriodEnd: true },
+    }),
+  ])
+
+  const fimDoPago = ficha?.currentPeriodEnd ?? null
+  if (usuario.premiumUntil && fimDoPago && usuario.premiumUntil > fimDoPago) return
+
+  await prisma.user.update({ where: { id: userId }, data: { plan: 'FREE', premiumUntil: null } })
 }
 
 /**
