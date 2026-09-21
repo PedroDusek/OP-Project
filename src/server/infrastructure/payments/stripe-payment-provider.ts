@@ -26,12 +26,15 @@ import type {
  * `price_data` — sem isso seriam quatro preços cadastrados à mão no painel, e
  * dois deles só para o Pix.
  *
- * ## O Pix está pronto e desligado
+ * ## O Pix está pronto e dorme
  *
- * Em 21/09 a Stripe libera Pix **por convite** para empresas brasileiras, e a
- * conta do ColeXa ainda não foi convidada. O código ficou: quando o convite
- * vier, é ligar `STRIPE_PIX=1` e o botão volta, sem publicar código novo.
- * Apagá-lo custaria escrever tudo de novo depois.
+ * A Stripe libera Pix **por convite** para empresas brasileiras, e a conta do
+ * ColeXa não foi convidada. Em 21/09 o dono do produto desistiu de esperar: o
+ * lançamento é só no cartão (decisão 102, mudança de 21/09).
+ *
+ * O código ficou de propósito. Parado não custa nada, e apagá-lo seria
+ * escrevê-lo de novo no dia em que o Pix entrar — ligar é `STRIPE_PIX=1`, sem
+ * publicar código novo.
  */
 
 const API = 'https://api.stripe.com/v1'
