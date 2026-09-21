@@ -81,7 +81,10 @@ jobs:
         env:
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           DATABASE_URL: postgresql://nao-usar:nao-usar@127.0.0.1:5432/nao-usar
-          APP_URL: https://colexa.fly.dev
+          # O endereco oficial desde 21/09. O cache das imagens nao se perde na
+          # troca: a chave dele e a URL da imagem na Bandai, e nao o nosso
+          # dominio.
+          APP_URL: https://colexa.com.br
         run: |
           npm ci
           npx prisma generate

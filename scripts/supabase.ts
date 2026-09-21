@@ -198,7 +198,7 @@ async function main(): Promise<void> {
      * Poucas em paralelo de proposito: a fonte e de terceiro, e a decisao 020
      * pede cortesia com ela.
      */
-    const site = (args.find((a) => a.startsWith('--url='))?.slice('--url='.length) ?? process.env.APP_URL ?? 'https://colexa.fly.dev').trim()
+    const site = (args.find((a) => a.startsWith('--url='))?.slice('--url='.length) ?? process.env.APP_URL ?? 'https://colexa.com.br').trim()
     const limite = Number(args.find((a) => a.startsWith('--limite='))?.slice('--limite='.length) ?? 200)
     const paralelas = Number(args.find((a) => a.startsWith('--paralelas='))?.slice('--paralelas='.length) ?? 3)
     /*

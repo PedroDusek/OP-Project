@@ -18,10 +18,10 @@ app = 'colexa'
 primary_region = 'gru'
 
 [env]
-  # Enquanto o dominio nao aponta para a Fly, o site responde em colexa.fly.dev.
-  # Os links de e-mail e a volta do login saem daqui: ao ligar o dominio, troque
-  # para https://colexa.com.br e publique de novo.
-  APP_URL = 'https://colexa.fly.dev'
+  # O endereco oficial, desde 21/09. Os links de e-mail e a volta do login saem
+  # daqui. `colexa.fly.dev` continua respondendo e redireciona para ca, para
+  # link antigo nao virar uma segunda versao do site.
+  APP_URL = 'https://colexa.com.br'
   EMAIL_FROM = 'ColeXa <nao-responda@colexa.com.br>'
   SUPABASE_STORAGE_BUCKET = 'colexa-imagens'
   # Indexacao por buscadores (decisao 105). Vazio ou 0 mantem `noindex` em toda
