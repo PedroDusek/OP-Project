@@ -703,6 +703,19 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     Fly consulta `/api/saude` a cada 30 segundos e espera 2xx; um 308 ali seria
     lido como máquina doente e derrubaria a publicação. A exceção está em
     `lib/dominio.ts`, com teste.
+81. **A Stripe mudou onde a fatura guarda a assinatura — e a fatura chega
+    primeiro.** Na primeira compra de verdade (21/09) a ficha foi criada e o
+    acesso não. Duas causas somadas: na API `2026-08-26`, `subscription` e
+    `metadata` saíram do topo da fatura para `parent.subscription_details`, e
+    `current_period_end` saiu do topo da assinatura para `items.data[]`; e o
+    `invoice.paid` chegou **antes** do `checkout.session.completed`, então ler
+    os dados só na sessão não bastava. Sem achar o `user_id`, o aviso era
+    descartado como "de outra integração" — silencioso, porque é exatamente o
+    que se faz com aviso de outra conta. `handle-payment-event.ts` lê os dois
+    formatos (`assinaturaDe`, `metadataDe`, `fimDoCiclo`), e
+    `billing-api-nova.test.ts` usa o corpo real como molde. Para olhar um aviso
+    guardado sem adivinhar pela documentação:
+    `npx tsx scripts/ver-evento.ts invoice.paid`.
 
 ## Pendências
 
@@ -1144,6 +1157,10 @@ Coisas para não desfazer sem querer:
   cortesia longa e resolve assinar.
 - **O corpo do webhook é lido como texto cru.** `request.json()` reserializa e
   a assinatura deixa de conferir.
+- **Os avisos são lidos nos dois formatos de API** (armadilha 81), e **nenhum
+  aviso é a única porta**: a fatura sozinha já libera o acesso, porque a ordem
+  de chegada não é garantida. Quem mexer aqui não deve voltar a depender de
+  `objeto.subscription` nem de `objeto.metadata` no topo.
 
 ## A leva de cartas, depois do defeito de 20/09
 
