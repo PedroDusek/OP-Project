@@ -15,7 +15,11 @@ import type { BillingView } from '@/server/application/billing/subscribe'
 vi.mock('@/app/(app)/conta/premium/actions', () => ({
   startCheckoutAction: vi.fn(async () => ({ status: 'idle' })),
   openPortalAction: vi.fn(async () => ({ status: 'idle' })),
+  claimTrialAction: vi.fn(async () => ({ status: 'idle' })),
 }))
+
+/** Quem já resgatou, ou já é Premium por outro motivo: sem oferta e sem contador. */
+const SEM_TESTE = { claimable: false, daysLeft: null }
 
 const base: BillingView = {
   premium: false,
@@ -23,6 +27,7 @@ const base: BillingView = {
   subscription: null,
   available: true,
   pixAvailable: true,
+  trial: SEM_TESTE,
 }
 
 describe('SubscriptionPanel', () => {
@@ -55,6 +60,67 @@ describe('SubscriptionPanel', () => {
     expect(screen.getByText(/renova sozinha/i)).toBeInTheDocument()
   })
 
+  /* A porta sem atrito: aparece antes dos planos, e diz o limite antes do clique. */
+  it('oferece o teste grátis a quem nunca resgatou', () => {
+    render(
+      <SubscriptionPanel
+        billing={{ ...base, trial: { claimable: true, daysLeft: null } }}
+        voltouDoPagamento={false}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: /resgatar 7 dias/i })).toBeInTheDocument()
+    expect(screen.getByText(/sem cartão e sem cobrança/i)).toBeInTheDocument()
+    expect(screen.getByText(/uma vez por conta/i)).toBeInTheDocument()
+  })
+
+  it('não oferece o teste a quem já resgatou', () => {
+    render(<SubscriptionPanel billing={base} voltouDoPagamento={false} />)
+
+    expect(screen.queryByRole('button', { name: /resgatar/i })).not.toBeInTheDocument()
+  })
+
+  /*
+   * Quem está no teste **é** Premium, mas é para ele que os planos existem:
+   * esconder seria esconder a conversão. O contador é o único aviso do fim —
+   * não há e-mail (decisão 102, mudança de 21/09).
+   */
+  it('durante o teste, mostra o que falta e mantém os planos à vista', () => {
+    render(
+      <SubscriptionPanel
+        billing={{
+          ...base,
+          premium: true,
+          premiumUntil: new Date('2026-09-28T12:00:00Z'),
+          trial: { claimable: false, daysLeft: 5 },
+        }}
+        voltouDoPagamento={false}
+      />,
+    )
+
+    expect(screen.getByText(/você está no teste grátis/i)).toBeInTheDocument()
+    expect(screen.getByText(/faltam 5 dias/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /cartão/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /resgatar/i })).not.toBeInTheDocument()
+  })
+
+  /* "Falta 1 dia" soa como sobra; "acaba amanhã" é o que faz decidir. */
+  it('no último dia, diz que acaba amanhã', () => {
+    render(
+      <SubscriptionPanel
+        billing={{
+          ...base,
+          premium: true,
+          premiumUntil: new Date('2026-09-22T12:00:00Z'),
+          trial: { claimable: false, daysLeft: 1 },
+        }}
+        voltouDoPagamento={false}
+      />,
+    )
+
+    expect(screen.getByText(/acaba amanhã/i)).toBeInTheDocument()
+  })
+
   /*
    * A volta da Stripe não é prova de pagamento: quem libera é o aviso assinado.
    * Prometer "pronto" aqui faria a pessoa achar que quebrou quando a tela ainda
@@ -81,6 +147,7 @@ describe('SubscriptionPanel', () => {
           },
           available: true,
           pixAvailable: true,
+          trial: SEM_TESTE,
         }}
         voltouDoPagamento={false}
       />,
@@ -123,6 +190,7 @@ describe('SubscriptionPanel', () => {
           },
           available: true,
           pixAvailable: true,
+          trial: SEM_TESTE,
         }}
         voltouDoPagamento={false}
       />,
@@ -149,6 +217,7 @@ describe('SubscriptionPanel', () => {
           },
           available: true,
           pixAvailable: true,
+          trial: SEM_TESTE,
         }}
         voltouDoPagamento={false}
       />,
@@ -173,6 +242,7 @@ describe('SubscriptionPanel', () => {
           },
           available: true,
           pixAvailable: true,
+          trial: SEM_TESTE,
         }}
         voltouDoPagamento={false}
       />,
@@ -204,6 +274,7 @@ describe('SubscriptionPanel', () => {
           },
           available: true,
           pixAvailable: true,
+          trial: SEM_TESTE,
         }}
         voltouDoPagamento={false}
       />,
