@@ -716,6 +716,12 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     `billing-api-nova.test.ts` usa o corpo real como molde. Para olhar um aviso
     guardado sem adivinhar pela documentação:
     `npx tsx scripts/ver-evento.ts invoice.paid`.
+82. **A Stripe libera Pix por convite, e o botão pronto levava a um erro.** O
+    código do Pix está inteiro e testado desde 19/09, mas em 21/09 a conta do
+    ColeXa ainda não tinha sido convidada: a sessão é recusada na criação, e a
+    pessoa descobria isso *depois* de escolher e sair do site. Agora o Pix nasce
+    desligado e volta com `STRIPE_PIX=1`, sem publicar código novo (decisão 102,
+    mudança de 21/09). Pedir o convite é providência do dono do produto.
 
 ## Pendências
 
@@ -768,13 +774,17 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
    da cobrança. **Nada disso está construído** — é o Checkpoint 15, e ele exige
    colunas novas em `users`, que é conversa antes de código.
 
-9. **Ligar a cobrança na Stripe** (decisão 102). O código está publicado e
-   desligado. Falta, **no painel da Stripe e com o dono do produto**: dois
-   preços recorrentes (R$ 14,90/mês e R$ 149,00/ano), o Pix ligado, o webhook
-   para `https://colexa.fly.dev/api/pagamentos/stripe` com cinco eventos, o
-   portal do cliente, e as quatro variáveis nos segredos (`development.md`
-   6.8). Antes de abrir a cobrança de verdade: política de cancelamento e
-   reembolso nos Termos, e o contador para a nota.
+9. **Ligar a cobrança na Stripe** (decisão 102). Em 21/09 o **modo de teste
+   está ligado de ponta a ponta**: dois preços, webhook para
+   `https://colexa.com.br/api/pagamentos/stripe` com cinco eventos, portal do
+   cliente e as chaves de teste nos segredos da Fly. Falta:
+   - **Pedir o convite do Pix à Stripe** (armadilha 82). Enquanto não vier, o
+     Pix fica desligado e só o cartão aparece. Quando vier: `STRIPE_PIX=1` no
+     `[env]` do `fly.toml`, num PR.
+   - **Modo ao vivo** (etapa B): repetir preços, webhook e chaves com as
+     credenciais `sk_live_`/`whsec_` de produção.
+   - Antes de abrir a cobrança de verdade: política de cancelamento e reembolso
+     nos Termos, e o contador para a nota.
 10. **Duas contas com cortesia vitalícia** em produção desde 19 e 20/09:
     `pedrodusek30@gmail.com` (o dono do produto) e `joaoguerra444@gmail.com`
     (quem ajudou no desenho do produto), as duas **até 19/09/2046**. Não há
@@ -1144,7 +1154,13 @@ Ligar é configurar, não programar — o passo a passo está em `development.md
   rastro para cobrança contestada. Falha deixa `handled_at` nulo de propósito,
   para o reenvio da Stripe poder ser processado.
 - **Pix é pagamento avulso**: cada um compra um ciclo, contado por nós. Cartão
-  renova sozinho.
+  renova sozinho. **Hoje o Pix está desligado** por não ter convite da Stripe
+  (armadilha 82): o botão some e o caso de uso recusa `forma=PIX`. Volta com
+  `STRIPE_PIX=1`.
+- **Quem já assina no cartão é recusado antes de sair da tela**, com "Você já
+  tem uma assinatura ativa. Veja em Gerenciar pagamento". Espelha a trava de
+  "uma assinatura por cliente" do painel, cuja recusa chegaria como erro de
+  integração. Cancelada, atrasada e Pix não caem nessa trava, de propósito.
 - **Quem já é Premium não vê os planos**, menos no Pix e em assinatura
   cancelada ou atrasada, que precisam de ação.
 

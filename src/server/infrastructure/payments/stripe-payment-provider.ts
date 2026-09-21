@@ -25,6 +25,13 @@ import type {
  * volta. Quem conta o ciclo é o ColeXa (`cycleEnd`), e o preço vai inline, em
  * `price_data` — sem isso seriam quatro preços cadastrados à mão no painel, e
  * dois deles só para o Pix.
+ *
+ * ## O Pix está pronto e desligado
+ *
+ * Em 21/09 a Stripe libera Pix **por convite** para empresas brasileiras, e a
+ * conta do ColeXa ainda não foi convidada. O código ficou: quando o convite
+ * vier, é ligar `STRIPE_PIX=1` e o botão volta, sem publicar código novo.
+ * Apagá-lo custaria escrever tudo de novo depois.
  */
 
 const API = 'https://api.stripe.com/v1'
@@ -45,6 +52,17 @@ export class StripePaymentProvider implements PaymentProvider {
 
   get available(): boolean {
     return this.config() !== null
+  }
+
+  /**
+   * O Pix só aparece quando o ambiente diz que a conta tem Pix.
+   *
+   * Desligado é o padrão, e de propósito: com o Pix não liberado, a sessão de
+   * pagamento é recusada pela Stripe e a pessoa vê um erro depois de escolher —
+   * pior do que não ter o botão.
+   */
+  get pixAvailable(): boolean {
+    return this.available && process.env.STRIPE_PIX === '1'
   }
 
   private async post<T>(path: string, form: Record<string, string>): Promise<T> {

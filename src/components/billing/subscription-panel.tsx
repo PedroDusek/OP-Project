@@ -154,20 +154,28 @@ export function SubscriptionPanel({
                 <CreditCard className="size-4" aria-hidden />
                 Pagar com cartão
               </Button>
-              <Button type="submit" name="forma" value="PIX" variant="secondary" loading={enviando}>
-                <QrCode className="size-4" aria-hidden />
-                Pagar com Pix
-              </Button>
+              {/*
+                O Pix sai da tela enquanto a Stripe não o libera para a conta
+                (armadilha 82). Um botão que leva a erro é pior que botão
+                nenhum: a pessoa escolhe, sai do ColeXa e volta sem entender.
+              */}
+              {billing.pixAvailable ? (
+                <Button type="submit" name="forma" value="PIX" variant="secondary" loading={enviando}>
+                  <QrCode className="size-4" aria-hidden />
+                  Pagar com Pix
+                </Button>
+              ) : null}
             </div>
 
             {/*
               Dito antes de a pessoa escolher, e não depois: no Pix a renovação
               é manual (decisão 102), e descobrir isso no vencimento seria
-              perder o acesso sem aviso.
+              perder o acesso sem aviso. Sem Pix na tela, não há o que explicar.
             */}
             <p className="text-xs text-text-subtle">
-              No cartão a assinatura renova sozinha, e você cancela quando quiser. No Pix, cada
-              pagamento vale por um período, e avisamos antes de acabar.
+              {billing.pixAvailable
+                ? 'No cartão a assinatura renova sozinha, e você cancela quando quiser. No Pix, cada pagamento vale por um período, e avisamos antes de acabar.'
+                : 'A assinatura renova sozinha, e você cancela quando quiser.'}
             </p>
           </Panel>
         </form>

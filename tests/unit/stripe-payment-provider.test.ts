@@ -154,3 +154,27 @@ describe('available', () => {
     expect(new StripePaymentProvider().available).toBe(false)
   })
 })
+
+/*
+ * As duas indisponibilidades são separadas: sem chave nada funciona; sem Pix o
+ * cartão continua (armadilha 82). Desligado é o padrão, porque a Stripe libera
+ * Pix por convite e um botão que leva a erro é pior que botão nenhum.
+ */
+describe('pixAvailable', () => {
+  it('é falso sem a chave do ambiente, mesmo com a Stripe configurada', () => {
+    expect(new StripePaymentProvider().pixAvailable).toBe(false)
+  })
+
+  it('é verdadeiro quando o ambiente liga o Pix', () => {
+    vi.stubEnv('STRIPE_PIX', '1')
+
+    expect(new StripePaymentProvider().pixAvailable).toBe(true)
+  })
+
+  it('continua falso sem as chaves da Stripe, mesmo ligado', () => {
+    vi.stubEnv('STRIPE_PIX', '1')
+    vi.stubEnv('STRIPE_SECRET_KEY', '')
+
+    expect(new StripePaymentProvider().pixAvailable).toBe(false)
+  })
+})

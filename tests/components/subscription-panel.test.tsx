@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+﻿import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { SubscriptionPanel } from '@/components/billing/subscription-panel'
 import { PLANS } from '@/server/domain/billing/plans'
@@ -22,6 +22,7 @@ const base: BillingView = {
   premiumUntil: null,
   subscription: null,
   available: true,
+  pixAvailable: true,
 }
 
 describe('SubscriptionPanel', () => {
@@ -38,6 +39,20 @@ describe('SubscriptionPanel', () => {
     expect(screen.getByRole('button', { name: /cartão/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /pix/i })).toBeInTheDocument()
     expect(screen.getByText(/cada pagamento vale por um período/i)).toBeInTheDocument()
+  })
+
+  /*
+   * Em 21/09 a Stripe libera Pix por convite, e a conta do ColeXa não tem.
+   * Um botão que leva a erro é pior que botão nenhum (armadilha 82), e a frase
+   * que explica o Pix sai junto — senão prometeria uma forma que não existe.
+   */
+  it('esconde o Pix, e o que ele explica, quando o provedor não tem Pix', () => {
+    render(<SubscriptionPanel billing={{ ...base, pixAvailable: false }} voltouDoPagamento={false} />)
+
+    expect(screen.getByRole('button', { name: /cartão/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /pix/i })).not.toBeInTheDocument()
+    expect(screen.queryByText(/cada pagamento vale por um período/i)).not.toBeInTheDocument()
+    expect(screen.getByText(/renova sozinha/i)).toBeInTheDocument()
   })
 
   /*
@@ -65,6 +80,7 @@ describe('SubscriptionPanel', () => {
             cancelAtPeriodEnd: false,
           },
           available: true,
+          pixAvailable: true,
         }}
         voltouDoPagamento={false}
       />,
@@ -106,6 +122,7 @@ describe('SubscriptionPanel', () => {
             cancelAtPeriodEnd: false,
           },
           available: true,
+          pixAvailable: true,
         }}
         voltouDoPagamento={false}
       />,
@@ -131,6 +148,7 @@ describe('SubscriptionPanel', () => {
             cancelAtPeriodEnd: true,
           },
           available: true,
+          pixAvailable: true,
         }}
         voltouDoPagamento={false}
       />,
@@ -154,6 +172,7 @@ describe('SubscriptionPanel', () => {
             cancelAtPeriodEnd: true,
           },
           available: true,
+          pixAvailable: true,
         }}
         voltouDoPagamento={false}
       />,
@@ -184,6 +203,7 @@ describe('SubscriptionPanel', () => {
             cancelAtPeriodEnd: false,
           },
           available: true,
+          pixAvailable: true,
         }}
         voltouDoPagamento={false}
       />,
