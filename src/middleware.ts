@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { podeIndexar } from '@/lib/indexacao'
 
 /**
  * Renovacao do token de sessao.
@@ -44,9 +45,6 @@ export async function middleware(request: NextRequest) {
   return indexable(request, response)
 }
 
-/** O unico endereco que buscadores devem indexar (decisao 092). */
-const OFFICIAL_HOSTS = new Set(['colexa.com.br', 'www.colexa.com.br'])
-
 /**
  * Fora do dominio oficial, pede aos buscadores para nao indexar.
  *
@@ -56,10 +54,21 @@ const OFFICIAL_HOSTS = new Set(['colexa.com.br', 'www.colexa.com.br'])
  * requisicao**, a partir do `Host`: o layout e as paginas estaticas sao montados
  * no build, sem saber em que endereco vao ser servidos. Entre o cabecalho e a
  * meta tag, o buscador obedece a mais restritiva.
+ *
+ * ## O dominio oficial nao basta (21/09)
+ *
+ * Ate aqui, estar em `colexa.com.br` era o mesmo que estar aberto a busca.
+ * Mudar de endereco passaria a ligar a indexacao **junto**, e no dia em que
+ * isso acontecesse os Termos ainda diriam "em preparacao" e o cadastro estaria
+ * aberto a quem tivesse o link. Sair do Google depois e demorado; entrar e
+ * rapido. Entao agora sao duas condicoes: dominio oficial **e**
+ * `ALLOW_INDEXING`, que o dono do produto liga no dia do lancamento — sem
+ * publicar codigo novo.
  */
 function indexable(request: NextRequest, response: NextResponse): NextResponse {
-  const host = (request.headers.get('host') ?? '').split(':')[0].toLowerCase()
-  if (!OFFICIAL_HOSTS.has(host)) response.headers.set('X-Robots-Tag', 'noindex, nofollow')
+  if (!podeIndexar(request.headers.get('host'), process.env.ALLOW_INDEXING)) {
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow')
+  }
   return response
 }
 

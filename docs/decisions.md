@@ -6284,3 +6284,34 @@ passava disso pagava a espera, e às vezes o tempo esgotava.
 ## Data
 
 2026-09-20
+
+---
+
+# Decisão: 105 — A indexação é ligada à mão, e não pelo domínio
+
+Definido pelo dono do produto em 21/09, ao migrar para `colexa.com.br`.
+
+## Contexto
+
+A decisão 092 fez o site pedir `noindex` fora do domínio oficial. A consequência
+não intencional: **trocar de endereço ligaria a indexação junto**. No dia em que
+isso aconteceria, os Termos de Uso ainda diziam "em preparação", o cadastro
+estava aberto a quem tivesse o link, e o teste com 15 a 20 pessoas nem tinha
+começado.
+
+Sair do Google depois é demorado, e o endereço fica no cache deles por um tempo.
+Entrar é rápido: liga-se e pede-se a indexação.
+
+## Decisão
+
+1. **Duas condições para aparecer em busca**: estar no domínio oficial **e**
+   `ALLOW_INDEXING` estar ligada (`1`, `true` ou `sim`).
+2. **A chave nasce desligada**, inclusive em produção (`fly.toml`).
+3. **Quem liga é o dono do produto**, no dia do lançamento, sem publicar código
+   novo — é variável de ambiente, não deploy.
+4. A regra mora em `src/lib/indexacao.ts`, pura e testada; o middleware só a
+   aplica.
+
+## Data
+
+2026-09-21
