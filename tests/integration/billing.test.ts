@@ -20,6 +20,7 @@ let pedidos: CheckoutRequest[] = []
 const provider: PaymentProvider = {
   name: 'falso',
   available: true,
+  pixAvailable: true,
   createCheckout: async (request) => {
     pedidos.push(request)
     return { url: 'https://stripe.test/pagar', sessionId: 'cs_1' }
@@ -102,6 +103,86 @@ describe('startCheckout', () => {
         appUrl: 'https://colexa.test',
       }),
     ).rejects.toThrow(ValidationError)
+  })
+
+  /*
+   * O botão do Pix some quando a Stripe não o liberou (armadilha 82), mas um
+   * envio à mão chegaria aqui assim mesmo.
+   */
+  it('recusa Pix quando o provedor não tem Pix', async () => {
+    const ana = await pessoa()
+
+    await expect(
+      startCheckout(testPrisma(), { ...provider, pixAvailable: false }, ana, {
+        cycle: 'ANNUAL',
+        method: 'PIX',
+        appUrl: 'https://colexa.test',
+      }),
+    ).rejects.toThrow(/Pix ainda não está disponível/i)
+
+    // E o cartão continua passando: as duas indisponibilidades são separadas.
+    await expect(
+      startCheckout(testPrisma(), { ...provider, pixAvailable: false }, ana, {
+        cycle: 'ANNUAL',
+        method: 'CARD',
+        appUrl: 'https://colexa.test',
+      }),
+    ).resolves.toBe('https://stripe.test/pagar')
+  })
+
+  /*
+   * A conta está com "uma assinatura por cliente" ligada no painel. A recusa
+   * da Stripe chegaria como erro de integração; dizer aqui é mais honesto, e
+   * aponta o caminho.
+   */
+  it('recusa quem já assina no cartão, e manda ao portal', async () => {
+    const ana = await pessoa()
+    await testPrisma().subscription.create({
+      data: { userId: ana.id, customerId: 'cus_ana', status: 'ACTIVE', cycle: 'ANNUAL', method: 'CARD' },
+    })
+
+    await expect(
+      startCheckout(testPrisma(), provider, ana, {
+        cycle: 'MONTHLY',
+        method: 'CARD',
+        appUrl: 'https://colexa.test',
+      }),
+    ).rejects.toThrow(/Gerenciar pagamento/i)
+    expect(pedidos).toHaveLength(0)
+  })
+
+  /* Cancelar e atrasar são os casos em que pagar de novo é o que se quer. */
+  it('deixa assinar de novo quem cancelou ou ficou atrasado', async () => {
+    for (const status of ['CANCELED', 'PAST_DUE'] as const) {
+      const ana = await pessoa()
+      await testPrisma().subscription.create({
+        data: { userId: ana.id, customerId: `cus_${status}`, status, cycle: 'ANNUAL', method: 'CARD' },
+      })
+
+      await expect(
+        startCheckout(testPrisma(), provider, ana, {
+          cycle: 'ANNUAL',
+          method: 'CARD',
+          appUrl: 'https://colexa.test',
+        }),
+      ).resolves.toBe('https://stripe.test/pagar')
+    }
+  })
+
+  /* Pix é avulso: não cria assinatura do lado de lá, e não colide com a trava. */
+  it('deixa pagar no Pix quem já tem Pix ativo', async () => {
+    const ana = await pessoa()
+    await testPrisma().subscription.create({
+      data: { userId: ana.id, customerId: 'cus_pix', status: 'ACTIVE', cycle: 'MONTHLY', method: 'PIX' },
+    })
+
+    await expect(
+      startCheckout(testPrisma(), provider, ana, {
+        cycle: 'MONTHLY',
+        method: 'PIX',
+        appUrl: 'https://colexa.test',
+      }),
+    ).resolves.toBe('https://stripe.test/pagar')
   })
 
   it('reusa o cliente de quem já pagou antes', async () => {

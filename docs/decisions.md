@@ -6236,9 +6236,41 @@ cerca de R$ 14,01.
 - **Política de cancelamento e reembolso**, que precisa constar nos Termos de
   Uso (decisão 030) antes de a cobrança abrir.
 
+## Mudança em 21/09: o Pix nasce desligado
+
+O item 1 dizia "cartão e Pix avulso". **O Pix sai do ar por enquanto**, e o
+motivo não é escolha: em 21/09 a Stripe libera Pix **por convite** para
+empresas brasileiras, e a conta do ColeXa ainda não foi convidada. Com o Pix
+não liberado, a sessão de pagamento é recusada lá — a pessoa escolheria o Pix,
+sairia do ColeXa e voltaria com um erro que não explica nada.
+
+O que fica:
+
+- O código do Pix **continua inteiro** e testado. Ligar é `STRIPE_PIX=1` no
+  ambiente, sem publicar código novo, no dia em que o convite chegar.
+- O botão e a frase que explica o Pix **saem da tela** enquanto isso, e o caso
+  de uso recusa `forma=PIX` mesmo enviado à mão.
+- O resto da decisão 102 não muda: preço, ciclos, cortesia e o teste grátis
+  ausente seguem como estavam.
+
+Pedir o convite à Stripe é providência do dono do produto, e está em
+"Pendências" no handoff.
+
+## Mudança em 21/09: uma assinatura por pessoa, dita em português
+
+A conta está com "uma assinatura por cliente" ligada no painel da Stripe.
+A recusa dela chega como erro de integração, e a pessoa veria "algo deu errado"
+sem saber que o problema é já ter o que está tentando comprar. O ColeXa passa a
+recusar antes de sair da tela: **"Você já tem uma assinatura ativa. Veja em
+Gerenciar pagamento."**
+
+Vale só para **cartão ativo**. Cancelada e atrasada continuam podendo pagar de
+novo — são exatamente os casos em que pagar é o que a pessoa quer —, e o Pix,
+sendo avulso, não cria assinatura do lado de lá.
+
 ## Data
 
-2026-09-19
+2026-09-19 (mudanças em 2026-09-21)
 ---
 
 # Decisão: 103 — As imagens preparadas em rodízio, toda noite

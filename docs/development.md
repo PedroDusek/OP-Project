@@ -469,8 +469,11 @@ No painel da Stripe, com a conta já verificada:
    Premium": **R$ 14,90/mês** e **R$ 149,00/ano**. Anote os dois `price_...`.
    O Pix **não** usa preço cadastrado — o valor vai inline, vindo de
    `src/server/domain/billing/plans.ts`, e um teste compara os dois números.
-2. **Pix ligado** em *Settings → Payment methods*. Sem isso a sessão de Pix é
-   recusada na criação, e só o cartão funciona.
+2. **Pix ligado** em *Settings → Payment methods*, **quando a Stripe liberar**.
+   Em 21/09 ela libera Pix por convite para empresas brasileiras, e a conta do
+   ColeXa ainda não foi convidada — por isso o Pix nasce desligado no produto
+   (decisão 102, mudança de 21/09). Sem o convite, a sessão de Pix é recusada na
+   criação e só o cartão funciona.
 3. **Webhook** em *Developers → Webhooks*, apontando para
    `https://colexa.fly.dev/api/pagamentos/stripe`, com os eventos
    `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`,
@@ -485,6 +488,10 @@ No ambiente, as quatro variáveis de `.env.example` (`STRIPE_SECRET_KEY`,
 produção, as duas primeiras são segredos (`fly secrets set`), e as duas últimas
 também podem ir por lá — nenhuma entra no pacote do navegador, porque a tela
 mostra o preço a partir do domínio, e não do que a Stripe devolve.
+
+**`STRIPE_PIX=1` liga o Pix**, e a ausência dela o desliga. É a chave que devolve
+o botão no dia em que o convite da Stripe chegar, sem publicar código novo. Não
+é segredo: pode ir em `[env]` no `fly.toml`, num PR.
 
 **Para testar sem cobrar ninguém**, use as chaves de teste da própria Stripe
 (`sk_test_...`), o cartão `4242 4242 4242 4242` e o `stripe listen` para

@@ -42,6 +42,14 @@ export interface PaymentProvider {
   readonly name: string
   /** `false` quando as chaves não estão configuradas neste ambiente. */
   readonly available: boolean
+  /**
+   * `false` enquanto o provedor não libera Pix para esta conta.
+   *
+   * Separado de `available` porque as duas coisas falham por motivos
+   * diferentes: sem chave **nada** funciona; sem Pix o cartão continua
+   * funcionando. Quem decide é o ambiente, não o código (armadilha 82).
+   */
+  readonly pixAvailable: boolean
   createCheckout(request: CheckoutRequest): Promise<CheckoutSession>
   /** Endereço do portal onde a pessoa troca o cartão ou cancela. */
   createPortalSession(customerId: string, returnUrl: string): Promise<string>

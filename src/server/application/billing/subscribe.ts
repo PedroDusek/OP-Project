@@ -35,6 +35,8 @@ export interface BillingView {
   } | null
   /** `false` quando as chaves do provedor não estão configuradas. */
   available: boolean
+  /** `false` enquanto o provedor não libera Pix para esta conta (armadilha 82). */
+  pixAvailable: boolean
 }
 
 export async function readBilling(
@@ -58,6 +60,7 @@ export async function readBilling(
         }
       : null,
     available: provider.available,
+    pixAvailable: provider.pixAvailable,
   }
 }
 
@@ -81,10 +84,36 @@ export async function startCheckout(
   if (!provider.available) {
     throw new ValidationError('O pagamento ainda não está disponível.')
   }
+  /*
+   * O botão do Pix já não aparece quando o provedor não o tem (armadilha 82).
+   * A conferência se repete aqui porque um formulário enviado à mão chegaria
+   * com `forma=PIX` mesmo assim, e a recusa da Stripe viraria erro sem
+   * explicação na tela.
+   */
+  if (input.method === 'PIX' && !provider.pixAvailable) {
+    throw new ValidationError('O Pix ainda não está disponível. Por enquanto, a assinatura é no cartão.')
+  }
 
   // Cliente de um pagamento anterior, quando houver: sem isso a mesma pessoa
   // vira duas fichas no provedor, e o portal mostraria metade do histórico.
   const anterior = await assinaturaAtual(prisma, user.id)
+
+  /*
+   * Quem já assina no cartão não assina de novo.
+   *
+   * A Stripe recusa por conta própria — a conta está com "uma assinatura por
+   * cliente" ligada —, mas a recusa dela chega como erro de integração, e a
+   * pessoa veria "algo deu errado" sem saber que o problema é já ter o que
+   * está tentando comprar. Dizer isto antes de sair do ColeXa é mais honesto, e
+   * aponta para onde se resolve.
+   *
+   * Cancelada e atrasada **não** caem aqui: são exatamente os casos em que
+   * pagar de novo é o que a pessoa quer. Pix também não, que é avulso e não
+   * cria assinatura do lado de lá.
+   */
+  if (input.method === 'CARD' && anterior?.method === 'CARD' && anterior.status === 'ACTIVE') {
+    throw new ValidationError('Você já tem uma assinatura ativa. Veja em Gerenciar pagamento.')
+  }
 
   const session = await provider.createCheckout({
     cycle: input.cycle,
