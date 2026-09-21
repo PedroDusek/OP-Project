@@ -6284,6 +6284,58 @@ passava disso pagava a espera, e às vezes o tempo esgotava.
 ## Data
 
 2026-09-20
+---
+
+# Decisão: 104 — Vários jogos, um produto: o Modo
+
+Definido pelo dono do produto em 20/09, ao planejar a entrada de Pokémon e
+Magic. Esta decisão fixa o **modelo**; a fonte de dados de cada jogo é decisão
+própria, jogo a jogo (ver a 020 para One Piece).
+
+## Decisão
+
+1. **O app tem Modo**: Modo One Piece, Modo Pokémon, Modo Magic. A pessoa troca
+   de modo, e **a interface é a mesma**, adaptada ao jogo escolhido. Não são
+   três produtos nem três contas: conta, sessão e rede continuam únicas.
+2. **Uma coleção por pessoa e por jogo.** Hoje `collections` é uma por pessoa;
+   passa a ser uma por pessoa e jogo. Contagem, playset, progresso e dashboard
+   passam a ser do modo em que a pessoa está.
+3. **Binder também é por jogo.** O mesmo binder físico pode ser cadastrado em
+   dois modos, e cada um mostra só as cartas daquele jogo. É o que corresponde
+   ao uso real: a pessoa separa as cartas por jogo dentro do mesmo móvel.
+4. **Trocas e Trade Binder são do modo.** Quem abre um Trade Binder vê as cartas
+   de um jogo, e uma troca acontece dentro de um jogo.
+5. **Idioma entra na identidade da cópia**: inglês, japonês e português. Três
+   cópias em português e duas em inglês são linhas diferentes da coleção, e o
+   mesmo vale na want list. Playset continua somando tudo — a carta é uma só.
+6. **Acabamento não vira atributo da cópia.** Reverse holo, holo e primeira
+   edição entram como **variantes do catálogo**, que é como Alternate Art e
+   Manga já vivem hoje. Assim o preço sai certo sem a pessoa ter de marcar
+   acabamento ao registrar.
+7. **As regras que mudam por jogo moram no domínio**, num registro por jogo:
+   playset (Magic tem terreno básico, Pokémon tem energia básica), tipos de
+   carta, filtros e regras de deck.
+
+## O que isso exige do modelo de dados (aprovado pelo dono do produto)
+
+- `game` em `sets`, `cards`, `card_variants`, `collections` e
+  `storage_locations`.
+- `cards.code` único por `(game, code)`, e não mais global.
+- `collections` único por `(user_id, game)`.
+- `language` em `collection_items` e `want_items`, entrando na chave única.
+
+## O que fica para decidir
+
+- **A assinatura vale para a conta inteira ou por modo?** A hipótese de trabalho
+  é conta inteira — quem paga tem Premium em todos os jogos —, mas isso é
+  escolha comercial e ainda não foi decidida.
+- **Onde a troca de Modo vive na interface**: gaveta, perfil ou cabeçalho.
+- **O que acontece com quem nunca escolheu modo**: entra em One Piece por
+  padrão, ou escolhe no primeiro acesso.
+
+## Data
+
+2026-09-20
 
 ---
 
