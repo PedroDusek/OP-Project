@@ -510,6 +510,10 @@ assinado, em `handle-payment-event.ts`.
 
 ### 6.9 Virar a cobrança para o modo ao vivo (etapa B)
 
+**Feito em 21/09**, e conferido com uma compra mensal de verdade. O roteiro fica
+aqui porque ele vale de novo no dia em que a conta da Stripe mudar — e porque o
+que se aprende nele não se aprende duas vezes de graça.
+
 **Nenhuma linha de código muda.** Os quatro valores são de ambiente, e a virada
 é trocar segredo. É o troco de a Stripe morar atrás de uma porta (`http`).
 
@@ -536,12 +540,32 @@ Pela ordem:
    pagamento" falha e a trava de "já tem assinatura ativa" recusa a pessoa de
    assinar de verdade. Os avisos em `payment_events` ficam de propósito: são o
    rastro de cobrança contestada.
-6. **Trocar os quatro segredos** na Fly, com os valores do modo ao vivo
-   (`fly secrets set` no terminal de quem tem as chaves — elas nunca passam por
+6. **Trocar os quatro segredos** na Fly, com os valores do modo ao vivo, numa
+   chamada só — assim as máquinas reiniciam uma vez, e não quatro
+   (`fly secrets set` no terminal de quem tem as chaves; elas nunca passam por
    uma conversa). As máquinas reiniciam sozinhas: **não precisa publicar**.
+
+   **A chave costuma ser `rk_live_`, e não `sk_live_`.** Criar a chave
+   escolhendo permissões — o caminho recomendado — produz uma *restricted key*,
+   com o prefixo `rk_`. Ela vai em `STRIPE_SECRET_KEY` do mesmo jeito: o código
+   manda a credencial como `Authorization: Bearer` e **não confere prefixo**.
+   Escolha *"Acesso total (exceto operações sensíveis)"*: o ColeXa só cria
+   sessão de pagamento e sessão do portal, e o que fica de fora é justamente
+   mover dinheiro para fora da conta — o que importa se a chave vazar do
+   servidor. As permissões **não podem ser editadas depois**; mudar é chave
+   nova.
 7. **Conferir com uma compra de verdade**, de preferência a mensal, e pedir
    reembolso pelo painel logo depois. É o único teste que prova que a chave, o
-   preço e o webhook do modo ao vivo combinam entre si.
+   preço e o webhook do modo ao vivo combinam entre si — e o único que prova que
+   o `whsec_` é o do webhook certo.
+8. **Desligar ou apagar o webhook do modo de teste.** Ele continua apontando
+   para o mesmo endereço, e o que ele mandar vai ser **recusado** pela
+   conferência de assinatura — que é o certo, mas enche o log de `aviso
+   recusado`. Daqui a um mês isso parece defeito, e não é.
+
+**Conferir sem ver segredo:** `fly secrets list --app colexa` mostra nome e um
+resumo de cada valor, nunca o valor. Digest que mudou é a prova de que a troca
+entrou.
 
 **A cobrança abriu antes dos Termos** (decisão 102, mudança de 21/09). Enquanto
 eles não existirem, cancelamento e reembolso se resolvem pelo painel da Stripe,

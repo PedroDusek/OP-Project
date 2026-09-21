@@ -778,28 +778,21 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
    da cobrança. **Nada disso está construído** — é o Checkpoint 15, e ele exige
    colunas novas em `users`, que é conversa antes de código.
 
-9. **Abrir a cobrança de verdade** (decisão 102). O **modo de teste está ligado
-   e foi testado de ponta a ponta em 21/09**: dois preços, webhook para
-   `https://colexa.com.br/api/pagamentos/stripe`, portal do cliente e as chaves
-   nos segredos da Fly. **O modo ao vivo entrou em 21/09** e foi conferido com
-   uma compra mensal de verdade: aviso assinado e aceito, ciclo mensal, data um
-   mês à frente. Falta:
-   - **Marcar `charge.refunded` no webhook**, nos dois modos. É o sexto evento,
-     e sem ele quem for estornado fica com o ciclo inteiro de Premium de graça
-     (decisão 102, mudança de 21/09). Foi assim que o defeito apareceu.
-   - **Modo ao vivo** (etapa B): o roteiro está em `development.md` **6.9**,
-     pela ordem certa. Nenhuma linha de código muda — é troca de segredo. O que
-     custa tempo a quem não sabe: **o modo ao vivo é outro mundo dentro da mesma
-     conta**, e preço, webhook e cliente do modo de teste não existem lá.
-   - **Limpar as fichas de teste** antes de virar a chave:
-     `npm run supabase -- limpar-assinaturas <email> --confirmar`. Deixou de ser
-     higiene e virou pré-requisito — a ficha de teste aponta para um cliente que
-     não existe no modo ao vivo, e quebra o portal e a compra de quem a tiver.
-   - O contador, para a nota da receita recorrente.
+9. ~~**Abrir a cobrança**~~ — **aberta em 21/09** (decisão 102). O modo ao vivo
+   está ligado, com os seis eventos no webhook, e foi conferido com uma **compra
+   mensal de verdade**: aviso assinado e aceito, ciclo mensal, data um mês à
+   frente, e o estorno depois. O roteiro da virada ficou em `development.md`
+   6.9, para o dia em que a conta da Stripe mudar. O que **ainda** falta na
+   cobrança:
+   - O **contador**, para a nota da receita recorrente. É a única pendência
+     dela que não é de software.
    - **Os Termos ficaram para depois da abertura**, por decisão do dono do
      produto em 21/09 (decisão 102, mudança). O risco assumido está escrito lá,
      e eles **continuam sendo bloqueio de lançamento** (decisão 030). Enquanto
      não vierem, cancelamento e reembolso são à mão, pelo painel da Stripe.
+   - **Contestação de cobrança (chargeback) não está tratada**, e é pergunta em
+     aberto para o dono do produto: o estorno corta o acesso, e o chargeback é
+     sinal mais forte — mas tem prazo e contestação própria, e a regra é dele.
    - **Pix não é pendência**: ficou fora do lançamento por decisão (102,
      mudança de 21/09). Se um dia entrar, é pedir o convite à Stripe e ligar
      `STRIPE_PIX=1` no `[env]` do `fly.toml`.
@@ -1158,26 +1151,28 @@ crédito da folha à advogada junto com os Termos de Uso.
 
 ## A cobrança do Premium (decisão 102)
 
-Construída em 19 e 20/09, e **ligada em modo de teste em 21/09**. O passo a
-passo de configuração está em `development.md` 6.8; o que falta ao dono do
-produto está em "Pendências". Sem chaves, a tela diz que a assinatura não está
+Construída em 19 e 20/09, e **aberta de verdade em 21/09**: modo ao vivo, seis
+eventos no webhook, e uma compra mensal com cartão real que entrou, liberou o
+acesso e foi estornada. A configuração está em `development.md` 6.8, e a virada
+para o modo ao vivo em 6.9. Sem chaves, a tela diz que a assinatura não está
 aberta e o webhook responde 503 — é assim que o ambiente local roda.
 
-**A compra foi testada de ponta a ponta em 21/09 e passou**, depois de a
-primeira tentativa falhar (armadilha 81). Compra anual com o cartão de teste:
-o acesso entrou como `PREMIUM` com a data um ano à frente, vinda da linha da
-fatura, e a ficha ficou `ACTIVE` com o fim do ciclo gravado. O detalhe que vale
-guardar: **o `invoice.paid` chegou antes do `checkout.session.completed` nas
-duas vezes**, com meio segundo de diferença. A ordem dos avisos não é garantida,
-e é por isso que nenhum aviso pode ser a única porta do acesso.
+**O detalhe que mais vale guardar deste dia:** o `invoice.paid` chegou **antes**
+do `checkout.session.completed` nas **três** compras — as duas de teste e a de
+verdade —, com meio segundo de diferença. A ordem dos avisos não é garantida, e
+é por isso que nenhum aviso pode ser a única porta do acesso. A primeira compra
+falhou exatamente por depender disso (armadilha 81).
 
 **O lançamento é só no cartão** (decisão 102, mudança de 21/09). O Pix está
 pronto e dormindo atrás de `STRIPE_PIX`; a Stripe o libera por convite, e o
 dono do produto desistiu de esperar.
 
-As duas fichas de assinatura da conta do dono do produto em produção apontam
-para objetos do **modo de teste**. Quando o modo ao vivo entrar, elas não valem
-nada — limpá-las antes do lançamento está em "Pendências".
+As fichas criadas no **modo de teste** foram apagadas antes da virada
+(`limpar-assinaturas`), porque apontavam para clientes que não existem no modo
+ao vivo. A conta do dono do produto ficou com **uma ficha `CANCELED` real**, da
+compra estornada: ela é histórico legítimo e fica. A consequência de mantê-la é
+que a tela dele mostra "Gerenciar pagamento" e os planos, mesmo sendo Premium —
+assinatura cancelada é um dos casos que precisam de ação.
 
 - **O acesso continua em `users.premium_until`.** A tabela `subscriptions` diz
   o que a Stripe sabe; aquela coluna diz o que o ColeXa libera. Nenhuma trava
