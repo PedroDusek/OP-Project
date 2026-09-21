@@ -469,11 +469,12 @@ No painel da Stripe, com a conta já verificada:
    Premium": **R$ 14,90/mês** e **R$ 149,00/ano**. Anote os dois `price_...`.
    O Pix **não** usa preço cadastrado — o valor vai inline, vindo de
    `src/server/domain/billing/plans.ts`, e um teste compara os dois números.
-2. **Pix ligado** em *Settings → Payment methods*, **quando a Stripe liberar**.
-   Em 21/09 ela libera Pix por convite para empresas brasileiras, e a conta do
-   ColeXa ainda não foi convidada — por isso o Pix nasce desligado no produto
-   (decisão 102, mudança de 21/09). Sem o convite, a sessão de Pix é recusada na
-   criação e só o cartão funciona.
+2. **Pix: nada a fazer.** Ele ficou **fora do lançamento** (decisão 102,
+   mudança de 21/09) — a Stripe o libera por convite para empresas brasileiras,
+   e esperar atrasaria a abertura. O código dorme atrás de `STRIPE_PIX`. Se um
+   dia entrar: pedir o convite, ligar o Pix em *Settings → Payment methods* e
+   pôr `STRIPE_PIX=1` no ambiente. Sem as duas coisas, a sessão de Pix é
+   recusada na criação.
 3. **Webhook** em *Developers → Webhooks*, apontando para
    `https://colexa.fly.dev/api/pagamentos/stripe`, com os eventos
    `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`,

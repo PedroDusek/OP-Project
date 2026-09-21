@@ -6236,25 +6236,35 @@ cerca de R$ 14,01.
 - **Política de cancelamento e reembolso**, que precisa constar nos Termos de
   Uso (decisão 030) antes de a cobrança abrir.
 
-## Mudança em 21/09: o Pix nasce desligado
+## Mudança em 21/09: o lançamento é só no cartão
 
-O item 1 dizia "cartão e Pix avulso". **O Pix sai do ar por enquanto**, e o
-motivo não é escolha: em 21/09 a Stripe libera Pix **por convite** para
-empresas brasileiras, e a conta do ColeXa ainda não foi convidada. Com o Pix
-não liberado, a sessão de pagamento é recusada lá — a pessoa escolheria o Pix,
-sairia do ColeXa e voltaria com um erro que não explica nada.
+**O item 1 muda: o ColeXa lança com cartão, sem Pix.**
 
-O que fica:
+Começou como impedimento e virou escolha, no mesmo dia. O impedimento: em 21/09
+a Stripe libera Pix **por convite** para empresas brasileiras, e a conta do
+ColeXa não foi convidada — com o Pix não liberado, a sessão de pagamento é
+recusada lá, e a pessoa escolheria o Pix, sairia do ColeXa e voltaria com um
+erro que não explica nada. Por isso o Pix foi desligado atrás de `STRIPE_PIX`.
 
-- O código do Pix **continua inteiro** e testado. Ligar é `STRIPE_PIX=1` no
-  ambiente, sem publicar código novo, no dia em que o convite chegar.
-- O botão e a frase que explica o Pix **saem da tela** enquanto isso, e o caso
-  de uso recusa `forma=PIX` mesmo enviado à mão.
+Horas depois, com a cobrança no cartão testada de ponta a ponta e funcionando,
+o dono do produto **desistiu do Pix para o lançamento**: não vale segurar a
+abertura esperando um convite com data desconhecida.
+
+O que isso significa:
+
+- **Nenhum código muda.** O Pix já estava desligado; o que mudou foi deixar de
+  ser espera e passar a ser decisão. `STRIPE_PIX` continua existindo.
+- **O código do Pix fica**, inteiro e testado, dormindo atrás da chave. Não foi
+  apagado de propósito: ele não custa nada parado, e apagá-lo seria escrevê-lo
+  de novo no dia em que o Pix entrar. Se um dia o peso mudar, apagar é fácil —
+  ressuscitar não.
+- **Não é para sempre.** Abrir o Pix depois é ligar a chave, num PR de uma
+  linha, sem tocar em tela nem em caso de uso.
 - O resto da decisão 102 não muda: preço, ciclos, cortesia e o teste grátis
   ausente seguem como estavam.
 
-Pedir o convite à Stripe é providência do dono do produto, e está em
-"Pendências" no handoff.
+O custo assumido: quem não tem cartão de crédito não assina. O dono do produto
+aceitou isso para não atrasar o lançamento.
 
 ## Mudança em 21/09: uma assinatura por pessoa, dita em português
 

@@ -720,8 +720,12 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     código do Pix está inteiro e testado desde 19/09, mas em 21/09 a conta do
     ColeXa ainda não tinha sido convidada: a sessão é recusada na criação, e a
     pessoa descobria isso *depois* de escolher e sair do site. Agora o Pix nasce
-    desligado e volta com `STRIPE_PIX=1`, sem publicar código novo (decisão 102,
-    mudança de 21/09). Pedir o convite é providência do dono do produto.
+    desligado e volta com `STRIPE_PIX=1`, sem publicar código novo. No mesmo
+    dia o dono do produto **desistiu do Pix para o lançamento** (decisão 102,
+    mudança de 21/09), então a chave deixou de ser espera e virou escolha. A
+    lição que fica é anterior ao Pix: **forma de pagamento pronta no código não
+    é forma de pagamento disponível** — o provedor decide, e a tela tem de
+    perguntar a ele antes de oferecer.
 
 ## Pendências
 
@@ -774,17 +778,21 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
    da cobrança. **Nada disso está construído** — é o Checkpoint 15, e ele exige
    colunas novas em `users`, que é conversa antes de código.
 
-9. **Ligar a cobrança na Stripe** (decisão 102). Em 21/09 o **modo de teste
-   está ligado de ponta a ponta**: dois preços, webhook para
+9. **Abrir a cobrança de verdade** (decisão 102). O **modo de teste está ligado
+   e foi testado de ponta a ponta em 21/09**: dois preços, webhook para
    `https://colexa.com.br/api/pagamentos/stripe` com cinco eventos, portal do
    cliente e as chaves de teste nos segredos da Fly. Falta:
-   - **Pedir o convite do Pix à Stripe** (armadilha 82). Enquanto não vier, o
-     Pix fica desligado e só o cartão aparece. Quando vier: `STRIPE_PIX=1` no
-     `[env]` do `fly.toml`, num PR.
    - **Modo ao vivo** (etapa B): repetir preços, webhook e chaves com as
-     credenciais `sk_live_`/`whsec_` de produção.
-   - Antes de abrir a cobrança de verdade: política de cancelamento e reembolso
-     nos Termos, e o contador para a nota.
+     credenciais de produção. É o mesmo roteiro de `development.md` 6.8, com a
+     chave `sk_live_` e um `whsec_` novo — o do modo de teste não vale lá.
+   - **Limpar as duas fichas de teste** da conta do dono do produto em
+     `subscriptions` antes de abrir: elas apontam para objetos que só existem
+     no modo de teste, e o histórico de cobrança não deve começar com eles. É
+     escrita em produção, e espera o dono do produto.
+   - Política de cancelamento e reembolso nos Termos, e o contador para a nota.
+   - **Pix não é pendência**: ficou fora do lançamento por decisão (102,
+     mudança de 21/09). Se um dia entrar, é pedir o convite à Stripe e ligar
+     `STRIPE_PIX=1` no `[env]` do `fly.toml`.
 10. **Duas contas com cortesia vitalícia** em produção desde 19 e 20/09:
     `pedrodusek30@gmail.com` (o dono do produto) e `joaoguerra444@gmail.com`
     (quem ajudou no desenho do produto), as duas **até 19/09/2046**. Não há
@@ -1140,10 +1148,26 @@ crédito da folha à advogada junto com os Termos de Uso.
 
 ## A cobrança do Premium (decisão 102)
 
-Construída em 19 e 20/09 e **publicada desligada**: sem as chaves da Stripe, a
-tela de Premium diz que a assinatura não está aberta e o webhook responde 503.
-Ligar é configurar, não programar — o passo a passo está em `development.md`
-6.8, e o que falta ao dono do produto está em "Pendências".
+Construída em 19 e 20/09, e **ligada em modo de teste em 21/09**. O passo a
+passo de configuração está em `development.md` 6.8; o que falta ao dono do
+produto está em "Pendências". Sem chaves, a tela diz que a assinatura não está
+aberta e o webhook responde 503 — é assim que o ambiente local roda.
+
+**A compra foi testada de ponta a ponta em 21/09 e passou**, depois de a
+primeira tentativa falhar (armadilha 81). Compra anual com o cartão de teste:
+o acesso entrou como `PREMIUM` com a data um ano à frente, vinda da linha da
+fatura, e a ficha ficou `ACTIVE` com o fim do ciclo gravado. O detalhe que vale
+guardar: **o `invoice.paid` chegou antes do `checkout.session.completed` nas
+duas vezes**, com meio segundo de diferença. A ordem dos avisos não é garantida,
+e é por isso que nenhum aviso pode ser a única porta do acesso.
+
+**O lançamento é só no cartão** (decisão 102, mudança de 21/09). O Pix está
+pronto e dormindo atrás de `STRIPE_PIX`; a Stripe o libera por convite, e o
+dono do produto desistiu de esperar.
+
+As duas fichas de assinatura da conta do dono do produto em produção apontam
+para objetos do **modo de teste**. Quando o modo ao vivo entrar, elas não valem
+nada — limpá-las antes do lançamento está em "Pendências".
 
 - **O acesso continua em `users.premium_until`.** A tabela `subscriptions` diz
   o que a Stripe sabe; aquela coluna diz o que o ColeXa libera. Nenhuma trava
@@ -1154,9 +1178,10 @@ Ligar é configurar, não programar — o passo a passo está em `development.md
   rastro para cobrança contestada. Falha deixa `handled_at` nulo de propósito,
   para o reenvio da Stripe poder ser processado.
 - **Pix é pagamento avulso**: cada um compra um ciclo, contado por nós. Cartão
-  renova sozinho. **Hoje o Pix está desligado** por não ter convite da Stripe
-  (armadilha 82): o botão some e o caso de uso recusa `forma=PIX`. Volta com
-  `STRIPE_PIX=1`.
+  renova sozinho. **O Pix está desligado e fica fora do lançamento** (decisão
+  102, mudança de 21/09): o botão some e o caso de uso recusa `forma=PIX`. O
+  código continua inteiro e testado — voltar é `STRIPE_PIX=1`, num PR de uma
+  linha.
 - **Quem já assina no cartão é recusado antes de sair da tela**, com "Você já
   tem uma assinatura ativa. Veja em Gerenciar pagamento". Espelha a trava de
   "uma assinatura por cliente" do painel, cuja recusa chegaria como erro de
@@ -1288,17 +1313,19 @@ Uma conta num navegador, a outra noutro ou numa janela anônima.
 
 ## Próximo passo
 
-**Abrir o ColeXa a 15 ou 20 testadores**, escolha do dono do produto em 17/09, em
-`colexa.fly.dev`. A revisão da decisão 092 corrigiu o que dependia só de nós; o
-que falta para receber gente de fora:
+**Abrir o ColeXa a 15 ou 20 testadores**, escolha do dono do produto em 17/09,
+hoje em `colexa.com.br` (o endereço mudou em 21/09; `colexa.fly.dev` redireciona
+para lá). A revisão da decisão 092 corrigiu o que dependia só de nós; o que
+falta para receber gente de fora:
 
 - **Termos de Uso e Política de Privacidade** (decisão 030). Testador é pessoa
   real, e a LGPD vale para os 20 primeiros como para os próximos. A tabela de
   `integrations.md` 3.3 diz quais serviços a Política precisa citar.
 - **Idade mínima** (decisão 060), se houver.
-- **Site URL do Supabase** ainda é `http://localhost:3000`: qualquer e-mail que
-  não carregue `redirect_to` manda o testador para a máquina de quem
-  desenvolve. Trocar para `https://colexa.fly.dev` enquanto o domínio não existe.
+- **Site URL do Supabase**: se ainda for `http://localhost:3000`, qualquer
+  e-mail que não carregue `redirect_to` manda o testador para a máquina de quem
+  desenvolve. O valor certo hoje é `https://colexa.com.br`. **Conferir no
+  painel** — não dá para verificar daqui.
 - **Limites do Supabase Auth** (*Authentication → Rate Limits*): o padrão conta
   por IP, e vários testadores na mesma rede — uma loja, um evento — batem no
   teto juntos. Conferir antes.
@@ -1320,9 +1347,10 @@ O que continua combinado para depois:
   linha de lista, estado vazio —, que o dono do produto adiou para depois da
   Social. A revisão visual e textual tela a tela, e os links das cartas, ficam
   para o fim.
-- **Os bloqueios de lançamento** (seção "Pendências"): Termos e Política, idade
-  mínima, meio de pagamento e preço do Premium, limpar as
-  contas de teste e ligar o domínio.
+- **Os bloqueios de lançamento** (seção "Pendências"): Termos e Política, e
+  idade mínima. Meio de pagamento e preço saíram da lista — decididos na 102,
+  construídos, e a cobrança testada de ponta a ponta em 21/09 —, e o domínio
+  entrou no ar no mesmo dia. Falta a cobrança em modo ao vivo.
 - **CSP de scripts** (decisão 092 deixou de fora): fechar de onde o navegador
   pode carregar script. Feito errado, derruba o login sem aviso, então pede uma
   passada própria.
