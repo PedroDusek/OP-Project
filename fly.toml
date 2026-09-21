@@ -24,6 +24,11 @@ primary_region = 'gru'
   APP_URL = 'https://colexa.fly.dev'
   EMAIL_FROM = 'ColeXa <nao-responda@colexa.com.br>'
   SUPABASE_STORAGE_BUCKET = 'colexa-imagens'
+  # Indexacao por buscadores (decisao 105). Vazio ou 0 mantem `noindex` em toda
+  # pagina, mesmo no dominio oficial. O dono do produto liga com `1` no dia do
+  # lancamento, e isso **nao** acompanha a troca de dominio de proposito: os
+  # Termos precisam existir antes de o site aparecer em busca.
+  ALLOW_INDEXING = '0'
 
 [http_service]
   internal_port = 3000
