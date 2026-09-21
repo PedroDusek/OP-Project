@@ -6213,7 +6213,8 @@ pagamento e preço").
 4. **Quem testou ganha 6 meses de Premium** contados do lançamento da cobrança,
    com aviso antes de acabar. Depois disso, assina como qualquer pessoa.
 5. **Sem teste grátis de 7 dias** por enquanto. O campo `trial_started_at`
-   continua sem uso, e ligar isso é decisão de outro dia.
+   continua sem uso, e ligar isso é decisão de outro dia. **(Mudado em 21/09 —
+   ver abaixo.)**
 
 ## Por que Stripe, e o que se perde
 
@@ -6265,6 +6266,51 @@ O que isso significa:
 
 O custo assumido: quem não tem cartão de crédito não assina. O dono do produto
 aceitou isso para não atrasar o lançamento.
+
+## Mudança em 21/09: o teste grátis de 7 dias entra
+
+**O item 5 muda: o teste grátis existe.** Pedido do dono do produto no mesmo
+dia em que a cobrança passou no teste de ponta a ponta.
+
+A regra: **uma conta resgata 7 dias de Premium, sem cartão e sem cobrança, uma
+vez na vida**. Não passa pela Stripe — é a única porta de Premium que não é
+pagamento nem comando de operação.
+
+- **Não é automático, é resgatado.** A conta nasce Free e o relógio só começa
+  quando a pessoa pede. Dar automático no cadastro gastaria o teste de quem
+  entrou para olhar e voltou um mês depois.
+- **Vale para qualquer conta que nunca resgatou**, nova ou antiga. Uma data de
+  corte criaria "por que ele pode e eu não" entre testadores, sem ganhar nada.
+- **Quem já é Premium não resgata**, e a tela nem oferece: queimaria os sete
+  dias sem ganhar um só, porque o acesso nunca é encurtado. Fica guardado.
+- **Os planos continuam à vista durante o teste**, com um contador dos dias que
+  faltam. O contador é o único aviso do fim: **não há e-mail**. Mandar e-mail
+  exigiria tarefa agendada e modelo novos, e o dono do produto preferiu não
+  atrasar por isso — se o teste converter pouco, o e-mail é o primeiro ajuste.
+
+### Nenhuma coluna nova
+
+`users.trial_started_at` existe desde a decisão 041 e nunca foi usada. Ela é a
+trava inteira: nulo é "ainda não resgatou", preenchido é "já foi". O acesso
+continua saindo de `premium_until`, como qualquer outro Premium — nenhuma trava
+do produto sabe que trial existe, e "esta conta está em teste" se descobre
+comparando `premium_until` com o fim calculado, em vez de virar um segundo
+lugar para a mesma verdade.
+
+### A brecha, aceita por escrito
+
+A trava é por **conta**, não por pessoa: outro e-mail dá outros sete dias.
+
+Não há como fechar sem cartão ou documento, e pedir cartão é exatamente o
+atrito que o teste existe para evitar. Cogitou-se parar de limpar o carimbo na
+exclusão de conta, e **não resolveria**: a anonimização troca o e-mail por um
+sintético irreversível (`deleted+id@deleted.invalid`), então nada liga um
+cadastro novo à conta antiga.
+
+O dono do produto aceitou a brecha em 21/09, sabendo disso. Sete dias de
+Premium custam pouco, e quem quer burlar sempre consegue. Se o abuso aparecer,
+a saída é medir antes de agir — quantas contas resgatam e nunca voltam — e não
+adivinhar agora.
 
 ## Mudança em 21/09: uma assinatura por pessoa, dita em português
 

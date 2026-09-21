@@ -536,8 +536,35 @@ o direito de negociar.
    aviso antes de acabar.
 8. **Quem já é Premium não vê os planos** — assinar por cima cobraria sem dar
    um dia a mais, porque o acesso nunca é encurtado. Continuam à vista para
-   quem paga no Pix, que renova na mão, e para quem cancelou ou está com
-   cobrança atrasada.
+   quem paga no Pix, que renova na mão, para quem cancelou ou está com cobrança
+   atrasada, e para quem está no teste grátis (8.2).
+9. **Quem já assina no cartão não assina de novo**: a tela recusa antes de
+   levar ao provedor, dizendo para gerenciar a assinatura que já existe.
+10. **O lançamento é só no cartão.** O Pix está construído e desligado — a
+    Stripe o libera por convite, e o dono do produto não quis esperar.
+
+### 8.2 O teste grátis de 7 dias (decisão 102, mudança de 21/09)
+
+1. **Sete dias de Premium, sem cartão e sem cobrança.** Não passa pelo provedor
+   de pagamento: é a única porta de Premium que não é pagamento nem comando de
+   operação.
+2. **Uma vez por conta**, para sempre. A trava é `users.trial_started_at`: nulo
+   é "ainda não resgatou", preenchido é "já foi". Acabado o teste, o carimbo
+   continua lá e o botão não reaparece.
+3. **É resgatado, não automático.** A conta nasce Free; os sete dias começam a
+   correr quando a pessoa pede, e não quando ela se cadastra — assim ninguém
+   perde o teste sem ter usado.
+4. **Vale para qualquer conta que nunca resgatou**, nova ou antiga.
+5. **Quem já é Premium não resgata.** Queimaria os sete dias sem ganhar um só,
+   porque o acesso nunca é encurtado (8.1, regra 5). Fica guardado para quando
+   o acesso atual acabar.
+6. **O teste nunca encurta um acesso mais longo** — a mesma regra do pagamento,
+   pelo mesmo motivo.
+7. **Os planos continuam à vista durante o teste**, com um contador de quantos
+   dias faltam. O contador **é** o aviso do fim: não há e-mail.
+8. **A trava é por conta, não por pessoa.** Outro e-mail dá outro teste, e não
+   há como impedir sem cartão ou documento — que o teste existe para evitar. A
+   brecha foi aceita pelo dono do produto em 21/09, por escrito.
 
 ## 9. Testes obrigatórios de domínio
 

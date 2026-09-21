@@ -1186,6 +1186,15 @@ nada — limpá-las antes do lançamento está em "Pendências".
   tem uma assinatura ativa. Veja em Gerenciar pagamento". Espelha a trava de
   "uma assinatura por cliente" do painel, cuja recusa chegaria como erro de
   integração. Cancelada, atrasada e Pix não caem nessa trava, de propósito.
+- **O teste grátis de 7 dias** (decisão 102, mudança de 21/09) é a única porta
+  de Premium que não passa pela Stripe. Uma vez por conta, travado por
+  `users.trial_started_at` — coluna que existia desde a decisão 041 e nunca
+  fora usada, então **não houve mudança de modelo de dados**. A trava mora no
+  `where` do update, e não num `if`: dois toques no botão passariam pelos dois
+  `if` e, pior, um resgate junto com um pagamento encurtaria o acesso para sete
+  dias. A brecha de criar outra conta foi **aceita por escrito** pelo dono do
+  produto; fechar exigiria cartão ou documento, que é o atrito que o teste
+  existe para evitar.
 - **Quem já é Premium não vê os planos**, menos no Pix e em assinatura
   cancelada ou atrasada, que precisam de ação.
 

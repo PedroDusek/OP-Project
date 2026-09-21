@@ -3,6 +3,7 @@ import { StripePaymentProvider } from '@/server/infrastructure/payments/stripe-p
 import { appUrl } from '@/server/http/app-url'
 import type { AuthenticatedUser } from '@/server/application/auth'
 import {
+  claimTrial as claimTrialWith,
   openBillingPortal as openBillingPortalWith,
   readBilling as readBillingWith,
   startCheckout as startCheckoutWith,
@@ -30,6 +31,11 @@ export function startCheckout(user: AuthenticatedUser, input: Omit<CheckoutInput
 
 export function openBillingPortal(user: AuthenticatedUser) {
   return openBillingPortalWith(prisma, provider, user, appUrl())
+}
+
+/** O teste grátis não passa pelo provedor: é só o nosso banco. */
+export function claimTrial(user: AuthenticatedUser) {
+  return claimTrialWith(prisma, user)
 }
 
 export type { BillingView } from './subscribe'
