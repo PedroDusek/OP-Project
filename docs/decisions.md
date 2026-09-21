@@ -6312,6 +6312,22 @@ Premium custam pouco, e quem quer burlar sempre consegue. Se o abuso aparecer,
 a saída é medir antes de agir — quantas contas resgatam e nunca voltam — e não
 adivinhar agora.
 
+## Mudança em 21/09: o mensal vem primeiro, e vem marcado
+
+O item 3 ("os dois ciclos são oferecidos, e a pessoa escolhe") não dizia **qual
+vem marcado**, e até aqui era o anual. Passa a ser o **mensal**, primeiro na
+ordem e pré-selecionado, a pedido do dono do produto.
+
+Fica registrado porque não é layout: qual ciclo vem marcado é qual plano se
+empurra. O primeiro número que a pessoa vê passa a ser **R$ 14,90**, e não
+R$ 149,00.
+
+**A consequência que veio junto:** a frase "você economiza R$ 29,80 no ano"
+existe só quando o anual está selecionado, e portanto **não aparece mais de
+entrada** — ela agora depende de a pessoa tocar em "Anual". É efeito da
+escolha, não descuido; se o anual converter menos, mostrar a economia sempre é
+o primeiro ajuste a tentar.
+
 ## Mudança em 21/09: a cobrança abre antes dos Termos
 
 A decisão original dizia, em "o que ainda falta providenciar", que a **política
