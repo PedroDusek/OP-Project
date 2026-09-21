@@ -6312,6 +6312,33 @@ Premium custam pouco, e quem quer burlar sempre consegue. Se o abuso aparecer,
 a saída é medir antes de agir — quantas contas resgatam e nunca voltam — e não
 adivinhar agora.
 
+## Mudança em 21/09: a cobrança abre antes dos Termos
+
+A decisão original dizia, em "o que ainda falta providenciar", que a **política
+de cancelamento e reembolso precisava constar nos Termos de Uso antes de a
+cobrança abrir**. O dono do produto decidiu em 21/09 **abrir antes**, e esta
+seção existe para que isso não fique só numa conversa.
+
+**O risco, escrito por inteiro:** a partir da chave `sk_live_`, gente real paga
+de verdade sem Termos de Uso, sem Política de Privacidade publicada e sem
+política de reembolso escrita. O Código de Defesa do Consumidor dá **sete dias
+de arrependimento** em compra online (art. 49) valha o que valer o que está —
+ou não está — publicado. Sem nada escrito, cada pedido de reembolso vira
+negociação caso a caso, e a exposição é do dono do produto.
+
+**O que reduz o estrago enquanto os Termos não vêm:**
+
+- O site está **fora dos buscadores** (`ALLOW_INDEXING=0`), então quem chega é
+  quem foi convidado.
+- Cancelamento e reembolso se resolvem **pelo painel da Stripe**, à mão, e a
+  Stripe devolve ao cartão sem custo do lado de cá.
+- O **teste grátis de 7 dias** é a porta recomendada para quem quiser
+  experimentar: não cobra nada, e não gera reembolso nenhum.
+
+**Os Termos continuam sendo bloqueio de lançamento** (decisão 030). O que mudou
+é a ordem, não o dever: abrir antes é decisão consciente do dono do produto,
+tomada com o risco acima na frente dele.
+
 ## Mudança em 21/09: uma assinatura por pessoa, dita em português
 
 A conta está com "uma assinatura por cliente" ligada no painel da Stripe.

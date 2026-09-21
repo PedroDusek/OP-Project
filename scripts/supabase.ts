@@ -32,6 +32,8 @@ const POOL_MAX = 4
  *   npm run supabase -- premium <email> --remover          volta a conta para Free
  *   npm run supabase limpar-contas      mostra as contas que existem, sem apagar
  *   npm run supabase -- limpar-contas --confirmar   apaga todas as contas
+ *   npm run supabase -- limpar-assinaturas <email>  mostra as fichas da conta
+ *   npm run supabase -- limpar-assinaturas <email> --confirmar   apaga as fichas
  *
  * Prefira `--from` quando o snapshot ja existir: rebaixar o catalogo inteiro a
  * cada importacao e carga evitavel sobre a origem (decisao 020).
@@ -341,6 +343,71 @@ async function main(): Promise<void> {
     return
   }
 
+  if (command === 'limpar-assinaturas') {
+    /*
+     * Apaga as fichas de assinatura de uma conta (21/09).
+     *
+     * Existe por causa da virada de modo de teste para modo ao vivo: uma ficha
+     * criada com chave de teste aponta para um cliente que **nao existe** no
+     * modo ao vivo. Com ela no lugar, "Gerenciar pagamento" falha e a trava de
+     * "ja tem assinatura ativa" recusa a pessoa de assinar de verdade.
+     *
+     * So as fichas. Os avisos em `payment_events` ficam: sao o rastro de
+     * cobranca contestada, e apagar rastro e pior que conviver com ele.
+     *
+     * Sem `--confirmar`, so mostra. Nao da para distinguir teste de ao vivo
+     * pelo identificador — a Stripe usa `cus_`/`sub_` nos dois modos —, entao
+     * quem confere e quem roda.
+     */
+    const email = args.find((a) => !a.startsWith('--'))?.trim().toLowerCase()
+    if (!email) {
+      throw new Error('Informe o e-mail: npm run supabase -- limpar-assinaturas <email> --confirmar')
+    }
+    const confirmar = args.includes('--confirmar')
+
+    const prisma = createPrisma(url, { max: POOL_MAX })
+    try {
+      const conta = await prisma.user.findFirst({
+        where: { email, deletedAt: null },
+        select: { id: true },
+      })
+      if (!conta) {
+        console.log('[supabase] limpar-assinaturas: nenhuma conta com esse e-mail (ou conta excluida).')
+        process.exitCode = 1
+        return
+      }
+
+      const fichas = await prisma.subscription.findMany({
+        where: { userId: conta.id },
+        orderBy: { createdAt: 'desc' },
+        select: { status: true, cycle: true, method: true, customerId: true, subscriptionId: true },
+      })
+      if (fichas.length === 0) {
+        console.log('[supabase] limpar-assinaturas: esta conta nao tem ficha nenhuma.')
+        return
+      }
+
+      for (const f of fichas) {
+        console.log(
+          `[supabase] ${f.status} ${f.cycle} ${f.method} cliente=${f.customerId} assinatura=${f.subscriptionId ?? '-'}`,
+        )
+      }
+      if (!confirmar) {
+        // Armadilha 73: o npm engole a flag sem o `--` antes do comando.
+        console.log(
+          `[supabase] limpar-assinaturas: ${fichas.length} ficha(s). Nada foi apagado. Para apagar: npm run supabase -- limpar-assinaturas ${email} --confirmar`,
+        )
+        return
+      }
+
+      const { count } = await prisma.subscription.deleteMany({ where: { userId: conta.id } })
+      console.log(`[supabase] limpar-assinaturas: ${count} ficha(s) apagada(s). Os avisos foram mantidos.`)
+    } finally {
+      await prisma.$disconnect()
+    }
+    return
+  }
+
   if (command === 'contas') {
     // Decisao 091: quem pediu para excluir a conta ha mais de 30 dias. Precisa
     // da chave secreta, porque exclui a conta no Supabase Auth tambem.
@@ -529,7 +596,7 @@ async function main(): Promise<void> {
 
   throw new Error(
     `Comando desconhecido: ${command ?? '(nenhum)'}. ` +
-      'Use migrate, import, prices, contas, premium, aquecer, limpar-contas, status ou storage.',
+      'Use migrate, import, prices, contas, premium, aquecer, limpar-contas, limpar-assinaturas, status ou storage.',
   )
 }
 
