@@ -46,7 +46,9 @@ export function SubscriptionPanel({
   billing: BillingView
   voltouDoPagamento: boolean
 }) {
-  const [ciclo, setCiclo] = useState<BillingCycle>('ANNUAL')
+  // Mensal pré-selecionado, a pedido do dono do produto em 21/09: o primeiro
+  // número que a pessoa vê passa a ser R$ 14,90, e não R$ 149,00.
+  const [ciclo, setCiclo] = useState<BillingCycle>('MONTHLY')
   const [estado, assinar, enviando] = useActionState(startCheckoutAction, CHECKOUT_IDLE)
   const [estadoPortal, abrirPortal, abrindo] = useActionState(openPortalAction, CHECKOUT_IDLE)
   const [estadoTeste, resgatar, resgatando] = useActionState(claimTrialAction, CHECKOUT_IDLE)
@@ -178,9 +180,13 @@ export function SubscriptionPanel({
             label="Ciclo"
             value={ciclo}
             onValueChange={(valor) => setCiclo(valor as BillingCycle)}
+            /*
+              Mensal primeiro, e também pré-selecionado (21/09): do período
+              menor para o maior, que é a ordem que se lê naturalmente.
+            */
             options={[
-              { value: 'ANNUAL', label: 'Anual' },
               { value: 'MONTHLY', label: 'Mensal' },
+              { value: 'ANNUAL', label: 'Anual' },
             ]}
           />
           <input type="hidden" name="ciclo" value={ciclo} />

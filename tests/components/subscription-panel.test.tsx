@@ -1,5 +1,6 @@
 ﻿import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { SubscriptionPanel } from '@/components/billing/subscription-panel'
 import { PLANS } from '@/server/domain/billing/plans'
 import type { BillingView } from '@/server/application/billing/subscribe'
@@ -31,8 +32,27 @@ const base: BillingView = {
 }
 
 describe('SubscriptionPanel', () => {
-  it('mostra o preço do domínio, e o que o anual economiza', () => {
+  /*
+   * **A regra mudou em 21/09**: até então o anual vinha pré-selecionado, e este
+   * teste conferia o preço dele e a economia numa renderização só. Com o mensal
+   * pré-selecionado a pedido do dono do produto, a economia do anual **não
+   * aparece mais de entrada** — ela é consequência da escolha, não um descuido.
+   *
+   * O que o teste protege continua o mesmo: os dois preços vêm do domínio (e
+   * `plans.test.ts` compara com o que a Stripe cobra), e a economia do anual
+   * continua sendo dita a quem chega nele.
+   */
+  it('mostra o preço do domínio em cada ciclo', () => {
     render(<SubscriptionPanel billing={base} voltouDoPagamento={false} />)
+
+    expect(screen.getByText(PLANS.MONTHLY.label)).toBeInTheDocument()
+    expect(screen.queryByText(/economiza/i)).not.toBeInTheDocument()
+  })
+
+  it('no anual, diz quanto se economiza', async () => {
+    render(<SubscriptionPanel billing={base} voltouDoPagamento={false} />)
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Anual' }))
 
     expect(screen.getByText(PLANS.ANNUAL.label)).toBeInTheDocument()
     expect(screen.getByText(/economiza/i)).toHaveTextContent('R$')
@@ -58,6 +78,20 @@ describe('SubscriptionPanel', () => {
     expect(screen.queryByRole('button', { name: /pix/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/cada pagamento vale por um período/i)).not.toBeInTheDocument()
     expect(screen.getByText(/renova sozinha/i)).toBeInTheDocument()
+  })
+
+  /*
+   * Ordem e pré-seleção, pedidas pelo dono do produto em 21/09: do período
+   * menor para o maior, e o mensal já marcado. Qual plano se empurra é escolha
+   * de negócio, então o teste fixa as duas coisas — trocar por engano mudaria
+   * o primeiro número que a pessoa vê, de R$ 14,90 para R$ 149,00.
+   */
+  it('mostra Mensal antes de Anual, e começa no mensal', () => {
+    render(<SubscriptionPanel billing={base} voltouDoPagamento={false} />)
+
+    expect(screen.getAllByRole('tab').map((c) => c.textContent)).toEqual(['Mensal', 'Anual'])
+    expect(screen.getByRole('tab', { name: 'Mensal' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByText(PLANS.MONTHLY.label)).toBeInTheDocument()
   })
 
   /* A porta sem atrito: aparece antes dos planos, e diz o limite antes do clique. */
