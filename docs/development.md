@@ -475,11 +475,16 @@ No painel da Stripe, com a conta já verificada:
    dia entrar: pedir o convite, ligar o Pix em *Settings → Payment methods* e
    pôr `STRIPE_PIX=1` no ambiente. Sem as duas coisas, a sessão de Pix é
    recusada na criação.
-3. **Webhook** em *Developers → Webhooks*, apontando para
-   `https://colexa.fly.dev/api/pagamentos/stripe`, com os eventos
+3. **Webhook** em *Workbench → Webhooks*, apontando para
+   `https://colexa.com.br/api/pagamentos/stripe`, com os **seis** eventos:
    `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`,
-   `customer.subscription.updated` e `customer.subscription.deleted`. Anote o
-   `whsec_...`.
+   `customer.subscription.updated`, `customer.subscription.deleted` e
+   `charge.refunded`. Anote o `whsec_...`.
+
+   **`charge.refunded` é o que corta o acesso de quem foi estornado** (decisão
+   102, mudança de 21/09). Sem ele marcado, o código do estorno nunca roda e
+   quem pede o dinheiro de volta fica com o ciclo inteiro de graça — foi assim
+   que o defeito apareceu.
 4. **Portal do cliente** em *Settings → Billing → Customer portal*: ative
    cancelamento e troca de cartão. É essa tela que o botão "Gerenciar
    pagamento" abre, e ela precisa estar certa para a cobrança ser legítima.
@@ -519,9 +524,9 @@ Pela ordem:
 2. **Criar os dois preços de novo**, agora no modo ao vivo: R$ 14,90/mês e
    R$ 149,00/ano, no produto "ColeXa Premium". Os `price_...` são **outros**.
 3. **Criar o webhook de novo**, no modo ao vivo, para
-   `https://colexa.com.br/api/pagamentos/stripe`, com os mesmos cinco eventos.
-   O `whsec_...` é **outro**: o do modo de teste não valida nada lá, e a
-   assinatura do aviso vai falhar em silêncio se for reaproveitado.
+   `https://colexa.com.br/api/pagamentos/stripe`, com os mesmos **seis**
+   eventos. O `whsec_...` é **outro**: o do modo de teste não valida nada lá, e
+   a assinatura do aviso vai falhar em silêncio se for reaproveitado.
 4. **Conferir o portal do cliente** no modo ao vivo: a configuração dele também
    é por modo.
 5. **Limpar as fichas de teste** de quem comprou testando, antes de virar a

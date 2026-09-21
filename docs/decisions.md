@@ -6312,6 +6312,45 @@ Premium custam pouco, e quem quer burlar sempre consegue. Se o abuso aparecer,
 a saída é medir antes de agir — quantas contas resgatam e nunca voltam — e não
 adivinhar agora.
 
+## Mudança em 21/09: estorno corta o acesso na hora
+
+Descoberto na primeira compra em modo ao vivo: o dono do produto estornou os
+R$ 14,90 pelo painel e **continuou Premium até o fim do ciclo**. O webhook
+tratava cinco eventos, e nenhum deles era estorno.
+
+Com um cliente real isso não é detalhe. O **direito de arrependimento do CDC**
+— sete dias em compra online — vale querendo ou não, então o pedido de estorno
+*vai* acontecer: a pessoa recebia o dinheiro de volta e ficava com o ciclo
+inteiro de Premium de graça.
+
+**A regra nova:** estorno total corta o acesso na hora. É a **exceção** à regra
+de nunca encurtar (item 5 de 8.1 nas regras de negócio).
+
+Os limites da exceção, que são o que importa:
+
+- **Só estorno total.** Devolver parte do valor não desfaz a compra, e cortar o
+  mês inteiro por causa de R$ 1 puniria quem foi ressarcido de um erro nosso.
+- **Só o que aquele pagamento deu.** Quem tem acesso mais longo que o ciclo
+  estornado não perde nada — a data veio de cortesia (item 4), e o estorno não
+  tem o que fazer com ela. Sem isso, um assinante com cortesia até 2046 que
+  pedisse estorno de um mês perderia vinte anos.
+- **Na dúvida, corta.** Ficha sem fim de ciclo gravado: das duas falhas
+  possíveis, deixar Premium de graça para quem foi ressarcido custa dinheiro
+  toda vez, e a outra se conserta com um comando.
+- **Estorno não é cancelamento.** O status da assinatura não muda: a tabela
+  `subscriptions` diz o que a Stripe sabe, e para ela a assinatura continua de
+  pé. Quem estorna sem cancelar é cobrado de novo no mês seguinte, e o acesso
+  volta com o pagamento — que é o certo.
+
+**Contestação de cobrança (chargeback) ficou de fora**, e é pergunta em aberto:
+é sinal mais forte que estorno, mas tem prazo e contestação própria, e inventar
+regra para ela sem o dono do produto decidir seria justamente o que não se faz
+aqui.
+
+**O evento `charge.refunded` precisa ser marcado no painel da Stripe**, nos dois
+modos. Sem isso o código novo nunca é chamado, e o sintoma é exatamente o que
+motivou esta mudança.
+
 ## Mudança em 21/09: o mensal vem primeiro, e vem marcado
 
 O item 3 ("os dois ciclos são oferecidos, e a pessoa escolhe") não dizia **qual

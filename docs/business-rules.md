@@ -528,6 +528,10 @@ o direito de negociar.
    do nosso lado, e a tela diz isso antes de a pessoa escolher.
 4. **Atraso e cancelamento não cortam o ciclo já pago.** O dinheiro daquele
    período entrou; o acesso cai sozinho quando a data chega.
+4.1. **Estorno corta o acesso na hora** (mudança de 21/09). É a exceção à regra
+   5: devolveu o dinheiro, acabou o serviço. Vale só para **estorno total** —
+   devolver parte não desfaz a compra. E corta só o que **aquele pagamento**
+   deu: quem tem acesso mais longo, vindo de cortesia, não perde nada.
 5. **Pagar nunca encurta um Premium mais longo** — é o caso de quem tem
    cortesia e resolve assinar.
 6. **Pagar antes de vencer emenda no que falta**; pagar depois recomeça no dia
