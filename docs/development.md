@@ -503,6 +503,45 @@ encaminhar os avisos ao `localhost`. O Pix em modo de teste tem um botão de
 (`/conta/premium?pago=1`). Esse endereço é adivinhável. Quem libera é o aviso
 assinado, em `handle-payment-event.ts`.
 
+### 6.9 Virar a cobrança para o modo ao vivo (etapa B)
+
+**Nenhuma linha de código muda.** Os quatro valores são de ambiente, e a virada
+é trocar segredo. É o troco de a Stripe morar atrás de uma porta (`http`).
+
+O que confunde e custa tempo: **o modo ao vivo é outro mundo dentro da mesma
+conta**. Preço, webhook, cliente e assinatura do modo de teste **não existem**
+lá. Nada é migrado, e nenhum identificador serve nos dois.
+
+Pela ordem:
+
+1. **Ativar a conta para receber**, no painel: CPF ou CNPJ, dados bancários e o
+   que a Stripe pedir. Sem isso o modo ao vivo não aceita pagamento.
+2. **Criar os dois preços de novo**, agora no modo ao vivo: R$ 14,90/mês e
+   R$ 149,00/ano, no produto "ColeXa Premium". Os `price_...` são **outros**.
+3. **Criar o webhook de novo**, no modo ao vivo, para
+   `https://colexa.com.br/api/pagamentos/stripe`, com os mesmos cinco eventos.
+   O `whsec_...` é **outro**: o do modo de teste não valida nada lá, e a
+   assinatura do aviso vai falhar em silêncio se for reaproveitado.
+4. **Conferir o portal do cliente** no modo ao vivo: a configuração dele também
+   é por modo.
+5. **Limpar as fichas de teste** de quem comprou testando, antes de virar a
+   chave:
+   `npm run supabase -- limpar-assinaturas <email> --confirmar`. Sem isso, a
+   ficha aponta para um cliente que não existe no modo ao vivo, "Gerenciar
+   pagamento" falha e a trava de "já tem assinatura ativa" recusa a pessoa de
+   assinar de verdade. Os avisos em `payment_events` ficam de propósito: são o
+   rastro de cobrança contestada.
+6. **Trocar os quatro segredos** na Fly, com os valores do modo ao vivo
+   (`fly secrets set` no terminal de quem tem as chaves — elas nunca passam por
+   uma conversa). As máquinas reiniciam sozinhas: **não precisa publicar**.
+7. **Conferir com uma compra de verdade**, de preferência a mensal, e pedir
+   reembolso pelo painel logo depois. É o único teste que prova que a chave, o
+   preço e o webhook do modo ao vivo combinam entre si.
+
+**A cobrança abriu antes dos Termos** (decisão 102, mudança de 21/09). Enquanto
+eles não existirem, cancelamento e reembolso se resolvem pelo painel da Stripe,
+à mão.
+
 ## 7. Git
 
 Estado atual: repositório em `C:\dev\optcg`, remote `origin` em

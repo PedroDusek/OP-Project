@@ -782,14 +782,19 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
    e foi testado de ponta a ponta em 21/09**: dois preços, webhook para
    `https://colexa.com.br/api/pagamentos/stripe` com cinco eventos, portal do
    cliente e as chaves de teste nos segredos da Fly. Falta:
-   - **Modo ao vivo** (etapa B): repetir preços, webhook e chaves com as
-     credenciais de produção. É o mesmo roteiro de `development.md` 6.8, com a
-     chave `sk_live_` e um `whsec_` novo — o do modo de teste não vale lá.
-   - **Limpar as duas fichas de teste** da conta do dono do produto em
-     `subscriptions` antes de abrir: elas apontam para objetos que só existem
-     no modo de teste, e o histórico de cobrança não deve começar com eles. É
-     escrita em produção, e espera o dono do produto.
-   - Política de cancelamento e reembolso nos Termos, e o contador para a nota.
+   - **Modo ao vivo** (etapa B): o roteiro está em `development.md` **6.9**,
+     pela ordem certa. Nenhuma linha de código muda — é troca de segredo. O que
+     custa tempo a quem não sabe: **o modo ao vivo é outro mundo dentro da mesma
+     conta**, e preço, webhook e cliente do modo de teste não existem lá.
+   - **Limpar as fichas de teste** antes de virar a chave:
+     `npm run supabase -- limpar-assinaturas <email> --confirmar`. Deixou de ser
+     higiene e virou pré-requisito — a ficha de teste aponta para um cliente que
+     não existe no modo ao vivo, e quebra o portal e a compra de quem a tiver.
+   - O contador, para a nota da receita recorrente.
+   - **Os Termos ficaram para depois da abertura**, por decisão do dono do
+     produto em 21/09 (decisão 102, mudança). O risco assumido está escrito lá,
+     e eles **continuam sendo bloqueio de lançamento** (decisão 030). Enquanto
+     não vierem, cancelamento e reembolso são à mão, pelo painel da Stripe.
    - **Pix não é pendência**: ficou fora do lançamento por decisão (102,
      mudança de 21/09). Se um dia entrar, é pedir o convite à Stripe e ligar
      `STRIPE_PIX=1` no `[env]` do `fly.toml`.
