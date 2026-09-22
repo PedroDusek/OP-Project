@@ -6757,3 +6757,73 @@ não ter a funcionalidade, e não sobre disco.
 ## Data
 
 2026-09-22
+
+---
+
+# Decisão: 108 — As decklists são guardadas
+
+Pedido de usuários, trazido pelo dono do produto em 22/09. **Inverte o item 2 da
+decisão 095**, que dizia em letras claras: *"o deck não é guardado. Nenhuma
+tabela nova: a lista vive na tela... o ColeXa confere decks; guardá-los é outro
+produto."*
+
+Não era limitação técnica: era escolha de escopo. O uso pediu o contrário —
+montar aos poucos, dar nome, e acompanhar quanto falta de cada lista.
+
+## O que muda na tela
+
+`/deck` deixa de ser o builder e passa a ser a **estante**: as listas primeiro, e
+o gesto de criar depois, como em Binders. Montar acontece em `/deck/novo`, e
+abrir uma lista em `/deck/[id]`.
+
+O builder é o mesmo — regras, conferência, onde está e quanto custa o que falta
+seguem a 095. O que ele ganhou foi o fim: dar um nome e salvar.
+
+## As regras, decididas pelo dono do produto
+
+1. **O líder é obrigatório**, e continua sendo a primeira escolha. Ele define as
+   cores do resto e é a **capa** da lista.
+2. **Lista incompleta pode ser salva**, e ganha a marca "incompleta". Montar aos
+   poucos é o caso normal — era a queixa que originou o pedido.
+3. **O progresso conta qualquer arte** da mesma carta, limitado ao que a lista
+   pede. Responde "consigo jogar isto?", e para jogar a arte não importa.
+4. **Quem perde o Premium não perde as listas**: elas ficam guardadas e param de
+   abrir.
+
+## O que não virou coluna
+
+**A capa** é a arte do líder e **"incompleta"** é a soma das cópias abaixo de
+cinquenta. Guardar qualquer um dos dois criaria uma segunda verdade que
+envelhece: bastaria a lista ser editada, ou a carta trocar de arte no catálogo,
+para o banco contar uma história diferente da tela.
+
+## O modelo, aprovado pelo dono do produto
+
+```
+decks       id · user_id · name · leader_variant_id · created_at · updated_at
+deck_items  deck_id · card_variant_id · copies      (chave composta)
+```
+
+`leader_variant_id` é **NOT NULL**, consequência direta da regra 1. A chave de
+`deck_items` é composta e sem `id` próprio: uma variante aparece uma vez por
+deck, e duas linhas da mesma arte seriam a mesma afirmação escrita duas vezes.
+
+RESTRICT nas variantes, como em `collection_items`: o catálogo não apaga carta
+que alguém pôs numa lista. CASCADE do usuário e do deck para os itens.
+
+## Salvar e conferir usam o mesmo código
+
+`conferirLista` foi extraída de `analyzeDeck` e é chamada pelos dois. Duplicar as
+regras criaria dois lugares para a mesma verdade, e no dia em que divergissem a
+lista salva aceitaria o que a tela recusa — com o erro aparecendo só ao reabrir.
+
+## Por que listar não exige Premium
+
+Porque a regra 4 exige o contrário. Se a listagem recusasse, quem deixou de
+assinar veria uma tela vazia, e "ficam guardadas" viraria mentira. Ler e salvar
+exigem Premium; listar e apagar, não — quem deixou de assinar continua dono do
+que criou.
+
+## Data
+
+2026-09-22

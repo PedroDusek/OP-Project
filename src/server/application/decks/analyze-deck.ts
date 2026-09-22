@@ -97,30 +97,7 @@ export async function analyzeDeck(
 
   if (input.lines.length === 0) throw new ValidationError('Escolha ao menos uma carta para conferir.')
 
-  const escolhidas = await variantesDe(prisma, [
-    input.leaderVariantId,
-    ...input.lines.map((line) => line.variantId),
-  ])
-
-  const leader = escolhidas.get(input.leaderVariantId)
-  if (!leader) throw new NotFoundError('Líder não encontrado.')
-  if (leader.cardType !== 'Leader') throw new ValidationError('O líder precisa ser uma carta de Leader.')
-
-  const lines: DeckLine[] = input.lines.map((line) => {
-    const variante = escolhidas.get(line.variantId)
-    if (!variante) throw new NotFoundError('Alguma carta da lista não existe mais.')
-    if (variante.cardType === 'Leader') {
-      throw new ValidationError(`${variante.cardCode} é um Leader: o deck tem um líder só.`)
-    }
-    if (!fitsLeader(leader.colors, variante.colors)) {
-      throw new ValidationError(
-        `${variante.cardCode} não tem a cor do líder (${leader.colors.join(' e ')}).`,
-      )
-    }
-    return { variantId: line.variantId, cardCode: variante.cardCode, copies: line.copies }
-  })
-
-  assertDeckRules(lines)
+  const { leader, lines, escolhidas } = await conferirLista(prisma, input)
 
   /*
    * O líder é conferido junto (pedido do dono do produto: são 51 cartas). Ele
@@ -194,6 +171,46 @@ interface VarianteEscolhida {
   variantType: string
   imageUrl: string | null
   colors: string[]
+}
+
+/**
+ * As regras do deck, conferidas contra o catálogo.
+ *
+ * Exportada porque **salvar e conferir exigem o mesmo**: um líder de verdade,
+ * cartas na cor dele, no máximo quatro cópias por código e no máximo cinquenta
+ * cartas. Duplicar isso no salvamento criaria dois lugares para a mesma regra —
+ * e o dia em que divergissem, a lista salva aceitaria o que a conferência
+ * recusa (decisão 108).
+ */
+export async function conferirLista(
+  prisma: PrismaClient,
+  input: DeckInput,
+): Promise<{ leader: VarianteEscolhida; lines: DeckLine[]; escolhidas: Map<string, VarianteEscolhida> }> {
+  const escolhidas = await variantesDe(prisma, [
+    input.leaderVariantId,
+    ...input.lines.map((line) => line.variantId),
+  ])
+
+  const leader = escolhidas.get(input.leaderVariantId)
+  if (!leader) throw new NotFoundError('Líder não encontrado.')
+  if (leader.cardType !== 'Leader') throw new ValidationError('O líder precisa ser uma carta de Leader.')
+
+  const lines: DeckLine[] = input.lines.map((line) => {
+    const variante = escolhidas.get(line.variantId)
+    if (!variante) throw new NotFoundError('Alguma carta da lista não existe mais.')
+    if (variante.cardType === 'Leader') {
+      throw new ValidationError(`${variante.cardCode} é um Leader: o deck tem um líder só.`)
+    }
+    if (!fitsLeader(leader.colors, variante.colors)) {
+      throw new ValidationError(
+        `${variante.cardCode} não tem a cor do líder (${leader.colors.join(' e ')}).`,
+      )
+    }
+    return { variantId: line.variantId, cardCode: variante.cardCode, copies: line.copies }
+  })
+
+  assertDeckRules(lines)
+  return { leader, lines, escolhidas }
 }
 
 async function variantesDe(prisma: PrismaClient, ids: string[]): Promise<Map<string, VarianteEscolhida>> {

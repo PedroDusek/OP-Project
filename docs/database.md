@@ -317,6 +317,36 @@ conferimos": é **desde quando a carta está neste preço**, porque a escrita s�
 acontece quando o valor muda. Quando a importação rodou vive em `price_imports`,
 e é de lá que sai "atualizado hoje às 04:00".
 
+### 2.4.1 Decklists (decisão 108)
+
+**decks**
+
+| Coluna | Tipo | Restrições |
+|---|---|---|
+| `id` | bigint | PK |
+| `user_id` | bigint | not null, FK users, CASCADE |
+| `name` | varchar(100) | not null, check não vazio |
+| `leader_variant_id` | bigint | not null, FK card_variants, RESTRICT |
+| `created_at` / `updated_at` | timestamptz | not null |
+
+**deck_items**
+
+| Coluna | Tipo | Restrições |
+|---|---|---|
+| `deck_id` | bigint | PK composta, FK decks, CASCADE |
+| `card_variant_id` | bigint | PK composta, FK card_variants, RESTRICT |
+| `copies` | integer | not null, check entre 1 e 4 |
+
+`leader_variant_id` é **not null** por regra de negócio (7.1, item 1): o líder é
+a primeira escolha e é a **capa** da lista. A capa não é coluna — sai da arte do
+líder —, e "incompleta" também não: é a soma das cópias abaixo de cinquenta.
+Guardar qualquer um dos dois criaria uma segunda verdade que envelhece.
+
+Chave composta em `deck_items`, sem `id` próprio: uma variante aparece uma vez
+por deck, e duas linhas da mesma arte seriam a mesma afirmação escrita duas
+vezes. O check de 1 a 4 é o teto oficial **por arte**; somar as artes da mesma
+carta fica no caso de uso, porque exige conhecer o catálogo.
+
 ### 2.5 Trocas
 
 **trades**

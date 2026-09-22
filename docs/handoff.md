@@ -113,7 +113,8 @@ ponta. Lint, typecheck e build passando.
 | — | Excluir a conta, com 30 dias para desistir (decisão 091) |
 | — | Premium e Free: o que cada plano faz, com as travas aplicadas (decisão 093) |
 | — | As imagens das cartas preparadas depois de publicar (decisão 094) |
-| — | Deck Builder: conferência das 51 cartas, sem guardar deck (decisão 095) |
+| — | Deck Builder: conferência das 51 cartas (decisão 095) |
+| — | Decklists salvas, com nome, capa do líder e progresso (decisão 108, que muda a 095) |
 | — | Enviar feedback, por e-mail ao suporte (decisão 096) |
 | — | O mesmo e-mail por outra forma de entrar é recusado (decisão 097) |
 | — | O dashboard da coleção no Início, Premium (decisão 098) |
