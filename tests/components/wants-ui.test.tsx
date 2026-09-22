@@ -110,6 +110,23 @@ describe('WantList', () => {
     expect(screen.getByText('Sua want list está vazia')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Abrir o catálogo' })).toBeInTheDocument()
   })
+
+  /*
+   * Pedido do dono do produto em 21/09: quem está decidindo quantas quer
+   * precisa do preço para decidir, e o preço — com o link da Liga — mora no
+   * catálogo. O painel irmão, o de "quantas você tem", já levava para lá.
+   */
+  it('o painel leva ao catálogo da carta', async () => {
+    withToast(<WantList wants={[want({ variantId: '42', wanted: 4 })]} />)
+
+    await userEvent.click(screen.getByRole('button', { name: /OP01-001/ }))
+
+    const painel = await screen.findByRole('dialog', { name: 'Quantas você quer' })
+    expect(within(painel).getByRole('link', { name: /Ver no catálogo/ })).toHaveAttribute(
+      'href',
+      '/catalogo/carta/42',
+    )
+  })
 })
 
 describe('WantSheet', () => {
@@ -129,6 +146,16 @@ describe('WantSheet', () => {
     await userEvent.click(screen.getByRole('button', { name: /Quero|want list/ }))
     return screen.findByRole('dialog')
   }
+
+  /*
+   * No detalhe da carta o link não aparece: ele apontaria para a página onde a
+   * pessoa já está. É o mesmo componente, e é o `WantButton` que diz isso.
+   */
+  it('no detalhe da carta, nao repete o caminho para o catalogo', async () => {
+    const painel = await abrir(2)
+
+    expect(within(painel).queryByRole('link', { name: /Ver no catálogo/ })).not.toBeInTheDocument()
+  })
 
   /** Partir de zero pediria um toque a mais para o caso normal. */
   it('quem ainda nao quer abre em 1', async () => {
