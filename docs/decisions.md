@@ -2702,6 +2702,20 @@ fim de semana com feriado emendado, que é o buraco mais longo que o calendário
 brasileiro produz sem que algo esteja errado. Passando disso, a importação
 parou, e converter por taxa velha seria apresentar um palpite com cara de dado.
 
+> **Mudança em 21/09: o limite passou para sete dias.** Três não cobriam o que
+> se imaginava. A tarefa roda às 04:00 de Brasília e **a PTAX do dia só sai no
+> meio da tarde**, então na segunda de manhã ela ainda encontra a cotação de
+> sexta — e à meia-noite UTC, que são 21:00 de Brasília, a conta chegava a
+> quatro dias. O real sumia da tela **toda segunda à noite**, no horário de
+> maior uso, até a tarefa da terça consertar sozinha. O dono do produto relatou
+> o sintoma em 21/09 e escolheu **alargar a janela em vez de mexer no horário**,
+> que é escolha dele desde a decisão 051.
+>
+> O que se perde: uma importação que pare demora até uma semana para aparecer
+> na tela. O que segura: a tela **diz a data da cotação** ao lado do valor, como
+> a decisão 4 abaixo exige — o número nunca se apresenta como sendo de hoje se
+> não for.
+
 ## Decisão 3 — Duas tabelas novas, aprovadas pelo dono do produto
 
 `exchange_rates` — uma linha por par por dia. O valor é **sobrescrito** quando

@@ -655,9 +655,10 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     Conexão nova em produção precisa caber nessa conta.
 72. **Preço e cotação do banco local não se atualizam sozinhos.** A tarefa
     diária **Preços** escreve só em produção. No local, `npm run prices:import`
-    à mão; sem isso, passados três dias a cotação fica velha e o real some da
+    à mão; sem isso, passada uma semana a cotação fica velha e o real some da
     tela (`MAX_RATE_AGE_IN_DAYS`), o que parece defeito e não é. Em 19/09 o
-    local estava com a cotação de 15/09.
+    local estava com a cotação de 15/09. (A janela era de três dias até 21/09 —
+    ver 84.)
 73. **O `npm run` engole as opções sem `--`.** `npm run supabase limpar-contas
     --confirmar` executa **sem** o `--confirmar` (npm 10: a opção vira
     configuração do npm e não chega ao script). O dono do produto tropeçou
@@ -737,6 +738,23 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     miniatura. **O `Button` do projeto não define `type` padrão**, então
     qualquer `<Button>` novo dentro de um formulário repete isso — vale conferir
     ao colocar um.
+84. **A PTAX do dia só sai à tarde, e a tarefa roda às 04:00.** Relatado pelo
+    dono do produto em 21/09: o site inteiro com preço só em dólar. Não era
+    defeito de importação — era o calendário somado ao horário. O PTAX não
+    existe em sábado e domingo, e na **segunda de manhã ele ainda não foi
+    publicado**, então a tarefa das 04:00 encontra a cotação de **sexta**. À
+    meia-noite UTC (21:00 de Brasília) a conta chegava a quatro dias, e a janela
+    de três derrubava o real da tela **toda segunda à noite**, no horário de
+    maior uso, até a tarefa da terça consertar sozinha.
+
+    A janela passou de 3 para **7 dias**, por escolha do dono do produto — que
+    preferiu alargar a tolerância a mexer no horário que ele mesmo escolheu. O
+    que segura o risco é a tela **dizer a data da cotação** ao lado do valor: o
+    número nunca se apresenta como sendo de hoje se não for.
+
+    O diagnóstico, se reaparecer, é `npm run supabase status` — ele imprime a
+    data da cotação. `npm run supabase prices` à mão conserta na hora, desde que
+    a PTAX do dia já tenha saído.
 
 ## Pendências
 

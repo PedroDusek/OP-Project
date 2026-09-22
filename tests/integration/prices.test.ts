@@ -312,14 +312,21 @@ describe('cotacao do dolar', () => {
     expect(await testPrisma().exchangeRate.count()).toBe(0)
   })
 
-  /** Converter por taxa velha seria apresentar palpite com cara de dado. */
+  /*
+   * Converter por taxa velha seria apresentar palpite com cara de dado.
+   *
+   * **A janela mudou em 21/09**, de tres para sete dias: a tarefa roda as 04:00
+   * de Brasilia e a PTAX do dia so sai a tarde, entao na segunda ela ainda
+   * encontra a de sexta, e tres dias derrubavam o real toda segunda a noite
+   * (armadilha 84). A data da cotacao continua na tela ao lado do valor.
+   */
   it('esconde a cotacao velha demais', async () => {
     const db = testPrisma()
     await importExchangeRate(db, fakeRates([{ rate: 5.1253, quoteDate: dia }]), { logger: silent })
 
-    // Tres dias ainda valem: cobrem o fim de semana com feriado emendado.
-    expect(await getUsdBrlRate(db, new Date('2026-09-11T12:00:00Z'))).not.toBeNull()
-    expect(await getUsdBrlRate(db, new Date('2026-09-12T12:00:00Z'))).toBeNull()
+    // Uma semana ainda vale: e o atraso estrutural da tarefa, nao defeito.
+    expect(await getUsdBrlRate(db, new Date('2026-09-15T12:00:00Z'))).not.toBeNull()
+    expect(await getUsdBrlRate(db, new Date('2026-09-16T12:00:00Z'))).toBeNull()
   })
 })
 
