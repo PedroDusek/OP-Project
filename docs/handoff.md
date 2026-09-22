@@ -726,6 +726,17 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     lição que fica é anterior ao Pix: **forma de pagamento pronta no código não
     é forma de pagamento disponível** — o provedor decide, e a tela tem de
     perguntar a ele antes de oferecer.
+83. **`<button>` sem `type` dentro de `<form>` é `submit`.** Relatado pelo dono
+    do produto em 21/09: no Deck Builder, digitar um código e apertar Enter
+    **abria os filtros** em vez de buscar. O Enter num campo de texto dispara o
+    **primeiro botão de envio da árvore**, e o gatilho dos filtros — um
+    `<Button>` sem `type` — vinha antes do botão Buscar. Nas outras telas o
+    campo e o gatilho ficam em formulários diferentes, e por isso só o Deck
+    Builder adoecia. Corrigido com `type="button"` no gatilho
+    (`catalog-filters.tsx`), com teste que monta o arranjo do Deck Builder em
+    miniatura. **O `Button` do projeto não define `type` padrão**, então
+    qualquer `<Button>` novo dentro de um formulário repete isso — vale conferir
+    ao colocar um.
 
 ## Pendências
 

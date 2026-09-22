@@ -213,6 +213,15 @@ export function CatalogFilters({
   return (
     <>
       <Button
+        /*
+         * `type="button"` não é decoração (21/09). No Deck Builder este gatilho
+         * mora **dentro** do formulário de busca, e um `<button>` sem tipo é
+         * `submit` por padrão: o Enter no campo de busca disparava o primeiro
+         * botão de envio da árvore — este — e abria os filtros em vez de
+         * buscar. Nas outras telas o campo e o gatilho ficam em formulários
+         * diferentes, e por isso só o Deck Builder adoecia.
+         */
+        type="button"
         variant="secondary"
         onClick={openSheet}
         aria-label={activeCount > 0 ? `Filtros, ${activeCount} ativos` : 'Filtros'}
