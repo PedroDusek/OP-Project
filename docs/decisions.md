@@ -754,6 +754,42 @@ As mitigações fazem parte da decisão e são obrigatórias na implementação:
 - **Importação sob demanda.** Executada manualmente ou em agenda esparsa, nunca
   a cada requisição de usuário.
 
+## Acréscimo em 22/09: o catálogo é espelho da lista oficial, e só dela
+
+Um usuário relatou a falta de uma carta: **OP15-076, na arte do Dash Pack** —
+aquelas artes alternativas que a Bandai distribui em campanha, na compra de uma
+booster box. Ela não está na Liga, e a loja que a vendia era a única a mostrá-la.
+
+O que a investigação achou:
+
+- **A carta existe** na nossa base, com a arte Normal.
+- **A arte do Dash Pack não está na lista oficial**, nem em inglês nem em
+  japonês. As URLs `OP15-076_p1.png` dos dois sites respondem **404**; só a
+  `OP15-076.png` existe.
+- Quem tem essa arte — TCGplayer, lojas — não a tira da base de cartas da
+  Bandai, e sim do **catálogo comercial**, o que está à venda. São coisas
+  diferentes: uma é o que o jogo publica, a outra é o que o mercado negocia.
+
+**Decisão do dono do produto: não incluir.** O catálogo do ColeXa é espelho da
+lista oficial, e **arte que a Bandai não publica não existe aqui**.
+
+Por que isso é coerente com a 020, e não uma limitação aceita por preguiça:
+
+- A decisão original já dizia que **nenhuma fonte intermediária resolve**, porque
+  nenhuma tem direito de sublicenciar os dados da Bandai. Puxar do catálogo
+  comercial seria exatamente isso.
+- Os nomes de produto do TCGplayer são a bagunça que obrigou a **773 vínculos
+  manuais** (decisões 068 a 078). Deixá-los criar variantes trocaria um catálogo
+  conferido por um catálogo adivinhado.
+- E não haveria imagem: a 020 proíbe copiar arte, e a Bandai não publica essa.
+
+O custo assumido: quem tem uma arte de campanha não consegue registrá-la, e vai
+relatar de novo. A resposta de suporte é que o ColeXa segue a lista oficial.
+
+**Se um dia isso pesar**, o caminho examinado e recusado por ora é uma lista
+manual de artes extras, no espírito do `paralelas-candidatas.json` — o dono do
+produto decidindo arte a arte, e não uma regra automática.
+
 ## Motivo
 
 Escolhida pelo dono do produto depois de a limitação ter sido apresentada com
@@ -766,7 +802,7 @@ origem não alcance o resto do sistema.
 
 ## Data
 
-2026-09-06
+2026-09-06 (acréscimo sobre o escopo em 2026-09-22)
 
 ---
 
