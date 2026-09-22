@@ -755,6 +755,26 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     O diagnóstico, se reaparecer, é `npm run supabase status` — ele imprime a
     data da cotação. `npm run supabase prices` à mão conserta na hora, desde que
     a PTAX do dia já tenha saído.
+85. **No `next dev` os dados são locais, mas o login é o de produção.**
+    `DATABASE_URL` aponta para o Postgres da máquina e
+    `NEXT_PUBLIC_SUPABASE_URL` para o projeto hospedado: as duas metades de uma
+    conta moram em lugares diferentes.
+
+    A consequência apareceu em 21/09. Apagar as contas de produção
+    (`limpar-contas`, em 19/09) apagou também os usuários do **Supabase Auth**,
+    e os `auth_user_id` guardados no banco local viraram órfãos. Entrar de novo
+    cria uma identidade nova, com id novo, que não bate com a linha antiga — e a
+    trava da decisão 097 recusa o login com *"este e-mail já tem uma conta no
+    ColeXa, criada com outra forma de entrar"*. **Parece defeito do login, e não
+    é**: é lixo local, e a trava está fazendo o trabalho dela.
+
+    Conserto sem apagar nada: `npm run religar-local` troca o `auth_user_id` da
+    linha local pelo que o Supabase tem agora, preservando coleção, want list,
+    binders e plano. Com um e-mail (`-- <email>`) faz só uma. Ele **recusa rodar
+    se `DATABASE_URL` não for da própria máquina**, e do Supabase só lê.
+
+    Quem nunca entrou desde a limpeza ainda não tem identidade, e o script diz
+    isso em vez de inventar uma: entre uma vez, e rode de novo.
 
 ## Pendências
 
