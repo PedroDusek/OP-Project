@@ -876,6 +876,14 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 
 ### Perguntas em aberto
 
+- ~~**Artes de campanha, tipo Dash Pack**~~ — **decidido em 22/09**: não entram.
+  O catálogo é espelho da lista oficial da Bandai, e ela **não publica** essas
+  artes (conferido: `OP15-076_p1.png` dá 404 nos sites inglês **e** japonês).
+  Quem as tem — TCGplayer, lojas — as tira do catálogo **comercial**, não da
+  base de cartas. Está no acréscimo de 22/09 à decisão 020, com o caminho
+  recusado por ora (lista manual de artes extras).
+  **Resposta de suporte:** o ColeXa segue a lista oficial; artes de campanha que
+  a Bandai não publica não aparecem aqui.
 - **Credencial do TCGplayer.** O preço virá de lá (decisão 047), mas a API é de
   programa de parceiros: sem aprovação e chaves não há coleta a construir. É o
   único bloqueio da valoração — armazenamento e cadência já estão medidos e não
