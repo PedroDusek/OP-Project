@@ -754,6 +754,42 @@ As mitigações fazem parte da decisão e são obrigatórias na implementação:
 - **Importação sob demanda.** Executada manualmente ou em agenda esparsa, nunca
   a cada requisição de usuário.
 
+## Acréscimo em 22/09: o catálogo é espelho da lista oficial, e só dela
+
+Um usuário relatou a falta de uma carta: **OP15-076, na arte do Dash Pack** —
+aquelas artes alternativas que a Bandai distribui em campanha, na compra de uma
+booster box. Ela não está na Liga, e a loja que a vendia era a única a mostrá-la.
+
+O que a investigação achou:
+
+- **A carta existe** na nossa base, com a arte Normal.
+- **A arte do Dash Pack não está na lista oficial**, nem em inglês nem em
+  japonês. As URLs `OP15-076_p1.png` dos dois sites respondem **404**; só a
+  `OP15-076.png` existe.
+- Quem tem essa arte — TCGplayer, lojas — não a tira da base de cartas da
+  Bandai, e sim do **catálogo comercial**, o que está à venda. São coisas
+  diferentes: uma é o que o jogo publica, a outra é o que o mercado negocia.
+
+**Decisão do dono do produto: não incluir.** O catálogo do ColeXa é espelho da
+lista oficial, e **arte que a Bandai não publica não existe aqui**.
+
+Por que isso é coerente com a 020, e não uma limitação aceita por preguiça:
+
+- A decisão original já dizia que **nenhuma fonte intermediária resolve**, porque
+  nenhuma tem direito de sublicenciar os dados da Bandai. Puxar do catálogo
+  comercial seria exatamente isso.
+- Os nomes de produto do TCGplayer são a bagunça que obrigou a **773 vínculos
+  manuais** (decisões 068 a 078). Deixá-los criar variantes trocaria um catálogo
+  conferido por um catálogo adivinhado.
+- E não haveria imagem: a 020 proíbe copiar arte, e a Bandai não publica essa.
+
+O custo assumido: quem tem uma arte de campanha não consegue registrá-la, e vai
+relatar de novo. A resposta de suporte é que o ColeXa segue a lista oficial.
+
+**Se um dia isso pesar**, o caminho examinado e recusado por ora é uma lista
+manual de artes extras, no espírito do `paralelas-candidatas.json` — o dono do
+produto decidindo arte a arte, e não uma regra automática.
+
 ## Motivo
 
 Escolhida pelo dono do produto depois de a limitação ter sido apresentada com
@@ -766,7 +802,7 @@ origem não alcance o resto do sistema.
 
 ## Data
 
-2026-09-06
+2026-09-06 (acréscimo sobre o escopo em 2026-09-22)
 
 ---
 
@@ -6563,6 +6599,99 @@ Entrar é rápido: liga-se e pede-se a indexação.
 ## Data
 
 2026-09-21
+
+---
+
+# Decisão: 106 — A fonte de Pokémon, e o que ela custa em disco
+
+Passo 7 do plano da decisão 104, retomado em 22/09 a pedido do dono do produto:
+**definir a fonte, sem importar nada**. O levantamento de 20/09 já apontava um
+caminho (`integrations.md` 5.2); aqui ele é confirmado com números medidos, e a
+conta de espaço é feita **antes** de qualquer carta entrar no Supabase.
+
+## Decisão 1 — A fonte é o TCGdex
+
+Confirmada hoje contra a API, e não só pela documentação:
+
+- **220 sets e 23.964 cartas** em inglês.
+- Cada carta traz `variants` (`normal`, `reverse`, `holo`, `firstEdition`,
+  `wPromo`), `variants_detailed`, imagem, raridade, ilustrador — e **`pricing`
+  junto da carta**.
+- Banco open source com licença MIT (`github.com/tcgdex/cards-database`), REST e
+  GraphQL, sem chave, com os três idiomas da decisão 104.
+
+### O trabalho manual do One Piece não se repete
+
+Esta é a razão principal, e vale explicá-la porque ela não é óbvia.
+
+No One Piece, o código da carta **não identifica a arte**, e o preço vem de
+**outra** fonte, que precisa ser casada carta a carta. Disso nasceram
+`variant_source_products`, a tabela da Liga e **773 vínculos manuais** conferidos
+pelo dono do produto (decisões 068 a 078) — o pedaço mais caro do pipeline.
+
+No TCGdex a variante tem identidade própria e o preço vem anexado à carta.
+**O vínculo deixa de existir**, e com ele some a conferência um a um.
+
+### E se a API sair do ar
+
+O banco é público e licenciado: dá para hospedar por conta própria a partir do
+repositório. Nenhuma das alternativas oferece isso — a `pokemontcg.io` foi
+descontinuada (chaves até 01/03/2027) e a sucessora, Scrydex, é paga e tem
+modelo de dados incompatível com o nosso (`integrations.md` 2.0).
+
+As mitigações da decisão 020 continuam valendo: requisições serializadas,
+importação sob demanda, imagens referenciadas e nunca copiadas.
+
+## Decisão 2 — O plano do Supabase passa a ser o Pro
+
+A conta foi feita com o banco real, e não por estimativa de fora:
+
+| | |
+|---|---:|
+| Banco hoje | **23 MB** (de 500 MB no plano gratuito) |
+| `card_prices` | 24.543 linhas, 2,9 MB, ~125 bytes por linha |
+| Crescimento de preço, One Piece | **~1.800 linhas/dia ≈ 82 MB/ano** |
+| Catálogo Pokémon, estimado | ~100 MB, uma vez |
+| Crescimento com Pokémon, estimado | **~1 GB/ano** |
+
+O limite de 500 MB do plano gratuito **não é um aviso**: passando dele o projeto
+entra em **modo somente leitura**, e o site para de aceitar cadastro, coleção,
+troca e pagamento. Pokémon estouraria isso em meses.
+
+O Pro (US$ 25/mês) inclui 8 GB e cobra US$ 0,125 por GB/mês além disso — o que
+dá **~7 anos** de folga, e centavos depois. Ele também resolve, na mesma
+despesa, **o backup** (o maior risco operacional aberto, agora que há assinatura
+paga e coleção de gente real) e o teto de conexões que já nos mordeu
+(armadilha 71).
+
+## Decisão 3 — O histórico de preço fica como está
+
+Cogitou-se parar de gravar histórico, ou podá-lo por janela, para conter o
+crescimento. **O dono do produto decidiu manter**, e a investigação que levou a
+isso vale registro:
+
+- **Hoje o histórico não é lido por ninguém.** `dashboard.ts`, `analyze-deck.ts`
+  e `read-prices.ts` pegam todos a linha mais recente, e **não existe uma única
+  consulta de preço numa data passada**. A regra 5.1 — valor do trade pelo preço
+  vigente em `completed_at` — **está escrita e não está implementada**.
+- Logo, abandonar o histórico não quebraria nada **que existe hoje**. Custaria a
+  *possibilidade* da 5.1, que não se recupera depois: ninguém vende o preço de
+  ontem.
+- E havia 0 trades concluídos em produção, com 13 dias de histórico. Era o
+  momento mais barato da vida do produto para abandoná-lo.
+
+Mesmo assim fica, porque com o Pro o espaço custa **~US$ 1,50 por ano** e a
+decisão deixa de ser sobre disco. Trocar uma funcionalidade futura por esse
+valor seria decidir pelo motivo errado.
+
+## O que isto não decide
+
+**Nada foi importado**, e o pedido era só definir a fonte. Ficam para depois: o
+modelo de dados multi-jogo, o idioma por carta, e a cadência de importação.
+
+## Data
+
+2026-09-22
 
 ---
 

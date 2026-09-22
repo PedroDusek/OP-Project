@@ -876,6 +876,14 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 
 ### Perguntas em aberto
 
+- ~~**Artes de campanha, tipo Dash Pack**~~ — **decidido em 22/09**: não entram.
+  O catálogo é espelho da lista oficial da Bandai, e ela **não publica** essas
+  artes (conferido: `OP15-076_p1.png` dá 404 nos sites inglês **e** japonês).
+  Quem as tem — TCGplayer, lojas — as tira do catálogo **comercial**, não da
+  base de cartas. Está no acréscimo de 22/09 à decisão 020, com o caminho
+  recusado por ora (lista manual de artes extras).
+  **Resposta de suporte:** o ColeXa segue a lista oficial; artes de campanha que
+  a Bandai não publica não aparecem aqui.
 - **Credencial do TCGplayer.** O preço virá de lá (decisão 047), mas a API é de
   programa de parceiros: sem aprovação e chaves não há coleta a construir. É o
   único bloqueio da valoração — armazenamento e cadência já estão medidos e não
@@ -1412,11 +1420,13 @@ falta para receber gente de fora:
 - **Limites do Supabase Auth** (*Authentication → Rate Limits*): o padrão conta
   por IP, e vários testadores na mesma rede — uma loja, um evento — batem no
   teto juntos. Conferir antes.
-- **Backup do banco**: o plano gratuito não tem. Era "o maior risco da
-  operação" com dado de testador; **desde 21/09 há assinatura paga, histórico
-  de cobrança e coleção de gente real**, e perder o banco não teria de onde
-  voltar. O plano Pro (US$ 25/mês) resolve, e de quebra destrava o domínio
-  personalizado do Supabase (mais US$ 10/mês), que é o que tira
+- **Backup do banco** — **o Pro foi decidido em 22/09** (decisão 106), e falta
+  **executar** no painel. O plano gratuito não tem backup, e desde 21/09 há
+  assinatura paga, histórico de cobrança e coleção de gente real. A mesma
+  despesa resolve três coisas: backup, o teto de conexões (armadilha 71) e o
+  espaço que Pokémon exige — o gratuito trava em 500 MB **em modo somente
+  leitura**, e o site pararia de aceitar escrita. De quebra, o Pro destrava o
+  domínio personalizado do Supabase (mais US$ 10/mês), que tira
   `zcyavtxrnpxinkvfnftf.supabase.co` da tela de consentimento do Google.
 - ~~**Um caminho para o testador relatar**~~ — **construído em 18/09**
   (decisão 096): "Enviar feedback" em Minha conta, por e-mail a
@@ -1436,8 +1446,16 @@ O que continua combinado para depois:
   para o fim.
 - **Os bloqueios de lançamento** (seção "Pendências"): Termos e Política, e
   idade mínima. Meio de pagamento e preço saíram da lista — decididos na 102,
-  construídos, e a cobrança testada de ponta a ponta em 21/09 —, e o domínio
-  entrou no ar no mesmo dia. Falta a cobrança em modo ao vivo.
+  construídos, e a cobrança **aberta ao vivo** em 21/09 —, e o domínio entrou no
+  ar no mesmo dia.
+- **Pokémon e Magic** — o **passo 7 da decisão 104 fechou em 22/09**
+  (decisão 106): a fonte é o **TCGdex**, confirmada contra a API, e **nada foi
+  importado**. O que ela resolve: a variante tem identidade própria e o preço
+  vem anexado, então **o vínculo manual do One Piece não se repete**. O que ela
+  exige: o Supabase no **Pro antes da primeira importação** — 23.964 cartas mais
+  o histórico de preço estouram os 500 MB do gratuito em meses, e o castigo é
+  modo somente leitura. Ficam para depois o modelo multi-jogo, o idioma por
+  carta e a cadência de importação.
 - **CSP de scripts** (decisão 092 deixou de fora): fechar de onde o navegador
   pode carregar script. Feito errado, derruba o login sem aviso, então pede uma
   passada própria.
