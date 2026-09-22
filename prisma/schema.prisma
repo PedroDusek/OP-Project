@@ -365,15 +365,18 @@ model CardPrice {
 
   cardVariant CardVariant @relation(fields: [cardVariantId], references: [id], onDelete: Restrict)
 
-  // Uma captura por variante por instante. Sem isto, reexecutar a importacao de
-  // precos duplicaria o historico, e o valor historico de um trade passaria a
-  // depender de qual linha a consulta escolhesse.
+  // Uma linha por variante, sobrescrita (decisao 107, 22/09). Antes isto era
+  // (card_variant_id, captured_at) e a tabela guardava historico.
   //
-  // Este unico substitui o indice de consulta que existia antes em
-  // (card_variant_id, captured_at DESC): um btree ascendente e varrido para tras
-  // pelo PostgreSQL, entao ele ja atende "preco mais recente desta variante".
-  // Manter os dois custaria escrita e espaco sem ganho de leitura.
-  @@unique([cardVariantId, capturedAt])
+  // O historico existia para a regra 5.1 — o valor de um trade concluido pelo
+  // preco vigente na data. Essa regra nunca foi implementada, o dono do produto
+  // decidiu que o produto nao guardara valor de carta em troca nenhuma, e
+  // nenhuma consulta do sistema le preco de data passada. Guardar uma serie que
+  // ninguem le custaria ~1 GB por ano quando Pokemon entrar (decisao 106).
+  //
+  // `captured_at` continua significando **desde quando esta neste preco**,
+  // porque a escrita so acontece quando o valor muda.
+  @@unique([cardVariantId])
   @@map("card_prices")
 }
 

@@ -334,14 +334,19 @@ decidir no lugar dela.
 
 ## 5. Preços e valoração
 
-`card_prices` mantém histórico: uma linha por variante por captura, com
-`captured_at`. Preços nunca são sobrescritos.
+`card_prices` guarda **o preço de agora**: uma linha por variante, sobrescrita
+(decisão 107, 22/09). **Não há histórico de preço.**
 
-A captura **só grava quando o valor muda** (decisão 050): a série é esparsa, e o
-preço vigente em T é a última linha com `captured_at <= T`. Quando cada
-importação rodou fica em `price_imports`, e não em `card_prices` — são duas
-afirmações diferentes, e confundi-las faz a tela dizer "atualizado hoje" sobre
-uma mudança de três semanas atrás.
+Até 22/09 a tabela era histórica, para sustentar a 5.1 abaixo. A regra nunca foi
+implementada, o dono do produto decidiu que **o produto não guarda valor de carta
+em troca nenhuma**, e nenhuma consulta do sistema lê preço de data passada —
+dashboard, análise de deck e página da carta leem o valor corrente.
+
+A escrita **só acontece quando o valor muda** (decisão 050, mantida): é o que dá
+sentido a `captured_at`, que significa **desde quando a carta está neste preço**.
+Quando cada importação rodou fica em `price_imports`, e não em `card_prices` —
+são duas afirmações diferentes, e confundi-las faz a tela dizer "atualizado hoje"
+sobre uma mudança de três semanas atrás.
 
 ### 5.0 Moeda
 
@@ -349,9 +354,9 @@ Os preços são cotados em **dólar**, e é assim que ficam gravados. O valor em
 real é **derivado na leitura**, multiplicando pela cotação de `exchange_rates`
 do dia — nunca guardado (decisão 051).
 
-Guardar o convertido criaria duas verdades para o mesmo fato, e o valor
-histórico de um trade deixaria de fechar: em real, ele é o preço daquele dia
-vezes a cotação daquele dia, duas linhas com data, e não um número congelado.
+Guardar o convertido criaria duas verdades para o mesmo fato: o Banco Central
+corrige cotação publicada, e o número gravado continuaria contando a história
+antiga. Derivar custa uma multiplicação e não pode divergir.
 
 Sem cotação utilizável, o valor em real não é exibido. Converter por taxa velha
 seria apresentar um palpite com cara de dado.
@@ -363,14 +368,19 @@ seria apresentar um palpite com cara de dado.
 | Valor do Trade Binder | idem, restrito às alocações em armazenamento `TRADE` |
 | Valor do trade | idem, por lado do trade |
 
-### 5.1 Valor histórico do trade
+### 5.1 Valor histórico do trade — **abandonada em 22/09**
 
-O valor de um trade concluído reflete o preço vigente em `trades.completed_at`,
-resolvido a partir de `card_prices`. Não existe coluna de snapshot de preço em
-`trade_items`.
+A regra dizia: *"o valor de um trade concluído reflete o preço vigente em
+`trades.completed_at`, resolvido a partir de `card_prices`"*.
 
-Uma variação posterior de preço nunca altera o valor histórico registrado de um
-trade passado.
+**Ela nunca foi implementada, e não será.** O dono do produto decidiu em 22/09
+que o ColeXa **não guarda valor de carta em troca nenhuma** — nem snapshot em
+`trade_items`, nem resolução por data. Um trade concluído é o registro de quais
+cartas trocaram de mãos, e nada mais.
+
+Com isso caiu a única justificativa do histórico de preço, e ele foi removido
+(decisão 107). O efeito prático: o valor que a tela mostra durante a negociação
+(5.2) continua sendo **indicativo e de hoje**, e nada é registrado ao concluir.
 
 ### 5.2 Durante a negociação
 
