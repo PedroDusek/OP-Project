@@ -804,23 +804,29 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
    primeiro na rede. **Meio de pagamento e preço, decididos em 19/09**
    (decisão 102): Stripe, cartão recorrente e Pix avulso, R$ 14,90/mês ou
    R$ 149,00/ano, e quem testou fica 6 meses de cortesia depois do lançamento
-   da cobrança. **Nada disso está construído** — é o Checkpoint 15, e ele exige
-   colunas novas em `users`, que é conversa antes de código.
+   da cobrança. **Construído em 19 e 20/09 e aberto em 21/09** — ver o item 9.
+   O Pix ficou de fora do lançamento, e o teste grátis de 7 dias entrou
+   (decisão 102, mudanças de 21/09). As colunas em `users` já existiam desde a
+   decisão 041: nenhuma foi criada para isso.
 
 9. ~~**Abrir a cobrança**~~ — **aberta em 21/09** (decisão 102). O modo ao vivo
-   está ligado, com os seis eventos no webhook, e foi conferido com uma **compra
-   mensal de verdade**: aviso assinado e aceito, ciclo mensal, data um mês à
-   frente, e o estorno depois. O roteiro da virada ficou em `development.md`
-   6.9, para o dia em que a conta da Stripe mudar. O que **ainda** falta na
-   cobrança:
+   está ligado, com os **sete eventos** no webhook, e foi conferido com uma
+   **compra mensal de verdade**: aviso assinado e aceito, ciclo mensal, data um
+   mês à frente, e o estorno depois. O roteiro da virada ficou em
+   `development.md` 6.9, para o dia em que a conta da Stripe mudar.
+
+   **Seis dos sete eventos já rodaram com dinheiro real.** O que nunca rodou é
+   o `charge.dispute.created` — e, com sorte, vai demorar. No lugar dele há sete
+   testes de integração. Ensaiar exigiria voltar as chaves para o modo de teste,
+   que custa mais do que ganha.
+
+   O que **ainda** falta na cobrança:
    - O **contador**, para a nota da receita recorrente. É a única pendência
      dela que não é de software.
    - **Os Termos ficaram para depois da abertura**, por decisão do dono do
      produto em 21/09 (decisão 102, mudança). O risco assumido está escrito lá,
      e eles **continuam sendo bloqueio de lançamento** (decisão 030). Enquanto
      não vierem, cancelamento e reembolso são à mão, pelo painel da Stripe.
-   - **Marcar `charge.dispute.created` no webhook**, nos dois modos. É o sétimo
-     evento, e sem ele a contestação de cobrança não corta o acesso.
    - **Disputa ganha por nós não devolve o acesso sozinha** — pergunta em aberto
      para o dono do produto. Até lá, `npm run supabase -- premium`.
    - **Pix não é pendência**: ficou fora do lançamento por decisão (102,
@@ -1216,7 +1222,8 @@ assinatura cancelada é um dos casos que precisam de ação.
   21/09), e são a única exceção à regra de nunca encurtar. Os limites são de
   propósito: só estorno **total**, e só o que **aquele pagamento** deu — quem
   tem cortesia mais longa não perde nada. Dependem de `charge.refunded` e
-  `charge.dispute.created` estarem marcados no painel, nos dois modos.
+  `charge.dispute.created` estarem marcados no painel — **estão, desde 21/09**,
+  e quem montar um destino novo precisa marcar os sete.
 - **A contestação é a única coisa que faz o webhook perguntar à Stripe.** O
   aviso de disputa traz `charge` e `payment_intent` e **não** traz o cliente, e
   sem cliente não há de quem cortar; `customerOfCharge` resolve isso com um
@@ -1385,8 +1392,12 @@ falta para receber gente de fora:
 - **Limites do Supabase Auth** (*Authentication → Rate Limits*): o padrão conta
   por IP, e vários testadores na mesma rede — uma loja, um evento — batem no
   teto juntos. Conferir antes.
-- **Backup do banco**: o plano gratuito não tem. Com dado de gente real, é o
-  maior risco da operação.
+- **Backup do banco**: o plano gratuito não tem. Era "o maior risco da
+  operação" com dado de testador; **desde 21/09 há assinatura paga, histórico
+  de cobrança e coleção de gente real**, e perder o banco não teria de onde
+  voltar. O plano Pro (US$ 25/mês) resolve, e de quebra destrava o domínio
+  personalizado do Supabase (mais US$ 10/mês), que é o que tira
+  `zcyavtxrnpxinkvfnftf.supabase.co` da tela de consentimento do Google.
 - ~~**Um caminho para o testador relatar**~~ — **construído em 18/09**
   (decisão 096): "Enviar feedback" em Minha conta, por e-mail a
   `suporte@colexa.com.br` com o assunto `FEEDBACK`. O dono do produto testou e
