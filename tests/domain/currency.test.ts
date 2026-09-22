@@ -57,16 +57,34 @@ describe('cotação velha demais', () => {
     expect(isRateStale(new Date('2026-09-04T00:00:00Z'), seg)).toBe(false)
   })
 
-  it('aceita o fim de semana com feriado emendado', () => {
-    const limite = new Date('2026-09-04T00:00:00Z')
-    const tresDiasDepois = new Date('2026-09-07T12:00:00Z')
+  /*
+   * **A regra mudou em 21/09**: a janela era de três dias, e o teste dizia
+   * "recusa a partir do quarto". Passou a ser de **sete**, por escolha do dono
+   * do produto.
+   *
+   * O motivo não era feriado, era estrutural: a tarefa roda às 04:00 de
+   * Brasília e a PTAX do dia só sai à tarde, então na segunda ela ainda
+   * encontra a de sexta. A conta chegava a quatro dias às 21:00 de Brasília, e
+   * o real sumia da tela toda segunda à noite.
+   */
+  it('aceita a semana inteira, que é o atraso estrutural da tarefa', () => {
+    expect(MAX_RATE_AGE_IN_DAYS).toBe(7)
 
-    expect(MAX_RATE_AGE_IN_DAYS).toBe(3)
-    expect(isRateStale(limite, tresDiasDepois)).toBe(false)
+    const seteDiasAntes = new Date('2026-08-31T00:00:00Z')
+    expect(isRateStale(seteDiasAntes, seg)).toBe(false)
   })
 
-  it('recusa a partir do quarto dia', () => {
-    expect(isRateStale(new Date('2026-09-03T00:00:00Z'), seg)).toBe(true)
+  /* O caso real de 21/09: segunda à noite, com a cotação de sexta. */
+  it('aceita a de sexta na noite de segunda, em UTC', () => {
+    const sexta = new Date('2026-09-18T00:00:00Z')
+    const segundaANoite = new Date('2026-09-22T01:07:00Z')
+
+    expect(isRateStale(sexta, segundaANoite)).toBe(false)
+  })
+
+  /* Passando de sete, é a importação que parou — e aí o real some mesmo. */
+  it('recusa a partir do oitavo dia', () => {
+    expect(isRateStale(new Date('2026-08-30T00:00:00Z'), seg)).toBe(true)
   })
 
   /**
