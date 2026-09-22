@@ -131,6 +131,23 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 Fora da tabela, porque não roda no dia a dia:
 
 ```
+npm run religar-local
+npm run religar-local -- pessoa@exemplo.com
+```
+
+Religa as contas do banco local às identidades que o Supabase tem hoje. Serve
+para um sintoma específico: **no `next dev`, os dados são locais e o login é o
+de produção** — `DATABASE_URL` aponta para a máquina, `NEXT_PUBLIC_SUPABASE_URL`
+para o projeto hospedado. Apagar contas em produção apaga também os usuários do
+Supabase Auth, os `auth_user_id` locais viram órfãos, e o login passa a recusar
+com "este e-mail já tem uma conta no ColeXa" (decisão 097). Parece defeito, e
+não é — armadilha 85.
+
+O script não apaga nada: preserva coleção, want list, binders e plano. Ele
+**recusa rodar se `DATABASE_URL` não for da própria máquina**, e do Supabase só
+lê.
+
+```
 node scripts/marca/gen.mjs
 ```
 
