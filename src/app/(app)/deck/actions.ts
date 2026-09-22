@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { analyzeDeck, type DeckAnalysis } from '@/server/application/decks'
+import { analyzeDeck, saveDeck, type DeckAnalysis } from '@/server/application/decks'
 import { bulkAddWants } from '@/server/application/wants'
 import { isAppError } from '@/server/domain/errors'
 import { currentViewer } from '@/server/http/viewer'
@@ -38,6 +38,39 @@ export async function conferirDeckAction(input: {
 
   try {
     return { status: 'ok', analysis: await analyzeDeck(viewer, input) }
+  } catch (error) {
+    if (isAppError(error)) return { status: 'error', message: error.message }
+    throw error
+  }
+}
+
+export type SaveState =
+  | { status: 'idle' }
+  | { status: 'ok'; id: string; message: string }
+  | { status: 'error'; message: string }
+
+/**
+ * Salva a lista (decisão 108).
+ *
+ * Com `id`, regrava a mesma lista; sem, cria outra. Quem abriu uma lista para
+ * corrigir não espera terminar com duas.
+ *
+ * Revalida `/deck` porque a estante mostra nome, capa e progresso — todos
+ * mudam ao salvar, e a tela ficaria contando o estado anterior.
+ */
+export async function salvarDeckAction(input: {
+  id?: string | null
+  name: string
+  leaderVariantId: string
+  lines: { variantId: string; copies: number }[]
+}): Promise<SaveState> {
+  const viewer = await currentViewer()
+  if (!viewer) return { status: 'error', message: SESSAO_EXPIRADA }
+
+  try {
+    const { id } = await saveDeck(viewer, { ...input, autoComplete: true })
+    revalidatePath('/deck')
+    return { status: 'ok', id, message: 'Lista salva.' }
   } catch (error) {
     if (isAppError(error)) return { status: 'error', message: error.message }
     throw error

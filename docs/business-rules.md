@@ -477,8 +477,11 @@ líder** — líder de duas cores aceita as duas. O trait não importa: a cor em
 comum é a única exigência de combinação. No máximo **4 cópias da mesma
 carta**, somando as artes: duas artes da mesma carta são a mesma carta.
 
-O ColeXa **não guarda decks**. A pessoa monta a lista na tela e o produto
-responde três coisas:
+**As listas são guardadas** (decisão 108, 22/09). Até então não eram — a 095
+dizia que o ColeXa conferia decks e que guardá-los era outro produto. Usuários
+pediram o contrário: montar aos poucos, dar nome e acompanhar quanto falta.
+
+A pessoa monta a lista na tela e o produto responde três coisas:
 
 1. **quantas cópias ela já tem**, das **51 cartas** — o líder é conferido
    junto;
@@ -495,6 +498,24 @@ cópia nunca cobre duas linhas.
 O que não pode ser jogado é **recusado**, e não avisado: passar de 4 cópias, pôr
 carta fora da cor ou um segundo líder. O total de 50 é contagem, porque um deck
 em construção passa a maior parte do tempo incompleto.
+
+### 7.1 As decklists salvas (decisão 108)
+
+1. **O líder é obrigatório para salvar**, e continua sendo a primeira escolha. É
+   ele que define as cores do resto, e é a **capa** da lista.
+2. **A lista pode ser salva incompleta**, e aí ganha a marca **"incompleta"**.
+   Montar aos poucos é o caso normal, e foi o que motivou o pedido.
+3. **O nome é obrigatório**, e serve só para a pessoa se guiar entre as listas.
+4. **A capa é sempre a arte do líder** — não se escolhe imagem.
+5. **O progresso é "X de 51"**: quantas cartas a pessoa já tem, contando
+   **qualquer arte** da mesma carta, limitado ao que a lista pede. Responde
+   "consigo jogar isto?", e para jogar a arte não importa.
+6. **Salvar não aceita o que a conferência recusa**: as regras da seção 7 valem
+   igual, e são o mesmo código.
+7. **Sem limite de listas**, como os binders.
+8. **Quem perde o Premium não perde as listas.** Elas continuam guardadas e
+   **param de abrir**; a tela diz isso onde a pessoa está. Apagar continua
+   possível — quem deixou de assinar segue dono do que criou.
 
 ## 8. Planos: Free e Premium
 
