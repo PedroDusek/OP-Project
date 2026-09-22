@@ -1,7 +1,8 @@
 'use client'
 
 import { useActionState, useEffect, useState } from 'react'
-import { Heart } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowRight, Heart } from 'lucide-react'
 import { setWantAction } from '@/app/(app)/colecao/actions'
 import { WANT_IDLE } from '@/app/(app)/colecao/state'
 import { Badge } from '@/components/ui/badge'
@@ -40,6 +41,15 @@ export interface WantSheetProps {
   currentQuantity: number
   /** Quantas ela já tem, para o painel dizer o que ainda falta. */
   owned: number
+  /**
+   * O caminho para o catálogo aparece?
+   *
+   * Sim por padrão, porque é o caso comum: quem abre o painel pela want list
+   * está decidindo quantas quer, e o preço mora na outra tela. Falso só no
+   * detalhe da carta, que **é** aquela tela — um link para a página onde a
+   * pessoa já está é ruído.
+   */
+  showCatalogLink?: boolean
 }
 
 export function WantSheet({
@@ -52,6 +62,7 @@ export function WantSheet({
   labels,
   currentQuantity,
   owned,
+  showCatalogLink = true,
 }: WantSheetProps) {
   const [state, action, pending] = useActionState(setWantAction, WANT_IDLE)
   const [quantity, setQuantity] = useState(() => openingQuantity(currentQuantity))
@@ -118,6 +129,25 @@ export function WantSheet({
             {owned > 0 ? ` · você tem ${owned}` : ''}
           </p>
         </div>
+
+        {/*
+          Pedido do dono do produto em 21/09: quem está decidindo quantas quer
+          precisa do preço para decidir, e o preço — com o link da Liga — mora
+          no catálogo. O mesmo caminho que o painel irmão, o de "quantas você
+          tem", já oferecia.
+
+          Sai do formulário por baixo: quem toca aqui abandona a edição, e o
+          lugar dele é depois da pergunta, não no meio dela.
+        */}
+        {showCatalogLink ? (
+          <Link
+            href={`/catalogo/carta/${variantId}`}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-accent-ink hover:underline"
+          >
+            Ver no catálogo, com preço e link da Liga
+            <ArrowRight className="size-4" aria-hidden />
+          </Link>
+        ) : null}
 
         {state.status === 'error' ? (
           <p role="alert" className="text-sm text-danger">
@@ -190,6 +220,8 @@ export function WantButton({
         labels={labels}
         currentQuantity={currentQuantity}
         owned={owned}
+        // Já estamos no catálogo: o link apontaria para esta mesma página.
+        showCatalogLink={false}
       />
     </>
   )
