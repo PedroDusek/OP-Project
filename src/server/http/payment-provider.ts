@@ -54,6 +54,18 @@ export interface PaymentProvider {
   /** Endereço do portal onde a pessoa troca o cartão ou cancela. */
   createPortalSession(customerId: string, returnUrl: string): Promise<string>
   /**
+   * De quem é a cobrança, pelo identificador dela.
+   *
+   * Existe por causa da contestação de cobrança: o aviso de disputa traz a
+   * cobrança e o pagamento, **mas não o cliente** — e sem o cliente não há como
+   * saber de quem é a conta. É a única operação que pergunta algo ao provedor
+   * em vez de mandar; guardar o id da cobrança no banco seria a alternativa, e
+   * custaria uma coluna nova.
+   *
+   * Devolve `null` quando a cobrança não existe ou não tem cliente.
+   */
+  customerOfCharge(chargeId: string): Promise<string | null>
+  /**
    * Confere a assinatura do aviso e devolve o conteúdo.
    *
    * Lança quando a assinatura não confere: um aviso forjado moveria o plano de

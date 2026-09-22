@@ -6,7 +6,7 @@ import {
   type PaymentMethod,
   type SubscriptionStatus,
 } from '@/server/domain/billing/plans'
-import type { PaymentEventData } from '@/server/http/payment-provider'
+import type { PaymentEventData, PaymentProvider } from '@/server/http/payment-provider'
 
 /**
  * O que o provedor avisou vira acesso (decisão 102).
@@ -34,6 +34,7 @@ const TRATADOS = new Set([
   'customer.subscription.updated',
   'customer.subscription.deleted',
   'charge.refunded',
+  'charge.dispute.created',
 ])
 
 export interface EventOutcome {
@@ -48,6 +49,13 @@ export async function handlePaymentEvent(
   prisma: PrismaClient,
   event: PaymentEventData,
   now: Date = new Date(),
+  /*
+   * Só a contestação de cobrança precisa dele, e só para perguntar de quem é a
+   * cobrança (a disputa não traz o cliente). É opcional para o resto do
+   * processamento continuar funcionando sem rede — que é como a maioria dos
+   * testes roda, e como deve ser.
+   */
+  provider?: Pick<PaymentProvider, 'customerOfCharge'>,
 ): Promise<EventOutcome> {
   const jaVisto = await prisma.paymentEvent.findUnique({ where: { eventId: event.id } })
   if (jaVisto?.handledAt) {
@@ -81,7 +89,7 @@ export async function handlePaymentEvent(
   }
 
   try {
-    const userId = await aplicar(prisma, event, now)
+    const userId = await aplicar(prisma, event, now, provider)
     await marcarTratado(prisma, event.id)
     return { duplicate: false, ignored: false, userId }
   } catch (error) {
@@ -140,6 +148,8 @@ interface StripeObjeto {
   /** Na cobrança estornada: o total e o quanto já voltou, em centavos. */
   amount?: number | null
   amount_refunded?: number | null
+  /** Na contestação: a cobrança contestada. A disputa **não** traz o cliente. */
+  charge?: string | null
   items?: { data?: { current_period_end?: number | null }[] } | null
   parent?: {
     subscription_details?: {
@@ -171,9 +181,15 @@ function metadataDe(objeto: StripeObjeto): Record<string, string> {
 }
 
 /** Aplica o aviso e devolve de quem é a conta, quando dá para saber. */
-async function aplicar(prisma: PrismaClient, event: PaymentEventData, now: Date): Promise<bigint | null> {
+async function aplicar(
+  prisma: PrismaClient,
+  event: PaymentEventData,
+  now: Date,
+  provider?: Pick<PaymentProvider, 'customerOfCharge'>,
+): Promise<bigint | null> {
   const objeto = ((event.payload as { data?: { object?: StripeObjeto } }).data?.object ?? {}) as StripeObjeto
-  const customerId = typeof objeto.customer === 'string' ? objeto.customer : null
+  const customerId =
+    typeof objeto.customer === 'string' ? objeto.customer : await clienteDaDisputa(objeto, provider)
 
   const userId = await acharUsuario(prisma, objeto, customerId)
   if (!userId) {
@@ -236,6 +252,19 @@ async function aplicar(prisma: PrismaClient, event: PaymentEventData, now: Date)
       cancelAtPeriodEnd: false,
     })
     if (fim) await liberar(prisma, userId, fim)
+    return userId
+  }
+
+  if (event.type === 'charge.dispute.created') {
+    /*
+     * Contestação corta igual ao estorno (decisão 102, mudança de 21/09). O
+     * dinheiro sai da conta assim que a disputa abre, e o serviço acompanha.
+     *
+     * Não há conta de valor parcial aqui: a Stripe abre a disputa pelo valor
+     * contestado, e uma contestação parcial de assinatura mensal não é caso
+     * que exista no ColeXa — cada ciclo é uma cobrança só.
+     */
+    await cortarAcesso(prisma, userId)
     return userId
   }
 
@@ -384,6 +413,28 @@ async function atualizarStatus(prisma: PrismaClient, userId: bigint, status: Sub
     select: { id: true },
   })
   if (atual) await prisma.subscription.update({ where: { id: atual.id }, data: { status } })
+}
+
+/**
+ * O cliente de uma contestação, perguntado ao provedor.
+ *
+ * O aviso de disputa traz `charge` e `payment_intent`, e **não** traz o
+ * cliente — ao contrário do estorno, onde a cobrança vem inteira. Sem o cliente
+ * não há como saber de quem é a conta, então esta é a única vez em que o
+ * webhook pergunta algo ao provedor em vez de só ler o que chegou.
+ *
+ * Guardar o id da cobrança em `subscriptions` seria a alternativa, e custaria
+ * uma coluna nova — conversa, e não detalhe (decisão 041).
+ *
+ * Sem provedor (o caso dos testes que não tocam a rede) devolve `null`, e o
+ * aviso segue o caminho normal de quem não tem dono.
+ */
+async function clienteDaDisputa(
+  objeto: StripeObjeto,
+  provider?: Pick<PaymentProvider, 'customerOfCharge'>,
+): Promise<string | null> {
+  if (!provider || typeof objeto.charge !== 'string') return null
+  return provider.customerOfCharge(objeto.charge)
 }
 
 /**

@@ -26,6 +26,8 @@ const provider: PaymentProvider = {
     return { url: 'https://stripe.test/pagar', sessionId: 'cs_1' }
   },
   createPortalSession: async () => 'https://stripe.test/portal',
+  // Só a contestação de cobrança usa isto, e ela tem testes próprios.
+  customerOfCharge: async () => null,
   parseEvent: () => {
     throw new Error('não usado aqui')
   },

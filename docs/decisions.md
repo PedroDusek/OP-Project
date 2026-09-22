@@ -6342,14 +6342,26 @@ Os limites da exceção, que são o que importa:
   pé. Quem estorna sem cancelar é cobrado de novo no mês seguinte, e o acesso
   volta com o pagamento — que é o certo.
 
-**Contestação de cobrança (chargeback) ficou de fora**, e é pergunta em aberto:
-é sinal mais forte que estorno, mas tem prazo e contestação própria, e inventar
-regra para ela sem o dono do produto decidir seria justamente o que não se faz
-aqui.
+**Contestação de cobrança (chargeback) corta igual**, decidido pelo dono do
+produto no mesmo dia. O corte acontece na **abertura** da disputa
+(`charge.dispute.created`), que é quando o dinheiro sai da conta, e vale os
+mesmos limites do estorno.
 
-**O evento `charge.refunded` precisa ser marcado no painel da Stripe**, nos dois
-modos. Sem isso o código novo nunca é chamado, e o sintoma é exatamente o que
-motivou esta mudança.
+Duas coisas ficaram em aberto, de propósito:
+
+- **Disputa ganha por nós não devolve o acesso sozinha.** O dinheiro volta, mas
+  nada reabre o Premium — até alguém decidir a regra, se resolve com
+  `npm run supabase -- premium <email> --ate=...`. Automatizar sem decidir seria
+  inventar regra.
+- **A disputa não diz de quem é.** Ao contrário do estorno, o aviso traz
+  `charge` e `payment_intent`, e **não** o cliente. Por isso o webhook passou a
+  perguntar ao provedor de quem é a cobrança (`customerOfCharge`) — a única
+  operação em que ele pergunta em vez de só ler. A alternativa era guardar o id
+  da cobrança em `subscriptions`, e coluna nova é conversa (decisão 041).
+
+**Os eventos `charge.refunded` e `charge.dispute.created` precisam estar
+marcados no painel da Stripe**, nos dois modos. Sem eles o código nunca é
+chamado, e o sintoma é exatamente o que motivou esta mudança.
 
 ## Mudança em 21/09: o mensal vem primeiro, e vem marcado
 
