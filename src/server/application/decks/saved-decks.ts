@@ -53,9 +53,6 @@ export interface SavedDeckSummary {
   updatedAt: Date
 }
 
-/** As 51: o líder entra na conta (regra 7). */
-export const DECK_TOTAL_COM_LIDER = DECK_SIZE + 1
-
 /**
  * Grava a lista, criando ou regravando.
  *

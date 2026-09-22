@@ -46,5 +46,6 @@ export type {
   DeckPlace,
 } from './analyze-deck'
 export type { SavedDeck, SavedDeckInput, SavedDeckSummary } from './saved-decks'
-export { DECK_TOTAL_COM_LIDER } from './saved-decks'
+/* As 51 moram no domínio: a tela precisa delas, e o domínio é puro. */
+export { DECK_TOTAL_WITH_LEADER } from '@/server/domain/decks/deck'
 export { DECK_SIZE, MAX_COPIES_PER_CARD } from '@/server/domain/decks/deck'
