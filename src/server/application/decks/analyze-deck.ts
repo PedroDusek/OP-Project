@@ -1,4 +1,4 @@
-import { Prisma, type PrismaClient } from '@prisma/client'
+import type { PrismaClient } from '@prisma/client'
 import type { AuthenticatedUser } from '@/server/application/auth'
 import { assertPremium } from '@/server/application/authorization'
 import { getUsdBrlRate } from '@/server/application/prices/read-prices'
@@ -316,13 +316,12 @@ async function precosDe(prisma: PrismaClient, variantIds: string[]): Promise<Map
   const ids = [...new Set(variantIds)].map(BigInt)
   if (ids.length === 0) return new Map()
 
-  // `DISTINCT ON` traz o mais recente de cada variante numa consulta so: uma
-  // consulta por carta seriam cinquenta idas ao banco por conferencia.
-  const rows = await prisma.$queryRaw<{ card_variant_id: bigint; value: Prisma.Decimal }[]>`
-    SELECT DISTINCT ON (card_variant_id) card_variant_id, value
-      FROM card_prices
-     WHERE card_variant_id IN (${Prisma.join(ids)})
-     ORDER BY card_variant_id, captured_at DESC
-  `
-  return new Map(rows.map((row) => [String(row.card_variant_id), Number(row.value)]))
+  // Uma consulta so: uma por carta seriam cinquenta idas ao banco por
+  // conferencia. Era um `DISTINCT ON` sobre a serie historica; desde a decisao
+  // 107 ha uma linha por variante, e desempatar por data saiu de cena.
+  const rows = await prisma.cardPrice.findMany({
+    where: { cardVariantId: { in: ids } },
+    select: { cardVariantId: true, value: true },
+  })
+  return new Map(rows.map((row) => [String(row.cardVariantId), Number(row.value)]))
 }

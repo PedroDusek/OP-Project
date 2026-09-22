@@ -137,14 +137,13 @@ async function posse(prisma: PrismaClient, user: AuthenticatedUser): Promise<Map
 }
 
 /**
- * O preço mais recente de cada variante, numa consulta só (`DISTINCT ON`), como
- * no Deck Builder: uma por variante seriam milhares de idas ao banco.
+ * O preço de cada variante, numa consulta só: uma por variante seriam milhares
+ * de idas ao banco.
+ *
+ * Era um `DISTINCT ON` sobre a série histórica. Desde a decisão 107 há **uma
+ * linha por variante**, e desempatar por data deixou de fazer sentido.
  */
 async function precos(prisma: PrismaClient): Promise<Map<string, number>> {
-  const linhas = await prisma.$queryRaw<{ card_variant_id: bigint; value: unknown }[]>`
-    SELECT DISTINCT ON (card_variant_id) card_variant_id, value
-      FROM card_prices
-     ORDER BY card_variant_id, captured_at DESC
-  `
-  return new Map(linhas.map((linha) => [String(linha.card_variant_id), Number(linha.value)]))
+  const linhas = await prisma.cardPrice.findMany({ select: { cardVariantId: true, value: true } })
+  return new Map(linhas.map((linha) => [String(linha.cardVariantId), Number(linha.value)]))
 }

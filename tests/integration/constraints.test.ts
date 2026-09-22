@@ -229,44 +229,46 @@ describe('identidade de variante', () => {
   })
 })
 
-describe('historico de precos', () => {
-  it('impede duas capturas da mesma variante no mesmo instante', async () => {
-    // Sem isto, reexecutar a importacao de precos duplicaria o historico, e o
-    // valor historico de um trade dependeria de qual linha a consulta pegasse.
+/*
+ * **A regra mudou em 22/09** (decisão 107). O único era
+ * `(card_variant_id, captured_at)` e a tabela guardava a série; agora é
+ * `(card_variant_id)` e há **uma linha por variante, sobrescrita**.
+ *
+ * O histórico sustentava a regra 5.1 — valor do trade pelo preço da data —, que
+ * nunca foi implementada e foi abandonada: o produto não guarda valor de carta
+ * em troca nenhuma. O que o banco garante agora é o contrário do que garantia:
+ * que **não** dá para acumular duas linhas da mesma variante.
+ */
+describe('preco por variante', () => {
+  it('impede uma segunda linha para a mesma variante', async () => {
     const db = testPrisma()
     const { variant } = await createCardWithVariant()
-    const capturedAt = new Date('2026-09-06T12:00:00.000Z')
 
     await db.cardPrice.create({
-      data: { cardVariantId: variant.id, value: 100, capturedAt },
+      data: { cardVariantId: variant.id, value: 100, capturedAt: new Date('2026-09-06T12:00:00.000Z') },
     })
     await expect(
       db.cardPrice.create({
-        data: { cardVariantId: variant.id, value: 150, capturedAt },
+        data: { cardVariantId: variant.id, value: 150, capturedAt: new Date('2026-09-07T12:00:00.000Z') },
       }),
     ).rejects.toThrow()
   })
 
-  it('aceita capturas em instantes diferentes', async () => {
+  /* Sobrescrever é o caminho normal, e é o que a importação faz. */
+  it('deixa sobrescrever o preço da variante', async () => {
     const db = testPrisma()
     const { variant } = await createCardWithVariant()
 
     await db.cardPrice.create({
-      data: {
-        cardVariantId: variant.id,
-        value: 100,
-        capturedAt: new Date('2026-09-06T12:00:00.000Z'),
-      },
+      data: { cardVariantId: variant.id, value: 100, capturedAt: new Date('2026-09-06T12:00:00.000Z') },
     })
-    await db.cardPrice.create({
-      data: {
-        cardVariantId: variant.id,
-        value: 150,
-        capturedAt: new Date('2026-09-07T12:00:00.000Z'),
-      },
+    await db.cardPrice.update({
+      where: { cardVariantId: variant.id },
+      data: { value: 150, capturedAt: new Date('2026-09-07T12:00:00.000Z') },
     })
 
-    expect(await db.cardPrice.count()).toBe(2)
+    expect(await db.cardPrice.count()).toBe(1)
+    expect(Number((await db.cardPrice.findUniqueOrThrow({ where: { cardVariantId: variant.id } })).value)).toBe(150)
   })
 
   it('aceita a mesma captura para variantes diferentes', async () => {

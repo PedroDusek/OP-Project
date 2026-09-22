@@ -6692,3 +6692,68 @@ modelo de dados multi-jogo, o idioma por carta, e a cadência de importação.
 ## Data
 
 2026-09-22
+
+---
+
+# Decisão: 107 — O preço é sobrescrito: não há histórico
+
+Pergunta do dono do produto em 22/09, enquanto se media o custo de Pokémon
+(decisão 106): *"nós não vamos armazenar valor de carta em troca alguma, então
+faz sentido armazenar histórico de preço?"*
+
+## O que a investigação achou
+
+**Ninguém lia o histórico.** `dashboard.ts`, `analyze-deck.ts` e
+`read-prices.ts` pegam todos a linha mais recente, e **não existia uma única
+consulta de preço numa data passada** em todo o `src/`.
+
+A regra 5.1 — valor de um trade concluído pelo preço vigente em `completed_at` —
+**estava escrita e nunca foi implementada**. Ela era a única justificativa da
+série, e o dono do produto acabava de tirá-la da mesa: o produto não guarda
+valor de carta em troca nenhuma.
+
+O que sobrava era uma funcionalidade hipotética — gráfico de evolução de preço,
+"sua coleção subiu 12% no mês" —, apresentada explicitamente antes da decisão,
+porque ela tem a mesma armadilha: **não se reconstrói depois**. O dono do
+produto a descartou.
+
+## Decisão
+
+**`card_prices` passa a ter uma linha por variante, sobrescrita.** O índice
+único vai de `(card_variant_id, captured_at)` para `(card_variant_id)`.
+
+A escrita **continua acontecendo só quando o valor muda** (decisão 050,
+mantida). Isso deixou de ser economia de linhas e passou a ser o que dá sentido
+a `captured_at`: ela significa **desde quando a carta está neste preço**.
+Atualizá-la a cada conferência a transformaria em "quando rodamos a importação",
+afirmação que já mora em `price_imports` e é a que a tela mostra.
+
+## Por que agora, e não depois
+
+Era o momento mais barato da vida do produto: **13 dias de histórico e zero
+trades concluídos**. Nada de real se perdeu.
+
+E o custo de adiar era conhecido: com Pokémon, a série cresceria da ordem de
+**1 GB por ano** (decisão 106), contra ~82 MB/ano só de One Piece.
+
+## O que isto não foi
+
+**Não foi economia.** No plano Pro, o espaço do histórico custaria cerca de
+**US$ 1,50 por ano** — isso foi dito ao dono do produto antes da decisão,
+justamente para ele não escolher pelo motivo errado. A decisão é sobre o produto
+não ter a funcionalidade, e não sobre disco.
+
+## Consequências registradas
+
+- Regra 5 reescrita: não há histórico de preço.
+- **Regra 5.1 marcada como abandonada**, com o motivo.
+- Regra 5.0 perdeu o argumento que dependia do valor histórico do trade; o
+  motivo que sobrou — o Banco Central corrige cotação publicada — já bastava.
+- A migration `20260922180000_preco_sem_historico` **apaga dados e não tem
+  volta**: mantém a captura mais recente de cada variante e troca o índice.
+- Os dois leitores que usavam `DISTINCT ON ... ORDER BY captured_at DESC`
+  viraram consultas diretas: desempatar por data deixou de fazer sentido.
+
+## Data
+
+2026-09-22

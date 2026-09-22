@@ -303,17 +303,19 @@ aparenta estar correta na leitura.
 | `value` | decimal(12,2) | not null, check `>= 0` |
 | `captured_at` | timestamptz | not null |
 
-Nome `captured_at` conforme a decisão 010. O histórico é somente-inserção; linhas
-nunca são sobrescritas.
+**Uma linha por variante, sobrescrita** (decisão 107, 22/09). A tabela guarda o
+preço de agora; **não há histórico de preço**.
 
-`UNIQUE (card_variant_id, captured_at)` — decisão 014. Sem ela, reexecutar a
-importação de preços duplicaria o histórico, e o valor histórico de um trade
-passaria a depender de qual linha a consulta escolhesse.
+`UNIQUE (card_variant_id)` é o que garante isso. Até 22/09 era
+`(card_variant_id, captured_at)` e a tabela era somente-inserção, para sustentar
+a regra 5.1 — valor de um trade concluído pelo preço vigente na data. Essa regra
+nunca foi implementada, o dono do produto decidiu que o produto não guarda valor
+de carta em troca nenhuma, e nenhuma consulta lia preço de data passada.
 
-Esse índice único substitui o índice de consulta que existia antes sobre as
-mesmas colunas em ordem decrescente: o PostgreSQL varre um btree ascendente para
-trás, então ele já atende "preço mais recente desta variante". Verificado por
-`EXPLAIN`, que mostra `Index Scan Backward` usando exatamente este índice.
+Nome `captured_at` conforme a decisão 010, e o significado dele **não** é "quando
+conferimos": é **desde quando a carta está neste preço**, porque a escrita só
+acontece quando o valor muda. Quando a importação rodou vive em `price_imports`,
+e é de lá que sai "atualizado hoje às 04:00".
 
 ### 2.5 Trocas
 
@@ -332,8 +334,10 @@ CHECK (status IN ('DRAFT','PROPOSED','NEGOTIATING','CONFIRMED','COMPLETED','CANC
 CHECK ((status = 'COMPLETED') = (completed_at IS NOT NULL))
 ```
 
-O segundo check impede que `completed_at` e o status divirjam, o que importa
-porque o valor histórico do trade é resolvido a partir de `completed_at`.
+O segundo check impede que `completed_at` e o status divirjam — uma troca ou
+está concluída e tem data, ou nenhuma das duas coisas. (Ele existia também para
+sustentar o valor histórico do trade, **abandonado em 22/09**: regra 5.1 e
+decisão 107.)
 
 `offer_changed_at` é a adição da decisão 065: é dela que sai a espera de cinco
 segundos antes de poder confirmar. Não reaproveita `updated_at` porque ele sobe
@@ -574,7 +578,7 @@ Analisada relação a relação, e não aplicada uniformemente.
 | `card_<vocabulário>.<vocabulário>_id` | RESTRICT | um termo em uso nunca é removido silenciosamente |
 | `collection_items.card_variant_id` | RESTRICT | nunca apagar variante do catálogo que alguém possui |
 | `want_items.card_variant_id` | RESTRICT | idem |
-| `card_prices.card_variant_id` | RESTRICT | histórico de preço é dado de negócio |
+| `card_prices.card_variant_id` | RESTRICT | preço é dado de negócio |
 | `trade_items.card_variant_id` | RESTRICT | idem, para o histórico de trades |
 | `trade_participants.trade_id` | CASCADE | participantes pertencem ao trade |
 | `trade_items.trade_participant_id` | CASCADE | itens pertencem ao participante |

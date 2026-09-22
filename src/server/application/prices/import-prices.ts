@@ -18,25 +18,28 @@ import type { PriceProvider, SourcePrice } from '@/server/http/price-provider'
  * tela diz isso — mostrar o preço da comum como se fosse o da paralela seria
  * inventar um número num campo de dinheiro.
  *
- * ## Grava só o que mudou
+ * ## Uma linha por variante, sobrescrita
  *
- * `card_prices` é histórico: preços nunca são sobrescritos (`business-rules.md`
- * 5). Gravar toda captura diária de todas as variantes daria 1,77 milhão de
- * linhas por ano; gravar só quando o valor muda derruba isso para uma fração —
- * um *common* fica meses no mesmo preço.
+ * `card_prices` guarda **o preço de agora**, e não a série (`business-rules.md`
+ * 5, mudada em 22/09 pela decisão 107). Até então guardava histórico, para a
+ * regra 5.1 — o valor de um trade concluído pelo preço vigente na data. Essa
+ * regra nunca foi implementada, o dono do produto decidiu que o produto não
+ * guardará valor de carta em troca nenhuma, e nenhuma consulta do sistema lê
+ * preço de data passada.
  *
- * A série fica esparsa, e é o que o modelo já suporta: "preço vigente em T" é a
- * última linha com `captured_at <= T`, e o índice único
- * `(card_variant_id, captured_at)` atende essa leitura por ser percorrido ao
- * contrário.
+ * ## E mesmo assim só escreve quando o valor muda
  *
- * **O que isso custa em precisão**: sem linha nova, não dá para distinguir
- * "não mudou" de "não foi verificado".
+ * O `if` que compara com o valor anterior **ficou**, e não por economia de
+ * escrita: ele é o que dá sentido a `captured_at`. A coluna diz **desde quando
+ * a carta está neste preço** — atualizá-la a cada conferência a transformaria
+ * em "quando rodamos a importação", que é outra afirmação e já tem lugar.
+ *
+ * **O que isso custa em precisão**: sem escrita, não dá para distinguir "não
+ * mudou" de "não foi verificado".
  *
  * Quem paga essa conta é `price_imports`: cada execução deixa um registro com o
  * horário, o carimbo da fonte e o que aconteceu. É de lá que a tela tira
- * "atualizado hoje às 04:00" — a série de preços continua esparsa, e a
- * afirmação sobre a conferência tem onde morar (decisão 051).
+ * "atualizado hoje às 04:00" (decisão 051).
  */
 
 export interface ImportPricesResult {
@@ -186,8 +189,19 @@ async function runImport(
       continue
     }
 
-    await prisma.cardPrice.create({
-      data: { cardVariantId: item.variantId, value: item.value, capturedAt },
+    /*
+     * Sobrescreve (decisao 107). A tabela guarda **o preco de agora**, e nao a
+     * serie: uma linha por variante.
+     *
+     * O `if` acima continua valendo, e nao e economia de escrita — e o que
+     * preserva o significado de `captured_at`. Ele diz **desde quando a carta
+     * esta neste preco**, e nao "quando conferimos"; quando conferimos vive em
+     * `price_imports`, que e a data que a tela mostra.
+     */
+    await prisma.cardPrice.upsert({
+      where: { cardVariantId: item.variantId },
+      create: { cardVariantId: item.variantId, value: item.value, capturedAt },
+      update: { value: item.value, capturedAt },
     })
     written++
   }
