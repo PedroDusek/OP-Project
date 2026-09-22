@@ -801,9 +801,10 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
      produto em 21/09 (decisão 102, mudança). O risco assumido está escrito lá,
      e eles **continuam sendo bloqueio de lançamento** (decisão 030). Enquanto
      não vierem, cancelamento e reembolso são à mão, pelo painel da Stripe.
-   - **Contestação de cobrança (chargeback) não está tratada**, e é pergunta em
-     aberto para o dono do produto: o estorno corta o acesso, e o chargeback é
-     sinal mais forte — mas tem prazo e contestação própria, e a regra é dele.
+   - **Marcar `charge.dispute.created` no webhook**, nos dois modos. É o sétimo
+     evento, e sem ele a contestação de cobrança não corta o acesso.
+   - **Disputa ganha por nós não devolve o acesso sozinha** — pergunta em aberto
+     para o dono do produto. Até lá, `npm run supabase -- premium`.
    - **Pix não é pendência**: ficou fora do lançamento por decisão (102,
      mudança de 21/09). Se um dia entrar, é pedir o convite à Stripe e ligar
      `STRIPE_PIX=1` no `[env]` do `fly.toml`.
@@ -1193,12 +1194,18 @@ assinatura cancelada é um dos casos que precisam de ação.
 - **`payment_events` é a trava contra processar o mesmo aviso duas vezes**, e o
   rastro para cobrança contestada. Falha deixa `handled_at` nulo de propósito,
   para o reenvio da Stripe poder ser processado.
-- **Estorno total corta o acesso na hora** (decisão 102, mudança de 21/09), e é
-  a única exceção à regra de nunca encurtar. Ela tem limites de propósito: só
-  estorno **total**, e só o que **aquele pagamento** deu — quem tem cortesia
-  mais longa não perde nada. Depende de `charge.refunded` estar marcado no
-  painel. Contestação de cobrança (chargeback) **não** está tratada, e é
-  pergunta em aberto para o dono do produto.
+- **Estorno e contestação cortam o acesso na hora** (decisão 102, mudanças de
+  21/09), e são a única exceção à regra de nunca encurtar. Os limites são de
+  propósito: só estorno **total**, e só o que **aquele pagamento** deu — quem
+  tem cortesia mais longa não perde nada. Dependem de `charge.refunded` e
+  `charge.dispute.created` estarem marcados no painel, nos dois modos.
+- **A contestação é a única coisa que faz o webhook perguntar à Stripe.** O
+  aviso de disputa traz `charge` e `payment_intent` e **não** traz o cliente, e
+  sem cliente não há de quem cortar; `customerOfCharge` resolve isso com um
+  `GET /v1/charges/{id}`. Ele engole a falha e devolve nulo de propósito: um GET
+  fora do ar não pode derrubar o webhook, ou a Stripe reenviaria para sempre.
+  **Disputa ganha por nós não devolve o acesso** — é pergunta em aberto, e até
+  lá se resolve com `npm run supabase -- premium`.
 - **Pix é pagamento avulso**: cada um compra um ciclo, contado por nós. Cartão
   renova sozinho. **O Pix está desligado e fica fora do lançamento** (decisão
   102, mudança de 21/09): o botão some e o caso de uso recusa `forma=PIX`. O

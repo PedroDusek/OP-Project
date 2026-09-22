@@ -476,15 +476,15 @@ No painel da Stripe, com a conta já verificada:
    pôr `STRIPE_PIX=1` no ambiente. Sem as duas coisas, a sessão de Pix é
    recusada na criação.
 3. **Webhook** em *Workbench → Webhooks*, apontando para
-   `https://colexa.com.br/api/pagamentos/stripe`, com os **seis** eventos:
+   `https://colexa.com.br/api/pagamentos/stripe`, com os **sete** eventos:
    `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`,
-   `customer.subscription.updated`, `customer.subscription.deleted` e
-   `charge.refunded`. Anote o `whsec_...`.
+   `customer.subscription.updated`, `customer.subscription.deleted`,
+   `charge.refunded` e `charge.dispute.created`. Anote o `whsec_...`.
 
-   **`charge.refunded` é o que corta o acesso de quem foi estornado** (decisão
-   102, mudança de 21/09). Sem ele marcado, o código do estorno nunca roda e
-   quem pede o dinheiro de volta fica com o ciclo inteiro de graça — foi assim
-   que o defeito apareceu.
+   **Os dois últimos cortam o acesso** de quem foi estornado ou contestou a
+   cobrança (decisão 102, mudanças de 21/09). Sem eles marcados, o código nunca
+   roda e quem pede o dinheiro de volta fica com o ciclo inteiro de graça — foi
+   assim que o defeito apareceu.
 4. **Portal do cliente** em *Settings → Billing → Customer portal*: ative
    cancelamento e troca de cartão. É essa tela que o botão "Gerenciar
    pagamento" abre, e ela precisa estar certa para a cobrança ser legítima.
@@ -528,7 +528,7 @@ Pela ordem:
 2. **Criar os dois preços de novo**, agora no modo ao vivo: R$ 14,90/mês e
    R$ 149,00/ano, no produto "ColeXa Premium". Os `price_...` são **outros**.
 3. **Criar o webhook de novo**, no modo ao vivo, para
-   `https://colexa.com.br/api/pagamentos/stripe`, com os mesmos **seis**
+   `https://colexa.com.br/api/pagamentos/stripe`, com os mesmos **sete**
    eventos. O `whsec_...` é **outro**: o do modo de teste não valida nada lá, e
    a assinatura do aviso vai falhar em silêncio se for reaproveitado.
 4. **Conferir o portal do cliente** no modo ao vivo: a configuração dele também

@@ -135,6 +135,38 @@ export class StripePaymentProvider implements PaymentProvider {
     return { url: session.url, sessionId: session.id }
   }
 
+  /**
+   * O cliente de uma cobrança, para a contestação saber de quem é a conta.
+   *
+   * Engole a falha e devolve `null`: um `GET` que não responde não pode
+   * derrubar o webhook inteiro — a Stripe reenviaria o aviso para sempre. O
+   * motivo vai para o log, e a contestação sem dono fica registrada em
+   * `payment_events` para ser vista à mão.
+   */
+  async customerOfCharge(chargeId: string): Promise<string | null> {
+    const config = this.config()
+    if (!config) return null
+
+    try {
+      const response = await fetch(`${API}/charges/${encodeURIComponent(chargeId)}`, {
+        headers: { Authorization: `Bearer ${config.secretKey}` },
+        signal: AbortSignal.timeout(20_000),
+      })
+      if (!response.ok) {
+        console.warn('[pagamentos] cobranca nao encontrada', { chargeId, status: response.status })
+        return null
+      }
+      const cobranca = (await response.json()) as { customer?: string | null }
+      return typeof cobranca.customer === 'string' ? cobranca.customer : null
+    } catch (erro) {
+      console.warn('[pagamentos] falha ao ler a cobranca', {
+        chargeId,
+        erro: erro instanceof Error ? erro.message : String(erro),
+      })
+      return null
+    }
+  }
+
   async createPortalSession(customerId: string, returnUrl: string): Promise<string> {
     const session = await this.post<{ url: string }>('/billing_portal/sessions', {
       customer: customerId,

@@ -25,6 +25,7 @@ const provider: PaymentProvider = {
   pixAvailable: false,
   createCheckout: async () => ({ url: 'https://stripe.test/pagar', sessionId: 'cs_1' }),
   createPortalSession: async () => 'https://stripe.test/portal',
+  customerOfCharge: async () => null,
   parseEvent: () => {
     throw new Error('não usado aqui')
   },

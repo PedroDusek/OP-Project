@@ -532,6 +532,10 @@ o direito de negociar.
    5: devolveu o dinheiro, acabou o serviço. Vale só para **estorno total** —
    devolver parte não desfaz a compra. E corta só o que **aquele pagamento**
    deu: quem tem acesso mais longo, vindo de cortesia, não perde nada.
+4.2. **Contestação de cobrança corta igual ao estorno** (mudança de 21/09), na
+   abertura da disputa — que é quando o dinheiro sai da conta. Mesmos limites
+   da 4.1. **Disputa ganha por nós não devolve o acesso sozinha**: é pergunta em
+   aberto, e até lá se resolve com `npm run supabase -- premium`.
 5. **Pagar nunca encurta um Premium mais longo** — é o caso de quem tem
    cortesia e resolve assinar.
 6. **Pagar antes de vencer emenda no que falta**; pagar depois recomeça no dia
