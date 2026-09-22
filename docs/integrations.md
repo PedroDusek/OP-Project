@@ -457,6 +457,18 @@ escolheu, e os preços vêm junto da carta. Se a API pública sair do ar, dá pa
 **hospedar por conta própria** a partir do repositório — o que nenhuma outra
 opção oferece.
 
+**Confirmado contra a API em 22/09**, e não só pela documentação (decisão 106):
+
+- **220 sets, 23.964 cartas** em inglês — 8,6x o nosso One Piece.
+- A carta traz `variants` (`normal`, `reverse`, `holo`, `firstEdition`,
+  `wPromo`), `variants_detailed` e **`pricing` anexado**. É isso que faz o
+  vínculo manual do One Piece — 773 respostas à mão, decisões 068 a 078 — **não
+  se repetir aqui**.
+- O tamanho foi medido antes de qualquer importação: ~100 MB de catálogo, uma
+  vez, e da ordem de **1 GB por ano** de histórico de preço. O plano gratuito do
+  Supabase trava em 500 MB **em modo somente leitura**, e por isso a decisão 106
+  move o projeto para o Pro antes de importar.
+
 **O que ela não documenta**, e precisa ser conferido antes de importar em
 escala: **limites de requisição e termos de uso** não estão publicados no site
 nem no SDK. Na prática isso significa duas coisas: perguntar no canal deles
