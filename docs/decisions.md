@@ -6664,6 +6664,57 @@ despesa, **o backup** (o maior risco operacional aberto, agora que há assinatur
 paga e coleção de gente real) e o teto de conexões que já nos mordeu
 (armadilha 71).
 
+### Correção no mesmo dia: a conta acima está errada, e o Pro ficou para depois
+
+**A decisão 2 foi justificada por um número que a decisão 107 invalidou horas
+depois.** Ela fica registrada como estava, porque foi o que se decidiu na hora,
+mas **não deve ser usada como argumento**: a conta certa é esta.
+
+O `~1 GB/ano` era **o histórico de preço crescendo**. A decisão 107 mandou parar
+de guardar histórico — `card_prices` passou a ter uma linha por variante,
+sobrescrita — e **aquele termo, que dominava a conta inteira, deixou de
+existir**. Sem ele sobra só o catálogo, que entra uma vez e não cresce.
+
+Medido no banco de produção depois da 107, por linha:
+
+| Tabela | Bytes por linha |
+|---|---:|
+| `cards` | 503 |
+| `card_variants` | 481 |
+| `card_prices` | 507 |
+| `variant_printings` | 119 |
+| cores, traits, atributos, mecânicas | ~195 cada |
+
+Pokémon são **23.964 cartas** e cerca de **48.000 variantes** (duas por carta:
+normal e reverse):
+
+| | |
+|---|---:|
+| `cards` | ~12 MB |
+| `card_variants` | ~23 MB |
+| `card_prices` | ~24 MB |
+| `variant_printings` | ~6 MB |
+| cores, traits, atributos, mecânicas | ~19 MB |
+| `variant_source_products` | **0** — Pokémon não precisa de vínculo |
+| **Pokémon** | **~84 MB** |
+| **Com One Piece (23 MB)** | **~107 MB de 500 MB** |
+
+**Pokémon cabe no plano gratuito**, com folga de quase 80%. Errando em 50% nas
+variantes, ainda cabe.
+
+O dono do produto decidiu **não ligar o Pro por enquanto**, e a conta corrigida
+sustenta isso. O que muda no registro:
+
+- **O argumento de espaço para o Pro caiu.** Ele valia enquanto havia histórico
+  de preço; não vale mais.
+- **Pokémon não depende do Pro.** O passo 7 está parado por prioridade, e não
+  por limite de banco.
+- **O backup continua de pé como motivo**, e sempre foi independente do espaço:
+  o plano gratuito não tem de onde voltar, e há assinatura paga e coleção de
+  gente real dentro. Risco aceito, e não item esquecido.
+- **Sem histórico, o banco quase não cresce**: sets novos algumas vezes por ano,
+  e os dados que os usuários criam.
+
 ## Decisão 3 — O histórico de preço fica como está
 
 Cogitou-se parar de gravar histórico, ou podá-lo por janela, para conter o
