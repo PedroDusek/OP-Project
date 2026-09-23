@@ -6827,3 +6827,61 @@ que criou.
 ## Data
 
 2026-09-22
+
+---
+
+# Decisão: 109 — Transferir a decklist para uma deckbox
+
+Pedido do dono do produto em 22/09: montado o deck de papel, dizer ao ColeXa que
+aquelas cartas agora moram na caixa do deck — em vez de corrigir o local de
+cinquenta e uma cartas a mão.
+
+## O conflito que deu forma a tudo
+
+A **regra 3.3** diz: *"Alocações nunca são removidas silenciosamente, e nenhuma
+ordem de remoção é presumida. O que a regra protege é a escolha: ninguém decide
+por quem tem a carta de qual local as cópias saem."*
+
+Transferir um deck inteiro esbarra nisso de frente. O conflito foi apresentado
+ao dono do produto **antes de qualquer código**, e ele resolveu assim:
+
+1. **Só o que a lista pede.** Ter oito cópias não manda oito para a caixa.
+2. **Uma única pilha fora de troca que cobre tudo? o sistema tira de lá.** Não há
+   escolha a fazer, então não há o que presumir.
+3. **Mais de uma possibilidade? o sistema pergunta**, carta a carta.
+4. **Local de troca não entra por padrão.** O sistema tenta completar sem ele, e
+   só usa o que está em troca se a pessoa confirmar — mover de lá **tira a carta
+   do Trade Binder público**, que outras pessoas veem.
+5. **O destino é do tipo `DECK`**, e só ele.
+
+A regra 3.3 **não muda**: ela continua valendo, e é justamente por ela que os
+itens 2 e 3 existem.
+
+## "Alocação", e não "local"
+
+No banco a unidade é **arte × local** (`collection_item_locations`). Uma carta
+pode estar em dois lugares *e* em duas artes, e as duas são a mesma pergunta: de
+qual pilha sai esta cópia. Tratá-las juntas é o que mantém a transferência
+coerente com a barra de progresso, que já conta qualquer arte.
+
+**O aviso de outra arte veio junto**, lembrado pelo dono do produto: a
+conferência já diz quando uma cópia que contou é de outra arte
+(`DeckPlace.otherArt`, decisão 095). A transferência usa o mesmo vocabulário e
+avisa igual — inclusive quando resolve sozinha. O sistema não impede, porque para
+jogar a arte não importa; mas quem pediu uma arte e vai guardar outra na caixa
+precisa saber antes de fechar a tampa.
+
+## A confirmação é uma afirmação
+
+Trocar o local de uma carta **apaga de onde ela estava**, e essa informação não
+existe em nenhum outro lugar. Por isso a tela tem duas etapas: primeiro mostra o
+que aconteceria, e só depois confirma — com o aviso mais destacado da tela
+dizendo para **só confirmar depois de ter movido as cartas de verdade**.
+
+O botão diz "Já movi as cartas — confirmar", e não "Transferir". A diferença é o
+ponto: quem clica está afirmando um fato sobre o mundo físico, e não pedindo uma
+operação.
+
+## Data
+
+2026-09-22

@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { PageHeader } from '@/components/layout/app-shell'
 import { DeckBuilder } from '@/components/decks/deck-builder'
+import { TransferDeckSheet } from '@/components/decks/transfer-deck-sheet'
+import { listStorageLocations } from '@/server/application/storage'
 import { isAppError } from '@/server/domain/errors'
 import { getCatalogVocabulary, searchCatalog } from '@/server/application/catalog'
 import { readDeck } from '@/server/application/decks'
@@ -33,10 +35,17 @@ export default async function DecklistPage({ params }: PageProps<'/deck/[id]'>) 
     throw error
   }
 
-  const [lideres, vocabulary] = await Promise.all([
+  const [lideres, vocabulary, locais] = await Promise.all([
     searchCatalog({ type: ['Leader'], pageSize: 12 }),
     getCatalogVocabulary(),
+    listStorageLocations(viewer),
   ])
+
+  // Só deckbox: o destino é do tipo Deck, por escolha do dono do produto
+  // (decisão 109). Deck é também o único tipo sem finalidade (regra 3.1).
+  const deckboxes = locais
+    .filter((local) => local.type === 'DECK')
+    .map((local) => ({ id: String(local.id), name: local.name }))
 
   return (
     <>
@@ -46,17 +55,25 @@ export default async function DecklistPage({ params }: PageProps<'/deck/[id]'>) 
         description="Ajuste a lista e salve. O ColeXa mostra o que você já tem, onde está e quanto custa o que falta."
       />
 
-      <DeckBuilder
-        vocabulary={vocabulary}
-        initialLeaders={lideres.items.map((item) => ({
-          variantId: String(item.variantId),
-          cardCode: item.cardCode,
-          cardName: item.cardName,
-          variantType: item.variantType,
-          imageUrl: item.imageUrl,
-        }))}
-        savedDeck={deck}
-      />
+      <div className="flex flex-col gap-6">
+        {/*
+          Antes do builder: quem abre a lista para transferir não veio editar, e
+          faria a rolagem inteira até o fim para achar o botão.
+        */}
+        <TransferDeckSheet deckId={deck.id} boxes={deckboxes} />
+
+        <DeckBuilder
+          vocabulary={vocabulary}
+          initialLeaders={lideres.items.map((item) => ({
+            variantId: String(item.variantId),
+            cardCode: item.cardCode,
+            cardName: item.cardName,
+            variantType: item.variantType,
+            imageUrl: item.imageUrl,
+          }))}
+          savedDeck={deck}
+        />
+      </div>
     </>
   )
 }
