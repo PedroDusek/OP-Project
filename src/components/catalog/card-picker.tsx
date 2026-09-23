@@ -418,11 +418,21 @@ export function CardPicker({
       ) : null}
 
       {/*
-        A barra fica presa embaixo, acima da navegação, porque a escolha é feita
-        rolando: um resumo no topo sairia da tela na primeira carta escolhida.
+        A barra fica presa embaixo porque a escolha é feita rolando: um resumo no
+        topo sairia da tela na primeira carta escolhida.
+
+        O deslocamento é **só a área segura mais uma folga**, e não mais 80 px.
+        Aqueles 80 px reservavam a barra de navegação inferior do celular, que
+        deixou de existir em 10/09, quando a navegação virou gaveta. O resto
+        ficou: no celular a barra flutuava com um vão enorme embaixo, sobre as
+        cartas, esperando uma barra que não vinha mais — relatado pelo dono do
+        produto em 23/09.
+
+        `env(safe-area-inset-bottom)` é o que sobra: num aparelho com barra de
+        gestos ela passa de 30 px, e sem somá-la o resumo encostaria nela.
       */}
       {copies > 0 ? (
-        <div className="sticky bottom-20 z-10 md:bottom-4">
+        <div className="sticky bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-10">
           <div className="flex items-center gap-3 rounded-card border border-border bg-surface p-3 shadow-sheet">
             <span className="flex min-w-0 flex-1 flex-col">
               <span className="text-sm font-semibold text-text tabular-nums">
