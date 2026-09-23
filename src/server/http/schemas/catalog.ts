@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { COUNTER_TOKENS, parseCounterValue } from '@/server/domain/catalog/counter'
+import { CATALOG_SORTS } from '@/server/domain/catalog/order'
 import { CARD_TYPES } from '@/server/domain/catalog/types'
 
 /**
@@ -69,6 +70,15 @@ export const catalogQuerySchema = z.object({
     .optional(),
   hasTrigger: booleanish.optional(),
   blockIcon: nonEmpty(20).optional(),
+  /*
+   * A ordem tem de chegar aqui, e nao so na primeira pagina.
+   *
+   * A rolagem infinita pede as levas seguintes por esta rota. Sem `sort`, a
+   * pagina 1 viria ordenada por custo e a 2 pela ordem do catalogo — a lista
+   * repetiria cartas e perderia outras, que e o mesmo estrago que o desempate
+   * por id existe para evitar.
+   */
+  sort: z.enum(CATALOG_SORTS).optional(),
   page: integer('page').pipe(z.number().int().min(1)).optional(),
   // O teto tambem existe no caso de uso; aqui ele vira erro explicito em vez de
   // silenciosamente reduzido, para o cliente saber que pediu demais.

@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
   artNumber,
+  CATALOG_SORT_LABELS,
+  CATALOG_SORTS,
   compareCatalogOrder,
+  compareCatalogSort,
+  parseCatalogSort,
   placementSet,
   type CatalogOrderKey,
+  type CatalogSortKey,
 } from '@/server/domain/catalog/order'
 
 /**
@@ -92,5 +97,106 @@ describe('a ordem', () => {
 
   it('empata so quando set, carta e arte empatam — o id desempata fora', () => {
     expect(compareCatalogOrder(k('OP01-001_p1'), k('OP01-001_p1'))).toBe(0)
+  })
+})
+
+/**
+ * As ordens que a pessoa escolhe (decisão 110).
+ *
+ * `compareCatalogSort` devolve `0` no empate de propósito: quem chama desempata
+ * com `compareCatalogOrder` e depois o id. Por isso os testes aqui verificam o
+ * **primeiro** critério, e a cadeia inteira é verificada na integração.
+ */
+describe('a ordem escolhida pela pessoa', () => {
+  const carta = (cardName: string, cost: number | null, power: number | null): CatalogSortKey => ({
+    cardName,
+    cost,
+    power,
+  })
+
+  it('o que nao e uma ordem conhecida vira a padrao', () => {
+    expect(parseCatalogSort('custo-desc')).toBe('custo-desc')
+    expect(parseCatalogSort('CUSTO')).toBe('custo')
+    // URL editada a mao nao deve reordenar a lista de um jeito que ninguem pediu.
+    expect(parseCatalogSort('preco')).toBe('codigo')
+    expect(parseCatalogSort(undefined)).toBe('codigo')
+    expect(parseCatalogSort('')).toBe('codigo')
+  })
+
+  it('a ordem padrao nao opina: tudo empata e o desempate manda', () => {
+    const a = carta('Zoro', 9, 9000)
+    const b = carta('Ace', 1, 1000)
+    expect(compareCatalogSort(a, b, 'codigo')).toBe(0)
+  })
+
+  it('ordena por custo nas duas direcoes', () => {
+    const barato = carta('Ace', 1, 1000)
+    const caro = carta('Zoro', 9, 9000)
+    expect(compareCatalogSort(barato, caro, 'custo')).toBeLessThan(0)
+    expect(compareCatalogSort(barato, caro, 'custo-desc')).toBeGreaterThan(0)
+  })
+
+  it('ordena por poder nas duas direcoes', () => {
+    const fraco = carta('Ace', 1, 1000)
+    const forte = carta('Zoro', 9, 9000)
+    expect(compareCatalogSort(fraco, forte, 'poder')).toBeLessThan(0)
+    expect(compareCatalogSort(fraco, forte, 'poder-desc')).toBeGreaterThan(0)
+  })
+
+  /*
+   * O caso que motivou a armadilha 87: zero e um valor, e nao ausencia. Numa
+   * lista por poder crescente, a Otama de poder 0 e a primeira — se ela cair no
+   * fim junto dos nulos, o zero voltou a ser tratado como "nao tem".
+   */
+  it('zero e um valor e ordena normalmente', () => {
+    const zero = carta('Otama', 1, 0)
+    const mil = carta('Zoro', 1, 1000)
+    expect(compareCatalogSort(zero, mil, 'poder')).toBeLessThan(0)
+    expect(compareCatalogSort(zero, mil, 'poder-desc')).toBeGreaterThan(0)
+  })
+
+  /*
+   * Nulo e "este tipo nao tem este campo": Leader nao tem custo, Event nao tem
+   * poder. Um nao-valor nao compete por posicao, e por isso fica no fim das
+   * duas vezes — e nao no topo do decrescente, que e onde um `null` tratado
+   * como zero ou como infinito acabaria.
+   */
+  it('o nulo fica no fim nas duas direcoes', () => {
+    const semPoder = carta('Gum-Gum Rain', 0, null)
+    const comPoder = carta('Zoro', 1, 5000)
+
+    expect(compareCatalogSort(semPoder, comPoder, 'poder')).toBeGreaterThan(0)
+    expect(compareCatalogSort(semPoder, comPoder, 'poder-desc')).toBeGreaterThan(0)
+    expect(compareCatalogSort(comPoder, semPoder, 'poder')).toBeLessThan(0)
+    expect(compareCatalogSort(comPoder, semPoder, 'poder-desc')).toBeLessThan(0)
+  })
+
+  it('dois nulos empatam, e o desempate resolve', () => {
+    const a = carta('Gum-Gum Rain', 0, null)
+    const b = carta('Six King Pistol', 0, null)
+    expect(compareCatalogSort(a, b, 'poder')).toBe(0)
+    expect(compareCatalogSort(a, b, 'poder-desc')).toBe(0)
+  })
+
+  it('ordena por nome nas duas direcoes', () => {
+    const ace = carta('Ace', 1, 1000)
+    const zoro = carta('Zoro', 9, 9000)
+    expect(compareCatalogSort(ace, zoro, 'nome')).toBeLessThan(0)
+    expect(compareCatalogSort(ace, zoro, 'nome-desc')).toBeGreaterThan(0)
+  })
+
+  /*
+   * `localeCompare`, e nao `<`: por ordem de byte toda maiuscula vem antes de
+   * toda minuscula, e "Zoro" apareceria antes de "absolute".
+   */
+  it('o nome ignora caixa e acento', () => {
+    expect(compareCatalogSort(carta('absolute', 1, 1), carta('Zoro', 1, 1), 'nome')).toBeLessThan(0)
+    expect(compareCatalogSort(carta('Ácido', 1, 1), carta('Bala', 1, 1), 'nome')).toBeLessThan(0)
+  })
+
+  it('todas as ordens tem rotulo', () => {
+    for (const sort of CATALOG_SORTS) {
+      expect(CATALOG_SORT_LABELS[sort]).toBeTruthy()
+    }
   })
 })

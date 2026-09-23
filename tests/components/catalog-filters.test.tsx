@@ -386,3 +386,101 @@ describe('counter', () => {
     )
   })
 })
+
+/**
+ * A escolha da ordem (decisão 110).
+ *
+ * Ela mora no painel, mas **não é um filtro**: não muda quais cartas aparecem,
+ * só a sequência. Daí as duas regras que os testes abaixo fixam — não conta no
+ * distintivo e não some no Limpar.
+ */
+describe('escolher a ordem', () => {
+  const ESPERA = { timeout: 5000 }
+
+  const escolherOrdem = async (painel: HTMLElement, rotulo: RegExp) => {
+    await userEvent.click(within(painel).getByRole('combobox', { name: 'Ordenar por' }))
+    await userEvent.click(await screen.findByRole('option', { name: rotulo }, ESPERA))
+  }
+
+  const aplicar = (painel: HTMLElement) =>
+    userEvent.click(within(painel).getByRole('button', { name: /^Aplicar filtros/ }))
+
+  it('oferece as sete ordens', async () => {
+    const painel = await abrir()
+    await userEvent.click(within(painel).getByRole('combobox', { name: 'Ordenar por' }))
+
+    const opcoes = (await screen.findAllByRole('option', undefined, ESPERA)).map((o) => o.textContent)
+    expect(opcoes).toEqual([
+      'Código do set',
+      'Nome (A → Z)',
+      'Nome (Z → A)',
+      'Custo (menor primeiro)',
+      'Custo (maior primeiro)',
+      'Poder (menor primeiro)',
+      'Poder (maior primeiro)',
+    ])
+  })
+
+  it('manda a ordem escolhida na URL', async () => {
+    const painel = await abrir()
+
+    await escolherOrdem(painel, /Custo \(maior primeiro\)/)
+    await aplicar(painel)
+
+    expect(pushed().get('ordem')).toBe('custo-desc')
+  })
+
+  /*
+   * `?ordem=codigo` diz o mesmo que nao dizer nada, e um endereco compartilhado
+   * fica mais limpo sem ele.
+   */
+  it('a ordem padrao nao vai escrita na URL', async () => {
+    search.value = new URLSearchParams('ordem=custo-desc')
+    const painel = await abrir()
+
+    await escolherOrdem(painel, /Código do set/)
+    await aplicar(painel)
+
+    expect(pushed().has('ordem')).toBe(false)
+  })
+
+  it('ao abrir, parte da ordem que ja esta aplicada', async () => {
+    search.value = new URLSearchParams('ordem=nome-desc')
+    const painel = await abrir()
+
+    expect(within(painel).getByRole('combobox', { name: 'Ordenar por' })).toHaveTextContent(
+      'Nome (Z → A)',
+    )
+  })
+
+  /*
+   * A ordem nao muda quais cartas aparecem, entao nao e um filtro ativo. O
+   * teste escolhe uma ordem **e** uma cor: o distintivo tem de dizer 1, e nao
+   * 2 — assim ele prova a distincao, e nao so que nada aconteceu.
+   */
+  it('nao conta no distintivo de filtros, mas a cor conta', async () => {
+    const painel = await abrir()
+
+    await escolherOrdem(painel, /Poder \(maior primeiro\)/)
+    expect(within(painel).getByRole('button', { name: /^Aplicar filtros$/ })).toBeInTheDocument()
+
+    await userEvent.click(within(painel).getByRole('button', { name: 'Blue' }))
+    expect(
+      within(painel).getByRole('button', { name: /^Aplicar filtros \(1\)$/ }),
+    ).toBeInTheDocument()
+  })
+
+  /*
+   * Quem limpa os filtros quer ver o catalogo inteiro — nao voltar a ordenar
+   * por codigo sem ter pedido.
+   */
+  it('o Limpar nao desfaz a ordem', async () => {
+    const painel = await abrir()
+
+    await escolherOrdem(painel, /Nome \(A → Z\)/)
+    await userEvent.click(within(painel).getByRole('button', { name: /Limpar/ }))
+    await aplicar(painel)
+
+    expect(pushed().get('ordem')).toBe('nome')
+  })
+})
