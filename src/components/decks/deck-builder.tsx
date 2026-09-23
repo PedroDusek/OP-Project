@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useMemo, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { AlertTriangle, ArrowLeftRight, Check, Package, Plus, Sparkles } from 'lucide-react'
 import { CardArt } from '@/components/catalog/card-art'
 import { CatalogFilters } from '@/components/catalog/catalog-filters'
@@ -14,6 +15,7 @@ import { countActiveFilters, type CatalogSearchParams } from '@/lib/catalog-para
 import { deckCatalogQuery } from '@/lib/deck-query'
 import type { CatalogVocabulary } from '@/server/application/catalog/vocabulary'
 import { Field, Input } from '@/components/ui/field'
+import { TransferDeckSheet, type DeckBox } from '@/components/decks/transfer-deck-sheet'
 import type { SavedDeck } from '@/server/application/decks'
 import {
   adicionarFaltantesAction,
@@ -79,11 +81,14 @@ export function DeckBuilder({
   initialLeaders,
   vocabulary,
   savedDeck,
+  deckboxes = [],
 }: {
   initialLeaders: Carta[]
   vocabulary: CatalogVocabulary
   /** Preenchido ao abrir uma lista salva: salvar regrava esta, e não cria outra. */
   savedDeck?: SavedDeck
+  /** As deckboxes da pessoa, para o quarto passo. Vazio some com o botão. */
+  deckboxes?: DeckBox[]
 }) {
   const [leader, setLeader] = useState<Lider | null>(savedDeck?.leader ?? null)
   const [sugestoes, setSugestoes] = useState<Carta[]>([])
@@ -96,6 +101,7 @@ export function DeckBuilder({
   const [conferindo, conferir] = useTransition()
   const [enviando, enviarWants] = useTransition()
 
+  const router = useRouter()
   const [nome, setNome] = useState(savedDeck?.name ?? '')
   const [salvo, setSalvo] = useState<SaveState>({ status: 'idle' })
   const [salvando, salvar] = useTransition()
@@ -341,14 +347,23 @@ export function DeckBuilder({
                 disabled={nome.trim().length === 0}
                 onClick={() =>
                   salvar(async () => {
-                    setSalvo(
-                      await salvarDeckAction({
-                        id: savedDeck?.id ?? null,
-                        name: nome,
-                        leaderVariantId: leader.variantId,
-                        lines: linhas.map((linha) => ({ variantId: linha.variantId, copies: linha.copies })),
-                      }),
-                    )
+                    const resultado = await salvarDeckAction({
+                      id: savedDeck?.id ?? null,
+                      name: nome,
+                      leaderVariantId: leader.variantId,
+                      lines: linhas.map((linha) => ({ variantId: linha.variantId, copies: linha.copies })),
+                    })
+                    setSalvo(resultado)
+
+                    /*
+                     * Lista nova salva vira lista aberta. Sem isto, o quarto
+                     * passo — colocar na deckbox — só apareceria depois de sair
+                     * e voltar, e quem acabou de montar o deck está justamente
+                     * com as cartas na mão.
+                     */
+                    if (!savedDeck && resultado.status === 'ok') {
+                      router.replace(`/deck/${resultado.id}`)
+                    }
                   })
                 }
               >
@@ -540,6 +555,21 @@ export function DeckBuilder({
                   ) : null}
                 </>
               ) : null}
+            </section>
+          ) : null}
+
+          {/*
+            O quarto passo, a pedido do dono do produto: ele fecha o caminho —
+            escolher o líder, montar, conferir, e guardar as cartas na caixa.
+            Antes o botão ficava no topo da página, fora da sequência.
+
+            Só aparece em lista **salva**: transferir precisa de uma lista que
+            exista no banco, e uma que ainda não foi salva não tem o que mover.
+          */}
+          {savedDeck ? (
+            <section className="flex flex-col gap-3">
+              <h2 className="text-sm font-semibold text-text">4. Colocar na deckbox</h2>
+              <TransferDeckSheet deckId={savedDeck.id} boxes={deckboxes} />
             </section>
           ) : null}
         </>
