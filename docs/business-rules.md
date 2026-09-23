@@ -93,8 +93,9 @@ Três coisas o separam das demais:
 
 1. **Não tem código.** A fonte não dá um, então ele recebe `DON-<productId>` do
    TCGplayer. O código é nosso, e não existe na Liga.
-2. **Não tem set.** Os grupos do TCGplayer não são os nossos sets, e mapeá-los
-   sem conferir seria adivinhar.
+2. **Tem um set artificial**, de código `DON`, que não existe na Bandai. Ele
+   existe para a pessoa ver os DON!! separados no catálogo — os grupos do
+   TCGplayer não são os nossos sets, e mapeá-los seria adivinhar.
 3. **Não tem custo, poder, vida nem counter.** Nulo, que é "não se aplica" —
    nunca zero.
 
@@ -103,7 +104,7 @@ Na contagem:
 | | DON!! |
 |---|---|
 | Progresso do catálogo | **fora**, no numerador e no denominador |
-| Progresso por set | fora, porque não tem set |
+| Progresso por set | fora: o set `DON` é artificial e não tem meta a completar |
 | Playset | **nunca fecha** |
 | Total de cartas | **conta** |
 | Contagem própria | "você possui X DON diferentes" |

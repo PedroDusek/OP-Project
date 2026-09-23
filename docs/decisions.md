@@ -7136,16 +7136,26 @@ O prefixo `DON-` tem uma consequência prática de graça: `ligaEdition` só
 reconhece `LETRAS+DÍGITOS-`, então ele nunca produz um link direto da Liga para
 uma carta que a Liga talvez nem tenha.
 
-## Sem set, de propósito
+## Um set artificial, chamado `DON`
 
 Os grupos do TCGplayer não são os nossos sets: a abreviação dele é `OP18`,
 `EB-05`, `OP18 RE`, e o nosso código vem da Bandai. Mapear os 87 grupos aos 60
 sets sem poder conferir seria adivinhar — e adivinhar vínculo é o que já custou
 773 conferências manuais aqui.
 
-Sem set, o DON!! ordena no fim da listagem sozinho, porque `compareCatalogOrder`
-põe set nulo por último. O agrupamento que o dono do produto pediu é o **tipo**,
-e esse existe.
+A primeira versão deixou os DON!! **sem set nenhum**, por isso. O dono do
+produto mudou: existe um set artificial `DON`, e a pessoa vê os DON!! separados
+no catálogo por ele.
+
+Ele **não existe na Bandai**, e não finge que existe: tem espécie própria
+(`don`), ao lado de coleção, starter deck e promocional. Assim ordena por último
+e aparece com rótulo próprio, em vez de se passar por uma coleção que saiu em
+booster.
+
+O set também resolveu, de graça, um problema que a versão sem set tinha criado:
+a planilha de conferência da Liga é **por coleção**, e os 239 não apareciam em
+lugar nenhum — o vínculo manual, que é o único possível para eles, não teria por
+onde ser feito. Com o set, ela funciona pelo caminho normal.
 
 ## Contagem, e não progresso
 
@@ -7174,12 +7184,31 @@ caem nela sem uma linha de código nova.
 **Não foi verificado se a Liga sequer tem página de DON!!.** Ela está atrás de
 proteção anti-bot, e a decisão 047 diz que quem descobre é gente abrindo o site.
 
-## A imagem ficou guardada, e não exibida
+## A imagem vem do TCGplayer, e o host precisa estar liberado
 
-As 239 têm imagem, no CDN do **TCGplayer**. A importação a guarda; **exibir é
-decisão pendente do dono do produto**, porque a decisão 020 combinou referenciar
-a origem sem copiar, e foi negociada com a Bandai. Outra origem, outro termo de
-uso.
+As 239 têm imagem, no CDN do **TCGplayer** — aprovado pelo dono do produto. A
+decisão 020 combinou referenciar a origem sem copiar, e foi negociada com a
+Bandai; esta é outra origem, e a aprovação é o que a estende.
+
+**O host em `remotePatterns` não é detalhe de configuração.** `next/image`
+recusa host desconhecido com **500 na tela inteira**, e não com uma imagem
+quebrada. Aconteceu em 23/09, na planilha da Liga, assim que as 239 passaram a
+renderizar — e valeria igual para o catálogo, que mostra a arte de toda
+variante. Tirar `tcgplayer-cdn.tcgplayer.com` de lá derruba o catálogo.
+
+## O vínculo com o TCGplayer nasce na importação
+
+`linkArtProducts` casa arte com produto **pelo código da carta**, e foi escrito
+assim porque, nas cartas da Bandai, o código é o único elo entre duas fontes que
+não conversam. Para DON!! não serve: não há código na origem.
+
+Aqui não há o que deduzir — o `source_id` da arte **é** o `productId`, porque foi
+de lá que ela veio. O vínculo é cópia, e não palpite, e por isso nasce junto da
+importação. Sem ele o DON!! ficaria sem preço para sempre.
+
+Fica com `origin = 'automatic'`, e não `manual`: ninguém conferiu nada à mão, e
+`manual` tem significado próprio no vínculo normal — é intocável pela dedução
+(decisão 074).
 
 ## Comando próprio
 

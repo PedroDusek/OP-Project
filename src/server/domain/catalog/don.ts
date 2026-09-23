@@ -32,6 +32,21 @@
 
 const PREFIX = 'DON-'
 
+/**
+ * O set artificial dos DON!! (decisão 112, escolha do dono do produto).
+ *
+ * Ele **não existe na Bandai**: é nosso, e serve a duas coisas. Dá aos DON!! um
+ * lugar onde morar, já que os grupos do TCGplayer não são os nossos sets e
+ * mapeá-los seria adivinhar. E faz o filtro do catálogo oferecê-los juntos, que
+ * é como a pessoa quer vê-los — separados do resto.
+ *
+ * Por ser artificial, ele tem uma espécie própria (`don`) em vez de se passar
+ * por coleção: assim ordena por último e aparece com rótulo próprio, sem
+ * fingir que saiu num booster.
+ */
+export const DON_SET_CODE = 'DON'
+export const DON_SET_NAME = 'DON!!'
+
 /** `482236` → `DON-482236`. Cabe nos 20 caracteres de `cards.code`. */
 export function donCardCode(productId: number | string): string {
   return `${PREFIX}${String(productId).trim()}`

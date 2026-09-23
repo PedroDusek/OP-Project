@@ -169,6 +169,19 @@ async function main(): Promise<void> {
           ` grupos=${report.seriesProcessed} falhas=${report.seriesFailed}`,
       )
 
+      /*
+       * O vinculo com o TCGplayer nasce aqui, e nao na rodada de precos: o
+       * `source_id` da arte **e** o productId, porque foi de la que ela veio.
+       * Nao ha o que deduzir, e sem isto o DON!! ficaria sem preco para sempre —
+       * a deducao normal casa pelo codigo da carta, que o DON!! nao tem.
+       */
+      const { linkDonProducts } = await import('@/server/application/catalog/link-don-products')
+      const vinculos = await linkDonProducts(prisma)
+      console.log(
+        `[supabase] don: vinculos com o TCGplayer — artes=${vinculos.variants}` +
+          ` criados=${vinculos.created} atualizados=${vinculos.updated}`,
+      )
+
       if (report.seriesFailed > 0) {
         for (const falha of report.failures) {
           console.log(`[supabase]   grupo=${falha.seriesId}: ${falha.reason}`)

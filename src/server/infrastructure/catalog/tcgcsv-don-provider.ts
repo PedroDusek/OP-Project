@@ -1,5 +1,10 @@
 import { DON_TYPE, type CatalogPage, type CatalogProvider } from '@/server/domain/catalog/types'
-import { donCardCode, donVariantType } from '@/server/domain/catalog/don'
+import {
+  donCardCode,
+  donVariantType,
+  DON_SET_CODE,
+  DON_SET_NAME,
+} from '@/server/domain/catalog/don'
 
 /**
  * Provedor de catalogo dos DON!!, a partir do espelho tcgcsv (decisao 112).
@@ -95,18 +100,17 @@ export class TcgCsvDonProvider implements CatalogProvider {
     const dons = await this.donsOf(seriesId)
     const page: CatalogPage = {
       /*
-       * Sem set, e de proposito.
+       * Um set artificial, e nao o grupo do TCGplayer (decisao 112).
        *
-       * Os grupos do TCGplayer nao sao os nossos sets: a abreviacao dele e
-       * `OP18`, `EB-05`, `OP18 RE`, e o nosso codigo vem da Bandai. Mapear os 87
-       * grupos aos 60 sets sem poder conferir seria adivinhar — e adivinhar
-       * vinculo e o que ja custou 773 conferencias manuais neste projeto.
+       * Os grupos de la nao sao os nossos sets — a abreviacao e `OP18`,
+       * `EB-05`, `OP18 RE`, e o nosso codigo vem da Bandai. Mapear os 87 grupos
+       * aos 60 sets sem poder conferir seria adivinhar, e adivinhar vinculo ja
+       * custou 773 conferencias manuais aqui.
        *
-       * Sem set, o DON!! ordena no fim da listagem por conta propria, porque
-       * `compareCatalogOrder` poe set nulo por ultimo. O agrupamento que o dono
-       * do produto pediu e o **tipo**, e esse existe.
+       * O set `DON` e a escolha do dono do produto: os DON!! tem onde morar, e o
+       * filtro do catalogo os oferece juntos, que e como a pessoa quer ve-los.
        */
-      sets: [],
+      sets: [{ code: DON_SET_CODE, name: DON_SET_NAME }],
       cards: [],
       variants: [],
       reprints: [],
@@ -144,13 +148,17 @@ export class TcgCsvDonProvider implements CatalogProvider {
         variantType: donVariantType(product.name),
         rarity: field(product, 'Rarity'),
         /*
-         * A imagem vem do CDN do TCGplayer, e nao da Bandai. Ela e **guardada**,
-         * e mostrar ou nao e decisao do dono do produto: a decisao 020 combinou
-         * referenciar a origem sem copiar, e foi negociada com a Bandai — outra
-         * origem e outro termo de uso.
+         * A imagem vem do CDN do **TCGplayer**, e nao da Bandai — aprovado pelo
+         * dono do produto em 23/09.
+         *
+         * O host precisa estar em `remotePatterns` no `next.config.ts`, e isso
+         * nao e detalhe de configuracao: `next/image` recusa host desconhecido
+         * com **500 na tela inteira**, e nao com uma imagem quebrada. Foi o que
+         * aconteceu em 23/09 na planilha da Liga, assim que as 239 passaram a
+         * renderizar. Tirar o host de la derruba o catalogo.
          */
         imageUrl: product.imageUrl?.trim() || null,
-        printedInSetCodes: [],
+        printedInSetCodes: [DON_SET_CODE],
       })
     }
 

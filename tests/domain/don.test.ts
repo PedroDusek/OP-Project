@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { donCardCode, donVariantType, isDonCode } from '@/server/domain/catalog/don'
+import { donCardCode, donVariantType, isDonCode, DON_SET_CODE } from '@/server/domain/catalog/don'
+import { compareSetsForCatalog, setKind, SET_KIND_LABEL } from '@/server/domain/catalog/sets'
+import { ligaEdition } from '@/server/domain/catalog/liga'
 import { CARD_TYPES, DON_TYPE } from '@/server/domain/catalog/types'
 import { parseCardList } from '@/server/domain/catalog/parse-card-list'
 
@@ -73,5 +75,36 @@ describe('o DON no vocabulário de tipos', () => {
     expect(page.rejected).toEqual([
       { sourceId: 'OP01-999', reason: 'tipo de carta nao reconhecido: DON' },
     ])
+  })
+})
+
+/**
+ * O set artificial (decisão 112, escolha do dono do produto).
+ *
+ * Ele não existe na Bandai. A primeira versão deixou os DON!! sem set nenhum;
+ * o dono do produto pediu o set para que a pessoa os visse separados no
+ * catálogo — e ele também é o que faz a planilha de conferência da Liga, que é
+ * por coleção, alcançar os 239.
+ */
+describe('o set artificial DON', () => {
+  it('tem espécie própria, e nao se passa por colecao', () => {
+    expect(setKind(DON_SET_CODE)).toBe('don')
+    expect(SET_KIND_LABEL.don).toBe('DON!!')
+  })
+
+  /* Por ultimo na ordem: e a gaveta propria, e nao algo que sai em booster. */
+  it('ordena depois de colecao, starter deck e promo', () => {
+    expect(compareSetsForCatalog(DON_SET_CODE, 'OP01')).toBeGreaterThan(0)
+    expect(compareSetsForCatalog(DON_SET_CODE, 'ST-01')).toBeGreaterThan(0)
+    expect(compareSetsForCatalog(DON_SET_CODE, 'PROMO')).toBeGreaterThan(0)
+    expect(compareSetsForCatalog('OP01', DON_SET_CODE)).toBeLessThan(0)
+  })
+
+  /*
+   * O codigo do set nao pode virar edicao da Liga: `DON` nao tem digitos, entao
+   * `ligaEdition` nao o reconhece — e o link direto nunca e montado.
+   */
+  it('nao produz edicao da Liga', () => {
+    expect(ligaEdition(DON_SET_CODE)).toBeNull()
   })
 })

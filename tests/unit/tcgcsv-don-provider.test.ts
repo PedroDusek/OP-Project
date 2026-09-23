@@ -87,27 +87,33 @@ describe('TcgCsvDonProvider', () => {
     expect(carta.counter).toBeNull()
   })
 
-  /*
-   * Sem set, de proposito: os grupos do TCGplayer nao sao os nossos sets, e
-   * mapea-los sem conferir seria adivinhar vinculo — o que ja custou 773
-   * conferencias manuais neste projeto.
-   */
-  it('nao inventa set', async () => {
-    const { provider: p } = provider()
-    const page = await p.fetchSeries('1')
-
-    expect(page.sets).toEqual([])
-    expect(page.variants[0].printedInSetCodes).toEqual([])
-  })
-
-  it('a arte guarda o productId e a imagem', async () => {
+  it('a arte guarda o productId', async () => {
     const { provider: p } = provider()
     const [arte] = (await p.fetchSeries('1')).variants
 
     expect(arte.sourceId).toBe('482236')
     expect(arte.variantType).toBe('Parallel')
     expect(arte.rarity).toBe('DON!!')
-    expect(arte.imageUrl).toContain('482236_200w.jpg')
+  })
+
+  /*
+   * A imagem vem do CDN do TCGplayer. O host precisa estar em `remotePatterns`,
+   * senao `next/image` derruba a pagina inteira com 500 — visto ao vivo em
+   * 23/09. O teste que guarda essa ponta esta em `tests/unit/next-config`.
+   */
+  it('guarda a imagem do TCGplayer', async () => {
+    const { provider: p } = provider()
+    const [arte] = (await p.fetchSeries('1')).variants
+
+    expect(arte.imageUrl).toBe('https://tcgplayer-cdn.tcgplayer.com/product/482236_200w.jpg')
+  })
+
+  it('poe as cartas no set artificial DON', async () => {
+    const { provider: p } = provider()
+    const page = await p.fetchSeries('1')
+
+    expect(page.sets).toEqual([{ code: 'DON', name: 'DON!!' }])
+    expect(page.variants[0].printedInSetCodes).toEqual(['DON'])
   })
 
   it('recusa identificador de grupo que nao e numero', async () => {
