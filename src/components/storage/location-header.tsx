@@ -40,10 +40,21 @@ export function LocationHeader({
   /** `cartas`: a seta volta ao detalhe, e a ação é acrescentar cartas. */
   view?: 'detalhe' | 'cartas'
 }) {
+  /*
+   * A seta volta para a tela onde o local **mora**, e não para uma fixa: desde
+   * a decisão 111 a deckbox é listada e criada em Decks, e mandar quem abriu
+   * uma deckbox de volta para Binders seria devolvê-la a uma tela onde ela nem
+   * aparece mais.
+   */
+  const lista =
+    location.type === 'DECK'
+      ? { href: '/deck', label: 'Voltar para Decks' }
+      : { href: '/binders', label: 'Voltar para Binders' }
+
   const voltar =
     view === 'cartas'
       ? { href: `/binders/${location.id}`, label: `Voltar para ${location.name}` }
-      : { href: '/binders', label: 'Voltar para Binders' }
+      : lista
 
   return (
     <div className="-mx-4 mb-4 md:mx-0 md:overflow-hidden md:rounded-card">

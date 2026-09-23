@@ -36,7 +36,7 @@ const O_QUE_TEM = [
   'O dashboard da coleção: valor, playsets e as cartas mais caras',
   'Começar trocas e convidar quem você quiser',
   'Publicar o Trade Binder e aparecer primeiro na rede',
-  'Deck Builder, playsets e compartilhar a want list',
+  'Decklists, playsets e compartilhar a want list',
 ]
 
 export function SubscriptionPanel({

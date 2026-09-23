@@ -93,7 +93,7 @@ export async function analyzeDeck(
   input: DeckInput,
   now: Date = new Date(),
 ): Promise<DeckAnalysis> {
-  assertPremium(user, 'O Deck Builder é um recurso Premium.')
+  assertPremium(user, 'As decklists são um recurso Premium.')
 
   if (input.lines.length === 0) throw new ValidationError('Escolha ao menos uma carta para conferir.')
 

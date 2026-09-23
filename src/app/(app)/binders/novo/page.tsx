@@ -15,12 +15,14 @@ export default async function NovoLocalPage() {
     <>
       <PageHeader back={{ href: '/binders', label: 'Binders' }}
         title="Novo local"
-        description="Um binder, uma caixa ou um deck para organizar suas cartas."
+        description="Um binder ou uma caixa para organizar suas cartas."
       />
+      {/* A deckbox se cria em Decks desde a decisão 111. */}
       <LocationForm
         action={createLocationAction}
         submitLabel="Criar local"
         imageUploadAvailable={imageUploadAvailable()}
+        types={['BINDER', 'BOX']}
       />
     </>
   )
