@@ -517,6 +517,26 @@ em construção passa a maior parte do tempo incompleto.
    **param de abrir**; a tela diz isso onde a pessoa está. Apagar continua
    possível — quem deixou de assinar segue dono do que criou.
 
+### 7.2 Transferir a lista para uma deckbox (decisão 109)
+
+Montado o deck de papel, a lista pode dizer ao ColeXa que aquelas cartas agora
+estão na caixa do deck. O que sai da coleção para a deckbox:
+
+1. **Só o que a lista pede.** Ter oito cópias não manda oito.
+2. **O destino é um local do tipo `DECK`**, e só ele.
+3. **Uma única pilha fora de troca que cobre tudo**: o sistema tira de lá. Não
+   há escolha a fazer, então a regra 3.3 não é ferida.
+4. **Mais de uma possibilidade**: o sistema **pergunta**, carta a carta. É a 3.3
+   valendo — ninguém decide por quem tem a carta de qual local as cópias saem.
+5. **Local de troca não entra por padrão.** O sistema tenta completar sem ele, e
+   só usa o que está em troca se a pessoa confirmar: mover de lá **tira a carta
+   do Trade Binder público**.
+6. **Cópias de outra arte são avisadas**, como na conferência (7, decisão 095).
+   Não são impedidas — para jogar a arte não importa.
+7. **A confirmação é uma afirmação de fato**: trocar o local apaga de onde a
+   carta estava, e não há como recuperar. A tela exige que a pessoa confirme
+   **só depois de ter movido as cartas de verdade**.
+
 ## 8. Planos: Free e Premium
 
 Definido pelo dono do produto em 17/09 (decisão 093). **Preço e meio de
