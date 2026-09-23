@@ -790,6 +790,25 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     A lição vale além deste caso: **numa tarefa longa e sem plateia, um número
     de falhas sem identificador é um ponto cego**. Quem escrever a próxima tarefa
     agendada precisa dizer *o quê* falhou, e não *quantos*.
+87. **O traço da Bandai quer dizer duas coisas, e só o tipo da carta separa.**
+    Relatado por um usuário em 22/09: existem cartas de custo 0 e poder 0, e o
+    filtro não as alcançava. **A causa não era o filtro** — todo o caminho dele
+    já tratava zero corretamente. Era a **leitura**: a fonte escreve `-` tanto
+    para "zero" quanto para "este tipo não tem este campo", e o parser lia os
+    dois como nulo.
+
+    O estrago, medido em produção: **152 Characters de poder 0** e **23 Events
+    de custo 0** com `null` no banco, fora de qualquer filtro de faixa — e o
+    mínimo de poder aparecia como 1000 em vez de 0. Conferido contra a fonte ao
+    vivo: `OP03-044 Kaya`, Character de poder 0, chega como `-`.
+
+    A regra agora é do tipo: **campo que o tipo obriga, traço é zero**. Leader e
+    Character sempre têm poder; Character, Event e Stage sempre têm custo;
+    Leader tem Life. **Counter fica de fora**: ali o traço é mesmo "sem
+    counter", e a busca já trata o zero como isso (decisão 066).
+
+    **Corrigir o código não corrige o banco**: as 175 cartas só mudam na próxima
+    `npm run supabase import`.
 
 ## Pendências
 

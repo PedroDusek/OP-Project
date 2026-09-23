@@ -61,10 +61,19 @@ function divLabel(block: string, className: string): string | null {
 }
 
 /** "-" e o vazio da fonte: nao aplica a esta carta. */
-function numberOrNull(value: string | null): number | null {
-  if (value === null || value === '-' || value === '') return null
+/**
+ * O número de um campo, ou nulo.
+ *
+ * `obrigatorio` diz que **o tipo da carta exige este campo**, e aí o traço da
+ * fonte significa **zero**, e não ausência. A fonte escreve `-` para os dois, e
+ * só o tipo distingue: um Character sempre tem poder, um Event sempre tem custo
+ * (armadilha 87).
+ */
+function numberOrNull(value: string | null, obrigatorio = false): number | null {
+  if (value === null || value === '-' || value === '') return obrigatorio ? 0 : null
   const parsed = Number.parseInt(value.replace(/[^\d-]/g, ''), 10)
-  return Number.isNaN(parsed) ? null : parsed
+  if (Number.isNaN(parsed)) return obrigatorio ? 0 : null
+  return parsed
 }
 
 function splitList(value: string | null): string[] {
@@ -194,8 +203,20 @@ export function parseCardList(html: string): CatalogPage {
     }
 
     const firstFieldLabel = divLabel(block, 'cost')
-    const firstFieldValue = numberOrNull(divValue(block, 'cost'))
     const isLife = firstFieldLabel?.toLowerCase() === 'life'
+    /*
+     * `-` num campo que o tipo **obriga** quer dizer **zero**, e não ausência.
+     *
+     * A fonte escreve `-` nos dois casos, e a diferença está no tipo da carta:
+     * um Character sempre tem poder, um Event sempre tem custo. Lendo tudo como
+     * nulo, 152 Characters de poder 0 e 23 Events de custo 0 ficavam fora de
+     * qualquer filtro de faixa — relatado por um usuário em 22/09, e conferido
+     * contra a fonte ao vivo (`OP03-044 Kaya`, poder 0, chegava `-`).
+     *
+     * Counter fica de fora de propósito: ali `-` é mesmo "sem counter", e a
+     * busca já trata o zero como isso (regra 2.3, decisão 066).
+     */
+    const firstFieldValue = numberOrNull(divValue(block, 'cost'), true)
 
     const effectText = divValue(block, 'text') ?? ''
     const attributeText = /<div class="attribute">[\s\S]*?<i>([\s\S]*?)<\/i>/.exec(block)?.[1]
@@ -207,7 +228,8 @@ export function parseCardList(html: string): CatalogPage {
       type,
       cost: isLife ? null : firstFieldValue,
       life: isLife ? firstFieldValue : null,
-      power: numberOrNull(divValue(block, 'power')),
+      // Leader e Character têm poder sempre; Event e Stage não têm nenhum.
+      power: numberOrNull(divValue(block, 'power'), type === 'Leader' || type === 'Character'),
       counter: numberOrNull(divValue(block, 'counter')),
       hasTrigger: effectText.includes('[Trigger]'),
       blockIcon: divValue(block, 'block'),
