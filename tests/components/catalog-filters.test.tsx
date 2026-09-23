@@ -386,3 +386,43 @@ describe('counter', () => {
     )
   })
 })
+
+/**
+ * A ordem sobrevive a mexer nos filtros (decisão 110).
+ *
+ * A escolha mora fora do painel (`CatalogSort`), mas era aqui que ela se
+ * perdia: o painel devolve um objeto que **substitui** os filtros anteriores, e
+ * sem carregar a ordem junto ela sumia a cada Aplicar.
+ */
+describe('a ordem que mora fora do painel', () => {
+  const aplicar = (painel: HTMLElement) =>
+    userEvent.click(within(painel).getByRole('button', { name: /^Aplicar filtros/ }))
+
+  it('aplicar um filtro nao desfaz a ordem', async () => {
+    search.value = new URLSearchParams('ordem=custo-desc')
+    const painel = await abrir()
+
+    await userEvent.click(within(painel).getByRole('button', { name: 'Blue' }))
+    await aplicar(painel)
+
+    expect(pushed().get('cor')).toBe('Blue')
+    expect(pushed().get('ordem')).toBe('custo-desc')
+  })
+
+  it('o Limpar tambem nao desfaz a ordem', async () => {
+    search.value = new URLSearchParams('ordem=nome&cor=Blue')
+    const painel = await abrir()
+
+    await userEvent.click(within(painel).getByRole('button', { name: /Limpar/ }))
+    await aplicar(painel)
+
+    expect(pushed().has('cor')).toBe(false)
+    expect(pushed().get('ordem')).toBe('nome')
+  })
+
+  /* E o painel nao oferece a escolha: ela nao e um filtro. */
+  it('o painel nao tem mais a secao de ordenar', async () => {
+    const painel = await abrir()
+    expect(within(painel).queryByRole('combobox', { name: 'Ordenar por' })).not.toBeInTheDocument()
+  })
+})

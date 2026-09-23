@@ -1,7 +1,13 @@
 import type { CounterValue } from '@/server/domain/catalog/counter'
 import type { Prisma, PrismaClient } from '@prisma/client'
 import type { CardType } from '@/server/domain/catalog/types'
-import { compareCatalogOrder, placementSet } from '@/server/domain/catalog/order'
+import {
+  compareCatalogOrder,
+  compareCatalogSort,
+  DEFAULT_CATALOG_SORT,
+  placementSet,
+  type CatalogSort,
+} from '@/server/domain/catalog/order'
 
 /**
  * Busca no catalogo.
@@ -79,6 +85,8 @@ export interface CatalogFilters {
 export interface CatalogQuery extends CatalogFilters {
   page?: number
   pageSize?: number
+  /** A ordem escolhida. Sem ela, a do catálogo (decisões 040, 069 e 110). */
+  sort?: CatalogSort
 }
 
 export interface CatalogResultItem {
@@ -239,12 +247,18 @@ export async function searchCatalog(
     select: {
       id: true,
       sourceId: true,
-      card: { select: { code: true } },
+      /*
+       * `name`, `cost` e `power` vêm aqui só para ordenar, e não para a tela: a
+       * ordenação acontece sobre **todas** as artes que casam com o filtro, e
+       * não sobre a página. Sem eles, ordenar por custo ordenaria as 24 cartas
+       * que por acaso caíram na página 1.
+       */
+      card: { select: { code: true, name: true, cost: true, power: true } },
       printings: { select: { set: { select: { code: true } } } },
     },
   })
 
-  matches.sort(byRelease(query.setCode))
+  matches.sort(byRelease(query.setCode, query.sort))
 
   const total = matches.length
   const pageIds = matches.slice((page - 1) * pageSize, page * pageSize).map((row) => row.id)
@@ -305,7 +319,7 @@ export async function searchCatalog(
 interface Sortable {
   id: bigint
   sourceId: string | null
-  card: { code: string }
+  card: { code: string; name: string; cost: number | null; power: number | null }
   printings: { set: { code: string } }[]
 }
 
@@ -322,7 +336,7 @@ interface Sortable {
  * a `OP01-073` para o fim da OP01. A chave e calculada uma vez por linha, e nao a
  * cada comparacao.
  */
-function byRelease(filteredSet: string | undefined) {
+function byRelease(filteredSet: string | undefined, sort: CatalogSort = DEFAULT_CATALOG_SORT) {
   const keys = new Map<bigint, { cardCode: string; sourceId: string | null; setCode: string | null }>()
   const keyOf = (row: Sortable) => {
     let key = keys.get(row.id)
@@ -337,6 +351,19 @@ function byRelease(filteredSet: string | undefined) {
     return key
   }
 
+  /*
+   * A ordem escolhida manda no primeiro critério, e o empate cai na ordem do
+   * catálogo — e só então no id. Com `codigo`, `compareCatalogSort` devolve 0
+   * para todo par e sobra exatamente o comportamento de antes.
+   */
+  const sortKey = (row: Sortable) => ({
+    cardName: row.card.name,
+    cost: row.card.cost,
+    power: row.card.power,
+  })
+
   return (a: Sortable, b: Sortable): number =>
-    compareCatalogOrder(keyOf(a), keyOf(b)) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+    compareCatalogSort(sortKey(a), sortKey(b), sort) ||
+    compareCatalogOrder(keyOf(a), keyOf(b)) ||
+    (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
 }

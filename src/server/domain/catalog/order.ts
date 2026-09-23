@@ -106,3 +106,100 @@ export function compareCatalogOrder(a: CatalogOrderKey, b: CatalogOrderKey): num
   if (a.cardCode !== b.cardCode) return a.cardCode < b.cardCode ? -1 : 1
   return artNumber(a.sourceId) - artNumber(b.sourceId)
 }
+
+/**
+ * As ordens que a pessoa pode escolher (decisão 110).
+ *
+ * `codigo` é o padrão e é a ordem descrita acima — a das decisões 040 e 069.
+ * As outras **não a substituem**: elas mandam no primeiro critério, e o empate
+ * volta para ela. Isso não é zelo. Ordenando por custo, algumas centenas de
+ * cartas empatam em 3, e sem um segundo critério estável elas trocariam de
+ * lugar entre uma página e a seguinte — a mesma carta apareceria duas vezes ou
+ * nenhuma, que foi o que o desempate por id já evitava.
+ */
+export const CATALOG_SORTS = [
+  'codigo',
+  'nome',
+  'nome-desc',
+  'custo',
+  'custo-desc',
+  'poder',
+  'poder-desc',
+] as const
+
+export type CatalogSort = (typeof CATALOG_SORTS)[number]
+
+export const CATALOG_SORT_LABELS: Record<CatalogSort, string> = {
+  codigo: 'Código do set',
+  nome: 'Nome (A → Z)',
+  'nome-desc': 'Nome (Z → A)',
+  custo: 'Custo (menor primeiro)',
+  'custo-desc': 'Custo (maior primeiro)',
+  poder: 'Poder (menor primeiro)',
+  'poder-desc': 'Poder (maior primeiro)',
+}
+
+export const DEFAULT_CATALOG_SORT: CatalogSort = 'codigo'
+
+/** O que ordenar precisa saber de uma arte, além da chave de catálogo. */
+export interface CatalogSortKey {
+  cardName: string
+  cost: number | null
+  power: number | null
+}
+
+/** Valor vindo da URL. O que não for uma ordem conhecida vira o padrão. */
+export function parseCatalogSort(raw: string | null | undefined): CatalogSort {
+  const value = raw?.trim().toLowerCase()
+  return CATALOG_SORTS.find((sort) => sort === value) ?? DEFAULT_CATALOG_SORT
+}
+
+/**
+ * Compara duas artes pelo critério escolhido. `0` quer dizer empate, e quem
+ * chama desempata com `compareCatalogOrder` e depois o id.
+ *
+ * ## Nulo vai para o fim, nas duas direções
+ *
+ * `null` num campo numérico quer dizer **"este tipo de carta não tem este
+ * campo"**, e não zero (armadilha 87): Leader não tem custo, Event não tem
+ * poder. Um não-valor não pode competir por posição, então ele não sobe no
+ * crescente nem no decrescente — sai do caminho de quem ordena e fica no fim
+ * das duas vezes.
+ *
+ * Zero é diferente e ordena normalmente: `OP01-006 Otama` tem poder 0 mesmo, e
+ * em "poder, menor primeiro" ela é a primeira da lista.
+ */
+export function compareCatalogSort(a: CatalogSortKey, b: CatalogSortKey, sort: CatalogSort): number {
+  switch (sort) {
+    case 'codigo':
+      return 0
+    case 'nome':
+      return compareNames(a.cardName, b.cardName)
+    case 'nome-desc':
+      return compareNames(b.cardName, a.cardName)
+    case 'custo':
+      return compareNumbers(a.cost, b.cost, false)
+    case 'custo-desc':
+      return compareNumbers(a.cost, b.cost, true)
+    case 'poder':
+      return compareNumbers(a.power, b.power, false)
+    case 'poder-desc':
+      return compareNumbers(a.power, b.power, true)
+  }
+}
+
+/**
+ * `localeCompare` e não `<`: os nomes da Bandai misturam maiúscula e
+ * pontuação, e por ordem de byte `"Zoro"` viria antes de `"absolute"`.
+ */
+function compareNames(a: string, b: string): number {
+  return a.localeCompare(b, 'pt-BR', { sensitivity: 'base', numeric: true })
+}
+
+/** Ver o bloco sobre nulo em `compareCatalogSort`. */
+function compareNumbers(a: number | null, b: number | null, descending: boolean): number {
+  if (a === null && b === null) return 0
+  if (a === null) return 1
+  if (b === null) return -1
+  return descending ? b - a : a - b
+}

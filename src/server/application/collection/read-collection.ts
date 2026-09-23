@@ -1,6 +1,12 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
 import { countCollection, PLAYSET_SIZE, type OwnedVariant } from '@/server/domain/collection/counting'
-import { compareCatalogOrder, placementSet } from '@/server/domain/catalog/order'
+import {
+  compareCatalogOrder,
+  compareCatalogSort,
+  DEFAULT_CATALOG_SORT,
+  placementSet,
+  type CatalogSort,
+} from '@/server/domain/catalog/order'
 import { buildCatalogWhere, type CatalogFilters } from '@/server/application/catalog/search-cards'
 import type { AuthenticatedUser } from '@/server/application/auth'
 import { assertPremium, isPremium } from '@/server/application/authorization'
@@ -115,6 +121,16 @@ export interface CollectionQuery extends CatalogFilters {
   pageSize?: number
   /** `playsets` traz só cartas fechadas; `incomplete`, só as que faltam. */
   scope?: 'all' | 'playsets' | 'incomplete'
+  /** A ordem escolhida, a mesma do catálogo (decisão 110). */
+  sort?: CatalogSort
+}
+
+/** O que só existe para ordenar, e que a tela não recebe. */
+interface SortFields {
+  setCode: string | null
+  sourceId: string | null
+  cost: number | null
+  power: number | null
 }
 
 export async function searchCollection(
@@ -142,7 +158,8 @@ export async function searchCollection(
       variantType: true,
       rarity: true,
       imageUrl: true,
-      card: { select: { code: true, name: true, type: true } },
+      // `cost` e `power` vêm só para ordenar; a tela não os mostra.
+      card: { select: { code: true, name: true, type: true, cost: true, power: true } },
       printings: { select: { set: { select: { code: true } } } },
       collectionItems: { where: { collectionId }, select: { quantity: true } },
     },
@@ -155,7 +172,7 @@ export async function searchCollection(
    */
   const perCard = await quantityPerCard(prisma, collectionId)
 
-  const views = matches.map((row): CollectionItemView & { setCode: string | null; sourceId: string | null } => {
+  const views = matches.map((row): CollectionItemView & SortFields => {
     const quantity = row.collectionItems[0]?.quantity ?? 0
     const quantityForCard = perCard.get(String(row.cardId)) ?? quantity
 
@@ -170,9 +187,11 @@ export async function searchCollection(
       quantity,
       quantityForCard,
       playsetClosed: row.card.type !== 'Leader' && quantityForCard >= PLAYSET_SIZE,
-      // Os dois ultimos existem so para ordenar (decisao 069).
+      // Os tres ultimos existem so para ordenar (decisoes 069 e 110).
       setCode: placementSet(row.card.code, row.printings.map((p) => p.set.code), query.setCode),
       sourceId: row.sourceId,
+      cost: row.card.cost,
+      power: row.card.power,
     }
   })
 
@@ -183,17 +202,28 @@ export async function searchCollection(
         ? views.filter((view) => !view.playsetClosed && view.cardType !== 'Leader')
         : views
 
+  /*
+   * A mesma cadeia do catálogo: a ordem escolhida primeiro, a do catálogo como
+   * desempate, o id por último. A coleção e o catálogo mostram as mesmas
+   * cartas — ordenar diferente nas duas telas seria a mesma escolha dando dois
+   * resultados.
+   */
+  const sort = query.sort ?? DEFAULT_CATALOG_SORT
   scoped.sort(
     (a, b) =>
-      compareCatalogOrder(a, b) || (a.variantId < b.variantId ? -1 : a.variantId > b.variantId ? 1 : 0),
+      compareCatalogSort(a, b, sort) ||
+      compareCatalogOrder(a, b) ||
+      (a.variantId < b.variantId ? -1 : a.variantId > b.variantId ? 1 : 0),
   )
 
   const total = scoped.length
   // `setCode` e `sourceId` existem so para ordenar; nao fazem parte do que a tela recebe.
   const items = scoped.slice((page - 1) * pageSize, page * pageSize).map((view) => {
-    const { setCode, sourceId, ...rest } = view
+    const { setCode, sourceId, cost, power, ...rest } = view
     void setCode
     void sourceId
+    void cost
+    void power
     return rest
   })
 

@@ -4,6 +4,7 @@ import { isAppError } from '@/server/domain/errors'
 import { CatalogFilters } from '@/components/catalog/catalog-filters'
 import { CatalogResults } from '@/components/catalog/catalog-results'
 import { CatalogSearch } from '@/components/catalog/catalog-search'
+import { CatalogSort } from '@/components/catalog/catalog-sort'
 import { SetHeader } from '@/components/catalog/set-header'
 import { getCatalogVocabulary, getSet, searchCatalog } from '@/server/application/catalog'
 import { countActiveFilters, currentPath, toCatalogQuery } from '@/lib/catalog-params'
@@ -61,6 +62,8 @@ export default async function SetPage({ params, searchParams }: PageProps<'/cata
             hideSetFilter
           />
         </div>
+
+        <CatalogSort />
 
         <CatalogResults
           result={result}

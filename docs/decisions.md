@@ -6952,3 +6952,81 @@ não tem volta.
 ## Data
 
 2026-09-22
+
+# Decisão: 110 — A pessoa escolhe a ordem da listagem
+
+Pedido do dono do produto em 23/09: além da ordem por código, deixar ordenar por
+custo (maior→menor e menor→maior) e por nome. Os critérios foram escolhidos por
+ele entre três conjuntos; preço ficou de fora nesta rodada, porque mora em outra
+tabela e por arte, e a ordenação passaria a depender de junção.
+
+## O padrão não muda
+
+A ordem por código das decisões **040** e **069** continua sendo a de quem não
+escolhe nada. Isto é um acréscimo, e não uma alteração: nada do que já foi
+decidido sobre ordem deixou de valer.
+
+As sete opções: código do set (padrão), nome A→Z, nome Z→A, custo ↑, custo ↓,
+poder ↑, poder ↓.
+
+## O critério escolhido manda; o empate volta para o catálogo
+
+Ordenando por custo, centenas de cartas empatam em 3. Sem um segundo critério
+estável elas trocariam de lugar entre uma página e a seguinte, e na rolagem
+infinita a mesma carta apareceria duas vezes ou nenhuma — exatamente o estrago
+que o desempate por id já existia para evitar (decisão 069).
+
+A cadeia é: **critério escolhido → ordem do catálogo → id**. Com `codigo` o
+primeiro passo devolve empate para todo par, e sobra precisamente o
+comportamento anterior.
+
+## Nulo vai para o fim, nas duas direções
+
+Um Leader não tem custo; um Event não tem poder. Depois da armadilha 87 essa
+diferença passou a ser real no banco: `null` quer dizer **"este tipo de carta
+não tem este campo"**, e `0` é um valor.
+
+Um não-valor não pode competir por posição. Então ele não sobe no crescente nem
+no decrescente: sai do caminho e fica no fim das duas vezes. Tratar `null` como
+zero poria todo Leader no topo de "custo, menor primeiro"; tratá-lo como
+infinito o poria no topo do decrescente. As duas coisas afirmam sobre a carta
+algo que a fonte não diz.
+
+Zero ordena normalmente. Em "poder, menor primeiro" a `OP01-006 Otama`, de poder
+0, é a primeira da lista — e isso é o resultado certo.
+
+## A ordem não é um filtro, e por isso saiu do painel
+
+Ela não muda **quais** cartas aparecem, só a sequência.
+
+A primeira versão a punha dentro do painel de filtros, e o dono do produto pediu
+para tirá-la de lá no mesmo dia. O motivo vale registrar: o painel é uma
+pergunta que se monta e se aplica de uma vez, com Limpar e um distintivo de
+quantos filtros estão ativos — e a ordem não pertence a nenhuma dessas três
+coisas. Fora dele ela também fica visível sem abrir nada, que é o gesto que se
+repete: filtrar uma vez e reordenar várias.
+
+**Mexer nos filtros não mexe na ordem**, e isso precisou de código. Na URL sai de
+graça, porque `buildCatalogHref` preserva o que não foi citado. Mas nas telas
+que guardam os filtros em estado local o painel devolve um objeto que substitui
+o anterior inteiro — deixar a ordem de fora a apagaria a cada Aplicar. Por isso
+o painel **carrega a ordem intacta**, sem oferecê-la.
+
+O Limpar também não a desfaz, e `?ordem=codigo` não é escrito na URL, porque diz
+o mesmo que não dizer nada.
+
+## Onde aparece
+
+Nas cinco telas que compartilham o painel de filtros, por escolha do dono do
+produto: catálogo, catálogo por set, coleção, seletor de cartas e deck builder.
+Quem aprende a ordenar no catálogo espera o mesmo na coleção.
+
+No catálogo o controle fica **abaixo dos atalhos de Sets e Starter Decks e
+separado deles**, e não colado — posição pedida pelo dono do produto.
+
+A ordem viaja também no `/api/catalog`, e não só na primeira página. Sem isso a
+rolagem infinita traria a página 1 por custo e a 2 pela ordem do catálogo.
+
+## Data
+
+2026-09-23
