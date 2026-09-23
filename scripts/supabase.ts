@@ -122,7 +122,25 @@ async function main(): Promise<void> {
       const report = await importCatalog(prisma, provider, {
         seriesIds: seriesIds.length > 0 ? seriesIds : undefined,
       })
-      if (report.seriesFailed > 0) process.exitCode = 1
+
+      /*
+       * A ultima palavra do comando diz **quais** series falharam, e nao so
+       * quantas. Em 22/09 a importacao terminou com "falhas=1" e ninguem tinha
+       * como saber qual sem rodar os vinte minutos de novo.
+       *
+       * Sai por `console.log`, e nao `error`: e o resumo do comando, e quem o
+       * chamou costuma capturar so a saida padrao.
+       */
+      if (report.seriesFailed > 0) {
+        console.log(
+          `[supabase] import: ${report.seriesFailed} serie(s) falharam. Rode de novo so elas:`,
+        )
+        console.log(`[supabase]   npm run supabase import ${report.failures.map((f) => f.seriesId).join(' ')}`)
+        for (const falha of report.failures) {
+          console.log(`[supabase]   serie=${falha.seriesId}: ${falha.reason}`)
+        }
+        process.exitCode = 1
+      }
     } finally {
       await prisma.$disconnect()
     }

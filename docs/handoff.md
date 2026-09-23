@@ -776,6 +776,20 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 
     Quem nunca entrou desde a limpeza ainda não tem identidade, e o script diz
     isso em vez de inventar uma: entre uma vez, e rode de novo.
+86. **Contagem de falha não é relato de falha.** Em 22/09 a importação do
+    catálogo rodou vinte minutos e terminou com `falhas=1` — e **não havia como
+    saber qual série**. O identificador existia no relatório e nunca era
+    impresso; a linha do erro saía por `console.error`, e numa execução de
+    sessenta séries ela se perde, ou nem chega ao arquivo de quem chamou.
+
+    Corrigido: o resumo nomeia as séries (`falhas=1 (569999)`), lista cada uma
+    com o motivo, e o comando ainda imprime a linha para **rodar só elas** —
+    `npm run supabase import <ids>`. Tudo por saída padrão, que é o que se
+    captura.
+
+    A lição vale além deste caso: **numa tarefa longa e sem plateia, um número
+    de falhas sem identificador é um ponto cego**. Quem escrever a próxima tarefa
+    agendada precisa dizer *o quê* falhou, e não *quantos*.
 
 ## Pendências
 
