@@ -1,5 +1,6 @@
 import {
   CARD_TYPES,
+  DON_TYPE,
   KNOWN_MECHANICS,
   MECHANIC_ALIASES,
   PROMO_SET,
@@ -84,9 +85,18 @@ function splitList(value: string | null): string[] {
     .filter((part) => part !== '' && part !== '-')
 }
 
+/**
+ * O tipo da carta, entre os que **a Bandai publica**.
+ *
+ * `DON` fica de fora de proposito, mesmo sendo um `CardType` desde a decisao
+ * 112: a lista oficial nao tem DON!!, e aceita-lo aqui faria um tipo novo da
+ * fonte entrar calado no dia em que ela mudasse. O DON!! entra pelo tcgcsv,
+ * pela sua propria porta.
+ */
 function toCardType(raw: string): CardType | null {
   const normalised = raw.trim().toLowerCase()
-  return CARD_TYPES.find((type) => type.toLowerCase() === normalised) ?? null
+  const found = CARD_TYPES.find((type) => type.toLowerCase() === normalised) ?? null
+  return found === DON_TYPE ? null : found
 }
 
 /**

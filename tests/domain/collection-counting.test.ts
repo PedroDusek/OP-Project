@@ -25,6 +25,13 @@ const variant = (
   cardType = 'Character',
 ): OwnedVariant => ({ cardId, cardType, variantId, quantity })
 
+/*
+ * As expectativas abaixo comparam o objeto **inteiro**, de proposito: e isso que
+ * faz um campo novo aparecer aqui em vez de passar batido. Ganharam
+ * `donVariants` na decisao 112, que acrescentou a contagem de DON!! ao retorno.
+ * O valor e 0 em todos eles porque nenhum tem DON!! — as cenas de DON!! estao no
+ * bloco proprio, no fim do arquivo.
+ */
 describe('cenarios obrigatorios de contagem', () => {
   it('1: tres variantes da mesma carta, 2+1+1 copias', () => {
     const totals = countCollection([
@@ -33,7 +40,7 @@ describe('cenarios obrigatorios de contagem', () => {
       variant('carta-1', 'parallel-2', 1),
     ])
 
-    expect(totals).toEqual({ totalCards: 4, uniqueVariants: 3, closedPlaysets: 1 })
+    expect(totals).toEqual({ totalCards: 4, uniqueVariants: 3, closedPlaysets: 1, donVariants: 0 })
   })
 
   /** Oito copias continuam sendo **um** playset. `floor(8 / 4)` daria dois. */
@@ -43,13 +50,13 @@ describe('cenarios obrigatorios de contagem', () => {
       variant('carta-1', 'parallel', 4),
     ])
 
-    expect(totals).toEqual({ totalCards: 8, uniqueVariants: 2, closedPlaysets: 1 })
+    expect(totals).toEqual({ totalCards: 8, uniqueVariants: 2, closedPlaysets: 1, donVariants: 0 })
   })
 
   it('3: dez copias de um Leader nao fecham playset', () => {
     const totals = countCollection([variant('lider-1', 'normal', 10, 'Leader')])
 
-    expect(totals).toEqual({ totalCards: 10, uniqueVariants: 1, closedPlaysets: 0 })
+    expect(totals).toEqual({ totalCards: 10, uniqueVariants: 1, closedPlaysets: 0, donVariants: 0 })
   })
 })
 
@@ -74,7 +81,7 @@ describe('countCollection', () => {
       variant('carta-2', 'v3', 2),
     ])
 
-    expect(totals).toEqual({ totalCards: 2, uniqueVariants: 1, closedPlaysets: 0 })
+    expect(totals).toEqual({ totalCards: 2, uniqueVariants: 1, closedPlaysets: 0, donVariants: 0 })
   })
 
   it('colecao vazia da tudo zero', () => {
@@ -82,6 +89,7 @@ describe('countCollection', () => {
       totalCards: 0,
       uniqueVariants: 0,
       closedPlaysets: 0,
+      donVariants: 0,
     })
   })
 
@@ -149,5 +157,54 @@ describe('progress', () => {
 
   it('nao passa de um mesmo com sobra', () => {
     expect(progress(200, 125)).toBe(1)
+  })
+})
+
+/**
+ * O DON!! conta, mas não como progresso (decisão 112).
+ *
+ * O dono do produto foi explícito: "não haverá progresso, mas haverá 'você
+ * possui X DON diferentes'". As três regras abaixo são o que isso significa na
+ * aritmética.
+ */
+describe('DON!!', () => {
+  it('nao fecha playset por mais copias que tenha', () => {
+    const totals = countCollection([variant('don-1', 'don-1-normal', 10, 'DON')])
+
+    expect(totals.closedPlaysets).toBe(0)
+  })
+
+  /*
+   * O numerador do progresso exclui DON!!, e o denominador tambem — se so um
+   * dos dois excluisse, o progresso passaria de 100%.
+   */
+  it('fica fora das variantes que contam progresso', () => {
+    const totals = countCollection([
+      variant('carta-1', 'arte-1', 1),
+      variant('don-1', 'don-1-normal', 1, 'DON'),
+    ])
+
+    expect(totals.uniqueVariants).toBe(1)
+    expect(totals.donVariants).toBe(1)
+  })
+
+  /* Mas um DON!! possuido e uma carta possuida: ele conta no total. */
+  it('conta no total de cartas', () => {
+    const totals = countCollection([
+      variant('carta-1', 'arte-1', 2),
+      variant('don-1', 'don-1-normal', 3, 'DON'),
+    ])
+
+    expect(totals.totalCards).toBe(5)
+  })
+
+  it('conta quantos DON diferentes, e nao quantas copias', () => {
+    const totals = countCollection([
+      variant('don-1', 'don-1-normal', 9, 'DON'),
+      variant('don-2', 'don-2-normal', 4, 'DON'),
+    ])
+
+    expect(totals.donVariants).toBe(2)
+    expect(totals.totalCards).toBe(13)
   })
 })

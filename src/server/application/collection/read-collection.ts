@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
+import { DON_TYPE } from '@/server/domain/catalog/types'
 import { countCollection, PLAYSET_SIZE, type OwnedVariant } from '@/server/domain/collection/counting'
 import {
   compareCatalogOrder,
@@ -50,7 +51,9 @@ export interface CollectionSummary {
   totalCards: number
   uniqueVariants: number
   closedPlaysets: number
-  /** Variantes distintas do catalogo, para o progresso. */
+  /** Quantos DON!! diferentes a pessoa tem (decisao 112). Fora do progresso. */
+  donVariants: number
+  /** Variantes distintas do catalogo, para o progresso. **Sem DON!!**. */
   catalogVariants: number
 }
 
@@ -87,10 +90,20 @@ export async function getCollectionSummary(
   user: AuthenticatedUser,
 ): Promise<CollectionSummary> {
   const collectionId = await collectionIdOf(prisma, user)
-  const catalogVariants = await prisma.cardVariant.count()
+  /*
+   * O denominador do progresso **exclui DON!!** (decisao 112). Sem isto, os 239
+   * DON!! entrariam no total do catalogo e o progresso de todo mundo cairia da
+   * noite para o dia por uma carta que nem entra em deck — e o dono do produto
+   * pediu justamente que o DON!! nao tivesse progresso.
+   *
+   * O numerador (`uniqueVariants`) exclui pelo mesmo motivo, em `countCollection`.
+   */
+  const catalogVariants = await prisma.cardVariant.count({
+    where: { card: { type: { not: DON_TYPE } } },
+  })
 
   if (!collectionId) {
-    return { totalCards: 0, uniqueVariants: 0, closedPlaysets: 0, catalogVariants }
+    return { totalCards: 0, uniqueVariants: 0, closedPlaysets: 0, donVariants: 0, catalogVariants }
   }
 
   const items = await prisma.collectionItem.findMany({

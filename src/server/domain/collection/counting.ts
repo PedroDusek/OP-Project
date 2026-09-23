@@ -1,3 +1,5 @@
+import { DON_TYPE } from '@/server/domain/catalog/types'
+
 /**
  * A aritmetica da colecao.
  *
@@ -17,10 +19,14 @@ export const PLAYSET_SIZE = 4
 /**
  * Tipos que nunca contam playset.
  *
- * `Leader` porque um deck usa exatamente um. `DON!!` esta fora do catalogo e
- * por isso nao aparece aqui — se um dia entrar, entra nesta lista.
+ * `Leader` porque um deck usa exatamente um. `DON` porque ele nao e carta de
+ * deck: um deck usa dez, iguais, e "quantas copias faltam para quatro" nao e
+ * uma pergunta que alguem faca sobre DON!!. O que se conta dele e quantos
+ * **diferentes** a pessoa tem (decisao 112), e isso nao e playset.
+ *
+ * Este comentario dizia "se um dia entrar, entra nesta lista". Entrou em 23/09.
  */
-const TYPES_WITHOUT_PLAYSET = new Set(['Leader'])
+const TYPES_WITHOUT_PLAYSET = new Set(['Leader', 'DON'])
 
 export interface OwnedVariant {
   /** Agrupa o playset. Duas artes da mesma carta compartilham este valor. */
@@ -32,8 +38,23 @@ export interface OwnedVariant {
 
 export interface CollectionTotals {
   totalCards: number
+  /**
+   * Variantes distintas possuidas, **sem DON!!**.
+   *
+   * Este e o numerador do progresso do catalogo, e o denominador tambem exclui
+   * DON!! (decisao 112). Os dois precisam concordar: contar DON!! de um lado e
+   * nao do outro faria o progresso passar de 100%.
+   */
   uniqueVariants: number
   closedPlaysets: number
+  /**
+   * Quantos DON!! **diferentes** a pessoa tem.
+   *
+   * Fica fora do progresso de proposito, por escolha do dono do produto: o
+   * DON!! nao e carta de deck e nao ha "faltam N para completar". O que a tela
+   * diz e "voce possui X DON diferentes", e este e o X.
+   */
+  donVariants: number
 }
 
 /**
@@ -46,13 +67,17 @@ export interface CollectionTotals {
 export function countCollection(items: OwnedVariant[]): CollectionTotals {
   let totalCards = 0
   let uniqueVariants = 0
+  let donVariants = 0
   const perCard = new Map<string, { type: string; quantity: number }>()
 
   for (const item of items) {
     if (item.quantity <= 0) continue
 
+    // Um DON!! possuido e uma carta possuida: ele conta no total. O que ele nao
+    // faz e mexer no progresso, e por isso sai so de `uniqueVariants`.
     totalCards += item.quantity
-    uniqueVariants += 1
+    if (item.cardType === DON_TYPE) donVariants += 1
+    else uniqueVariants += 1
 
     const card = perCard.get(item.cardId)
     if (card) card.quantity += item.quantity
@@ -64,7 +89,7 @@ export function countCollection(items: OwnedVariant[]): CollectionTotals {
     if (isPlaysetClosed(card.type, card.quantity)) closedPlaysets += 1
   }
 
-  return { totalCards, uniqueVariants, closedPlaysets }
+  return { totalCards, uniqueVariants, closedPlaysets, donVariants }
 }
 
 /**

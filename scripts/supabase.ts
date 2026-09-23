@@ -22,6 +22,7 @@ const POOL_MAX = 4
  *   npm run supabase import             importa o catalogo, baixando da fonte
  *   npm run supabase import 569117      importa apenas as series informadas
  *   npm run supabase -- import --from=DIR  importa de um snapshot local
+ *   npm run supabase don                importa os DON!! do tcgcsv (decisao 112)
  *   npm run supabase status             mostra o que existe la hoje
  *   npm run supabase storage            cria o bucket das imagens do usuario
  *   npm run supabase prices             importa precos de arte comum e cambio
@@ -138,6 +139,39 @@ async function main(): Promise<void> {
         console.log(`[supabase]   npm run supabase import ${report.failures.map((f) => f.seriesId).join(' ')}`)
         for (const falha of report.failures) {
           console.log(`[supabase]   serie=${falha.seriesId}: ${falha.reason}`)
+        }
+        process.exitCode = 1
+      }
+    } finally {
+      await prisma.$disconnect()
+    }
+    return
+  }
+
+  /*
+   * Os DON!! vem do tcgcsv, e nao da Bandai: o catalogo oficial e a lista de
+   * cartas de deck, e o DON!! nao e uma delas (decisao 112). Comando proprio, e
+   * nao uma opcao do `import`, porque e outra fonte com outro ritmo — o DON!!
+   * muda raramente, e nao ha motivo para reler o catalogo inteiro por ele.
+   */
+  if (command === 'don') {
+    const prisma = createPrisma(url, { max: POOL_MAX })
+    try {
+      const { TcgCsvDonProvider } = await import(
+        '@/server/infrastructure/catalog/tcgcsv-don-provider'
+      )
+      const provider = new TcgCsvDonProvider()
+      console.log('[supabase] lendo os DON!! do tcgcsv')
+
+      const report = await importCatalog(prisma, provider)
+      console.log(
+        `[supabase] don: cartas=${report.cardsUpserted} artes=${report.variantsUpserted}` +
+          ` grupos=${report.seriesProcessed} falhas=${report.seriesFailed}`,
+      )
+
+      if (report.seriesFailed > 0) {
+        for (const falha of report.failures) {
+          console.log(`[supabase]   grupo=${falha.seriesId}: ${falha.reason}`)
         }
         process.exitCode = 1
       }
