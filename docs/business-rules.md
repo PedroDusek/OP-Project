@@ -536,6 +536,13 @@ estão na caixa do deck. O que sai da coleção para a deckbox:
 7. **A confirmação é uma afirmação de fato**: trocar o local apaga de onde a
    carta estava, e não há como recuperar. A tela exige que a pessoa confirme
    **só depois de ter movido as cartas de verdade**.
+8. **Não é preciso ter a lista inteira.** O que a pessoa não tem é pulado, e a
+   transferência leva o que existe.
+9. **"Deixar onde está" é uma escolha**, e não a ausência de uma. Toda carta que
+   exige decisão pode ser deixada de fora — e a que só existe em local de troca
+   **já começa marcada assim**, que é a regra 5 escrita na tela. Sem isso a
+   pessoa ficaria presa: ou tirava a carta do Trade Binder, ou não transferia
+   nada.
 
 ## 8. Planos: Free e Premium
 

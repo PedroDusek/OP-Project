@@ -6882,6 +6882,22 @@ O botão diz "Já movi as cartas — confirmar", e não "Transferir". A diferen�
 ponto: quem clica está afirmando um fato sobre o mundo físico, e não pedindo uma
 operação.
 
+## "Deixar onde está" precisou ser uma escolha
+
+A primeira versão travava o botão enquanto houvesse carta sem origem escolhida, e
+**não oferecia** a opção de não mover. O dono do produto perguntou se dava para
+transferir sem ter todas as cartas, e a pergunta revelou o defeito.
+
+Faltar carta nunca travou nada — o que a pessoa não tem é pulado. O que travava
+era a **decisão pendente**, e no caso das cartas que só existem em local de troca
+isso a deixava sem saída: ou tirava a carta do Trade Binder, ou não transferia
+nada. Era a regra 5 valendo ao contrário.
+
+Agora toda carta que exige decisão pode ser deixada de fora, e a que só existe em
+local de troca **já começa marcada assim**. A tela também resume, antes da
+confirmação, quantas cópias saem do lugar e quantas cartas ficam — porque a ação
+não tem volta.
+
 ## Data
 
 2026-09-22

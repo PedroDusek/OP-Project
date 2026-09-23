@@ -44,6 +44,10 @@ export function TransferDeckSheet({ deckId, boxes }: { deckId: string; boxes: De
   const [aberto, setAberto] = useState(false)
   const [destino, setDestino] = useState(boxes[0]?.id ?? '')
   const [plano, setPlano] = useState<PlanState>({ status: 'idle' })
+  /**
+   * A escolha de origem por carta. `DEIXAR` é uma escolha como outra qualquer:
+   * "não quero mover esta".
+   */
   const [escolhas, setEscolhas] = useState<Record<string, string>>({})
   const [planejando, planejar] = useTransition()
   const [transferindo, transferir] = useTransition()
@@ -53,8 +57,24 @@ export function TransferDeckSheet({ deckId, boxes }: { deckId: string; boxes: De
 
   const verPlano = () =>
     planejar(async () => {
-      setEscolhas({})
-      setPlano(await planarTransferenciaAction(deckId, destino))
+      const resultado = await planarTransferenciaAction(deckId, destino)
+      /*
+       * Carta que só existe em local de troca começa em "deixar onde está".
+       *
+       * É a regra do dono do produto escrita na tela: local de troca **não entra
+       * por padrão**. Sem isto, a pessoa ficaria presa — ou tirava a carta do
+       * Trade Binder, ou não transferia nada.
+       */
+      setEscolhas(
+        resultado.status === 'ok'
+          ? Object.fromEntries(
+              resultado.plan.lines
+                .filter((linha) => linha.status === 'trade-needed')
+                .map((linha) => [linha.cardCode, DEIXAR]),
+            )
+          : {},
+      )
+      setPlano(resultado)
     })
 
   /*
@@ -65,7 +85,7 @@ export function TransferDeckSheet({ deckId, boxes }: { deckId: string; boxes: De
     ? p.lines.flatMap((linha) => {
         if (linha.status === 'auto') return linha.take
         const escolhida = escolhas[linha.cardCode]
-        if (!escolhida) return []
+        if (!escolhida || escolhida === DEIXAR) return []
         const opcao = linha.options.find((o) => chaveDa(o) === escolhida)
         if (!opcao) return []
         return [
@@ -81,6 +101,17 @@ export function TransferDeckSheet({ deckId, boxes }: { deckId: string; boxes: De
   const pendentes = p
     ? p.lines.filter((l) => (l.status === 'ambiguous' || l.status === 'trade-needed') && !escolhas[l.cardCode])
     : []
+
+  const totalCopias = takes.reduce((soma, take) => soma + take.copies, 0)
+  /* Cartas que não vão: as que a pessoa não tem, e as que ela deixou de fora. */
+  const foraDaTransferencia = p
+    ? p.lines.filter(
+        (l) =>
+          l.status === 'missing' ||
+          ((l.status === 'ambiguous' || l.status === 'trade-needed') &&
+            escolhas[l.cardCode] === DEIXAR),
+      ).length
+    : 0
 
   const confirmar = () =>
     transferir(async () => {
@@ -181,9 +212,23 @@ export function TransferDeckSheet({ deckId, boxes }: { deckId: string; boxes: De
               {pendentes.length > 0 ? (
                 <p className="text-sm text-text-muted">
                   Escolha de onde sairão as cópias de {pendentes.length}{' '}
-                  {pendentes.length === 1 ? 'carta' : 'cartas'} antes de confirmar.
+                  {pendentes.length === 1 ? 'carta' : 'cartas'} antes de confirmar — ou marque
+                  para deixá-las onde estão.
                 </p>
-              ) : null}
+              ) : (
+                /*
+                 * O resumo do que vai acontecer, em uma linha. A ação não tem
+                 * volta: a pessoa precisa saber quantas cópias saem do lugar e
+                 * quantas cartas ficam de fora **antes** de afirmar que já
+                 * moveu tudo.
+                 */
+                <p className="text-sm text-text-muted tabular-nums">
+                  {totalCopias} {totalCopias === 1 ? 'cópia vai' : 'cópias vão'} para a deckbox.
+                  {foraDaTransferencia > 0
+                    ? ` ${foraDaTransferencia} ${foraDaTransferencia === 1 ? 'carta fica' : 'cartas ficam'} de fora.`
+                    : ''}
+                </p>
+              )}
 
               <Button
                 block
@@ -205,6 +250,16 @@ export function TransferDeckSheet({ deckId, boxes }: { deckId: string; boxes: De
 
 /** Uma pilha é identificada pela arte **e** pelo local: as duas escolhas juntas. */
 const chaveDa = (o: { variantId: string; locationId: string }) => `${o.variantId}:${o.locationId}`
+
+/**
+ * "Não quero mover esta carta agora."
+ *
+ * Existe porque sem ela a pessoa ficava presa: uma carta com duas pilhas
+ * possíveis travava a transferência inteira até alguém escolher, e no caso das
+ * que só existem em local de troca a única saída seria tirá-las do Trade Binder.
+ * Deixar de fora precisa ser uma escolha possível, e não a ausência de uma.
+ */
+const DEIXAR = 'deixar'
 
 function LinhaDoPlano({
   linha,
@@ -257,6 +312,18 @@ function LinhaDoPlano({
               </label>
             )
           })}
+
+          {/* Deixar de fora é uma escolha, e não a ausência de uma. */}
+          <label className="flex items-center gap-2 text-sm text-text-muted">
+            <input
+              type="radio"
+              name={`origem-${linha.cardCode}`}
+              checked={escolhida === DEIXAR}
+              onChange={() => onEscolher(DEIXAR)}
+              className="size-4"
+            />
+            Deixar esta carta onde está
+          </label>
         </fieldset>
       ) : null}
     </Panel>
