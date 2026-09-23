@@ -482,6 +482,84 @@ visita de usuário.
 afiliada à Nintendo ou à The Pokémon Company". O nosso rodapé precisa dizer o
 equivalente para Pokémon, como já diz para a Bandai.
 
+#### 5.2.1 O preço não vem da mesma porta que a carta
+
+Pergunta do dono do produto em 22/09: *"o preço vai junto? não deveríamos
+atualizar o preço todo dia?"* As duas coisas são verdadeiras, e a resposta é que
+**continuam sendo dois pipelines**, como já são hoje.
+
+O `pricing` da TCGdex vem anexado à carta, **mas só no recurso individual**.
+Conferido contra a API: a listagem em massa (`/v2/en/cards?set=…`) devolve apenas
+`id`, `localId`, `name` e `image`. Atualizar preço por ali seriam **~24.000
+requisições por dia**, o que é inviável e contra a cortesia da decisão 020.
+
+O desenho, então, é o mesmo do One Piece:
+
+| | One Piece | Pokémon |
+|---|---|---|
+| **Catálogo**, quando há coisa nova | Bandai | **TCGdex** |
+| **Preço**, diário às 04:00 | tcgcsv categoria 68 | **tcgcsv categoria 3** |
+
+**O que a TCGdex resolve é a ponte.** Ela entrega, por variante, o `productId` do
+TCGplayer:
+
+```json
+"tcgplayer": {
+  "normal":           { "productId": 219333, "marketPrice": 0.20 },
+  "reverse-holofoil": { "productId": 219333, "marketPrice": 0.45 }
+}
+```
+
+Esse número é **exatamente o que os 773 vínculos manuais do One Piece
+produziram**. Lá ninguém dizia qual produto correspondia a qual arte; aqui a
+fonte diz. E como o `productId` se repete entre acabamentos, a separação vem do
+nome da variante — que casa com o `subTypeName` que o nosso provedor de preços
+**já lê** (`tcgcsv-price-provider.ts`).
+
+Na prática: a importação de catálogo grava o `productId` de cada variante, como
+`variant_source_products` já faz; a tarefa diária não precisa saber que a TCGdex
+existe.
+
+**A consequência operacional**: carta nova sem importação de catálogo **não tem
+preço**, porque não tem `productId`. É a mesma armadilha que deixou o catálogo
+parado em 07/09 enquanto o preço se atualizava sozinho — e com dois jogos ela
+dobra. Agendar a importação de catálogo (semanal, não diária) é a decisão que
+evita isso, e está em aberto.
+
+**Não medido**: se toda variante traz `productId` preenchido. Foi visto numa
+carta. Japonesas, promocionais e antigas podem não ter produto no TCGplayer, e
+aí ficam sem preço — como as 94 paralelas que hoje dizem "Sem cartas vendidas".
+
+#### 5.2.2 O link da Liga não vem junto, e nem poderia
+
+Pergunta do dono do produto em 22/09. A resposta curta é **não**: a Liga é um
+site brasileiro sem relação com a TCGdex.
+
+A boa notícia é que a **Liga Pokémon usa a mesma estrutura de endereço** da Liga
+One Piece — é a mesma empresa:
+
+```
+https://www.ligapokemon.com.br/?view=cards/card&card=<Nome>
+https://www.ligapokemon.com.br/?view=cards/search&card=<Nome>
+```
+
+Então `domain/catalog/liga.ts` é **estruturalmente reaproveitável**.
+
+A má notícia é que o caro nunca foi o formato do endereço: foi **descobrir como a
+Liga cadastrou cada arte**. Sufixos (`-PAR`, `-E`), edição entre colchetes,
+pré-lançamento, reimpressão — nada disso é dedutível, e a Liga está atrás de
+proteção anti-bot, então **quem descobre é gente abrindo o site** (decisões 071 a
+077, e 158 paralelas apontando para a arte errada antes de a tabela existir).
+
+Para Pokémon, o que **não** se sabe: como a Liga nomeia as edições, e como
+distingue reverse holo, holo e primeira edição. Isso só se descobre olhando.
+
+**Mas dá para entregar valor sem nada disso.** A regra 3 do `liga.ts` já manda
+para a **busca por nome** toda arte que não está na tabela conferida. Um link de
+Pokémon pode nascer assim — busca por nome, zero trabalho manual — e ganhar
+precisão depois, se e quando o dono do produto quiser. É um caminho que o One
+Piece não teve, porque lá a tabela veio antes.
+
 ### 5.3 Magic
 
 | Fonte | O que entrega | Situação |
