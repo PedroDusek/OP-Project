@@ -6995,21 +6995,34 @@ algo que a fonte não diz.
 Zero ordena normalmente. Em "poder, menor primeiro" a `OP01-006 Otama`, de poder
 0, é a primeira da lista — e isso é o resultado certo.
 
-## A ordem não é um filtro
+## A ordem não é um filtro, e por isso saiu do painel
 
-Ela não muda **quais** cartas aparecem, só a sequência. Por isso não entra na
-contagem do distintivo de filtros ativos e o **Limpar não a desfaz**: quem limpa
-os filtros quer ver o catálogo inteiro, e não voltar a ordenar por código sem
-ter pedido.
+Ela não muda **quais** cartas aparecem, só a sequência.
 
-`?ordem=codigo` também não é escrito na URL, porque diz o mesmo que não dizer
-nada.
+A primeira versão a punha dentro do painel de filtros, e o dono do produto pediu
+para tirá-la de lá no mesmo dia. O motivo vale registrar: o painel é uma
+pergunta que se monta e se aplica de uma vez, com Limpar e um distintivo de
+quantos filtros estão ativos — e a ordem não pertence a nenhuma dessas três
+coisas. Fora dele ela também fica visível sem abrir nada, que é o gesto que se
+repete: filtrar uma vez e reordenar várias.
+
+**Mexer nos filtros não mexe na ordem**, e isso precisou de código. Na URL sai de
+graça, porque `buildCatalogHref` preserva o que não foi citado. Mas nas telas
+que guardam os filtros em estado local o painel devolve um objeto que substitui
+o anterior inteiro — deixar a ordem de fora a apagaria a cada Aplicar. Por isso
+o painel **carrega a ordem intacta**, sem oferecê-la.
+
+O Limpar também não a desfaz, e `?ordem=codigo` não é escrito na URL, porque diz
+o mesmo que não dizer nada.
 
 ## Onde aparece
 
 Nas cinco telas que compartilham o painel de filtros, por escolha do dono do
 produto: catálogo, catálogo por set, coleção, seletor de cartas e deck builder.
 Quem aprende a ordenar no catálogo espera o mesmo na coleção.
+
+No catálogo o controle fica **abaixo dos atalhos de Sets e Starter Decks e
+separado deles**, e não colado — posição pedida pelo dono do produto.
 
 A ordem viaja também no `/api/catalog`, e não só na primeira página. Sem isso a
 rolagem infinita traria a página 1 por custo e a 2 pela ordem do catálogo.

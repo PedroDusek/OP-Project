@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { AlertTriangle, ArrowLeftRight, Check, Package, Plus, Sparkles } from 'lucide-react'
 import { CardArt } from '@/components/catalog/card-art'
 import { CatalogFilters } from '@/components/catalog/catalog-filters'
+import { CatalogSort } from '@/components/catalog/catalog-sort'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { QuantitySelector } from '@/components/ui/quantity-selector'
@@ -684,6 +685,14 @@ function BuscaDeCartas({
           Buscar
         </Button>
       </form>
+
+      <CatalogSort
+        values={filtros}
+        onChange={(novos) => {
+          setFiltros(novos)
+          void buscar(termo, novos)
+        }}
+      />
 
       {erro ? (
         <p role="alert" className="text-sm text-danger">

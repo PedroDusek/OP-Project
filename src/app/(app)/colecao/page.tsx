@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Layers, Star } from 'lucide-react'
 import { PageHeader } from '@/components/layout/app-shell'
 import { CatalogFilters } from '@/components/catalog/catalog-filters'
+import { CatalogSort } from '@/components/catalog/catalog-sort'
 import { CatalogSearch } from '@/components/catalog/catalog-search'
 import { InfiniteCollectionGrid } from '@/components/collection/infinite-collection-grid'
 import { CollectionScope } from '@/components/collection/collection-scope'
@@ -123,6 +124,8 @@ export default async function ColecaoPage({ searchParams }: PageProps<'/colecao'
             description="Playsets fechados, o que ainda falta e o progresso do catálogo aparecem aqui com o Premium. Ver, buscar e filtrar a coleção continua de todos."
           />
         )}
+
+        <CatalogSort />
 
         {atual.total === 0 ? (
           <EmptyState

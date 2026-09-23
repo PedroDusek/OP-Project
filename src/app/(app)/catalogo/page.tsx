@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/layout/app-shell'
 import { CatalogFilters } from '@/components/catalog/catalog-filters'
 import { CatalogResults } from '@/components/catalog/catalog-results'
 import { CatalogSearch } from '@/components/catalog/catalog-search'
+import { CatalogSort } from '@/components/catalog/catalog-sort'
 import { ListRow, PanelList } from '@/components/ui/surface'
 import { getCatalogVocabulary, searchCatalog } from '@/server/application/catalog'
 import { countActiveFilters, currentPath, toCatalogQuery } from '@/lib/catalog-params'
@@ -57,6 +58,13 @@ export default async function CatalogoPage({ searchParams }: PageProps<'/catalog
             description="Decks prontos para jogar, vendidos fechados."
           />
         </PanelList>
+
+        {/*
+          A ordem fica fora do painel de filtros e separada dos dois atalhos
+          acima, por pedido do dono do produto (decisão 110): ordenar não é
+          filtrar, e mexer no filtro não pode desfazer a ordem.
+        */}
+        <CatalogSort />
 
         <CatalogResults result={result} query={query} origin={currentPath('/catalogo', params)} />
       </div>

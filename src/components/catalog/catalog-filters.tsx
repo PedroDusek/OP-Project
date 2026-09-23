@@ -10,12 +10,6 @@ import { Field, Input } from '@/components/ui/field'
 import { SearchBar } from '@/components/ui/search-bar'
 import { Select } from '@/components/ui/select'
 import { COUNTER_LABELS, COUNTER_TOKENS } from '@/server/domain/catalog/counter'
-import {
-  CATALOG_SORT_LABELS,
-  CATALOG_SORTS,
-  DEFAULT_CATALOG_SORT,
-  parseCatalogSort,
-} from '@/server/domain/catalog/order'
 import { SET_KIND_LABEL } from '@/server/domain/catalog/sets'
 import { buildCatalogHref, PARAM, type CatalogSearchParams } from '@/lib/catalog-params'
 import type { CatalogVocabulary } from '@/server/application/catalog/vocabulary'
@@ -132,7 +126,6 @@ export function CatalogFilters({
   const [multi, setMulti] = useState<MultiDraft>({})
   const [ranges, setRanges] = useState<RangeDraft>({})
   const [traitTerm, setTraitTerm] = useState('')
-  const [sort, setSort] = useState<string>(DEFAULT_CATALOG_SORT)
 
   /** Os valores atuais: da URL, ou de quem chamou quando ela não é o destino. */
   const currentValues = (key: string): string[] => {
@@ -158,7 +151,6 @@ export function CatalogFilters({
 
     setMulti(nextMulti)
     setRanges(nextRanges)
-    setSort(parseCatalogSort(currentValues(PARAM.ordem)[0]))
     setTraitTerm('')
     setOpen(true)
   }
@@ -187,9 +179,17 @@ export function CatalogFilters({
     const changes: Record<string, string | string[] | undefined> = {}
     for (const key of MULTI_KEYS) changes[key] = multi[key]
     for (const key of RANGE_KEYS) changes[key] = ranges[key]
-    // A ordem padrão sai da URL em vez de ir escrita nela: `?ordem=codigo` diz o
-    // mesmo que não dizer nada, e um endereço compartilhado fica mais limpo.
-    changes[PARAM.ordem] = sort === DEFAULT_CATALOG_SORT ? undefined : sort
+    /*
+     * A ordem passa intacta, e não porque o painel se importe com ela.
+     *
+     * Ordenar não é filtrar, e a escolha vive fora daqui (`CatalogSort`). Mas
+     * nas telas que guardam os filtros em estado local este objeto **substitui
+     * o anterior inteiro** — deixar a ordem de fora a apagaria toda vez que
+     * alguém aplicasse um filtro, que é exatamente o que o dono do produto
+     * pediu para não acontecer. Na URL a linha é inofensiva: reescreve o mesmo
+     * valor que já estava lá.
+     */
+    changes[PARAM.ordem] = currentValues(PARAM.ordem)[0]
 
     setOpen(false)
 
@@ -206,7 +206,7 @@ export function CatalogFilters({
   /*
    * Limpar apaga os filtros e **não** a ordem: são duas perguntas diferentes.
    * Quem limpa quer ver o catálogo inteiro, e não voltar a ordenar por código
-   * sem ter pedido — a ordem também não entra em `draftCount` por isso.
+   * sem ter pedido. A ordem nem mora aqui — ver `CatalogSort`.
    */
   const clear = () => {
     setMulti({})
@@ -263,18 +263,6 @@ export function CatalogFilters({
         <p className="text-xs text-text-muted">
           Dentro de uma seção, vale qualquer um dos escolhidos. Entre seções, valem todos.
         </p>
-
-        <FilterSection title="Ordenar por">
-          <Select
-            label="Ordenar por"
-            value={sort}
-            onValueChange={setSort}
-            options={CATALOG_SORTS.map((option) => ({
-              value: option,
-              label: CATALOG_SORT_LABELS[option],
-            }))}
-          />
-        </FilterSection>
 
         {vocabulary.sets.length > 0 && !hideSetFilter ? (
           <FilterSection title="Set">

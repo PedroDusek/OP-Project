@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState, useSyncExternalStore } fro
 import { Loader2, Minus, Plus, SearchX } from 'lucide-react'
 import { CardArt } from '@/components/catalog/card-art'
 import { CatalogFilters } from '@/components/catalog/catalog-filters'
+import { CatalogSort } from '@/components/catalog/catalog-sort'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { SearchBar } from '@/components/ui/search-bar'
@@ -333,6 +334,8 @@ export function CardPicker({
           onApply={setFilters}
         />
       </div>
+
+      <CatalogSort values={filters} onChange={setFilters} />
 
       {/*
         A escolha que ficou de antes. Aparece antes da grade, porque depois de
