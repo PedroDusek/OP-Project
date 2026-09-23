@@ -7030,3 +7030,60 @@ rolagem infinita traria a página 1 por custo e a 2 pela ordem do catálogo.
 ## Data
 
 2026-09-23
+
+# Decisão: 111 — Decks passa a ter deckboxes e decklists
+
+Pedido do dono do produto em 23/09: renomear o **Deck Builder** para **Decks**,
+e ali dentro oferecer duas opções — **deckbox** e **decklist** — no mesmo
+seletor de abas que o app já usa. As deckboxes saem de Binders e passam a ser
+criadas em Decks.
+
+O motivo é de campo, e não de arquitetura: **usuários não achavam a deckbox
+para criar**. Procuravam em Decks, e ela estava em Binders, ao lado do binder e
+da caixa.
+
+## É remanejamento posicional, e nada mais
+
+O modelo de dados **não mudou**. Uma deckbox continua sendo um
+`storage_location` de tipo `DECK`, com `purpose` nulo, exatamente como a regra
+3.1 descreve. Uma deckbox criada antes desta mudança continua valendo, continua
+guardando as mesmas cartas e continua aparecendo na transferência da decklist
+(decisão 109). O que mudou foi a porta de entrada.
+
+O arranjo final:
+
+| Tela | Cria e lista |
+|---|---|
+| **Binders** | binder de coleção, binder de troca, caixa |
+| **Decks** | deckbox (aba 1) e decklist (aba 2) |
+
+## A deckbox é a primeira aba, e a padrão
+
+A ordem é a que o dono do produto escreveu, e ela resolve o problema que
+motivou a mudança: abrir em Decklists deixaria a gaveta que ninguém achava
+escondida atrás de um toque.
+
+## As duas gavetas têm travas diferentes
+
+Deckbox é armazenamento, como binder e caixa — **de todos**. Decklist é Premium
+(decisão 093). Por isso a trava não está na página, e sim dentro da aba: gatear
+a tela inteira tiraria de quem não é Premium um lugar de guardar cartas que
+sempre foi dele.
+
+## Um formulário, duas portas
+
+`LocationForm` e `LocationList` ganharam um recorte de tipos em vez de virarem
+dois componentes. Duplicar o formulário criaria duas regras de criação que
+divergiriam na primeira mudança — e a `createLocationAction` continua sendo uma
+só. Com um tipo só, o seletor nem aparece: escolher entre uma opção não é uma
+escolha, e o valor vai num campo escondido.
+
+## A seta do detalhe segue o tipo
+
+Abrir uma deckbox e voltar levava a Binders, onde ela não aparece mais. Agora a
+volta é para a tela onde o local mora: `/deck` para o tipo `DECK`, `/binders`
+para os outros.
+
+## Data
+
+2026-09-23

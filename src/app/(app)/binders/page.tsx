@@ -7,39 +7,48 @@ import { UnallocatedNotice } from '@/components/storage/unallocated-notice'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/states'
 import { countUnallocated, listStorageLocations } from '@/server/application/storage'
+import type { StorageType } from '@/server/domain/storage/locations'
 import { requireViewer } from '@/server/http/viewer'
 
 export const metadata: Metadata = { title: 'Binders' }
 
+/** A deckbox mora em Decks desde a decisão 111. */
+const TIPOS: readonly StorageType[] = ['BINDER', 'BOX']
+
 /**
  * Binders (tela 21).
  *
- * O lugar físico das cartas: binders, caixas e decks. É a contraparte da
- * coleção — ela diz **o que** se tem, esta diz **onde está**.
+ * O lugar físico das cartas: binders e caixas. É a contraparte da coleção — ela
+ * diz **o que** se tem, esta diz **onde está**.
  *
- * É também o único lugar onde local se cria e se edita. Da coleção e do detalhe
- * de uma carta dá para dizer *em qual* local a carta está; criar e editar o
- * local é aqui. Cada coisa no seu lugar: quem procura "onde eu crio um binder"
- * procura uma vez só.
+ * ## A deckbox saiu daqui (decisão 111)
+ *
+ * Até 23/09 esta tela também listava e criava locais do tipo `DECK`. Usuários
+ * não achavam a deckbox: procuravam em Decks, que era só o Deck Builder. Agora
+ * cada gaveta fica onde se procura por ela — a deckbox em `/deck`, o binder e a
+ * caixa aqui. O modelo de dados não mudou: continua um `storage_location` de
+ * tipo `DECK`, e só a porta de entrada é outra.
  */
 export default async function BindersPage() {
   const viewer = await requireViewer('/binders')
-  const [locations, unallocated] = await Promise.all([
+  const [todos, unallocated] = await Promise.all([
     listStorageLocations(viewer),
     countUnallocated(viewer),
   ])
+
+  const locations = todos.filter((location) => TIPOS.includes(location.type))
 
   if (locations.length === 0) {
     return (
       <>
         <PageHeader back={{ href: '/inicio', label: 'o Início' }}
           title="Binders"
-          description="Organize suas cartas por binders, caixas e decks."
+          description="Organize suas cartas por binders e caixas."
         />
         <EmptyState
           icon={<BookOpen className="size-10" aria-hidden />}
           title="Nenhum local ainda"
-          description="Crie um binder, uma caixa ou um deck e diga onde cada carta da sua coleção está guardada."
+          description="Crie um binder ou uma caixa e diga onde cada carta da sua coleção está guardada. As deckboxes ficam em Decks."
           action={{ label: 'Criar o primeiro local', href: '/binders/novo' }}
         />
       </>
@@ -50,7 +59,7 @@ export default async function BindersPage() {
     <>
       <PageHeader back={{ href: '/inicio', label: 'o Início' }}
         title="Binders"
-        description="Organize suas cartas por binders, caixas e decks."
+        description="Organize suas cartas por binders e caixas."
       />
 
       <div className="flex flex-col gap-4">
@@ -61,7 +70,7 @@ export default async function BindersPage() {
         */}
         <UnallocatedNotice summary={unallocated} />
 
-        <LocationList locations={locations} />
+        <LocationList locations={locations} types={TIPOS} />
 
         <Button asChild size="lg" block>
           <Link href="/binders/novo">
