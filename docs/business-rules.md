@@ -95,8 +95,15 @@ Um local de armazenamento tem `type` e `purpose`:
 
 Uma box pode ser de troca. Isso é explicitamente permitido.
 
-Deck é um local de armazenamento do tipo `DECK`. Não existe tabela separada de
-deck, nem deck builder, validação de leader, formato ou banlist nesta versão.
+**Deckbox** é um local de armazenamento do tipo `DECK`: a caixa física onde um
+deck montado mora. É criada e listada em **Decks** (decisão 111), e não em
+Binders.
+
+Não confundir com **decklist**, que é a lista montada na tela e vive nas tabelas
+`decks` e `deck_items` (decisão 108, seção 7.1). São coisas diferentes: a
+deckbox guarda cartas da coleção; a decklist diz quais cartas o deck pede.
+
+Formato e banlist continuam não existindo.
 
 ### 3.2 Alocação
 
@@ -468,9 +475,12 @@ ou modificar recursos privados de outro usuário.
 
 ---
 
-## 7. Deck Builder
+## 7. Decks
 
-Definido pelo dono do produto em 17/09 (decisão 095).
+Definido pelo dono do produto em 17/09 (decisão 095). A tela chamava-se **Deck
+Builder** até 23/09, quando virou **Decks** e passou a ter duas gavetas: as
+**deckboxes** (locais do tipo `DECK`, regra 3.1) e as **decklists** desta seção
+(decisão 111).
 
 Um deck tem **1 líder e 50 cartas**, e **toda carta precisa ter alguma cor do
 líder** — líder de duas cores aceita as duas. O trait não importa: a cor em
@@ -563,7 +573,7 @@ Stripe, com cartão ou Pix.
 4. **Compartilhar a want list** — a folha com o que falta, em imagem ou
    impressa. Montá-la e usá-la como quiser é o recurso; **manter a want list**
    continua no Free.
-5. **O Deck Builder** (seção 7).
+5. **As decklists** (seção 7).
 6. **Aparecer primeiro na rede** (6.1.3).
 
 **No Free, sem limite:** cadastrar, **ver, buscar e filtrar** a coleção inteira, binders e caixas, a want list
