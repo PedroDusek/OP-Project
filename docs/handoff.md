@@ -46,8 +46,8 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 13 concluídos, a Social, o Deck Builder e o dashboard da
-coleção.** 1.657 testes de unidade, integração e componente, mais 36 ponta a
+**Checkpoints 0 a 13 concluídos, a Social, os Decks e o dashboard da
+coleção.** 1.802 testes de unidade, integração e componente, mais 36 ponta a
 ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -1141,12 +1141,18 @@ Coisas para não desfazer sem querer:
   índice único de `variant_source_products` dá um dono por produto. Mostrar nas
   duas exigiria mudar o modelo, e o dono escolheu deixar como está.
 
-## O Deck Builder (decisão 095)
+## As decklists (decisão 095)
 
 Construído em 17/09, com o dono do produto testando a cada rodada. Premium, em
 `/deck`, com destino próprio na gaveta.
 
+**Duas coisas desta seção mudaram depois, e o texto abaixo é de 17/09:** a
+decisão 108 passou a **guardar** as listas, nas tabelas `decks` e `deck_items`;
+a decisão 111 renomeou a tela para **Decks** e pôs as decklists numa aba, ao
+lado das deckboxes.
+
 - **Conferência, não guardador:** a lista vive na tela. Nenhuma tabela nova.
+  *(Deixou de valer na 108.)*
 - **Um líder e 50 cartas.** A única regra de combinação é **uma cor em comum
   com o líder** — trait não importa (um líder Straw Hat vermelho aceita uma
   Baroque Works vermelha). No máximo 4 cópias por código, somando as artes. O
