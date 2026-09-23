@@ -1421,14 +1421,15 @@ falta para receber gente de fora:
 - **Limites do Supabase Auth** (*Authentication → Rate Limits*): o padrão conta
   por IP, e vários testadores na mesma rede — uma loja, um evento — batem no
   teto juntos. Conferir antes.
-- **Backup do banco** — **o Pro foi decidido em 22/09** (decisão 106), e falta
-  **executar** no painel. O plano gratuito não tem backup, e desde 21/09 há
-  assinatura paga, histórico de cobrança e coleção de gente real. A mesma
-  despesa resolve três coisas: backup, o teto de conexões (armadilha 71) e o
-  espaço que Pokémon exige — o gratuito trava em 500 MB **em modo somente
-  leitura**, e o site pararia de aceitar escrita. De quebra, o Pro destrava o
-  domínio personalizado do Supabase (mais US$ 10/mês), que tira
-  `zcyavtxrnpxinkvfnftf.supabase.co` da tela de consentimento do Google.
+- **Backup do banco** — continua **sem backup nenhum**, e o dono do produto
+  **adiou o Pro em 22/09** (decisão 106, mudança). Não é uma pendência a
+  cobrar: é uma escolha registrada. O que fica no ar: desde 21/09 há assinatura
+  paga, histórico de cobrança e coleção de gente real, e o plano gratuito não
+  tem de onde voltar. Quando a conta mudar, a mesma despesa resolve três
+  coisas — backup, o teto de conexões (armadilha 71) e o espaço que Pokémon
+  exige —, e destrava o domínio personalizado do Supabase (mais US$ 10/mês),
+  que tira `zcyavtxrnpxinkvfnftf.supabase.co` da tela de consentimento do
+  Google.
 - ~~**Um caminho para o testador relatar**~~ — **construído em 18/09**
   (decisão 096): "Enviar feedback" em Minha conta, por e-mail a
   `suporte@colexa.com.br` com o assunto `FEEDBACK`. O dono do produto testou e
@@ -1452,11 +1453,16 @@ O que continua combinado para depois:
 - **Pokémon e Magic** — o **passo 7 da decisão 104 fechou em 22/09**
   (decisão 106): a fonte é o **TCGdex**, confirmada contra a API, e **nada foi
   importado**. O que ela resolve: a variante tem identidade própria e o preço
-  vem anexado, então **o vínculo manual do One Piece não se repete**. O que ela
-  exige: o Supabase no **Pro antes da primeira importação** — 23.964 cartas mais
-  o histórico de preço estouram os 500 MB do gratuito em meses, e o castigo é
-  modo somente leitura. Ficam para depois o modelo multi-jogo, o idioma por
-  carta e a cadência de importação.
+  vem anexado, então **o vínculo manual do One Piece não se repete**.
+
+  **Está parado, e por escolha.** A importação exige o Supabase no Pro — 23.964
+  cartas mais o histórico de preço estouram os 500 MB do gratuito em meses, e o
+  castigo é modo somente leitura, com o site parando de aceitar escrita. O dono
+  do produto adiou o Pro em 22/09, então **Pokémon fica onde está** até essa
+  conta mudar. Não é pendência de software.
+
+  Quando destravar, ficam para decidir o modelo multi-jogo, o idioma por carta
+  e a cadência de importação.
 - **CSP de scripts** (decisão 092 deixou de fora): fechar de onde o navegador
   pode carregar script. Feito errado, derruba o login sem aviso, então pede uma
   passada própria.

@@ -6664,6 +6664,22 @@ despesa, **o backup** (o maior risco operacional aberto, agora que há assinatur
 paga e coleção de gente real) e o teto de conexões que já nos mordeu
 (armadilha 71).
 
+### Mudança no mesmo dia: o Pro ficou para depois
+
+Horas depois, o dono do produto decidiu **não ligar o Pro por enquanto**. A
+decisão 2 continua descrevendo o que a conta exige; o que mudou é o **quando**.
+
+As consequências, para ninguém as descobrir por acidente:
+
+- **Pokémon não entra.** A importação estouraria os 500 MB, e o castigo é modo
+  somente leitura — o site pararia de aceitar cadastro, coleção, troca e
+  pagamento. O passo 7 fica fechado até a conta mudar, e isso **não é pendência
+  de software**: não há o que construir enquanto isso.
+- **O banco segue sem backup**, com assinatura paga e coleção de gente real
+  dentro. É risco aceito, e não um item esquecido numa lista.
+- **One Piece sozinho cabe folgado**: 23 MB de 500 MB, crescendo ~82 MB/ano. O
+  gratuito aguenta anos — o problema é só Pokémon.
+
 ## Decisão 3 — O histórico de preço fica como está
 
 Cogitou-se parar de gravar histórico, ou podá-lo por janela, para conter o
