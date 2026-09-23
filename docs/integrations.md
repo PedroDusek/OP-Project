@@ -464,12 +464,12 @@ opção oferece.
   `wPromo`), `variants_detailed` e **`pricing` anexado**. É isso que faz o
   vínculo manual do One Piece — 773 respostas à mão, decisões 068 a 078 — **não
   se repetir aqui**.
-- O tamanho foi medido antes de qualquer importação: ~100 MB de catálogo, uma
-  vez, e da ordem de **1 GB por ano** de histórico de preço. O plano gratuito do
-  Supabase trava em 500 MB **em modo somente leitura**, e por isso a importação
-  exige o Pro. O dono do produto **adiou o Pro em 22/09** (decisão 106,
-  mudança), então a fonte está escolhida e **a importação fica parada** até essa
-  conta mudar.
+- O tamanho foi medido antes de qualquer importação, e **refeito** depois de a
+  decisão 107 apagar o histórico de preço: **~84 MB de Pokémon, ~107 MB somando
+  One Piece**, contra os 500 MB do plano gratuito. **Cabe.** A primeira conta
+  dizia o contrário porque contava um histórico de preço que deixou de existir;
+  a correção está na decisão 106.
+- A importação está parada **por prioridade**, e não por limite de banco.
 
 **O que ela não documenta**, e precisa ser conferido antes de importar em
 escala: **limites de requisição e termos de uso** não estão publicados no site
