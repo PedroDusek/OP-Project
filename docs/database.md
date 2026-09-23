@@ -140,7 +140,24 @@ O tipo da carta é um atributo. Não existe tabela `card_types`. `DON!!` não fa
 parte do catálogo.
 
 `cost`, `power`, `life` e `counter` aceitam nulo porque não se aplicam a todos os
-tipos de carta.
+tipos de carta — e **nulo aqui é "não se aplica", nunca "zero"** (armadilha 87).
+
+A distinção importa porque a fonte não a faz: a Bandai escreve `-` para os dois
+casos. Quem separa é o tipo da carta, na leitura:
+
+| | Leader | Character | Event | Stage |
+|---|---|---|---|---|
+| `cost` | — (tem Life) | obrigatório | obrigatório | obrigatório |
+| `power` | obrigatório | obrigatório | — | — |
+| `life` | obrigatório | — | — | — |
+| `counter` | — | opcional | opcional | — |
+
+Onde o campo é obrigatório, o traço da fonte vira **0**. Ler tudo como nulo
+deixou 152 Characters de poder 0 e 23 Events de custo 0 fora dos filtros de
+faixa até 22/09.
+
+`counter` é a exceção deliberada: ali o traço é mesmo "sem counter", e a busca
+trata o zero como isso (decisão 066).
 
 **card_variants**
 
