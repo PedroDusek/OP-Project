@@ -7087,3 +7087,179 @@ para os outros.
 ## Data
 
 2026-09-23
+
+# Decisão: 112 — O DON!! entra como tipo de carta
+
+Pedido do dono do produto em 23/09: pôr o DON!! no projeto, como uma categoria
+própria ao lado de Leader, Character, Event e Stage. **Sem progresso**, mas com
+a contagem "você possui X DON diferentes".
+
+## A fonte oficial não tem DON!!
+
+Esta foi a primeira coisa a verificar, e a resposta mudou o desenho. Conferido
+de quatro jeitos em 23/09:
+
+1. as **60 séries** lidas pelo nosso provedor: **0 rejeitados** — nenhum tipo
+   fora dos quatro;
+2. a série de **promoções** (374 entradas): só `CHARACTER`, `LEADER`, `EVENT`,
+   `STAGE`;
+3. o filtro **"Card type" do próprio site**: oferece quatro opções, não cinco;
+4. a **busca livre** do site: zero para `DON!!` e para `DON`, enquanto devolve
+   349 para `Luffy` e 195 para `Donquixote` — ou seja, a busca funciona.
+
+O catálogo oficial é a lista de cartas **de deck**, e o DON!! não é uma delas.
+
+## Ele vem do tcgcsv, que já era nosso
+
+O espelho que usamos para preço tem 239 DON!! e **rotula o tipo**
+(`extendedData.CardType === 'DON!!'`), então a extração não depende de casar
+nome — "DON!!" aparece em texto de efeito de carta comum.
+
+Isso torna o tcgcsv **fonte de catálogo**, e não só de preço. A consequência a
+registrar: um dia em que ele mudar de formato deixa de ser "preço desatualizado"
+e passa a ser "cartas sumiram". Vale para 239 cartas, e não para as 4.431.
+
+## O código é inventado, e é para sempre
+
+DON!! **não tem código**: no tcgcsv o campo `Number` vem `-` nas 239. A
+identidade disponível é `(grupo, nome)`, que não cabe num código curto — e
+"DON!! Card (Alternate Art)" se repete entre grupos.
+
+O código é `DON-<productId>`, do TCGplayer: numérico, único no catálogo inteiro,
+estável, e **já é a chave que o nosso preço usa**. O DON!! não estreia um
+identificador novo no sistema.
+
+Ele vai parar na coleção das pessoas, então trocá-lo depois exige migração de
+dados. Por isso sai de um id estável, e não de nome ou posição.
+
+O prefixo `DON-` tem uma consequência prática de graça: `ligaEdition` só
+reconhece `LETRAS+DÍGITOS-`, então ele nunca produz um link direto da Liga para
+uma carta que a Liga talvez nem tenha.
+
+## Um set artificial, chamado `DON`
+
+Os grupos do TCGplayer não são os nossos sets: a abreviação dele é `OP18`,
+`EB-05`, `OP18 RE`, e o nosso código vem da Bandai. Mapear os 87 grupos aos 60
+sets sem poder conferir seria adivinhar — e adivinhar vínculo é o que já custou
+773 conferências manuais aqui.
+
+A primeira versão deixou os DON!! **sem set nenhum**, por isso. O dono do
+produto mudou: existe um set artificial `DON`, e a pessoa vê os DON!! separados
+no catálogo por ele.
+
+Ele **não existe na Bandai**, e não finge que existe: tem espécie própria
+(`don`), ao lado de coleção, starter deck e promocional. Assim ordena por último
+e aparece com rótulo próprio, em vez de se passar por uma coleção que saiu em
+booster.
+
+O set também resolveu, de graça, um problema que a versão sem set tinha criado:
+a planilha de conferência da Liga é **por coleção**, e os 239 não apareciam em
+lugar nenhum — o vínculo manual, que é o único possível para eles, não teria por
+onde ser feito. Com o set, ela funciona pelo caminho normal.
+
+## Contagem, e não progresso
+
+Por escolha do dono do produto:
+
+- **fora do progresso do catálogo**, no numerador **e** no denominador. Se só um
+  dos dois excluísse, o progresso passaria de 100%. Sem isso, os 239 entrariam
+  no total e o progresso de todo mundo cairia da noite para o dia por uma carta
+  que nem entra em deck;
+- **nunca fecha playset**: um deck usa dez DON!!, iguais, e "faltam N para
+  quatro" não é pergunta que alguém faça;
+- **conta no total de cartas**: um DON!! possuído é uma carta possuída;
+- **"você possui X DON diferentes"**, que aparece só para quem tem algum.
+
+O progresso **por set** ficou imune sozinho, porque DON!! não tem set.
+
+## A Liga é manual, e pode não existir
+
+O vínculo automático é **impossível**, e não difícil: o endereço é montado a
+partir da edição, que sai do código — e o nosso código não significa nada lá.
+
+A rede de segurança é a busca **pelo nome**, e não pelo código inventado, que
+não acharia nada. A tabela conferida continua vencendo, e entradas de DON!!
+caem nela sem uma linha de código nova.
+
+**Não foi verificado se a Liga sequer tem página de DON!!.** Ela está atrás de
+proteção anti-bot, e a decisão 047 diz que quem descobre é gente abrindo o site.
+
+## A imagem vem do TCGplayer, e o host precisa estar liberado
+
+As 239 têm imagem, no CDN do **TCGplayer** — aprovado pelo dono do produto. A
+decisão 020 combinou referenciar a origem sem copiar, e foi negociada com a
+Bandai; esta é outra origem, e a aprovação é o que a estende.
+
+**O host em `remotePatterns` não é detalhe de configuração.** `next/image`
+recusa host desconhecido com **500 na tela inteira**, e não com uma imagem
+quebrada. Aconteceu em 23/09, na planilha da Liga, assim que as 239 passaram a
+renderizar — e valeria igual para o catálogo, que mostra a arte de toda
+variante. Tirar `tcgplayer-cdn.tcgplayer.com` de lá derruba o catálogo.
+
+## O vínculo com o TCGplayer nasce na importação
+
+`linkArtProducts` casa arte com produto **pelo código da carta**, e foi escrito
+assim porque, nas cartas da Bandai, o código é o único elo entre duas fontes que
+não conversam. Para DON!! não serve: não há código na origem.
+
+Aqui não há o que deduzir — o `source_id` da arte **é** o `productId`, porque foi
+de lá que ela veio. O vínculo é cópia, e não palpite, e por isso nasce junto da
+importação. Sem ele o DON!! ficaria sem preço para sempre.
+
+Fica com `origin = 'automatic'`, e não `manual`: ninguém conferiu nada à mão, e
+`manual` tem significado próprio no vínculo normal — é intocável pela dedução
+(decisão 074).
+
+## O DON!! não é um chip de filtro
+
+Relatado pelo dono do produto em 23/09, com a primeira versão no ar: marcar
+DON!! junto de **qualquer outra faceta** devolvia **zero**, sempre. DON!! não
+tem cor, trait, atributo nem raridade comum, então o cruzamento nunca tem
+resposta — e um filtro que devolve vazio sem explicar por quê é exatamente o
+defeito que o vocabulário existe para evitar.
+
+O chip saiu. O tipo continua existindo, e a busca continua sabendo filtrá-lo: o
+que mudou é que ele não é mais **oferecido** ao lado das outras facetas.
+
+A entrada dos DON!! passou a ser uma porta própria no catálogo, na mesma fileira
+de **Sets** e **Starter Decks**, que leva ao set `DON` — todos e apenas eles.
+
+## Os DON!! também vão para as coleções
+
+Decisão do dono do produto, no mesmo dia: além do set `DON`, ele vai **vincular
+à mão** cada DON!! à coleção em que saiu, porque eles são lançados junto delas.
+
+Eu havia argumentado contra, e o argumento fica registrado porque ele continua
+valendo: um DON!! dentro da OP01 **conta no progresso da OP01**. A decisão é do
+dono do produto, que a tomou com isso dito.
+
+Fica uma pergunta em aberto para o dia do vínculo: o progresso **global** do
+catálogo exclui DON!! por tipo, enquanto o progresso **por coleção** passará a
+incluí-los. Os dois números vão discordar, e qual dos dois muda é escolha dele.
+
+O vínculo é feito em `/dev/don`, e o que ele grava mora em `data/don-sets.json`
+— **num arquivo, e não no banco**, pelo mesmo motivo da tabela da Liga: são
+centenas de vínculos feitos à mão, que precisam sobreviver a um banco recriado e
+chegar a produção por PR. Não há backup do banco, e este é trabalho que não se
+refaz sozinho.
+
+A tabela é aplicada na importação dos DON!!, depois do catálogo e do vínculo de
+preço. Ela **nunca apaga impressão**: tirar uma arte da tabela deixa a impressão
+que ela já ganhou, porque apagá-la exigiria decidir o que fazer com a coleção de
+quem já via a carta ali — e isso é conversa, não efeito colateral de importação.
+
+## Comando próprio
+
+`npm run supabase don`, e não uma opção do `import`: é outra fonte com outro
+ritmo. O DON!! muda raramente, e não há motivo para reler o catálogo inteiro por
+ele.
+
+## O parser da Bandai continua recusando DON
+
+`DON` é um `CardType` válido, mas `toCardType` o recusa de propósito. Aceitá-lo
+faria um tipo novo da fonte entrar calado no dia em que ela mudasse — que é
+exatamente o que a rejeição explícita existe para impedir.
+
+## Data
+
+2026-09-23

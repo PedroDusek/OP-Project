@@ -1,3 +1,4 @@
+import { DON_SET_CODE } from './don'
 /**
  * Ordenacao, classificacao e exibicao de sets.
  *
@@ -49,7 +50,7 @@ export function compareSetCodes(a: string, b: string): number {
  * abrem para colecionar. `deck` cobre os produtos prontos para jogar. `promo`
  * e o que nao e vendido como produto proprio.
  */
-export type SetKind = 'collection' | 'deck' | 'promo'
+export type SetKind = 'collection' | 'deck' | 'promo' | 'don'
 
 /**
  * O rotulo de `deck` diz **Starter Decks**, e nao "Decks", a pedido do dono do
@@ -64,6 +65,7 @@ export const SET_KIND_LABEL: Record<SetKind, string> = {
   collection: 'Coleções',
   deck: 'Starter Decks',
   promo: 'Promocionais',
+  don: 'DON!!',
 }
 
 /**
@@ -91,6 +93,9 @@ export function setKind(code: string): SetKind {
   const normalized = normalizeSetCode(code)
   if (normalized.startsWith('ST')) return 'deck'
   if (normalized.startsWith('PROMO')) return 'promo'
+  // O set artificial dos DON!! (decisao 112). Nao e da Bandai: existe para que
+  // eles tenham onde morar e para que o filtro do catalogo os ofereca juntos.
+  if (normalized === DON_SET_CODE) return 'don'
   return 'collection'
 }
 
@@ -269,7 +274,8 @@ export function cardCountLabel(count: number): string {
  *
  * Set sem printing — existe um no catalogo — vai para o fim de tudo.
  */
-const KIND_RANK: Record<SetKind, number> = { collection: 0, deck: 1, promo: 2 }
+/** DON!! por ultimo: e a gaveta propria, e nao parte do que se abre em booster. */
+const KIND_RANK: Record<SetKind, number> = { collection: 0, deck: 1, promo: 2, don: 3 }
 
 export function compareSetsForCatalog(a: string | null, b: string | null): number {
   if (a === b) return 0

@@ -6,8 +6,24 @@
  * de modo que trocar de fonte nao alcanca o resto do sistema.
  */
 
-export const CARD_TYPES = ['Leader', 'Character', 'Event', 'Stage'] as const
+/**
+ * Os tipos de carta.
+ *
+ * Os quatro primeiros sao os que a Bandai publica: o filtro "Card type" do site
+ * oficial oferece exatamente eles, e o parser recusa qualquer outro em vez de
+ * adivinhar.
+ *
+ * `DON` e o quinto, e **nao vem da Bandai** (decisao 112). O catalogo oficial e
+ * a lista de cartas de deck, e o DON!! nao e uma delas — conferido de quatro
+ * jeitos em 23/09, incluindo a busca do proprio site, que devolve zero para
+ * `DON!!` enquanto devolve 349 para `Luffy`. Ele entra pelo tcgcsv, que rotula
+ * o tipo, e por isso vive fora do caminho da Bandai do comeco ao fim.
+ */
+export const CARD_TYPES = ['Leader', 'Character', 'Event', 'Stage', 'DON'] as const
 export type CardType = (typeof CARD_TYPES)[number]
+
+/** O tipo que nao vem da Bandai, e que o parser da listagem nunca deve aceitar. */
+export const DON_TYPE = 'DON' as const
 
 export interface SetDTO {
   /** Codigo do set na fonte, como "OP-17". Unico. */

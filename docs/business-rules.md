@@ -83,6 +83,39 @@ duplicidade ali.
 
 ## 3. Armazenamento físico
 
+### 2.5 O DON!! (decisão 112)
+
+O DON!! é um **tipo de carta**, ao lado de Leader, Character, Event e Stage. Ele
+não vem do catálogo oficial — a Bandai publica a lista de cartas **de deck**, e
+o DON!! não é uma delas. Vem do tcgcsv, que rotula o tipo.
+
+Três coisas o separam das demais:
+
+1. **Não tem código.** A fonte não dá um, então ele recebe `DON-<productId>` do
+   TCGplayer. O código é nosso, e não existe na Liga.
+2. **Tem um set artificial**, de código `DON`, que não existe na Bandai. Ele
+   existe para a pessoa ver os DON!! separados no catálogo — os grupos do
+   TCGplayer não são os nossos sets, e mapeá-los seria adivinhar.
+3. **Não tem custo, poder, vida nem counter.** Nulo, que é "não se aplica" —
+   nunca zero.
+
+Na contagem:
+
+| | DON!! |
+|---|---|
+| Progresso do catálogo | **fora**, no numerador e no denominador |
+| Progresso por set | o set `DON` fica fora: é artificial e não tem meta a completar |
+| Playset | **nunca fecha** |
+| Total de cartas | **conta** |
+| Contagem própria | "você possui X DON diferentes" |
+
+Ele também não entra em deck: um deck é 1 líder e 50 cartas (seção 7), e o
+DON!! não é carta de deck.
+
+**Não é oferecido como filtro de tipo.** DON!! não tem cor, trait, atributo nem
+raridade comum, então marcá-lo junto de qualquer outra faceta devolve zero. A
+entrada dele é uma porta própria no catálogo, ao lado de Sets e Starter Decks.
+
 ### 3.1 Locais de armazenamento
 
 Um local de armazenamento tem `type` e `purpose`:

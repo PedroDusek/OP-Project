@@ -3,6 +3,13 @@ import { bundledLigaCards } from '@/server/infrastructure/catalog/liga-cards-fil
 import { ligaLookup } from '@/server/domain/catalog/liga-cards'
 import { getCardVariant as getCardVariantWith } from './get-card-variant'
 import {
+  applyDonSets as applyDonSetsWith,
+  readDonSetsWorksheet as readDonSetsWorksheetWith,
+  recordDonSets as recordDonSetsWith,
+} from './don-sets'
+export { donSetsAvailable } from './don-sets'
+export type { DonSetOption, DonSetRow, DonSetsWorksheet } from './don-sets'
+import {
   readLigaWorksheet as readLigaWorksheetWith,
   readReprintReview as readReprintReviewWith,
   readDuplicateReview as readDuplicateReviewWith,
@@ -41,6 +48,19 @@ export function getCardVariant(variantId: bigint) {
 /** A conferencia da Liga, fora de producao (decisao 071). */
 export function readLigaWorksheet(setCode: string) {
   return readLigaWorksheetWith(prisma, setCode)
+}
+
+/** Em que colecao cada DON!! saiu, fora de producao (decisao 112). */
+export function readDonSetsWorksheet() {
+  return readDonSetsWorksheetWith(prisma)
+}
+
+export function recordDonSets(arte: string, setCodes: readonly string[]) {
+  return recordDonSetsWith(prisma, arte, setCodes)
+}
+
+export function applyDonSets() {
+  return applyDonSetsWith(prisma)
 }
 
 export function recordLigaCard(sourceId: string, url: string | null) {

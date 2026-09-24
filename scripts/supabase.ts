@@ -22,6 +22,7 @@ const POOL_MAX = 4
  *   npm run supabase import             importa o catalogo, baixando da fonte
  *   npm run supabase import 569117      importa apenas as series informadas
  *   npm run supabase -- import --from=DIR  importa de um snapshot local
+ *   npm run supabase don                importa os DON!! do tcgcsv (decisao 112)
  *   npm run supabase status             mostra o que existe la hoje
  *   npm run supabase storage            cria o bucket das imagens do usuario
  *   npm run supabase prices             importa precos de arte comum e cambio
@@ -138,6 +139,73 @@ async function main(): Promise<void> {
         console.log(`[supabase]   npm run supabase import ${report.failures.map((f) => f.seriesId).join(' ')}`)
         for (const falha of report.failures) {
           console.log(`[supabase]   serie=${falha.seriesId}: ${falha.reason}`)
+        }
+        process.exitCode = 1
+      }
+    } finally {
+      await prisma.$disconnect()
+    }
+    return
+  }
+
+  /*
+   * Os DON!! vem do tcgcsv, e nao da Bandai: o catalogo oficial e a lista de
+   * cartas de deck, e o DON!! nao e uma delas (decisao 112). Comando proprio, e
+   * nao uma opcao do `import`, porque e outra fonte com outro ritmo — o DON!!
+   * muda raramente, e nao ha motivo para reler o catalogo inteiro por ele.
+   */
+  if (command === 'don') {
+    const prisma = createPrisma(url, { max: POOL_MAX })
+    try {
+      const { TcgCsvDonProvider } = await import(
+        '@/server/infrastructure/catalog/tcgcsv-don-provider'
+      )
+      const provider = new TcgCsvDonProvider()
+      console.log('[supabase] lendo os DON!! do tcgcsv')
+
+      const report = await importCatalog(prisma, provider)
+      console.log(
+        `[supabase] don: cartas=${report.cardsUpserted} artes=${report.variantsUpserted}` +
+          ` grupos=${report.seriesProcessed} falhas=${report.seriesFailed}`,
+      )
+
+      /*
+       * O vinculo com o TCGplayer nasce aqui, e nao na rodada de precos: o
+       * `source_id` da arte **e** o productId, porque foi de la que ela veio.
+       * Nao ha o que deduzir, e sem isto o DON!! ficaria sem preco para sempre —
+       * a deducao normal casa pelo codigo da carta, que o DON!! nao tem.
+       */
+      const { linkDonProducts } = await import('@/server/application/catalog/link-don-products')
+      const vinculos = await linkDonProducts(prisma)
+      console.log(
+        `[supabase] don: vinculos com o TCGplayer — artes=${vinculos.variants}` +
+          ` criados=${vinculos.created} atualizados=${vinculos.updated}`,
+      )
+
+      /*
+       * E as colecoes levantadas a mao (decisao 112). O arquivo e a verdade; o
+       * banco recebe o que ele diz. Nao apaga impressao nenhuma: tirar uma
+       * exigiria decidir o que fazer com a colecao de quem ja via a carta ali.
+       */
+      const { applyDonSets } = await import('@/server/application/catalog/don-sets')
+      const colecoes = await applyDonSets(prisma)
+      console.log(
+        `[supabase] don: colecoes da tabela — artes=${colecoes.entries}` +
+          ` impressoes=${colecoes.printings}`,
+      )
+      if (colecoes.unknownArts.length > 0) {
+        console.log(
+          `[supabase]   ${colecoes.unknownArts.length} arte(s) da tabela nao existem no catalogo:` +
+            ` ${colecoes.unknownArts.slice(0, 5).join(', ')}`,
+        )
+      }
+      if (colecoes.unknownSets.length > 0) {
+        console.log(`[supabase]   set(s) desconhecido(s): ${colecoes.unknownSets.join(', ')}`)
+      }
+
+      if (report.seriesFailed > 0) {
+        for (const falha of report.failures) {
+          console.log(`[supabase]   grupo=${falha.seriesId}: ${falha.reason}`)
         }
         process.exitCode = 1
       }

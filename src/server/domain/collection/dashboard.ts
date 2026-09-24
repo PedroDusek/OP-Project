@@ -1,3 +1,4 @@
+import { DON_SET_CODE } from '@/server/domain/catalog/don'
 import { countsTowardPlayset, PLAYSET_SIZE } from './counting'
 
 /**
@@ -178,6 +179,15 @@ export function buildDashboard({ sets, variants, owned, prices, filters }: Dashb
 
   const bySet: SetProgress[] = []
   for (const set of sets) {
+    /*
+     * O set `DON` fica fora do progresso por coleção (decisão 112).
+     *
+     * Ele é artificial: existe para a pessoa ver os DON!! juntos no catálogo, e
+     * não é uma coleção que se complete. "142 de 239 DON!!" seria uma meta que
+     * ninguém tem — o dono do produto foi explícito que DON!! não tem
+     * progresso. O que a coleção diz é "você possui X DON diferentes".
+     */
+    if (set.code === DON_SET_CODE) continue
     if (filters.setId && set.id !== filters.setId) continue
     const doSet = recorte.filter((variant) => variant.setIds.includes(set.id))
     if (doSet.length === 0) continue

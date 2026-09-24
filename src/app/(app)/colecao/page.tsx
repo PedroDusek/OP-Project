@@ -159,6 +159,21 @@ export default async function ColecaoPage({ searchParams }: PageProps<'/colecao'
         {premium ? (
           <>Progresso do catálogo: {summary.uniqueVariants} de {summary.catalogVariants} variantes. </>
         ) : null}
+        {/*
+          O DON!! é contagem, e não progresso (decisão 112): ele não entra no
+          "X de Y" acima, nem como numerador nem como denominador. A frase só
+          aparece para quem tem algum — dizer "você possui 0 DON diferentes" a
+          quem nunca registrou um seria ruído.
+
+          Fora do bloco Premium: DON!! é coleção, e ver a própria coleção é de
+          todos (decisão 093).
+        */}
+        {summary.donVariants > 0 ? (
+          <>
+            Você possui {summary.donVariants}{' '}
+            {summary.donVariants === 1 ? 'DON diferente' : 'DON diferentes'}.{' '}
+          </>
+        ) : null}
         <Link href="/catalogo" className="underline underline-offset-2">
           Explorar o catálogo
         </Link>

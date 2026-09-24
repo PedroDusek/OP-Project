@@ -182,6 +182,18 @@ const nextConfig: NextConfig = {
         hostname: 'en.onepiece-cardgame.com',
         pathname: '/images/cardlist/**',
       },
+      /*
+       * As artes dos DON!! (decisao 112).
+       *
+       * Eles nao estao no catalogo da Bandai, e a imagem deles so existe no CDN
+       * do TCGplayer. Sem este padrao, `next/image` recusa o host e a tela que
+       * mostrar um DON!! responde **500** — a pagina inteira, e nao a imagem.
+       */
+      {
+        protocol: 'https',
+        hostname: 'tcgplayer-cdn.tcgplayer.com',
+        pathname: '/product/**',
+      },
       // Fotos de local de armazenamento, enviadas pela propria pessoa.
       ...supabaseImageHost(),
     ],

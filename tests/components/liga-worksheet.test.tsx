@@ -55,6 +55,7 @@ const linha = (over: Partial<LigaWorksheetRow>): LigaWorksheetRow => ({
   verified: undefined,
   link: { exact: true, href: 'https://www.ligaonepiece.com.br/?view=cards/card&ed=OP-01&num=OP01-001' },
   liga: null,
+  mesmoEnderecoQue: [],
   ...over,
 })
 
@@ -206,5 +207,51 @@ describe('a página', () => {
 
     await LigaPage({ searchParams: Promise.resolve({ set: 'OP02' }) })
     expect(readLigaWorksheet).toHaveBeenLastCalledWith('OP02')
+  })
+})
+
+/**
+ * Duas artes apontando para a mesma página da Liga (23/09).
+ *
+ * Um produto não pode ter dois donos, e colar o endereço errado é o erro fácil
+ * de cometer mapeando centenas à mão. A revisão de artes repetidas agrupa **por
+ * carta** e não enxerga isto quando cada arte é uma carta própria, como no
+ * DON!! — foi assim que dois DON!! de Elbaph Luffy ficaram com o mesmo
+ * endereço, e só uma conferência à mão pegou.
+ */
+describe('endereço usado por mais de uma arte', () => {
+  it('avisa, e diz qual e a outra arte', () => {
+    render(
+      <LigaWorksheetView
+        worksheet={{
+          ...planilha,
+          rows: [
+          linha({
+            sourceId: '692132',
+            cardCode: 'DON-692132',
+            cardName: 'DON!! Card (Elbaph Luffy)',
+            variantType: 'Parallel',
+            verified: ZORO_PAR,
+            mesmoEnderecoQue: ['702306'],
+          }),
+          ],
+        }}
+      />,
+    )
+
+    expect(screen.getByRole('alert')).toHaveTextContent('também está em 702306')
+  })
+
+  it('nao avisa quando o endereco e so daquela arte', () => {
+    render(
+      <LigaWorksheetView
+        worksheet={{
+          ...planilha,
+          rows: [linha({ sourceId: 'OP01-001_p1', variantType: 'Parallel', verified: ZORO_PAR })],
+        }}
+      />,
+    )
+
+    expect(screen.queryByText(/também está em/)).not.toBeInTheDocument()
   })
 })
