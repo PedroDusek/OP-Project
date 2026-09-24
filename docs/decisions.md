@@ -7210,6 +7210,33 @@ Fica com `origin = 'automatic'`, e não `manual`: ninguém conferiu nada à mão
 `manual` tem significado próprio no vínculo normal — é intocável pela dedução
 (decisão 074).
 
+## O DON!! não é um chip de filtro
+
+Relatado pelo dono do produto em 23/09, com a primeira versão no ar: marcar
+DON!! junto de **qualquer outra faceta** devolvia **zero**, sempre. DON!! não
+tem cor, trait, atributo nem raridade comum, então o cruzamento nunca tem
+resposta — e um filtro que devolve vazio sem explicar por quê é exatamente o
+defeito que o vocabulário existe para evitar.
+
+O chip saiu. O tipo continua existindo, e a busca continua sabendo filtrá-lo: o
+que mudou é que ele não é mais **oferecido** ao lado das outras facetas.
+
+A entrada dos DON!! passou a ser uma porta própria no catálogo, na mesma fileira
+de **Sets** e **Starter Decks**, que leva ao set `DON` — todos e apenas eles.
+
+## Os DON!! também vão para as coleções
+
+Decisão do dono do produto, no mesmo dia: além do set `DON`, ele vai **vincular
+à mão** cada DON!! à coleção em que saiu, porque eles são lançados junto delas.
+
+Eu havia argumentado contra, e o argumento fica registrado porque ele continua
+valendo: um DON!! dentro da OP01 **conta no progresso da OP01**. A decisão é do
+dono do produto, que a tomou com isso dito.
+
+Fica uma pergunta em aberto para o dia do vínculo: o progresso **global** do
+catálogo exclui DON!! por tipo, enquanto o progresso **por coleção** passará a
+incluí-los. Os dois números vão discordar, e qual dos dois muda é escolha dele.
+
 ## Comando próprio
 
 `npm run supabase don`, e não uma opção do `import`: é outra fonte com outro

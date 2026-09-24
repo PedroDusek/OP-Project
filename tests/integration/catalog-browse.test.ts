@@ -96,6 +96,27 @@ describe('vocabulario dos filtros', () => {
     expect(vocabulary.variantTypes.length).toBeGreaterThan(0)
   })
 
+  /*
+   * Relatado pelo dono do produto em 23/09: marcar DON!! junto de qualquer
+   * outra faceta devolvia **zero**, sempre. DON!! nao tem cor, trait, atributo
+   * nem raridade comum, entao o cruzamento nunca tem resposta.
+   *
+   * O chip saiu; o tipo continua existindo e a busca continua sabendo filtra-lo.
+   * A entrada dos DON!! e a porta propria, ao lado de Sets e Starter Decks.
+   */
+  it('nao oferece DON como chip de tipo', async () => {
+    const prisma = testPrisma()
+    await prisma.card.create({
+      data: { code: 'DON-1', name: 'DON!! Card', type: 'DON' },
+    })
+
+    const vocabulary = await getCatalogVocabulary(prisma)
+
+    expect(vocabulary.types).not.toContain('DON')
+    // E os outros continuam la: o filtro nao perdeu nada.
+    expect(vocabulary.types).toContain('Character')
+  })
+
   /** Decisao 023: o vocabulario de variante e Normal e Parallel, e nada mais. */
   it('nao inventa tipo de variante', async () => {
     const { variantTypes } = await getCatalogVocabulary(testPrisma())

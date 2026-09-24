@@ -104,13 +104,17 @@ Na contagem:
 | | DON!! |
 |---|---|
 | Progresso do catálogo | **fora**, no numerador e no denominador |
-| Progresso por set | fora: o set `DON` é artificial e não tem meta a completar |
+| Progresso por set | o set `DON` fica fora: é artificial e não tem meta a completar |
 | Playset | **nunca fecha** |
 | Total de cartas | **conta** |
 | Contagem própria | "você possui X DON diferentes" |
 
 Ele também não entra em deck: um deck é 1 líder e 50 cartas (seção 7), e o
 DON!! não é carta de deck.
+
+**Não é oferecido como filtro de tipo.** DON!! não tem cor, trait, atributo nem
+raridade comum, então marcá-lo junto de qualquer outra faceta devolve zero. A
+entrada dele é uma porta própria no catálogo, ao lado de Sets e Starter Decks.
 
 ### 3.1 Locais de armazenamento
 

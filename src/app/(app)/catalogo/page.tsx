@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
-import { Layers, Library } from 'lucide-react'
+import { Coins, Layers, Library } from 'lucide-react'
 import { PageHeader } from '@/components/layout/app-shell'
 import { CatalogFilters } from '@/components/catalog/catalog-filters'
 import { CatalogResults } from '@/components/catalog/catalog-results'
 import { CatalogSearch } from '@/components/catalog/catalog-search'
 import { CatalogSort } from '@/components/catalog/catalog-sort'
+import { DON_SET_CODE } from '@/server/domain/catalog/don'
 import { ListRow, PanelList } from '@/components/ui/surface'
 import { getCatalogVocabulary, searchCatalog } from '@/server/application/catalog'
 import { countActiveFilters, currentPath, toCatalogQuery } from '@/lib/catalog-params'
@@ -56,6 +57,18 @@ export default async function CatalogoPage({ searchParams }: PageProps<'/catalog
             leading={<Layers className="size-5 text-text-muted" aria-hidden />}
             title="Starter Decks"
             description="Decks prontos para jogar, vendidos fechados."
+          />
+          {/*
+            A porta dos DON!! (decisão 112, corrigida em 23/09).
+            Eles não são um chip de tipo: sem cor, trait, atributo nem raridade
+            comum, marcá-los com qualquer outra faceta dá zero resultados. Aqui
+            eles têm entrada própria, que é como se chega a eles.
+          */}
+          <ListRow
+            href={`/catalogo/sets/${DON_SET_CODE}`}
+            leading={<Coins className="size-5 text-text-muted" aria-hidden />}
+            title="DON!!"
+            description="As cartas de DON!!, inclusive as artes alternativas."
           />
         </PanelList>
 
