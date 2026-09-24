@@ -7196,6 +7196,25 @@ quebrada. Aconteceu em 23/09, na planilha da Liga, assim que as 239 passaram a
 renderizar — e valeria igual para o catálogo, que mostra a arte de toda
 variante. Tirar `tcgplayer-cdn.tcgplayer.com` de lá derruba o catálogo.
 
+## O preço precisou de mais que o vínculo
+
+Os 239 vínculos estavam gravados e mesmo assim as cartas ficaram **sem preço** —
+relatado pelo dono do produto em 24/09, com valor visível na Liga e no
+TCGplayer.
+
+A causa era **antes** do vínculo. O provedor de preços descarta todo produto sem
+`Number` logo na leitura de cada grupo, e o DON!! não tem um. Descartado ali, ele
+nunca chegava ao laço que preça pelo vínculo — o laço estava certo e nunca era
+alcançado.
+
+Agora o DON!! entra em `otherProducts`, que é exatamente o balde de quem só
+recebe preço **por vínculo** (decisão 072), com o nosso código sintético para
+formar grupo próprio e não se misturar ao casamento por número das cartas da
+Bandai.
+
+Medido depois da correção: **237 dos 239 com preço** — os outros dois não têm
+valor de mercado na fonte.
+
 ## O vínculo com o TCGplayer nasce na importação
 
 `linkArtProducts` casa arte com produto **pelo código da carta**, e foi escrito

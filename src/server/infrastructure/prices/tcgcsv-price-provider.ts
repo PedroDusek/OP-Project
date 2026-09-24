@@ -46,6 +46,8 @@ import type {
  * que o mercado foi lido naquele instante.
  */
 
+import { donCardCode } from '@/server/domain/catalog/don'
+
 const ORIGIN = 'https://tcgcsv.com'
 const BASE = `${ORIGIN}/tcgplayer`
 
@@ -114,6 +116,36 @@ export class TcgCsvPriceProvider implements PriceProvider {
       const market = marketByProduct(quotes.results)
       const cards = products.results.map(toSourceProduct).filter(hasNumber)
       const common = commonArtByNumber(cards, knownNames)
+
+      /*
+       * Os DON!! entram por fora do casamento por numero (decisao 112).
+       *
+       * `hasNumber` acima descarta todo produto sem `Number`, e o DON!! nao tem
+       * um: a Bandai nao o publica, e no tcgcsv o campo vem `-`. Descartado ali,
+       * ele nunca chegava ao laco que preca pelo vinculo — e as 239 cartas
+       * ficavam sem preco mesmo com os 239 vinculos gravados. Relatado pelo dono
+       * do produto em 24/09, com preco visivel na Liga e no TCGplayer.
+       *
+       * Entram em `otherProducts`, que e exatamente o balde de quem so recebe
+       * preco **por vinculo** (decisao 072). O codigo e o nosso sintetico, para
+       * cada um formar grupo proprio e nao se misturar ao casamento por numero
+       * das cartas da Bandai.
+       */
+      for (const product of products.results) {
+        const tipo = product.extendedData?.find((field) => field.name === 'CardType')?.value
+        if (tipo !== 'DON!!') continue
+
+        const id = String(product.productId)
+        if (arts.has(id) || otherProducts.has(id)) continue
+
+        otherProducts.set(id, {
+          cardCode: donCardCode(product.productId),
+          productId: id,
+          label: product.name,
+          value: market.get(product.productId) ?? null,
+          groupCode: group.abbreviation ?? group.name,
+        })
+      }
 
       for (const [number, product] of common) {
         comunsPorNumero.set(number, [
