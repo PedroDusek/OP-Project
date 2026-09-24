@@ -60,16 +60,25 @@ export default async function CatalogoPage({ searchParams }: PageProps<'/catalog
           />
           {/*
             A porta dos DON!! (decisão 112, corrigida em 23/09).
+
             Eles não são um chip de tipo: sem cor, trait, atributo nem raridade
             comum, marcá-los com qualquer outra faceta dá zero resultados. Aqui
             eles têm entrada própria, que é como se chega a eles.
+
+            Só aparece quando o set existe. Os DON!! entram por um comando
+            próprio (`npm run supabase don`), e não pela importação do catálogo —
+            então há um intervalo, em toda publicação nova, em que o site está no
+            ar e eles ainda não chegaram. Fixo, o botão levava a um 404 nesse
+            intervalo, e foi o que aconteceu em 24/09.
           */}
-          <ListRow
-            href={`/catalogo/sets/${DON_SET_CODE}`}
-            leading={<Coins className="size-5 text-text-muted" aria-hidden />}
-            title="DON!!"
-            description="As cartas de DON!!, inclusive as artes alternativas."
-          />
+          {vocabulary.sets.some((set) => set.code === DON_SET_CODE) ? (
+            <ListRow
+              href={`/catalogo/sets/${DON_SET_CODE}`}
+              leading={<Coins className="size-5 text-text-muted" aria-hidden />}
+              title="DON!!"
+              description="As cartas de DON!!, inclusive as artes alternativas."
+            />
+          ) : null}
         </PanelList>
 
         {/*

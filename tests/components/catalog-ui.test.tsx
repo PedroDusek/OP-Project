@@ -177,6 +177,30 @@ describe('SetHeader', () => {
     )
   })
 
+  /*
+   * O DON!! e a excecao: set artificial, unico do seu tipo, e a entrada dele e o
+   * botao no catalogo (decisao 112). Voltar para `?tipo=don` levava a uma lista
+   * de um item so — relatado pelo dono do produto em 24/09.
+   */
+  it('o DON!! volta para o catalogo, e nao para uma lista de um set so', () => {
+    render(
+      <SetHeader
+        set={{
+          code: 'DON',
+          displayCode: 'DON',
+          name: 'DON!!',
+          displayName: 'DON!!',
+          variantCount: 239,
+          kind: 'don',
+          coverUrl: null,
+        }}
+      />,
+    )
+
+    expect(screen.getByRole('link', { name: /Catálogo/ })).toHaveAttribute('href', '/catalogo')
+    expect(screen.queryByRole('link', { name: /tipo=don/ })).not.toBeInTheDocument()
+  })
+
   it('deck volta para os starter decks', () => {
     render(<SetHeader set={SETS[2]} />)
     expect(screen.getByRole('link', { name: /Starter Decks/ })).toHaveAttribute(

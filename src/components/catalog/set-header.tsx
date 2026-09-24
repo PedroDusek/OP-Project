@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import { DON_SET_CODE } from '@/server/domain/catalog/don'
 import { Symbol } from '@/components/brand/logo'
 import { hasSetCover, SetCover } from '@/components/catalog/set-cover'
 import { cardCountLabel, SET_KIND_LABEL } from '@/server/domain/catalog/sets'
@@ -40,7 +41,17 @@ import type { SetSummary } from '@/server/application/catalog/list-sets'
  * A arte é ambientação; quem precisa da informação não depende de reconhecê-la.
  */
 export function SetHeader({ set }: { set: SetSummary }) {
-  const backHref = `/catalogo/sets?tipo=${set.kind}`
+  /*
+   * A seta volta para **onde se entra**, e nao para a lista do tipo.
+   *
+   * Nos outros sets as duas coisas coincidem: quem abre a OP01 veio da lista de
+   * coleções. No DON!! nao: ele e um set artificial, unico do seu tipo, e a
+   * entrada dele e o botao no catalogo (decisao 112). Voltar para
+   * `?tipo=don` levava a uma lista de um item so, que nao e lugar nenhum —
+   * relatado pelo dono do produto em 24/09.
+   */
+  const ehDon = set.code === DON_SET_CODE
+  const backHref = ehDon ? '/catalogo' : `/catalogo/sets?tipo=${set.kind}`
   const comCapa = hasSetCover(set.code)
 
   return (
@@ -76,7 +87,7 @@ export function SetHeader({ set }: { set: SetSummary }) {
           className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-white/80 transition-colors hover:text-white"
         >
           <ArrowLeft className="size-4" aria-hidden />
-          {SET_KIND_LABEL[set.kind]}
+          {ehDon ? 'Catálogo' : SET_KIND_LABEL[set.kind]}
         </Link>
 
         <div className="flex items-end gap-4">
