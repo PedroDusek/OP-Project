@@ -9,6 +9,39 @@ import { EmptyState, ErrorState } from '@/components/ui/states'
 import { Switch } from '@/components/ui/switch'
 
 describe('CardTile', () => {
+  /*
+   * A legenda poe o **codigo** em destaque, porque e assim que quem coleciona
+   * se refere a carta: `OP01-001` e o nome que se fala no grupo.
+   */
+  it('poe o codigo em destaque e o nome embaixo', () => {
+    const { container } = render(
+      <CardTile code="OP01-001" name="Roronoa Zoro" imageUrl={null} />,
+    )
+
+    const linhas = [...container.querySelectorAll('span.truncate')]
+    expect(linhas[0]).toHaveTextContent('OP01-001')
+    expect(linhas[0].className).toContain('font-semibold')
+    expect(linhas[1]).toHaveTextContent('Roronoa Zoro')
+    expect(linhas[1].className).toContain('text-text-muted')
+  })
+
+  /*
+   * No DON!! e o contrario, e nao por gosto: o codigo dele e inventado por nos
+   * (`DON-482241`, do productId do TCGplayer) e nao existe fora daqui. Quem
+   * distingue uma arte da outra e o nome. Pedido do dono do produto em 24/09.
+   */
+  it('no DON!! inverte: o nome em destaque e o codigo apagado', () => {
+    const { container } = render(
+      <CardTile code="DON-482241" name="DON!! Card (Silver)" imageUrl={null} />,
+    )
+
+    const linhas = [...container.querySelectorAll('span.truncate')]
+    expect(linhas[0]).toHaveTextContent('DON!! Card (Silver)')
+    expect(linhas[0].className).toContain('font-semibold')
+    expect(linhas[1]).toHaveTextContent('DON-482241')
+    expect(linhas[1].className).toContain('text-text-muted')
+  })
+
   /**
    * A arte passa pelo otimizador do Next, que a serve do nosso dominio.
    *
