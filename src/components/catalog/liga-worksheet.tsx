@@ -29,11 +29,16 @@ import { isDonCode } from '@/server/domain/catalog/don'
  * Procurar por ele não acha nada. Vai pelo nome: `DON!! Card (Red)` acha.
  * Pedido do dono do produto em 23/09, com a tela na mão.
  *
- * O nome vai **inteiro**, sem encurtar. Alguns do TCGplayer são compridos ou
- * trazem `//` (`DON!! Card // Green Compass`, 2 dos 239) e a Liga pode não
- * achá-los — mas encurtar seria adivinhar como ela cadastrou, que é
- * exatamente o que a decisão 071 tirou do sistema e pôs nas mãos de quem abre
- * o site. Quem procurar ajusta o termo na busca da própria Liga.
+ * O nome vai **inteiro**, sem encurtar. Encurtar seria adivinhar como a Liga
+ * cadastrou, que é exatamente o que a decisão 071 tirou do sistema e pôs nas
+ * mãos de quem abre o site.
+ *
+ * Mas o nome inteiro nem sempre acha: dos 239, **8 sobraram** na conferência de
+ * 23/09, todos com sufixo de produto que a Liga não usa — `(Tin Pack Set Vol. 1
+ * -Gol.D.Roger-)`, `(Heroines Special Set)`, `(Double Pack Set Vol. 11)`. Para
+ * eles existe o segundo link: a busca só por `DON!!`, que lista todos numa
+ * grade, de onde se acha pela imagem. Foi assim que o dono do produto os
+ * encontrou.
  *
  * ## Os três grupos
  *
@@ -224,6 +229,18 @@ export function LigaCardForm({
           ) : null}
           {row.nota ? <p className="text-xs text-text-subtle">Nota: {row.nota}</p> : null}
 
+          {/*
+            Um produto nao pode ter dois donos. A revisao de artes repetidas
+            agrupa por carta e nao enxerga isto quando cada arte e uma carta
+            propria, como no DON!! — dai o aviso aqui, onde o endereco e colado.
+          */}
+          {row.mesmoEnderecoQue.length > 0 ? (
+            <p role="alert" className="text-xs text-warning">
+              Este endereço também está em {row.mesmoEnderecoQue.join(', ')}. Se forem artes
+              diferentes, uma delas está errada.
+            </p>
+          ) : null}
+
           {review ? <p className="text-xs text-warning">{review.motivo}</p> : null}
 
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
@@ -235,6 +252,21 @@ export function LigaCardForm({
             >
               Procurar {termoDaBusca} na Liga
             </a>
+            {/*
+              A rede para o nome que nao acha: a grade de todos os DON!! da
+              Liga, onde se reconhece a carta pela imagem. So no DON!!, porque
+              nas outras cartas o codigo sempre acha.
+            */}
+            {isDonCode(row.cardCode) ? (
+              <a
+                href={ligaSearchLink('DON!!')}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent-ink underline"
+              >
+                Ver todos os DON!! na Liga
+              </a>
+            ) : null}
             {row.link.exact ? (
               <a href={row.link.href} target="_blank" rel="noopener noreferrer" className="text-accent-ink underline">
                 Abrir o link atual
