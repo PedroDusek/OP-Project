@@ -12,14 +12,28 @@ import { Panel } from '@/components/ui/surface'
 import { cn } from '@/lib/cn'
 import type { LigaWorksheet, LigaWorksheetRow } from '@/server/application/catalog'
 import { ligaSearchLink } from '@/server/domain/catalog/liga'
+import { isDonCode } from '@/server/domain/catalog/don'
 
 /**
  * A planilha de conferência da Liga, uma coleção por vez (decisão 071).
  *
  * Cada linha é uma arte da Bandai com o que a tabela de correspondência pede:
  * código, coleção, número, tipo, e — depois de conferida — o código interno da
- * Liga, o sufixo e o endereço. Ao lado, "Procurar na Liga" abre a busca pelo
- * código, que é de onde a pessoa copia o endereço da arte certa.
+ * Liga, o sufixo e o endereço. Ao lado, "Procurar na Liga" abre a busca de onde
+ * a pessoa copia o endereço da arte certa.
+ *
+ * ## O DON!! procura pelo nome
+ *
+ * A busca vai pelo **código**, que é o que a Liga entende — menos no DON!!, cujo
+ * código é nosso (`DON-482237`, do `productId` do TCGplayer) e não existe lá.
+ * Procurar por ele não acha nada. Vai pelo nome: `DON!! Card (Red)` acha.
+ * Pedido do dono do produto em 23/09, com a tela na mão.
+ *
+ * O nome vai **inteiro**, sem encurtar. Alguns do TCGplayer são compridos ou
+ * trazem `//` (`DON!! Card // Green Compass`, 2 dos 239) e a Liga pode não
+ * achá-los — mas encurtar seria adivinhar como ela cadastrou, que é
+ * exatamente o que a decisão 071 tirou do sistema e pôs nas mãos de quem abre
+ * o site. Quem procurar ajusta o termo na busca da própria Liga.
  *
  * ## Os três grupos
  *
@@ -166,6 +180,11 @@ export function LigaCardForm({
   // erro, e o endereco colado sumiria a cada recusa (armadilha 12).
   const [url, setUrl] = useState(row.verified ?? '')
   const numero = /-(\d+)$/.exec(row.cardCode)?.[1] ?? '—'
+  /*
+   * O DON!! procura pelo **nome**: o codigo dele e nosso e nao existe na Liga,
+   * entao procurar por ele nao acha nada. Ver o bloco no topo do arquivo.
+   */
+  const termoDaBusca = isDonCode(row.cardCode) ? row.cardName : row.cardCode
 
   return (
     <Panel className="p-3">
@@ -209,12 +228,12 @@ export function LigaCardForm({
 
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
             <a
-              href={ligaSearchLink(row.cardCode)}
+              href={ligaSearchLink(termoDaBusca)}
               target="_blank"
               rel="noopener noreferrer"
               className="text-accent-ink underline"
             >
-              Procurar {row.cardCode} na Liga
+              Procurar {termoDaBusca} na Liga
             </a>
             {row.link.exact ? (
               <a href={row.link.href} target="_blank" rel="noopener noreferrer" className="text-accent-ink underline">

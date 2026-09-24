@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { isDonCode } from '@/server/domain/catalog/don'
 import {
   ligaCardLink,
   ligaEdition,
@@ -288,5 +289,26 @@ describe('DON!!', () => {
     expect(link.href).toContain('view=cards/search')
     expect(decodeURIComponent(link.href)).toContain('DON!! Card (Luffy)')
     expect(link.href).not.toContain('DON-482236')
+  })
+})
+
+/**
+ * O termo da busca do DON!! na planilha (decisão 112, 23/09).
+ *
+ * Pedido do dono do produto com a tela na mão: procurar pelo nome, e não pelo
+ * nosso código. A regra que o componente usa é esta — `isDonCode` decide, e o
+ * link sai de `ligaSearchLink`.
+ */
+describe('a busca do DON!! sai pelo nome', () => {
+  it('o codigo do DON e reconhecido, e o das outras cartas nao', () => {
+    expect(isDonCode('DON-482237')).toBe(true)
+    expect(isDonCode('OP01-001')).toBe(false)
+  })
+
+  it('a busca pelo nome monta o endereco da Liga', () => {
+    const href = ligaSearchLink('DON!! Card (Red)')
+
+    expect(href).toContain('view=cards/search')
+    expect(decodeURIComponent(href)).toContain('DON!! Card (Red)')
   })
 })
