@@ -27,6 +27,14 @@ const PRODUTOS: Record<string, unknown> = {
           { name: 'CardType', value: 'DON!!' },
         ],
       },
+      // Mais cinco, para a fracao de imagens que falham ser mensuravel: a trava
+      // do provedor so opina quando ha amostra.
+      ...[1, 2, 3, 4, 5].map((n) => ({
+        productId: 500000 + n,
+        name: `DON!! Card (${n})`,
+        imageUrl: `https://tcgplayer-cdn.tcgplayer.com/product/${500000 + n}_200w.jpg`,
+        extendedData: [{ name: 'CardType', value: 'DON!!' }],
+      })),
       {
         productId: 100,
         name: 'Monkey.D.Luffy',
@@ -39,10 +47,19 @@ const PRODUTOS: Record<string, unknown> = {
   },
 }
 
+/** As imagens que o CDN "tem". O que nao estiver aqui responde 403, como no real. */
+const TODAS = ['482236', '500001', '500002', '500003', '500004', '500005']
+let imagensQueExistem = new Set<string>(TODAS)
+
 function provider() {
   const fetchImpl = vi.fn(async (url: string | URL, _init?: RequestInit) => {
-    void _init
     const texto = String(url)
+
+    if (_init?.method === 'HEAD') {
+      const id = /\/product\/(\d+)_/.exec(texto)?.[1] ?? ''
+      return new Response(null, { status: imagensQueExistem.has(id) ? 200 : 403 })
+    }
+
     const grupo = /\/68\/(\d+)\/products$/.exec(texto)?.[1]
     const corpo = grupo ? PRODUTOS[grupo] : GRUPOS
     return new Response(JSON.stringify(corpo), { status: 200 })
@@ -68,8 +85,9 @@ describe('TcgCsvDonProvider', () => {
     const { provider: p } = provider()
     const page = await p.fetchSeries('1')
 
-    expect(page.cards).toHaveLength(1)
+    expect(page.cards).toHaveLength(6)
     expect(page.cards[0]).toMatchObject({ code: 'DON-482236', name: 'DON!! Card (Luffy)', type: 'DON' })
+    expect(page.cards.some((c) => c.name === 'Monkey.D.Luffy')).toBe(false)
   })
 
   /*
@@ -102,10 +120,42 @@ describe('TcgCsvDonProvider', () => {
    * 23/09. O teste que guarda essa ponta esta em `tests/unit/next-config`.
    */
   it('guarda a imagem do TCGplayer', async () => {
+    imagensQueExistem = new Set(TODAS)
     const { provider: p } = provider()
     const [arte] = (await p.fetchSeries('1')).variants
 
     expect(arte.imageUrl).toBe('https://tcgplayer-cdn.tcgplayer.com/product/482236_200w.jpg')
+  })
+
+  /*
+   * O TCGplayer publica a URL mesmo sem ter o arquivo, e ela devolve 403.
+   * Guardada, vira icone quebrado na tela — `CardArt` ja mostra o codigo quando
+   * nao ha imagem, so precisa que o campo venha nulo. 4 das 239 em 24/09.
+   */
+  it('descarta a imagem que nao responde', async () => {
+    // Uma de seis: abaixo do teto, entao a falha e da imagem.
+    imagensQueExistem = new Set(TODAS.filter((id) => id !== '482236'))
+    const { provider: p } = provider()
+    const page = await p.fetchSeries('1')
+
+    const quebrada = page.variants.find((v) => v.sourceId === '482236')!
+    const boa = page.variants.find((v) => v.sourceId === '500001')!
+    expect(quebrada.imageUrl).toBeNull()
+    expect(boa.imageUrl).toContain('500001_200w.jpg')
+  })
+
+  /*
+   * 403 e tambem o que um limitador de trafego devolve. Se muitas falharem de
+   * uma vez, e mais provavel que sejamos nos sendo barrados do que as imagens
+   * terem sumido — e apagar todas estragaria o catalogo por causa de uma
+   * resposta nossa.
+   */
+  it('quando quase tudo falha, nao descarta nada', async () => {
+    imagensQueExistem = new Set()
+    const { provider: p } = provider()
+    const page = await p.fetchSeries('1')
+
+    expect(page.variants.every((v) => v.imageUrl !== null)).toBe(true)
   })
 
   it('poe as cartas no set artificial DON', async () => {

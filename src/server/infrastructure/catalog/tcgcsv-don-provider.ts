@@ -46,6 +46,12 @@ const USER_AGENT = 'ColeXa/1.0 (+https://colexa.com.br)'
 
 const DEFAULT_MIN_INTERVAL_MS = 250
 
+/**
+ * Acima desta fracao de imagens que nao respondem, nenhuma e descartada: e sinal
+ * de que quem esta sendo barrado somos nos.
+ */
+const FALHA_ACEITAVEL = 0.2
+
 interface Group {
   groupId: number
   name: string
@@ -75,6 +81,17 @@ export class TcgCsvDonProvider implements CatalogProvider {
   /** Os nomes dos grupos, guardados na listagem para o relatorio da importacao. */
   private groupNames = new Map<string, string>()
 
+  /**
+   * As imagens que respondem, levantadas **uma vez para o catalogo inteiro**.
+   *
+   * Vazio ate `listSeriesIds` rodar. A amostra precisa ser global: por grupo ela
+   * nao serve, porque muitos tem uma ou duas cartas so — e ai uma imagem
+   * quebrada e 100% de falha, que a trava le como "estamos sendo barrados" e
+   * devolve tudo. Medido em 24/09: a conferencia por grupo nao descartou nenhuma
+   * das 4 quebradas, exatamente por isso.
+   */
+  private imagens: Map<number, string> | null = null
+
   constructor(options: TcgCsvDonOptions = {}) {
     this.minIntervalMs = options.minIntervalMs ?? DEFAULT_MIN_INTERVAL_MS
     this.fetchImpl = options.fetchImpl ?? globalThis.fetch
@@ -84,11 +101,21 @@ export class TcgCsvDonProvider implements CatalogProvider {
     const groups = await this.get<{ results: Group[] }>(`${BASE}/${CATEGORY_ID}/groups`)
 
     const comDon: string[] = []
+    const todos: Product[] = []
     for (const group of groups.results) {
       const id = String(group.groupId)
       this.groupNames.set(id, group.name)
-      if ((await this.donsOf(id)).length > 0) comDon.push(id)
+      const dons = await this.donsOf(id)
+      if (dons.length > 0) {
+        comDon.push(id)
+        todos.push(...dons)
+      }
     }
+
+    // A conferencia das imagens acontece aqui, com o catalogo inteiro na mao:
+    // e a unica hora em que a amostra e grande o bastante para a trava valer.
+    this.imagens = await this.imagensQueRespondem(todos)
+
     return comDon
   }
 
@@ -118,6 +145,13 @@ export class TcgCsvDonProvider implements CatalogProvider {
       promotionalProductNames: [],
       variantsWithoutSet: [],
     }
+
+    /*
+     * O levantamento global, quando houve. Sem ele — `fetchSeries` chamado
+     * direto, com os grupos escolhidos a mao — confere so os deste grupo, e ai a
+     * trava e conservadora de proposito: com amostra pequena, na duvida preserva.
+     */
+    const imagens = this.imagens ?? (await this.imagensQueRespondem(dons))
 
     for (const product of dons) {
       const code = donCardCode(product.productId)
@@ -156,8 +190,10 @@ export class TcgCsvDonProvider implements CatalogProvider {
          * com **500 na tela inteira**, e nao com uma imagem quebrada. Foi o que
          * aconteceu em 23/09 na planilha da Liga, assim que as 239 passaram a
          * renderizar. Tirar o host de la derruba o catalogo.
+         *
+         * So entra a que responde: ver `imagensQueRespondem`.
          */
-        imageUrl: product.imageUrl?.trim() || null,
+        imageUrl: imagens.get(product.productId) ?? null,
         printedInSetCodes: [DON_SET_CODE],
       })
     }
@@ -168,6 +204,53 @@ export class TcgCsvDonProvider implements CatalogProvider {
   /** O nome do grupo, para o relatorio. Vazio antes de `listSeriesIds`. */
   groupName(seriesId: string): string | undefined {
     return this.groupNames.get(seriesId)
+  }
+
+  /**
+   * As imagens que de fato existem, por produto.
+   *
+   * O TCGplayer publica a URL mesmo quando nao tem o arquivo, e ela devolve
+   * **403**. Guardada, ela vira icone de imagem quebrada na tela — e `CardArt`
+   * ja sabe mostrar o codigo quando nao ha imagem, so nao sabe que aquela nao
+   * abre. Medido em 24/09: 4 das 239.
+   *
+   * ## A trava contra apagar tudo
+   *
+   * 403 e tambem o que um limitador de trafego devolve. Se muitas falharem de
+   * uma vez, e mais provavel que sejamos nos sendo barrados do que 200 imagens
+   * terem sumido — e apagar todas seria estragar o catalogo por causa de uma
+   * resposta nossa. Acima do teto, nada e descartado.
+   */
+  private async imagensQueRespondem(products: Product[]): Promise<Map<number, string>> {
+    const candidatas = products
+      .map((p) => ({ id: p.productId, url: p.imageUrl?.trim() || null }))
+      .filter((x): x is { id: number; url: string } => x.url !== null)
+
+    const respondem = new Map<number, string>()
+    const falharam: number[] = []
+
+    for (const { id, url } of candidatas) {
+      const ok = await this.responde(url)
+      if (ok) respondem.set(id, url)
+      else falharam.push(id)
+    }
+
+    if (candidatas.length > 0 && falharam.length > candidatas.length * FALHA_ACEITAVEL) {
+      // Devolve tudo: o problema somos nos, e nao as imagens.
+      return new Map(candidatas.map(({ id, url }) => [id, url]))
+    }
+
+    return respondem
+  }
+
+  /** `HEAD` na imagem. Erro de rede conta como "responde": na duvida, preserva. */
+  private async responde(url: string): Promise<boolean> {
+    try {
+      const response = await this.fetchImpl(url, { method: 'HEAD' })
+      return response.ok
+    } catch {
+      return true
+    }
   }
 
   private async donsOf(groupId: string): Promise<Product[]> {
