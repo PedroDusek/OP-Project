@@ -7237,6 +7237,17 @@ Fica uma pergunta em aberto para o dia do vínculo: o progresso **global** do
 catálogo exclui DON!! por tipo, enquanto o progresso **por coleção** passará a
 incluí-los. Os dois números vão discordar, e qual dos dois muda é escolha dele.
 
+O vínculo é feito em `/dev/don`, e o que ele grava mora em `data/don-sets.json`
+— **num arquivo, e não no banco**, pelo mesmo motivo da tabela da Liga: são
+centenas de vínculos feitos à mão, que precisam sobreviver a um banco recriado e
+chegar a produção por PR. Não há backup do banco, e este é trabalho que não se
+refaz sozinho.
+
+A tabela é aplicada na importação dos DON!!, depois do catálogo e do vínculo de
+preço. Ela **nunca apaga impressão**: tirar uma arte da tabela deixa a impressão
+que ela já ganhou, porque apagá-la exigiria decidir o que fazer com a coleção de
+quem já via a carta ali — e isso é conversa, não efeito colateral de importação.
+
 ## Comando próprio
 
 `npm run supabase don`, e não uma opção do `import`: é outra fonte com outro

@@ -182,6 +182,27 @@ async function main(): Promise<void> {
           ` criados=${vinculos.created} atualizados=${vinculos.updated}`,
       )
 
+      /*
+       * E as colecoes levantadas a mao (decisao 112). O arquivo e a verdade; o
+       * banco recebe o que ele diz. Nao apaga impressao nenhuma: tirar uma
+       * exigiria decidir o que fazer com a colecao de quem ja via a carta ali.
+       */
+      const { applyDonSets } = await import('@/server/application/catalog/don-sets')
+      const colecoes = await applyDonSets(prisma)
+      console.log(
+        `[supabase] don: colecoes da tabela — artes=${colecoes.entries}` +
+          ` impressoes=${colecoes.printings}`,
+      )
+      if (colecoes.unknownArts.length > 0) {
+        console.log(
+          `[supabase]   ${colecoes.unknownArts.length} arte(s) da tabela nao existem no catalogo:` +
+            ` ${colecoes.unknownArts.slice(0, 5).join(', ')}`,
+        )
+      }
+      if (colecoes.unknownSets.length > 0) {
+        console.log(`[supabase]   set(s) desconhecido(s): ${colecoes.unknownSets.join(', ')}`)
+      }
+
       if (report.seriesFailed > 0) {
         for (const falha of report.failures) {
           console.log(`[supabase]   grupo=${falha.seriesId}: ${falha.reason}`)
