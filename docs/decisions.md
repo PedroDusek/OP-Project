@@ -7360,9 +7360,15 @@ a troca reversível e impede que uma fonte nova vire imagem quebrada calada.
 
 - **Carta nova exige o comando.** `npm run supabase imagens` converte só o que
   falta. Esquecer significa carta sem arte.
-- **O volume mora numa máquina só e não tem backup.** A diferença para o banco é
-  que isto é **reconstruível**: ~2 h 30 daqui, sem ninguém olhando.
+- **O volume mora numa máquina só.** Ele **tem** snapshots agendados pela Fly,
+  com retenção de 5 — eu havia afirmado o contrário ao propor isto, e estava
+  errado. Mesmo sem eles, isto é **reconstruível**: ~2 h 30 daqui, sem ninguém
+  olhando, o que é bem diferente do banco.
 - **Mais de uma máquina** exigiria uma cópia por máquina. Hoje é uma só.
+- **O volume foi de 1 GB para 3 GB** para caber. Eu havia lido 7,8 GB, que era o
+  disco raiz da máquina e não o volume montado — o erro foi corrigido antes da
+  subida, com o aumento aprovado pelo dono do produto. Ocupação final: 525 MB de
+  artes, 2,0 GB livres.
 
 ## O que foi descartado no caminho
 
