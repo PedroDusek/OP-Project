@@ -23,6 +23,8 @@ const POOL_MAX = 4
  *   npm run supabase import 569117      importa apenas as series informadas
  *   npm run supabase -- import --from=DIR  importa de um snapshot local
  *   npm run supabase don                importa os DON!! do tcgcsv (decisao 112)
+ *   npm run supabase imagens            converte as artes para o volume (decisao 113)
+ *   npm run supabase -- imagens --limite=50   so as primeiras, para conferir
  *   npm run supabase status             mostra o que existe la hoje
  *   npm run supabase storage            cria o bucket das imagens do usuario
  *   npm run supabase prices             importa precos de arte comum e cambio
@@ -208,6 +210,37 @@ async function main(): Promise<void> {
           console.log(`[supabase]   grupo=${falha.seriesId}: ${falha.reason}`)
         }
         process.exitCode = 1
+      }
+    } finally {
+      await prisma.$disconnect()
+    }
+    return
+  }
+
+  /*
+   * O preparo das artes (decisao 113).
+   *
+   * **Roda aqui, e nunca na Fly.** Ele baixa da Bandai, e de la a Bandai
+   * responde a 8 KB/s desde 25/09: as 4.431 artes levariam umas 53 h. Daqui
+   * levam umas 2 h 30. O banco e so lido — o que muda e a pasta local, que
+   * depois sobe para o volume.
+   */
+  if (command === 'imagens') {
+    const limite = Number(args.find((a) => a.startsWith('--limite='))?.slice('--limite='.length) ?? 0)
+    const prisma = createPrisma(url, { max: POOL_MAX })
+    try {
+      const { prepararImagens } = await import('@/server/application/catalog/preparar-imagens')
+      const r = await prepararImagens(prisma, {
+        limite: limite > 0 ? limite : undefined,
+        logger: console,
+      })
+      console.log(
+        `[supabase] imagens: artes=${r.total} convertidas=${r.convertidas} ja tinha=${r.jaExistiam}` +
+          ` falharam=${r.falharam} | ${(r.bytes / 1024 ** 2).toFixed(0)} MB em ${r.pasta}`,
+      )
+      if (r.falhas.length > 0) {
+        console.log(`[supabase]   ${r.falhas.length} falha(s):`)
+        for (const f of r.falhas.slice(0, 10)) console.log(`[supabase]     ${f.sourceId}: ${f.motivo}`)
       }
     } finally {
       await prisma.$disconnect()

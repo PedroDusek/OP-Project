@@ -119,6 +119,7 @@ ponta. Lint, typecheck e build passando.
 | — | A pessoa escolhe a ordem da listagem: código, nome, custo e poder (decisão 110) |
 | — | O DON!! entra como tipo de carta, vindo do tcgcsv: 239 cartas, sem progresso (decisão 112) |
 | — | `/dev/liga?set=DON` e `/dev/don`: as duas telas do vínculo manual dos DON!! (decisão 112) |
+| — | A arte da carta passa a ser nossa, servida do volume da Fly (decisão 113, que muda a 020) |
 | — | Deck Builder vira **Decks**, com deckboxes e decklists em abas; a deckbox sai de Binders (decisão 111) |
 | — | Enviar feedback, por e-mail ao suporte (decisão 096) |
 | — | O mesmo e-mail por outra forma de entrar é recusado (decisão 097) |

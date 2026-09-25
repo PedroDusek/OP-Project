@@ -7282,3 +7282,99 @@ exatamente o que a rejeição explícita existe para impedir.
 ## Data
 
 2026-09-23
+
+# Decisão: 113 — A arte da carta passa a ser nossa (muda a 020)
+
+Em 25/09 o dono do produto relatou imagens sem carregar em produção, depois de
+vários recarregamentos.
+
+## O que estava acontecendo
+
+Medido nos dois lados, com os mesmos arquivos no mesmo instante:
+
+| De onde | Tempo | Velocidade |
+|---|---|---|
+| Máquina de desenvolvimento | **2,1 s** | ~80–110 KB/s |
+| Máquina da Fly | **27–30 s, ou estouro** | **~8 KB/s** |
+
+A Bandai passou a estrangular o endereço da Fly, cerca de 10× mais lento.
+
+E o Next desiste antes: o tempo limite para buscar a imagem na origem é
+`AbortSignal.timeout(7000)` — **escrito fixo no código dele**, sem configuração.
+O log da máquina confirmou: `TimeoutError: The operation was aborted due to
+timeout`, aos 7 s.
+
+**Não havia ajuste possível do nosso lado**, porque o limite não é nosso.
+
+## Um engano da decisão 090, corrigido aqui
+
+A 090 pôs `imgOptTimeoutInSeconds: 30` acreditando que aquilo era o tempo de
+esperar pela Bandai. **Não é.** Conferido no código do Next: esse valor vai para
+`sharp().timeout()`, que é o tempo de **processar** a imagem. O tempo de
+**baixar** nunca teve configuração. A 090 funcionou na época porque o cache
+encheu, e não porque o ajuste agiu.
+
+## O que não era
+
+A hipótese fácil era vencimento do cache. Medido e descartado: as entradas
+expiram em **21 a 23 de outubro**, não agora — a data está gravada no nome de
+cada arquivo do cache. O que quebra é **falta**: 8.026 entradas para 4.666 artes
+em duas larguras, e as 470 dos DON!! nunca aquecidas.
+
+Aquecer também não resolvia: o aquecimento sai da mesma máquina e bate no mesmo
+estrangulamento.
+
+## A mudança
+
+A decisão 020 combinou referenciar a origem e **nunca copiar**. Isso deixa de
+valer para a arte da carta, com aprovação do dono do produto em 25/09.
+
+Agora a arte é convertida **uma vez**, fora da Fly, e servida do disco da
+máquina. Nenhuma tela depende mais de a Bandai responder.
+
+- **Formato:** `webp`, 700 px de largura, qualidade 80.
+- **Medido:** 4.666 artes, **zero falhas**, **515 MB** — num volume de 7,8 GB
+  que usava 335 MB. O original seria 1,30 GB.
+- **Onde:** `.next/cache/cartas`, ao lado do cache do otimizador e no mesmo
+  volume, que sobrevive à publicação.
+- **Nome do arquivo:** o `source_id`, porque é a **arte** que tem imagem, e não
+  a carta (decisão 019).
+
+## A regra que não pode ser quebrada
+
+**A conversão nunca roda na Fly.** De lá a Bandai responde a 8 KB/s: refazer as
+4.431 artes levaria ~53 h, contra ~2 h 30 daqui. Quem escrever um comando que
+gere imagem no servidor reintroduz o defeito que esta decisão remove. O aviso
+está escrito no código, em dois lugares.
+
+## A troca acontece num lugar só
+
+O `source_id` já está dentro do endereço das duas origens — `.../card/OP01-016_p3.png`
+e `.../product/482236_200w.jpg` —, então `CardArt` deriva a arte guardada sem
+mexer nas dezenas de telas que passam `imageUrl` adiante.
+
+Endereço que não reconhecemos **segue para a origem**, como antes. É o que torna
+a troca reversível e impede que uma fonte nova vire imagem quebrada calada.
+
+## O que continua custando
+
+- **Carta nova exige o comando.** `npm run supabase imagens` converte só o que
+  falta. Esquecer significa carta sem arte.
+- **O volume mora numa máquina só e não tem backup.** A diferença para o banco é
+  que isto é **reconstruível**: ~2 h 30 daqui, sem ninguém olhando.
+- **Mais de uma máquina** exigiria uma cópia por máquina. Hoje é uma só.
+
+## O que foi descartado no caminho
+
+O dono do produto encontrou o repositório de imagens da Liga
+(`repositorio.sbrauble.com`) e perguntou se ajudaria. Investigado: responde sem
+autenticação, atrás da Cloudflare, sem regra no `robots.txt`. **Não serve**, por
+três motivos independentes: é **miniatura** (350×489, contra os 700 px que
+precisamos); a URL é um **hash opaco** que não sai do código da carta, exigindo
+colher uma por arte de páginas atrás de proteção anti-bot (decisão 047); e seria
+**a banda deles**, trocando a dependência da Bandai pela da Liga — a mesma classe
+de falha que causou isto.
+
+## Data
+
+2026-09-25

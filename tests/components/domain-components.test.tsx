@@ -53,7 +53,18 @@ describe('CardTile', () => {
    * O que continua garantido: a URL da origem e o que alimenta o otimizador, e
    * o banco guarda so ela.
    */
-  it('serve a arte pelo otimizador, apontando para a origem', () => {
+  /**
+   * **A regra mudou em 25/09 (decisão 113).**
+   *
+   * Este teste afirmava que a arte ia ao otimizador apontando para a origem —
+   * o desenho da decisão 038. Ele deixou de valer quando a Bandai passou a
+   * estrangular o endereço da Fly (2,1 s daqui contra 27 a 30 s de lá) e o
+   * Next desistiu aos 7 s, que é um limite fixo no código dele.
+   *
+   * Agora a arte é nossa, servida do disco da máquina, e não passa pelo
+   * otimizador: ela já vem convertida e no tamanho.
+   */
+  it('serve a arte guardada por nos, sem passar pelo otimizador', () => {
     render(
       <CardTile
         code="OP01-001"
@@ -65,10 +76,24 @@ describe('CardTile', () => {
 
     const src = screen.getByRole('img', { name: 'OP01-001 — Roronoa Zoro' }).getAttribute('src')
 
+    expect(src).toBe('/imagens/cartas/OP01-001.webp')
+    // A origem nao e mais pedida: e o ponto inteiro da mudanca.
+    expect(src).not.toContain('/_next/image')
+    expect(src).not.toContain('onepiece-cardgame.com')
+  })
+
+  /*
+   * Origem que nao reconhecemos segue pelo otimizador, como antes. E o que faz a
+   * troca ser reversivel, e o que impede uma fonte nova virar imagem quebrada
+   * sem ninguem ver.
+   */
+  it('origem desconhecida continua indo pelo otimizador', () => {
+    render(<CardTile code="OP01-001" name="Roronoa Zoro" imageUrl="https://exemplo.com/arte.png" />)
+
+    const src = screen.getByRole('img', { name: 'OP01-001 — Roronoa Zoro' }).getAttribute('src')
+
     expect(src).toContain('/_next/image')
-    expect(decodeURIComponent(src ?? '')).toContain(
-      'https://en.onepiece-cardgame.com/images/cardlist/card/OP01-001.png',
-    )
+    expect(decodeURIComponent(src ?? '')).toContain('https://exemplo.com/arte.png')
   })
 
   it('mostra o codigo quando nao ha imagem', () => {
