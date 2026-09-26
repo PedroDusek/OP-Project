@@ -29,3 +29,14 @@ export function podeIndexar(host: string | null, allowIndexing: string | undefin
   const limpo = (host ?? '').split(':')[0].trim().toLowerCase()
   return OFFICIAL_HOSTS.has(limpo) && indexingAllowed(allowIndexing)
 }
+
+/**
+ * O endereço do site, para quando ele viaja como texto.
+ *
+ * URL inteira de propósito: é o que faz o aplicativo de mensagens transformar
+ * em link clicável. `colexa.com.br` solto costuma virar texto morto.
+ *
+ * Mora junto de `OFFICIAL_HOSTS` porque é a mesma verdade — se um dia o
+ * endereço mudar, os dois mudam no mesmo lugar.
+ */
+export const SITE_URL = 'https://colexa.com.br'
