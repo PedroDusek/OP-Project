@@ -1,6 +1,7 @@
 'use client'
 
 import { Minus, Plus } from 'lucide-react'
+import { PLAYSET_SIZE } from '@/server/domain/collection/counting'
 import { cn } from '@/lib/cn'
 
 /**
@@ -16,6 +17,24 @@ import { cn } from '@/lib/cn'
  * esta alocado devolve conflito do servidor com as alocacoes atuais, para a
  * pessoa escolher de onde as copias saem (`docs/business-rules.md` 3.3). Essa
  * tela de resolucao e do Checkpoint 9; aqui so existe o controle.
+ *
+ * ## O `+4`
+ *
+ * Opcional, e so nas telas onde o gesto e **cadastrar carta**. Quatro nao e um
+ * numero redondo qualquer: e o playset (`PLAYSET_SIZE`), o que se tem de uma
+ * carta para poder jogar com ela. Quem cadastra colecao grande toca `+` quatro
+ * vezes por carta, e foi disso que o dono do produto reclamou.
+ *
+ * Ele nao entra onde a quantidade significa outra coisa — alocar entre locais,
+ * montar troca —, porque ali quatro nao quer dizer nada de especial.
+ *
+ * Ele tem o **mesmo tamanho** dos outros dois. A primeira versao o fez estreito,
+ * com largura de texto, para proteger telas apertadas — e o dono do produto
+ * apontou, com a tela na mao, que na folha de adicionar a colecao ele ficava
+ * pequeno perto dos vizinhos. Quem usa `QuantitySelector` com `bulk` sao folhas
+ * de largura cheia, onde sobra espaco; a tela apertada de verdade e a grade de
+ * duas colunas do seletor em massa, que tem controle proprio e resolve por la,
+ * com o `+4` em linha propria.
  */
 
 export interface QuantitySelectorProps {
@@ -26,6 +45,8 @@ export interface QuantitySelectorProps {
   max?: number
   disabled?: boolean
   size?: 'md' | 'lg'
+  /** Mostra o `+4`, para as telas de cadastrar carta. Ver o bloco acima. */
+  bulk?: boolean
   className?: string
 }
 
@@ -37,6 +58,7 @@ export function QuantitySelector({
   max = 9999,
   disabled = false,
   size = 'md',
+  bulk = false,
   className,
 }: QuantitySelectorProps) {
   const clamp = (next: number) => Math.min(Math.max(next, min), max)
@@ -99,6 +121,25 @@ export function QuantitySelector({
       >
         <Plus className="size-4" aria-hidden />
       </button>
+
+      {bulk ? (
+        <button
+          type="button"
+          aria-label={`Acrescentar ${PLAYSET_SIZE} a ${label}`}
+          disabled={disabled || value >= max}
+          onClick={() => onValueChange(clamp(value + PLAYSET_SIZE))}
+          className={cn(
+            button,
+            'inline-flex shrink-0 items-center justify-center rounded-control',
+            'border border-accent-ink/30 bg-accent-soft font-semibold',
+            'text-accent-ink tabular-nums transition-colors',
+            size === 'lg' ? 'text-base' : 'text-sm',
+            'hover:brightness-95 disabled:pointer-events-none disabled:opacity-40',
+          )}
+        >
+          +{PLAYSET_SIZE}
+        </button>
+      ) : null}
     </div>
   )
 }
