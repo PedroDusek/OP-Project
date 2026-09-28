@@ -121,6 +121,8 @@ export function WantSheet({
             value={quantity}
             onValueChange={setQuantity}
             label="Quero na minha coleção"
+            /* Quatro e o alvo normal de quem procura carta: o playset. */
+            bulk
             size="lg"
             disabled={pending}
           />

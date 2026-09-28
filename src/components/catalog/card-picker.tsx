@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Loader2, Minus, Plus, SearchX } from 'lucide-react'
+import { PLAYSET_SIZE } from '@/server/domain/collection/counting'
 import { CardArt } from '@/components/catalog/card-art'
 import { CatalogFilters } from '@/components/catalog/catalog-filters'
 import { CatalogSort } from '@/components/catalog/catalog-sort'
@@ -578,7 +579,33 @@ function PickTile({
         >
           <Plus className="size-4" aria-hidden />
         </button>
+
       </div>
+
+      {/*
+        O playset de uma vez, em **linha própria**.
+
+        Esta é a tela de cadastrar em massa, e quem registra coleção grande
+        tocava `+` quatro vezes por carta. Mas aqui a grade é de duas colunas no
+        celular: o cartão tem 166 px, e um terceiro botão na mesma fileira
+        deixava o número com **16 px** — medido a 375 px. Cabia, e não era
+        confortável; três dígitos apertariam.
+
+        Em linha própria ele fica com a largura do cartão, e a fileira de cima
+        continua com o número folgado.
+      */}
+      <button
+        type="button"
+        aria-label={`Acrescentar ${PLAYSET_SIZE} cópias de ${card.cardCode}`}
+        onClick={() => onChange(value + PLAYSET_SIZE)}
+        className={cn(
+          'inline-flex h-11 w-full items-center justify-center rounded-control',
+          'border border-accent-ink/30 bg-accent-soft text-sm font-semibold',
+          'text-accent-ink tabular-nums transition-colors hover:brightness-95',
+        )}
+      >
+        +{PLAYSET_SIZE}
+      </button>
     </div>
   )
 }

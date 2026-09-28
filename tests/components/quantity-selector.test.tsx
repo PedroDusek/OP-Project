@@ -13,11 +13,13 @@ function Harness({
   initial = 0,
   min,
   max,
+  bulk,
   onValueChange,
 }: {
   initial?: number
   min?: number
   max?: number
+  bulk?: boolean
   onValueChange?: (value: number) => void
 }) {
   const [value, setValue] = useState(initial)
@@ -31,11 +33,56 @@ function Harness({
       label="Quantidade"
       min={min}
       max={max}
+      bulk={bulk}
     />
   )
 }
 
 describe('QuantitySelector', () => {
+  /**
+   * O `+4` (26/09).
+   *
+   * Pedido do dono do produto: quem cadastra coleção grande tocava `+` quatro
+   * vezes por carta. Quatro é o playset — o que se tem de uma carta para poder
+   * jogar com ela —, e não um número redondo qualquer.
+   *
+   * Ele é **opcional**: só entra nas telas onde o gesto é cadastrar carta. Onde
+   * a quantidade significa outra coisa — alocar entre locais, montar troca —,
+   * quatro não quer dizer nada.
+   */
+  describe('o +4', () => {
+    it('nao aparece sem pedir', () => {
+      render(<Harness />)
+
+      expect(screen.queryByRole('button', { name: /Acrescentar 4/ })).not.toBeInTheDocument()
+    })
+
+    it('soma o playset de uma vez', async () => {
+      const onValueChange = vi.fn()
+      render(<Harness initial={1} bulk onValueChange={onValueChange} />)
+
+      await userEvent.click(screen.getByRole('button', { name: 'Acrescentar 4 a Quantidade' }))
+
+      expect(onValueChange).toHaveBeenLastCalledWith(5)
+    })
+
+    /* Respeita o teto como o `+`: somar 4 nao pode furar o maximo. */
+    it('nao passa do maximo', async () => {
+      const onValueChange = vi.fn()
+      render(<Harness initial={2} max={4} bulk onValueChange={onValueChange} />)
+
+      await userEvent.click(screen.getByRole('button', { name: 'Acrescentar 4 a Quantidade' }))
+
+      expect(onValueChange).toHaveBeenLastCalledWith(4)
+    })
+
+    it('desabilita quando ja esta no teto', () => {
+      render(<Harness initial={4} max={4} bulk />)
+
+      expect(screen.getByRole('button', { name: 'Acrescentar 4 a Quantidade' })).toBeDisabled()
+    })
+  })
+
   it('soma e subtrai uma copia', async () => {
     const onValueChange = vi.fn()
     render(<Harness initial={3} onValueChange={onValueChange} />)

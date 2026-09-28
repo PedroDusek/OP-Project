@@ -193,6 +193,8 @@ export function Guide() {
               />
             </Panel>
             <QuantitySelector value={quantity} onValueChange={setQuantity} label="Quantidade" />
+            {/* Com o `+4`, das telas de cadastrar carta. */}
+            <QuantitySelector value={quantity} onValueChange={setQuantity} label="Quantidade com playset" bulk />
           </div>
         </Section>
 
