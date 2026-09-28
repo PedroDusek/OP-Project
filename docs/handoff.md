@@ -1,4 +1,4 @@
-﻿# Handoff — estado em 18/09/2026
+﻿# Handoff — estado em 28/09/2026
 
 Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
 
@@ -8,11 +8,15 @@ Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
    carregou ao subir (armadilha 40), e só lê o `.env` ao subir — `RESEND_API_KEY`
    e `EMAIL_FROM` entraram nele em 17/09.
 2. `npm run supabase status` — mostra o que produção tem e o que falta. Em
-   18/09 ela estava **em dia: 19 de 19 migrations**.
+   28/09 ela estava **em dia: 23 de 23 migrations**, com 3.024 cartas, 4.670
+   artes e 61 sets.
 3. **O site está em `https://colexa.com.br`** desde 21/09 (decisões
-   089 e 090), para teste do dono do produto — ainda **não é o lançamento**.
-   Publicar de novo é à mão: `development.md` 6.6.
-4. Leia "Produção, em 17/09/2026", "O dashboard da coleção", "A Social" e
+   089 e 090), com cobrança do Premium **em modo real** desde 22/09. Publicar é
+   à mão: `development.md` 6.6. A última publicação foi a **v47**.
+4. **A arte da carta agora é nossa** (decisão 113). Ela **não** vem mais da
+   Bandai em tempo de acesso, e a conversão **nunca roda na Fly** — leia a
+   armadilha 88 antes de mexer em imagem.
+5. Leia "Produção, em 17/09/2026", "O dashboard da coleção", "A Social" e
    "Próximo passo", abaixo.
 
 O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
@@ -46,9 +50,9 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 13 concluídos, a Social, os Decks e o dashboard da
-coleção.** 1.802 testes de unidade, integração e componente, mais 36 ponta a
-ponta. Lint, typecheck e build passando.
+**Checkpoints 0 a 13 concluídos, a Social, os Decks, o dashboard da coleção, o
+DON!! e as artes guardadas por nós.** 1.865 testes de unidade, integração e
+componente, mais 36 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
 |---|---|
@@ -283,17 +287,25 @@ outra hora, e isso é verdade, não defeito.
 
 ## As decisões que mais restringem o que vem depois
 
-As 74 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 113 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
   produto, com mitigações **obrigatórias**: requisições serializadas com
-  intervalo, apenas dados factuais, imagens referenciadas na origem e nunca
-  copiadas, atribuição visível, e o catálogo nunca reexposto como API pública.
+  intervalo, apenas dados factuais, atribuição visível, e o catálogo nunca
+  reexposto como API pública. A mitigação de **nunca copiar a imagem** deixou de
+  valer na 113 — ver abaixo.
 - **038** — revoga a 026 e altera uma mitigação da 020. O servidor da Bandai
   manda `cross-origin-resource-policy: same-site`, então o navegador **recusa**
-  desenhar a imagem vinda direto da origem. Ela passa pelo otimizador do
-  `next/image` e é servida do nosso domínio; o banco guarda só a URL.
+  desenhar a imagem vinda direto da origem. Ela passava pelo otimizador do
+  `next/image`; o banco guardava só a URL. **Alterada pela 113.**
+- **113** — muda a 020 e substitui o desenho da 038. A Bandai passou a
+  estrangular o endereço da Fly, e o limite do Next para buscar na origem é fixo
+  em 7 s. A arte passou a ser **convertida por nós** e servida do volume. O banco
+  continua guardando a URL de origem — ela é o que permite reconverter.
+- **112** — o DON!! é um tipo de carta que **não vem da Bandai**: o catálogo
+  oficial não o publica. Ele vem do tcgcsv, tem código inventado por nós e um set
+  artificial. Não conta progresso e não fecha playset.
 - **030** — Termos de Uso e Política de Privacidade **não existem**, e isso é
   bloqueio de lançamento. Ver abaixo.
 - **021** — `effects` fica vazia. Os nove efeitos da especificação não aparecem
@@ -815,6 +827,45 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 
     **Corrigir o código não corrige o banco**: as 175 cartas só mudam na próxima
     `npm run supabase import`.
+88. **A conversão das artes nunca roda na Fly, e o limite do Next é fixo.**
+    Em 25/09 a Bandai passou a estrangular o endereço da Fly. Medido nos dois
+    lados, com os mesmos arquivos no mesmo instante: **2,1 s da máquina de
+    desenvolvimento, 27 a 30 s da Fly**, quando não estoura — cerca de 8 KB/s.
+
+    E o Next desiste antes: o tempo de buscar a imagem na origem é
+    `AbortSignal.timeout(7000)`, **escrito fixo no código dele**. Não há
+    configuração. `imgOptTimeoutInSeconds`, que a decisão 090 ajustou achando que
+    era isso, vai para `sharp().timeout()` — o tempo de **processar**, não o de
+    **baixar**. A 090 funcionou na época porque o cache encheu.
+
+    Por isso a decisão 113 guarda a arte convertida no volume. E por isso
+    **`npm run supabase imagens` roda fora da Fly**: de lá, refazer as 4.431
+    artes levaria ~53 h contra ~2 h 30 daqui. Quem escrever um comando que gere
+    imagem no servidor reintroduz o defeito inteiro.
+89. **Imagem quebrada não é imagem ausente, e `next/image` responde 500.**
+    O TCGplayer publica a URL da arte mesmo quando não tem o arquivo, e ela
+    devolve **403** — 4 dos 239 DON!!. Guardada, ela vira ícone quebrado.
+
+    Pior: host que não esteja em `remotePatterns` faz `next/image` responder
+    **500 na tela inteira**, e não uma imagem quebrada. Aconteceu em 23/09 na
+    planilha da Liga assim que as 239 passaram a renderizar.
+
+    A importação do DON!! confere cada imagem antes de guardar, com uma trava:
+    403 é também o que um limitador de tráfego devolve, então acima de 20% de
+    falhas **nada** é descartado. E a conferência é **uma vez para o catálogo
+    inteiro**, não por grupo: por grupo, muitos têm uma ou duas cartas, e aí uma
+    falha é 100% — a trava lia como bloqueio e não descartava nada. Medido: por
+    grupo, nenhuma das 4 quebradas era descartada.
+90. **O volume da Fly tinha 1 GB, não 7,8 GB.** O `df -h` mostra os dois: 7,8 G
+    é o disco raiz da máquina (`/.fly-upper-layer`), e o volume montado em
+    `/app/.next/cache` é outra linha. Ler a errada quase pôs 515 MB num volume
+    com 573 MB livres. Confira com `fly volumes list`, que não tem ambiguidade.
+    Hoje ele tem **3 GB**, com snapshots agendados e retenção de 5.
+91. **Filtro que cruza com DON!! devolve sempre zero.** DON!! não tem cor,
+    trait, atributo nem raridade comum, então marcá-lo junto de qualquer outra
+    faceta não tem resposta. Por isso ele **não é oferecido** como chip de tipo
+    (decisão 112) — o tipo existe e a busca sabe filtrá-lo, o que saiu foi o
+    convite. A entrada dele é a porta própria no catálogo.
 
 ## Pendências
 
@@ -1700,6 +1751,34 @@ Três coisas para não desfazer sem querer:
 - **Tabela inválida é erro**, e o teste `liga-cards-file` lê o arquivo do
   repositório: um PR de conferência com JSON quebrado reprova na CI.
 
+## As artes das cartas (decisão 113)
+
+O que mais mudou de operação nesta leva, e o que mais dói se for esquecido.
+
+**A arte não vem mais da Bandai em tempo de acesso.** Ela está convertida no
+volume da Fly, em `/app/.next/cache/cartas`, e é servida pela rota
+`/imagens/cartas/[arquivo]` — leitura de disco, sem passar pelo otimizador.
+
+Números de 25/09: **4.666 artes, zero falhas, 525 MB**, num volume de 3 GB com
+2,0 GB livres. Antes: 500 e 504 depois de 7 s. Depois: **200 em menos de 0,12 s**.
+
+**O que é preciso fazer, e de onde:**
+
+```
+npm run supabase imagens          # converte só o que falta — RODAR FORA DA FLY
+```
+
+Depois de cada coleção nova, ele converte as artes novas e pula as prontas. O
+envio para o volume é à mão: empacotar, `fly ssh sftp put`, extrair. Da Fly, a
+mesma conversão levaria ~53 h — ver a armadilha 88.
+
+**A troca acontece num lugar só:** `CardArt` deriva a arte guardada do próprio
+endereço de origem, porque o `source_id` está dentro dele. Endereço que não
+reconhecemos **segue para a origem** — é o que torna isto reversível.
+
+**Sobrou faxina:** os 335 MB do cache do otimizador ficaram obsoletos para
+carta. Apagar é seguro agora, e ninguém apagou ainda.
+
 ## O que espera resposta do dono do produto
 
 - **Idade mínima.** Expor perfil de menor de idade a estranhos é assunto sério
@@ -1714,7 +1793,21 @@ Três coisas para não desfazer sem querer:
   Supabase (o ColeXa não usa), recomendado em 17/09. *Network Restrictions* **saiu
   da recomendação** (decisão 089): a Fly e o workflow de preços saem por IPs que
   mudam.
-- **Plano do Supabase**: backup automático só no Pro.
+- **Plano do Supabase**: backup automático só no Pro. Recusado em 22/09 — o
+  banco segue **sem backup**. O volume das artes, esse, tem snapshots da Fly.
+- **O par de links repetidos da Liga**: `692132` e `702306`, os dois DON!! de
+  Elbaph Luffy, apontam para a mesma página. São cartas diferentes, então uma
+  está errada. A planilha avisa; ninguém decidiu ainda.
+- **Duas artes de DON!! sem link da Liga**: `710745` e `710746`, do Heroines
+  Special Set, que também não têm imagem no TCGplayer.
+- **A resolução das artes de DON!!**: elas ficaram em 200×280 porque guardamos a
+  miniatura `_200w` do TCGplayer. Existe `_in_1000x1000.jpg`. Melhorar exige
+  reimportar os 239 e reconverter.
+- **Vincular cada DON!! à coleção em que saiu** (decisão 112): a tela `/dev/don`
+  está pronta e a tabela `data/don-sets.json` está vazia. Fica registrado o que
+  foi dito na hora: um DON!! dentro da OP01 **passa a contar no progresso da
+  OP01**, e aí o progresso global, que exclui DON!! por tipo, vai discordar do
+  progresso por coleção.
 
 O protocolo continua: uma branch e um PR por checkpoint, o assistente merge
 quando estiver completo e sem pendência, e para antes de iniciar o próximo
