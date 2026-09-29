@@ -169,14 +169,20 @@ A decisão 020 é a mais estruturante do projeto. Resumo:
 - Os termos do site oficial proíbem reprodução sem permissão. Importar o
   catálogo **é** reprodução.
 - O dono do produto assumiu o risco, com mitigações **obrigatórias**: requisições
-  serializadas e espaçadas, só dados factuais, imagens referenciadas na origem
-  (nunca copiadas), atribuição visível, **nunca reexpor como API pública**, e
-  importação sob demanda.
+  serializadas e espaçadas, só dados factuais, atribuição visível, **nunca
+  reexpor como API pública**, e importação sob demanda.
+
+A mitigação de **nunca copiar a imagem** durou até 25/09, quando a decisão 113 a
+desfez — e vale entender por quê, porque é o tipo de coisa que volta a acontecer
+com outra fonte: a Bandai passou a estrangular o endereço do nosso servidor (2 s
+da máquina de desenvolvimento contra 27 a 30 s da Fly), e o tempo limite que o
+Next usa para buscar na origem é **fixo em 7 s, sem configuração**. Depender da
+origem em tempo de acesso deixou de ser possível. Hoje a arte é convertida uma
+vez, fora do servidor, e servida do nosso volume.
 
 Essas mitigações aparecem no código em lugares que parecem desconexos: a cota
 por usuário em `/api/catalog`, a rolagem infinita passar por API em vez de
-Server Action, o rodapé de toda tela, o pré-aquecimento com três pedidos por
-vez, e o cache de imagem com prazo em vez de cópia.
+Server Action, e o rodapé de toda tela.
 
 **Para outro jogo, esta decisão precisa ser refeita do zero.** A fonte muda, a
 licença muda, e as mitigações mudam junto.
@@ -184,13 +190,27 @@ licença muda, e as mitigações mudam junto.
 ### 5.1 Imagens
 
 A Bandai responde `cross-origin-resource-policy: same-site`, o que impede o
-navegador de exibir a imagem a partir do nosso domínio. A saída foi servir pelo
-otimizador do Next, que busca no servidor e devolve uma versão encolhida —
-guardada em disco por 30 dias, num volume da Fly. Daí nasceram duas coisas:
+navegador de exibir a imagem a partir do nosso domínio.
 
-- o **pré-aquecimento** depois de publicar (200 cartas) e o **rodízio noturno**
-  (800 por noite, catálogo inteiro em seis noites);
-- o custo real: ~56 KB por carta nas duas larguras, ~250 MB para o catálogo.
+**A primeira saída** foi servir pelo otimizador do Next, que buscava no servidor
+e devolvia uma versão encolhida, guardada em disco por 30 dias num volume da
+Fly. Dela nasceram o pré-aquecimento depois de publicar e o rodízio noturno.
+
+**Ela caiu em 25/09** (decisão 113). A Bandai passou a estrangular o endereço da
+Fly — ~8 KB/s contra ~100 KB/s de qualquer outro lugar —, e o limite que o Next
+usa para buscar na origem é `AbortSignal.timeout(7000)`, **escrito fixo no
+código dele**. Toda arte fora do cache virou 500 na tela, e não havia ajuste
+possível do nosso lado. O aquecimento também parou de servir, porque sai da
+mesma máquina estrangulada.
+
+**A saída atual**: a arte é convertida **uma vez, fora do servidor** (webp,
+700 px, qualidade 80) e servida do volume por uma rota própria, sem passar pelo
+otimizador. Medido: 4.666 artes, 515 MB — o original seria 1,30 GB. Antes, 500 e
+504 depois de 7 s; depois, 200 em menos de 0,12 s.
+
+**O que isso custa, e precisa ser contado para outro jogo:** carta nova exige
+rodar a conversão, e ela **nunca pode rodar no servidor** — de lá, refazer o
+catálogo levaria ~53 h contra ~2 h 30 de uma máquina comum.
 
 ---
 
@@ -198,6 +218,11 @@ guardada em disco por 30 dias, num volume da Fly. Daí nasceram duas coisas:
 
 Fonte: espelho do TCGplayer (`tcgcsv.com`), categoria **68** = One Piece.
 Cotação: PTAX do Banco Central, só dia útil. Tarefa diária às 4:00 de Brasília.
+
+Desde a decisão 112 esse mesmo espelho é também **fonte de catálogo**, e não só
+de preço: o DON!! vem de lá. Vale registrar a consequência, porque ela se repete
+com qualquer jogo — o dia em que o espelho mudar de formato deixa de ser "preço
+desatualizado" e passa a ser "cartas sumiram".
 
 O problema difícil aqui **não** é buscar preço: é **casar** a nossa arte com o
 produto da fonte. A arte comum casa por número; as paralelas não têm número
@@ -231,7 +256,7 @@ jogo:
 |---|---|---|
 | Site | Fly.io, São Paulo, 1 máquina `shared-cpu-1x` de 1 GB | sempre ligada; as cotas moram na memória do processo |
 | Banco, autenticação, Storage | Supabase, São Paulo | plano gratuito: 15 conexões no pooler, 5 GB de egress, sem backup |
-| Cache de imagem | volume de 1 GB na Fly | sobrevive à publicação |
+| Artes das cartas e cache | volume de 3 GB na Fly | sobrevive à publicação; 525 MB são as 4.666 artes convertidas, com snapshots da Fly |
 | Tarefas | GitHub Actions | preços (diária), contas a excluir (diária), aquecer (noturna), publicar (à mão) |
 | E-mail | Resend | denúncia, exclusão de conta, feedback, e o SMTP do Supabase |
 | CAPTCHA | Cloudflare Turnstile | nas três telas de conta |
@@ -273,8 +298,15 @@ Dois hábitos que pagaram:
    conferido, e nunca por adivinhação de padrão.
 2. **`OP14-EB04`.** Um set cujo código não segue o prefixo das cartas quebrou a
    premissa de derivar set do código. Solução: `variant_printings` como verdade.
-3. **Imagem que o navegador recusa.** Cabeçalho da origem impedia exibir. Solução:
-   servir pelo otimizador, com cache em volume e pré-aquecimento.
+3. **Imagem que o navegador recusa, e depois a origem que estrangula.** O
+   cabeçalho da Bandai impedia exibir direto; a saída foi o otimizador com cache
+   em volume e pré-aquecimento. **Essa saída falhou em 25/09**, quando a origem
+   passou a responder a ~8 KB/s para o nosso servidor e o limite de 7 s do Next
+   — fixo no código dele — passou a estourar em toda arte fora do cache. O
+   aquecimento também deixou de funcionar, porque sai da mesma máquina. Solução
+   atual: converter fora do servidor e guardar. **A lição é a que interessa para
+   outro jogo: depender da origem no caminho do usuário é uma decisão com prazo
+   de validade, e quem define o prazo é a origem.**
 4. **Transação longa demais.** Três consultas por carta numa leva de 131 cartas
    estourou o prazo e desfez tudo. Solução: uma instrução em lote para a leva
    inteira. **Conte idas ao banco antes de contar itens.**
@@ -331,7 +363,7 @@ Esta é a seção que interessa para Pokémon e Magic. A coluna "muda?" responde
 | Provedor do catálogo (HTML da Bandai) | `infrastructure/catalog/` | um adaptador por jogo |
 | Fonte de preço: categoria 68 do TCGplayer | `tcgcsv-price-provider.ts` | a mesma fonte cobre Magic e Pokémon: **é configuração, não reescrita** |
 | Vínculo de arte e tabela da Liga | `prices/link-art-products.ts` | o problema existe em qualquer jogo com arte alternativa, mas a heurística é específica |
-| Imagens da Bandai e o cabeçalho dela | `next.config.ts`, `optimized-image.ts` | fonte e licença por jogo |
+| Artes convertidas e servidas por nós | `domain/catalog/stored-image.ts`, `application/catalog/preparar-imagens.ts` | o mecanismo é genérico; a **fonte e a licença** são por jogo |
 | Textos da interface ("cartas", "Leader", "playset") | telas | revisar por jogo |
 
 ### 11.3 A restrição que exige mais atenção
@@ -346,6 +378,24 @@ em dezenas de coleções, e o "código" só é único **dentro** do set. Duas sa
   impressão é uma variante ligada a um set. **O modelo atual já é quase isso**:
   `cards` + `card_variants` + `variant_printings`. Para Magic, "Raio" seria uma
   `card`, e cada impressão uma `card_variant` com sua raridade, arte e acabamento.
+
+**A previsão se confirmou antes de Magic chegar.** Em 23/09 o DON!! entrou
+(decisão 112), e ele **não tem código**: a Bandai não o publica, e no espelho do
+TCGplayer o campo vem `-`. Foi preciso inventar `DON-<productId>` — e a escolha é
+para sempre, porque o código vai parar na coleção das pessoas.
+
+O que isso ensina para a expansão, e custou pouco justamente por ser só 239
+cartas:
+
+- **o código sintético precisa sair de um id estável da fonte**, e não de nome
+  ou posição — o `productId` do TCGplayer serviu porque já era a chave do nosso
+  preço;
+- **um prefixo próprio evita colisão e mais**: `DON-` faz o código não ser
+  reconhecido como código da Bandai, o que impediu, de graça, o sistema de
+  montar links externos falsos para ele;
+- **set artificial é aceitável quando o mapeamento real não é verificável.** Os
+  grupos do TCGplayer não são os nossos sets, e adivinhar a correspondência seria
+  repetir o erro que já custou 773 conferências manuais.
 
 A segunda é mais fiel e reaproveita playset, progresso e want list sem
 reescrever nada. Ela exige acrescentar acabamento (foil/não-foil), idioma e,
