@@ -39,6 +39,9 @@ const EXPECTED_TABLES = [
   'colors',
   'conversation_participants',
   'conversations',
+  // Decisao 108: as decklists salvas, que a 095 nao previa.
+  'deck_items',
+  'decks',
   'effects',
   'exchange_rates',
   'mechanics',
@@ -101,6 +104,13 @@ const EXPECTED_DELETE_ACTIONS: Record<string, 'CASCADE' | 'RESTRICT'> = {
    */
   'subscriptions.user_id': 'CASCADE',
 
+  /*
+   * A decklist e so da pessoa, como a colecao (decisao 108). Os itens
+   * pertencem a lista, e a lista nao quer dizer nada sem eles.
+   */
+  'decks.user_id': 'CASCADE',
+  'deck_items.deck_id': 'CASCADE',
+
   'card_variants.card_id': 'RESTRICT',
   // A denuncia e registro de moderacao, como o participante de uma troca.
   'user_reports.reporter_id': 'RESTRICT',
@@ -113,6 +123,9 @@ const EXPECTED_DELETE_ACTIONS: Record<string, 'CASCADE' | 'RESTRICT'> = {
   'want_items.card_variant_id': 'RESTRICT',
   'card_prices.card_variant_id': 'RESTRICT',
   'trade_items.card_variant_id': 'RESTRICT',
+  // O catalogo nao apaga carta que alguem pos numa lista (decisao 108).
+  'decks.leader_variant_id': 'RESTRICT',
+  'deck_items.card_variant_id': 'RESTRICT',
   'card_colors.color_id': 'RESTRICT',
   'card_traits.trait_id': 'RESTRICT',
   'card_attributes.attribute_id': 'RESTRICT',

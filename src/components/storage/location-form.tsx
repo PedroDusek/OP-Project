@@ -11,6 +11,7 @@ import {
   NAME_MAX_LENGTH,
   STORAGE_PURPOSE_LABEL,
   STORAGE_TYPE_LABEL,
+  STORAGE_TYPES,
   requiresPurpose,
   type StoragePurpose,
   type StorageType,
@@ -75,6 +76,14 @@ export interface LocationFormProps {
   submitLabel: string
   /** Sem provedor de imagens configurado, o campo de foto nem aparece. */
   imageUploadAvailable: boolean
+  /**
+   * Os tipos que esta tela pode criar (decisão 111).
+   *
+   * Binders oferece binder e caixa; Decks cria deckbox e mais nada. Com um tipo
+   * só o seletor não aparece: escolher entre uma opção não é uma escolha, e o
+   * valor vai num campo escondido para o servidor receber o mesmo de sempre.
+   */
+  types?: readonly StorageType[]
 }
 
 export function LocationForm({
@@ -82,11 +91,12 @@ export function LocationForm({
   initial,
   submitLabel,
   imageUploadAvailable,
+  types = STORAGE_TYPES,
 }: LocationFormProps) {
   const [state, submit, pending] = useActionState(action, LOCATION_IDLE)
   const [name, setName] = useState(initial?.name ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
-  const [type, setType] = useState<StorageType>(initial?.type ?? 'BINDER')
+  const [type, setType] = useState<StorageType>(initial?.type ?? types[0])
   const [purpose, setPurpose] = useState<StoragePurpose>(initial?.purpose ?? 'COLLECTION')
   const [removeImage, setRemoveImage] = useState(false)
   const [preview, setPreview] = useState<string | null>(null)
@@ -157,10 +167,13 @@ export function LocationForm({
         )}
       </Field>
 
+      {types.length === 1 ? (
+        <input type="hidden" name="type" value={types[0]} />
+      ) : (
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-2 text-sm font-medium text-text">Tipo</legend>
-        <div className="grid grid-cols-3 gap-2">
-          {(Object.keys(STORAGE_TYPE_LABEL) as StorageType[]).map((option) => {
+        <div className={cn('grid gap-2', types.length === 2 ? 'grid-cols-2' : 'grid-cols-3')}>
+          {types.map((option) => {
             const Icon = TYPE_ICON[option]
             const selected = option === type
             return (
@@ -194,6 +207,7 @@ export function LocationForm({
           </p>
         ) : null}
       </fieldset>
+      )}
 
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-2 text-sm font-medium text-text">Finalidade</legend>

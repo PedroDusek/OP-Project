@@ -44,6 +44,46 @@ describe('importacao do catalogo', () => {
     expect(await db.trait.count()).toBeGreaterThan(0)
   })
 
+  /*
+   * Em 22/09 uma importação de vinte minutos terminou com "falhas=1" e **não
+   * havia como saber qual série** sem rodar tudo de novo: a linha do erro saía
+   * por `console.error`, e o resumo só contava.
+   *
+   * Agora o identificador e o motivo aparecem no resumo. O teste olha o que foi
+   * **escrito**, e não só o relatório, porque era justamente o log que mentia.
+   */
+  it('diz quais series falharam, e nao so quantas', async () => {
+    const db = testPrisma()
+    const escrito: string[] = []
+    const log = {
+      info: (m: string) => escrito.push(m),
+      warn: (m: string) => escrito.push(m),
+      error: (m: string) => escrito.push(m),
+    }
+
+    const quebrado: CatalogProvider = {
+      name: 'bandai',
+      listSeriesIds: async () => ['569117', '569999'],
+      fetchSeries: async (seriesId) => {
+        if (seriesId === '569999') throw new Error('502 na fonte')
+        return parseCardList(html)
+      },
+    }
+
+    const report = await importCatalog(db, quebrado, { logger: log })
+
+    expect(report.seriesFailed).toBe(1)
+    expect(report.failures).toEqual([{ seriesId: '569999', reason: '502 na fonte' }])
+
+    const resumo = escrito.find((linha) => linha.includes('[import] fim'))!
+    expect(resumo).toContain('falhas=1 (569999)')
+    expect(escrito.some((linha) => linha.includes('serie=569999: 502 na fonte'))).toBe(true)
+
+    // A série boa entrou: uma falha não contamina as outras.
+    expect(report.seriesProcessed).toBe(1)
+    expect(await db.card.count()).toBe(5)
+  })
+
   it('e idempotente: rodar duas vezes nao duplica nada', async () => {
     const db = testPrisma()
     const provider = fakeProvider()

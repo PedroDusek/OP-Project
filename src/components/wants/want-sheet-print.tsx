@@ -9,6 +9,7 @@ import { EmptyState } from '@/components/ui/states'
 import { useToast } from '@/components/ui/toast'
 import { catalogImageForCanvas } from '@/lib/catalog-image'
 import { CARDS_PER_SHEET, renderWantSheets } from '@/lib/want-sheet-image'
+import { SITE_URL } from '@/lib/indexacao'
 import { SHEET_RIGHTS_NOTICE } from '@/lib/want-sheet-notice'
 import type { WantView } from '@/server/application/wants'
 
@@ -147,7 +148,19 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
    * cair em silencio nos downloads fazia o caminho principal parecer nao existir,
    * e o motivo mais comum nem e do navegador: e o endereco.
    */
-  const legenda = `Procuro ${faltando.length} ${faltando.length === 1 ? 'carta' : 'cartas'} · ${copias} ${copias === 1 ? 'cópia' : 'cópias'}`
+  /*
+   * O texto que viaja junto da imagem é o **endereço do site**, e não um resumo
+   * da lista.
+   *
+   * Ele dizia "Procuro N cartas · M cópias". Isso repetia o que a imagem já
+   * mostra escrito no topo — e gastava o único campo de texto que chega ao
+   * grupo. O dono do produto passou a usar a folha para divulgar (26/09), e
+   * quem a recebe precisa saber **para onde ir**.
+   *
+   * Vai como URL inteira, e não `colexa.com.br` solto: é o que faz o
+   * WhatsApp e o Discord transformarem em link clicável.
+   */
+  const legenda = SITE_URL
 
   const carga = arquivos === null ? null : cargaParaCompartilhar(arquivos, legenda)
   const semCompartilhar = carga === null ? 'sem-suporte' : carga.ok ? null : carga.motivo

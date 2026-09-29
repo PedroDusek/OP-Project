@@ -177,6 +177,30 @@ describe('SetHeader', () => {
     )
   })
 
+  /*
+   * O DON!! e a excecao: set artificial, unico do seu tipo, e a entrada dele e o
+   * botao no catalogo (decisao 112). Voltar para `?tipo=don` levava a uma lista
+   * de um item so — relatado pelo dono do produto em 24/09.
+   */
+  it('o DON!! volta para o catalogo, e nao para uma lista de um set so', () => {
+    render(
+      <SetHeader
+        set={{
+          code: 'DON',
+          displayCode: 'DON',
+          name: 'DON!!',
+          displayName: 'DON!!',
+          variantCount: 239,
+          kind: 'don',
+          coverUrl: null,
+        }}
+      />,
+    )
+
+    expect(screen.getByRole('link', { name: /Catálogo/ })).toHaveAttribute('href', '/catalogo')
+    expect(screen.queryByRole('link', { name: /tipo=don/ })).not.toBeInTheDocument()
+  })
+
   it('deck volta para os starter decks', () => {
     render(<SetHeader set={SETS[2]} />)
     expect(screen.getByRole('link', { name: /Starter Decks/ })).toHaveAttribute(
@@ -485,14 +509,20 @@ describe('VariantDetail', () => {
    * da Bandai manda `cross-origin-resource-policy: same-site` e o navegador
    * recusaria a imagem vinda direto de la. Ver a decisao 038.
    */
-  it('serve a arte pelo otimizador, apontando para a origem', () => {
+  /**
+   * **A regra mudou em 25/09 (decisão 113).**
+   *
+   * Este teste afirmava o desenho da decisão 038 — arte pelo otimizador,
+   * apontando para a origem. Ele deixou de valer quando a Bandai passou a
+   * estrangular o endereço da Fly, e o Next desistiu no limite de 7 s que é
+   * fixo no código dele. A arte agora é nossa e sai do disco da máquina.
+   */
+  it('serve a arte guardada por nos, sem passar pelo otimizador', () => {
     renderDetail({ variant: variant })
 
     const src = screen.getByRole('img', { name: 'OP01-001 — Roronoa Zoro' }).getAttribute('src')
-    expect(src).toContain('/_next/image')
-    expect(decodeURIComponent(src ?? '')).toContain(
-      'https://en.onepiece-cardgame.com/images/cardlist/card/OP01-001.png',
-    )
+    expect(src).toBe('/imagens/cartas/OP01-001.webp')
+    expect(src).not.toContain('/_next/image')
   })
 
   /**

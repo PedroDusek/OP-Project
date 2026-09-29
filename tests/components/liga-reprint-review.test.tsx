@@ -35,6 +35,7 @@ const linha = (sourceId: string, setCode: string, over: Partial<ReprintReviewRow
   verified: 'https://www.ligaonepiece.com.br/?view=cards/card&card=X+%28Reprint%29&ed=PRB2&num=X-RE',
   link: { exact: true, href: 'https://www.ligaonepiece.com.br/?view=cards/card&ed=PRB2&num=X-RE' },
   liga: { ed: 'PRB2', num: `${sourceId.replace(/_p\d+$/, '')}-RE`, suffix: 'RE' },
+  mesmoEnderecoQue: [],
   setCode,
   normalSets: ['EB-01', 'PRB-02'],
   tcgProductId: '655984',

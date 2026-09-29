@@ -34,6 +34,8 @@ export async function processPaymentWebhook(
     throw new InvalidPaymentSignature(error instanceof Error ? error.message : String(error))
   }
 
-  const outcome = await handlePaymentEvent(prisma, event)
+  // O provedor vai junto porque a contestação de cobrança precisa perguntar a
+  // ele de quem é a cobrança: a disputa não traz o cliente.
+  const outcome = await handlePaymentEvent(prisma, event, new Date(), provider)
   return { ...outcome, type: event.type, eventId: event.id }
 }

@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import { storedImageFromOrigin } from '@/server/domain/catalog/stored-image'
 import { cn } from '@/lib/cn'
 
 /**
@@ -61,6 +62,17 @@ export function CardArt({
   priority = false,
   eager = false,
 }: CardArtProps) {
+  /*
+   * A arte guardada por nós, quando existe (decisão 113).
+   *
+   * A troca acontece aqui, e não nos pontos que montam `imageUrl`, porque o
+   * `source_id` está dentro do próprio endereço de origem — dá para chegar nele
+   * sem mexer nas dezenas de telas que passam a imagem adiante. Endereço que não
+   * reconhecemos segue para a origem, como antes.
+   */
+  const guardada = storedImageFromOrigin(src)
+  const endereco = guardada ?? src
+
   return (
     <span
       className={cn(
@@ -69,14 +81,20 @@ export function CardArt({
         className,
       )}
     >
-      {src ? (
+      {endereco ? (
         <Image
-          src={src}
+          src={endereco}
           alt={alt}
           fill
           sizes={sizes}
           priority={priority}
           loading={eager && !priority ? 'eager' : undefined}
+          /*
+           * A nossa já vem convertida e no tamanho: passar pelo otimizador de
+           * novo seria reprocessar o que já está pronto, e devolver o `sharp` à
+           * disputa pelo núcleo da máquina.
+           */
+          unoptimized={guardada !== null}
           className="object-cover"
         />
       ) : (

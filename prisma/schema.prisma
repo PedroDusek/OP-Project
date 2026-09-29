@@ -81,6 +81,7 @@ model User {
   conversations     ConversationParticipant[]
   messagesSent      Message[]
   subscriptions     Subscription[]
+  decks             Deck[]
 
   @@map("users")
 }
@@ -154,6 +155,8 @@ model CardVariant {
   wantItems       WantItem[]
   tradeItems      TradeItem[]
   sourceProducts  VariantSourceProduct[]
+  ledDecks        Deck[]
+  deckItems       DeckItem[]
 
   @@unique([source, sourceId])
   @@index([cardId])
@@ -365,15 +368,18 @@ model CardPrice {
 
   cardVariant CardVariant @relation(fields: [cardVariantId], references: [id], onDelete: Restrict)
 
-  // Uma captura por variante por instante. Sem isto, reexecutar a importacao de
-  // precos duplicaria o historico, e o valor historico de um trade passaria a
-  // depender de qual linha a consulta escolhesse.
+  // Uma linha por variante, sobrescrita (decisao 107, 22/09). Antes isto era
+  // (card_variant_id, captured_at) e a tabela guardava historico.
   //
-  // Este unico substitui o indice de consulta que existia antes em
-  // (card_variant_id, captured_at DESC): um btree ascendente e varrido para tras
-  // pelo PostgreSQL, entao ele ja atende "preco mais recente desta variante".
-  // Manter os dois custaria escrita e espaco sem ganho de leitura.
-  @@unique([cardVariantId, capturedAt])
+  // O historico existia para a regra 5.1 — o valor de um trade concluido pelo
+  // preco vigente na data. Essa regra nunca foi implementada, o dono do produto
+  // decidiu que o produto nao guardara valor de carta em troca nenhuma, e
+  // nenhuma consulta do sistema le preco de data passada. Guardar uma serie que
+  // ninguem le custaria ~1 GB por ano quando Pokemon entrar (decisao 106).
+  //
+  // `captured_at` continua significando **desde quando esta neste preco**,
+  // porque a escrita so acontece quando o valor muda.
+  @@unique([cardVariantId])
   @@map("card_prices")
 }
 
@@ -765,4 +771,56 @@ model PaymentEvent {
 
   @@index([type, receivedAt])
   @@map("payment_events")
+}
+// ------------------------------------------------------------------- decks
+
+// Uma decklist salva (decisao 108, que muda a 095).
+//
+// Ate 22/09 o ColeXa nao guardava decks: a lista vivia na tela, e o que
+// sobrevivia dela era o que fosse para a want list. Usuarios pediram guardar,
+// para montar aos poucos e acompanhar quanto falta — e o dono do produto
+// aceitou, invertendo a escolha de escopo da 095.
+//
+// `leader_variant_id` e **obrigatorio**. O lider ja era a primeira escolha do
+// builder e e ele que define as cores que o resto pode ter; agora e tambem a
+// **capa** da lista. A capa nao vira coluna: sai da arte do lider, e grava-la
+// criaria duas verdades para o mesmo fato.
+//
+// "Incompleto" tambem nao e coluna — e a soma das copias abaixo de 50.
+model Deck {
+  id              BigInt   @id @default(autoincrement())
+  userId          BigInt   @map("user_id")
+  name            String   @db.VarChar(100)
+  leaderVariantId BigInt   @map("leader_variant_id")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leaderVariant CardVariant @relation(fields: [leaderVariantId], references: [id], onDelete: Restrict)
+  items         DeckItem[]
+
+  @@index([userId])
+  @@index([leaderVariantId])
+  @@map("decks")
+}
+
+// As cartas de uma decklist, sem o lider — ele mora em `decks`.
+//
+// Chave composta e nao `id` proprio: uma variante aparece uma vez por deck, com
+// a contagem de copias. Duas linhas da mesma arte no mesmo deck seriam a mesma
+// afirmacao escrita duas vezes, e a soma dependeria de ninguem esquecer nenhuma.
+//
+// RESTRICT na variante, como em `collection_items`: a carta e do catalogo, e o
+// catalogo nao apaga carta que alguem esta usando.
+model DeckItem {
+  deckId        BigInt @map("deck_id")
+  cardVariantId BigInt @map("card_variant_id")
+  copies        Int
+
+  deck        Deck        @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  cardVariant CardVariant @relation(fields: [cardVariantId], references: [id], onDelete: Restrict)
+
+  @@id([deckId, cardVariantId])
+  @@index([cardVariantId])
+  @@map("deck_items")
 }

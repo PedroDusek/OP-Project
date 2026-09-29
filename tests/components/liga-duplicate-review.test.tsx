@@ -32,6 +32,7 @@ const linha = (sourceId: string, identidade: string, irmas: string[], over: Part
   verified: 'https://www.ligaonepiece.com.br/?view=cards/card&ed=OP-01&num=OP01-120-PAR',
   link: { exact: true, href: 'https://www.ligaonepiece.com.br/?view=cards/card&ed=OP-01&num=OP01-120-PAR' },
   liga: { ed: 'OP-01', num: 'OP01-120-PAR', suffix: 'PAR' },
+  mesmoEnderecoQue: [],
   setCode: sourceId.split('-')[0],
   identidade,
   irmas,

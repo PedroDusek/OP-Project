@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@prisma/client'
+import { DON_TYPE } from '@/server/domain/catalog/types'
 import {
   compareSetsForCatalog,
   displaySetCode,
@@ -108,7 +109,19 @@ export async function getCatalogVocabulary(prisma: PrismaClient): Promise<Catalo
       }))
       // A mesma ordem do resto do produto: lancamento, promos no fim.
       .sort((a, b) => compareSetsForCatalog(a.code, b.code)),
-    types: types.map((row) => row.type),
+    /*
+     * `DON` fica fora dos chips de tipo (decisão 112, corrigida em 23/09).
+     *
+     * Ele existe como tipo e a busca sabe filtrá-lo — o que não pode é ser
+     * **oferecido junto das outras facetas**. DON!! não tem cor, trait,
+     * atributo nem raridade comum, então marcá-lo com qualquer outra coisa dá
+     * **zero resultados**, sempre. O chip convidava para uma combinação que
+     * nunca responde nada, e um filtro que devolve vazio sem explicar por quê é
+     * o defeito que o vocabulário existe para evitar.
+     *
+     * A entrada dos DON!! é a porta própria, ao lado de Sets e Starter Decks.
+     */
+    types: types.map((row) => row.type).filter((type) => type !== DON_TYPE),
     rarities: rarities
       .map((row) => row.rarity)
       .filter((rarity): rarity is string => rarity !== null)

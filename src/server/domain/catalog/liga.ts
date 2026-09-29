@@ -40,6 +40,8 @@
  * pertence lá.
  */
 
+import { isDonCode } from './don'
+
 const BASE = 'https://www.ligaonepiece.com.br/'
 const HOST = 'www.ligaonepiece.com.br'
 
@@ -78,12 +80,33 @@ export function ligaEdition(cardCode: string): string | null {
 export function ligaCardLink({ cardCode, cardName, variantType, verified }: LigaCardInput): LigaLink {
   const code = cardCode.trim()
 
+  /*
+   * DON!!: toda busca vai pelo **nome**, e nunca pelo codigo (decisao 112).
+   *
+   * O codigo dele e inventado por nos — `DON-482236`, do productId do
+   * TCGplayer — e nao existe na Liga. Uma busca por ele nao acha nada, e um
+   * "Ver na Liga" que cai no vazio e pior que nenhum link.
+   *
+   * O termo e escolhido **antes** de olhar a tabela, e nao depois: `verified`
+   * nulo quer dizer "conferido: nao existe pagina", e tambem cai na busca. Com
+   * a escolha feita depois, esse caminho procurava pelo codigo inventado — o
+   * proprio teste que eu escrevi para ele passou sem notar, porque so conferia
+   * que a busca era uma busca.
+   */
+  const termoDaBusca = isDonCode(code) ? cardName : code
+
   if (verified !== undefined) {
-    return verified === null ? { href: ligaSearchLink(code), exact: false } : { href: verified, exact: true }
+    return verified === null
+      ? { href: ligaSearchLink(termoDaBusca), exact: false }
+      : { href: verified, exact: true }
   }
 
+  if (isDonCode(code)) return { href: ligaSearchLink(termoDaBusca), exact: false }
+
   const edition = ligaEdition(code)
-  if (variantType !== 'Normal' || edition === null) return { href: ligaSearchLink(code), exact: false }
+  if (variantType !== 'Normal' || edition === null) {
+    return { href: ligaSearchLink(termoDaBusca), exact: false }
+  }
 
   const query = [
     'view=cards/card',

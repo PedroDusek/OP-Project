@@ -1,12 +1,25 @@
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { Badge } from '@/components/ui/badge'
+import { isDonCode } from '@/server/domain/catalog/don'
 import { CardArt } from './card-art'
 
 /**
  * A carta na grade — o componente mais repetido do produto.
  *
  * A arte fica em `CardArt`, que explica por que ela passa pelo nosso servidor.
+ *
+ * ## A legenda: código em cima, nome embaixo — menos no DON!!
+ *
+ * Em toda carta o **código** vem em destaque, porque é assim que quem coleciona
+ * se refere a ela: `OP01-001` é o nome que se fala no grupo, e o nome próprio é
+ * o complemento.
+ *
+ * No DON!! é o contrário, e por um motivo que não é de gosto: o código dele é
+ * **inventado por nós** (`DON-482241`, do `productId` do TCGplayer, decisão
+ * 112). Ele não existe em lugar nenhum fora daqui e não diz nada a ninguém —
+ * quem distingue uma arte de DON!! da outra é o nome. Pedido do dono do produto
+ * em 24/09, com a tela na mão.
  */
 
 export interface CardTileProps {
@@ -83,10 +96,17 @@ export function CardTile({
     </span>
   )
 
+  /*
+   * Quem vai em destaque na primeira linha, e quem fica apagado embaixo. Ver o
+   * bloco sobre a legenda, no topo do arquivo.
+   */
+  const destaque = isDonCode(code) ? name : code
+  const apoio = isDonCode(code) ? code : name
+
   const caption = (
     <span className="flex flex-col gap-0.5">
-      <span className="truncate text-xs font-semibold text-text tabular-nums">{code}</span>
-      <span className="truncate text-xs text-text-muted">{name}</span>
+      <span className="truncate text-xs font-semibold text-text tabular-nums">{destaque}</span>
+      <span className="truncate text-[11px] text-text-muted tabular-nums">{apoio}</span>
       {labels?.length ? (
         <span className="mt-0.5 flex flex-wrap gap-1">
           {labels.map((label) => (

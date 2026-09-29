@@ -1,4 +1,4 @@
-import { Prisma, type PrismaClient } from '@prisma/client'
+import type { PrismaClient } from '@prisma/client'
 import type { AuthenticatedUser } from '@/server/application/auth'
 import { assertPremium } from '@/server/application/authorization'
 import { getUsdBrlRate } from '@/server/application/prices/read-prices'
@@ -93,34 +93,11 @@ export async function analyzeDeck(
   input: DeckInput,
   now: Date = new Date(),
 ): Promise<DeckAnalysis> {
-  assertPremium(user, 'O Deck Builder é um recurso Premium.')
+  assertPremium(user, 'As decklists são um recurso Premium.')
 
   if (input.lines.length === 0) throw new ValidationError('Escolha ao menos uma carta para conferir.')
 
-  const escolhidas = await variantesDe(prisma, [
-    input.leaderVariantId,
-    ...input.lines.map((line) => line.variantId),
-  ])
-
-  const leader = escolhidas.get(input.leaderVariantId)
-  if (!leader) throw new NotFoundError('Líder não encontrado.')
-  if (leader.cardType !== 'Leader') throw new ValidationError('O líder precisa ser uma carta de Leader.')
-
-  const lines: DeckLine[] = input.lines.map((line) => {
-    const variante = escolhidas.get(line.variantId)
-    if (!variante) throw new NotFoundError('Alguma carta da lista não existe mais.')
-    if (variante.cardType === 'Leader') {
-      throw new ValidationError(`${variante.cardCode} é um Leader: o deck tem um líder só.`)
-    }
-    if (!fitsLeader(leader.colors, variante.colors)) {
-      throw new ValidationError(
-        `${variante.cardCode} não tem a cor do líder (${leader.colors.join(' e ')}).`,
-      )
-    }
-    return { variantId: line.variantId, cardCode: variante.cardCode, copies: line.copies }
-  })
-
-  assertDeckRules(lines)
+  const { leader, lines, escolhidas } = await conferirLista(prisma, input)
 
   /*
    * O líder é conferido junto (pedido do dono do produto: são 51 cartas). Ele
@@ -194,6 +171,46 @@ interface VarianteEscolhida {
   variantType: string
   imageUrl: string | null
   colors: string[]
+}
+
+/**
+ * As regras do deck, conferidas contra o catálogo.
+ *
+ * Exportada porque **salvar e conferir exigem o mesmo**: um líder de verdade,
+ * cartas na cor dele, no máximo quatro cópias por código e no máximo cinquenta
+ * cartas. Duplicar isso no salvamento criaria dois lugares para a mesma regra —
+ * e o dia em que divergissem, a lista salva aceitaria o que a conferência
+ * recusa (decisão 108).
+ */
+export async function conferirLista(
+  prisma: PrismaClient,
+  input: DeckInput,
+): Promise<{ leader: VarianteEscolhida; lines: DeckLine[]; escolhidas: Map<string, VarianteEscolhida> }> {
+  const escolhidas = await variantesDe(prisma, [
+    input.leaderVariantId,
+    ...input.lines.map((line) => line.variantId),
+  ])
+
+  const leader = escolhidas.get(input.leaderVariantId)
+  if (!leader) throw new NotFoundError('Líder não encontrado.')
+  if (leader.cardType !== 'Leader') throw new ValidationError('O líder precisa ser uma carta de Leader.')
+
+  const lines: DeckLine[] = input.lines.map((line) => {
+    const variante = escolhidas.get(line.variantId)
+    if (!variante) throw new NotFoundError('Alguma carta da lista não existe mais.')
+    if (variante.cardType === 'Leader') {
+      throw new ValidationError(`${variante.cardCode} é um Leader: o deck tem um líder só.`)
+    }
+    if (!fitsLeader(leader.colors, variante.colors)) {
+      throw new ValidationError(
+        `${variante.cardCode} não tem a cor do líder (${leader.colors.join(' e ')}).`,
+      )
+    }
+    return { variantId: line.variantId, cardCode: variante.cardCode, copies: line.copies }
+  })
+
+  assertDeckRules(lines)
+  return { leader, lines, escolhidas }
 }
 
 async function variantesDe(prisma: PrismaClient, ids: string[]): Promise<Map<string, VarianteEscolhida>> {
@@ -316,13 +333,12 @@ async function precosDe(prisma: PrismaClient, variantIds: string[]): Promise<Map
   const ids = [...new Set(variantIds)].map(BigInt)
   if (ids.length === 0) return new Map()
 
-  // `DISTINCT ON` traz o mais recente de cada variante numa consulta so: uma
-  // consulta por carta seriam cinquenta idas ao banco por conferencia.
-  const rows = await prisma.$queryRaw<{ card_variant_id: bigint; value: Prisma.Decimal }[]>`
-    SELECT DISTINCT ON (card_variant_id) card_variant_id, value
-      FROM card_prices
-     WHERE card_variant_id IN (${Prisma.join(ids)})
-     ORDER BY card_variant_id, captured_at DESC
-  `
-  return new Map(rows.map((row) => [String(row.card_variant_id), Number(row.value)]))
+  // Uma consulta so: uma por carta seriam cinquenta idas ao banco por
+  // conferencia. Era um `DISTINCT ON` sobre a serie historica; desde a decisao
+  // 107 ha uma linha por variante, e desempatar por data saiu de cena.
+  const rows = await prisma.cardPrice.findMany({
+    where: { cardVariantId: { in: ids } },
+    select: { cardVariantId: true, value: true },
+  })
+  return new Map(rows.map((row) => [String(row.cardVariantId), Number(row.value)]))
 }

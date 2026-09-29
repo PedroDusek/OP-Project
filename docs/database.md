@@ -140,7 +140,24 @@ O tipo da carta é um atributo. Não existe tabela `card_types`. `DON!!` não fa
 parte do catálogo.
 
 `cost`, `power`, `life` e `counter` aceitam nulo porque não se aplicam a todos os
-tipos de carta.
+tipos de carta — e **nulo aqui é "não se aplica", nunca "zero"** (armadilha 87).
+
+A distinção importa porque a fonte não a faz: a Bandai escreve `-` para os dois
+casos. Quem separa é o tipo da carta, na leitura:
+
+| | Leader | Character | Event | Stage |
+|---|---|---|---|---|
+| `cost` | — (tem Life) | obrigatório | obrigatório | obrigatório |
+| `power` | obrigatório | obrigatório | — | — |
+| `life` | obrigatório | — | — | — |
+| `counter` | — | opcional | opcional | — |
+
+Onde o campo é obrigatório, o traço da fonte vira **0**. Ler tudo como nulo
+deixou 152 Characters de poder 0 e 23 Events de custo 0 fora dos filtros de
+faixa até 22/09.
+
+`counter` é a exceção deliberada: ali o traço é mesmo "sem counter", e a busca
+trata o zero como isso (decisão 066).
 
 **card_variants**
 
@@ -303,17 +320,49 @@ aparenta estar correta na leitura.
 | `value` | decimal(12,2) | not null, check `>= 0` |
 | `captured_at` | timestamptz | not null |
 
-Nome `captured_at` conforme a decisão 010. O histórico é somente-inserção; linhas
-nunca são sobrescritas.
+**Uma linha por variante, sobrescrita** (decisão 107, 22/09). A tabela guarda o
+preço de agora; **não há histórico de preço**.
 
-`UNIQUE (card_variant_id, captured_at)` — decisão 014. Sem ela, reexecutar a
-importação de preços duplicaria o histórico, e o valor histórico de um trade
-passaria a depender de qual linha a consulta escolhesse.
+`UNIQUE (card_variant_id)` é o que garante isso. Até 22/09 era
+`(card_variant_id, captured_at)` e a tabela era somente-inserção, para sustentar
+a regra 5.1 — valor de um trade concluído pelo preço vigente na data. Essa regra
+nunca foi implementada, o dono do produto decidiu que o produto não guarda valor
+de carta em troca nenhuma, e nenhuma consulta lia preço de data passada.
 
-Esse índice único substitui o índice de consulta que existia antes sobre as
-mesmas colunas em ordem decrescente: o PostgreSQL varre um btree ascendente para
-trás, então ele já atende "preço mais recente desta variante". Verificado por
-`EXPLAIN`, que mostra `Index Scan Backward` usando exatamente este índice.
+Nome `captured_at` conforme a decisão 010, e o significado dele **não** é "quando
+conferimos": é **desde quando a carta está neste preço**, porque a escrita só
+acontece quando o valor muda. Quando a importação rodou vive em `price_imports`,
+e é de lá que sai "atualizado hoje às 04:00".
+
+### 2.4.1 Decklists (decisão 108)
+
+**decks**
+
+| Coluna | Tipo | Restrições |
+|---|---|---|
+| `id` | bigint | PK |
+| `user_id` | bigint | not null, FK users, CASCADE |
+| `name` | varchar(100) | not null, check não vazio |
+| `leader_variant_id` | bigint | not null, FK card_variants, RESTRICT |
+| `created_at` / `updated_at` | timestamptz | not null |
+
+**deck_items**
+
+| Coluna | Tipo | Restrições |
+|---|---|---|
+| `deck_id` | bigint | PK composta, FK decks, CASCADE |
+| `card_variant_id` | bigint | PK composta, FK card_variants, RESTRICT |
+| `copies` | integer | not null, check entre 1 e 4 |
+
+`leader_variant_id` é **not null** por regra de negócio (7.1, item 1): o líder é
+a primeira escolha e é a **capa** da lista. A capa não é coluna — sai da arte do
+líder —, e "incompleta" também não: é a soma das cópias abaixo de cinquenta.
+Guardar qualquer um dos dois criaria uma segunda verdade que envelhece.
+
+Chave composta em `deck_items`, sem `id` próprio: uma variante aparece uma vez
+por deck, e duas linhas da mesma arte seriam a mesma afirmação escrita duas
+vezes. O check de 1 a 4 é o teto oficial **por arte**; somar as artes da mesma
+carta fica no caso de uso, porque exige conhecer o catálogo.
 
 ### 2.5 Trocas
 
@@ -332,8 +381,10 @@ CHECK (status IN ('DRAFT','PROPOSED','NEGOTIATING','CONFIRMED','COMPLETED','CANC
 CHECK ((status = 'COMPLETED') = (completed_at IS NOT NULL))
 ```
 
-O segundo check impede que `completed_at` e o status divirjam, o que importa
-porque o valor histórico do trade é resolvido a partir de `completed_at`.
+O segundo check impede que `completed_at` e o status divirjam — uma troca ou
+está concluída e tem data, ou nenhuma das duas coisas. (Ele existia também para
+sustentar o valor histórico do trade, **abandonado em 22/09**: regra 5.1 e
+decisão 107.)
 
 `offer_changed_at` é a adição da decisão 065: é dela que sai a espera de cinco
 segundos antes de poder confirmar. Não reaproveita `updated_at` porque ele sobe
@@ -574,7 +625,7 @@ Analisada relação a relação, e não aplicada uniformemente.
 | `card_<vocabulário>.<vocabulário>_id` | RESTRICT | um termo em uso nunca é removido silenciosamente |
 | `collection_items.card_variant_id` | RESTRICT | nunca apagar variante do catálogo que alguém possui |
 | `want_items.card_variant_id` | RESTRICT | idem |
-| `card_prices.card_variant_id` | RESTRICT | histórico de preço é dado de negócio |
+| `card_prices.card_variant_id` | RESTRICT | preço é dado de negócio |
 | `trade_items.card_variant_id` | RESTRICT | idem, para o histórico de trades |
 | `trade_participants.trade_id` | CASCADE | participantes pertencem ao trade |
 | `trade_items.trade_participant_id` | CASCADE | itens pertencem ao participante |

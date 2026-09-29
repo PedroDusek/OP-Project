@@ -34,7 +34,8 @@ export function SetList({ sets, initialKind = 'collection' }: { sets: SetSummary
   const [term, setTerm] = useState('')
 
   const counts = useMemo(() => {
-    const tally: Record<SetKind, number> = { collection: 0, deck: 0, promo: 0 }
+    // `don` entrou na decisao 112: o set artificial dos DON!!, que nao e da Bandai.
+    const tally: Record<SetKind, number> = { collection: 0, deck: 0, promo: 0, don: 0 }
     for (const set of sets) tally[set.kind] += 1
     return tally
   }, [sets])

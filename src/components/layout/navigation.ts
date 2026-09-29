@@ -71,13 +71,13 @@ export const DESTINATIONS: Destination[] = [
     href: '/binders',
     label: 'Binders',
     icon: BookOpen,
-    description: 'Seus binders, caixas e decks: criar, editar e ver o que está em cada um.',
+    description: 'Seus binders e caixas: criar, editar e ver o que está em cada um.',
   },
   {
     href: '/deck',
-    label: 'Deck Builder',
+    label: 'Decks',
     icon: Swords,
-    description: 'Monte um deck e veja o que você tem, onde está e quanto custa o que falta.',
+    description: 'Suas deckboxes e suas decklists: onde os decks moram e o que falta para cada um.',
   },
   {
     href: '/quero',

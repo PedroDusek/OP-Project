@@ -120,6 +120,48 @@ describe('LocationForm', () => {
     expect(screen.getByRole('radio', { name: 'Troca' })).toBeEnabled()
   })
 
+  /*
+   * Desde a decisao 111 cada tela cria o que lhe cabe: Binders oferece binder e
+   * caixa, e Decks cria deckbox e mais nada. O formulario e o mesmo, e quem
+   * recorta e a tela.
+   */
+  it('em Binders nao oferece deck', () => {
+    render(
+      <LocationForm
+        action={noop}
+        submitLabel="Criar local"
+        imageUploadAvailable={false}
+        types={['BINDER', 'BOX']}
+      />,
+    )
+
+    expect(screen.getByRole('radio', { name: 'Binder' })).toBeChecked()
+    expect(screen.getByRole('radio', { name: 'Caixa' })).toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: 'Deck' })).not.toBeInTheDocument()
+  })
+
+  /*
+   * Com um tipo so o seletor some: escolher entre uma opcao nao e uma escolha.
+   * O valor vai num campo escondido, para o servidor receber o mesmo de sempre.
+   */
+  it('em Decks nao mostra seletor, e manda o tipo escondido', () => {
+    const { container } = render(
+      <LocationForm
+        action={noop}
+        submitLabel="Criar deckbox"
+        imageUploadAvailable={false}
+        types={['DECK']}
+      />,
+    )
+
+    expect(screen.queryByRole('radio', { name: 'Binder' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: 'Deck' })).not.toBeInTheDocument()
+    expect(container.querySelector('input[type="hidden"][name="type"]')).toHaveValue('DECK')
+
+    // E a finalidade segue a regra 3.1 sem ninguem precisar escolher nada.
+    expect(screen.getByRole('radio', { name: 'Coleção' })).toBeDisabled()
+  })
+
   /**
    * O campo vazio nem chega ao servidor: `required` no HTML barra o envio no
    * proprio navegador. O erro que interessa testar e o que so o servidor sabe.
@@ -234,6 +276,31 @@ describe('LocationList', () => {
     render(<LocationList locations={[location()]} />)
 
     expect(screen.getByRole('tab', { name: /^Caixas/ })).toHaveTextContent('(0)')
+  })
+
+  /*
+   * Decisao 111: em Binders a aba de Decks nao aparece mais, porque a deckbox
+   * nao mora la. A lista e a mesma, e quem recorta e a tela.
+   */
+  it('em Binders nao oferece a aba de Decks', () => {
+    render(<LocationList locations={[location()]} types={['BINDER', 'BOX']} />)
+
+    expect(screen.getByRole('tab', { name: /^Binders/ })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: /^Caixas/ })).toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: /^Decks/ })).not.toBeInTheDocument()
+  })
+
+  /* Uma aba sozinha nao alterna nada, entao a barra inteira some. */
+  it('com um tipo so, nao mostra abas', () => {
+    render(
+      <LocationList
+        locations={[location({ id: '2', name: 'Deck Sabo', type: 'DECK', purpose: null, subtitle: 'Deck' })]}
+        types={['DECK']}
+      />,
+    )
+
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
+    expect(screen.getByRole('link')).toHaveTextContent('Deck Sabo')
   })
 })
 

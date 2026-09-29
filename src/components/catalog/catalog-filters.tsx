@@ -179,6 +179,17 @@ export function CatalogFilters({
     const changes: Record<string, string | string[] | undefined> = {}
     for (const key of MULTI_KEYS) changes[key] = multi[key]
     for (const key of RANGE_KEYS) changes[key] = ranges[key]
+    /*
+     * A ordem passa intacta, e não porque o painel se importe com ela.
+     *
+     * Ordenar não é filtrar, e a escolha vive fora daqui (`CatalogSort`). Mas
+     * nas telas que guardam os filtros em estado local este objeto **substitui
+     * o anterior inteiro** — deixar a ordem de fora a apagaria toda vez que
+     * alguém aplicasse um filtro, que é exatamente o que o dono do produto
+     * pediu para não acontecer. Na URL a linha é inofensiva: reescreve o mesmo
+     * valor que já estava lá.
+     */
+    changes[PARAM.ordem] = currentValues(PARAM.ordem)[0]
 
     setOpen(false)
 
@@ -192,6 +203,11 @@ export function CatalogFilters({
     })
   }
 
+  /*
+   * Limpar apaga os filtros e **não** a ordem: são duas perguntas diferentes.
+   * Quem limpa quer ver o catálogo inteiro, e não voltar a ordenar por código
+   * sem ter pedido. A ordem nem mora aqui — ver `CatalogSort`.
+   */
   const clear = () => {
     setMulti({})
     setRanges({})
@@ -213,6 +229,15 @@ export function CatalogFilters({
   return (
     <>
       <Button
+        /*
+         * `type="button"` não é decoração (21/09). No Deck Builder este gatilho
+         * mora **dentro** do formulário de busca, e um `<button>` sem tipo é
+         * `submit` por padrão: o Enter no campo de busca disparava o primeiro
+         * botão de envio da árvore — este — e abria os filtros em vez de
+         * buscar. Nas outras telas o campo e o gatilho ficam em formulários
+         * diferentes, e por isso só o Deck Builder adoecia.
+         */
+        type="button"
         variant="secondary"
         onClick={openSheet}
         aria-label={activeCount > 0 ? `Filtros, ${activeCount} ativos` : 'Filtros'}

@@ -131,6 +131,23 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 Fora da tabela, porque não roda no dia a dia:
 
 ```
+npm run religar-local
+npm run religar-local -- pessoa@exemplo.com
+```
+
+Religa as contas do banco local às identidades que o Supabase tem hoje. Serve
+para um sintoma específico: **no `next dev`, os dados são locais e o login é o
+de produção** — `DATABASE_URL` aponta para a máquina, `NEXT_PUBLIC_SUPABASE_URL`
+para o projeto hospedado. Apagar contas em produção apaga também os usuários do
+Supabase Auth, os `auth_user_id` locais viram órfãos, e o login passa a recusar
+com "este e-mail já tem uma conta no ColeXa" (decisão 097). Parece defeito, e
+não é — armadilha 85.
+
+O script não apaga nada: preserva coleção, want list, binders e plano. Ele
+**recusa rodar se `DATABASE_URL` não for da própria máquina**, e do Supabase só
+lê.
+
+```
 node scripts/marca/gen.mjs
 ```
 
@@ -469,13 +486,22 @@ No painel da Stripe, com a conta já verificada:
    Premium": **R$ 14,90/mês** e **R$ 149,00/ano**. Anote os dois `price_...`.
    O Pix **não** usa preço cadastrado — o valor vai inline, vindo de
    `src/server/domain/billing/plans.ts`, e um teste compara os dois números.
-2. **Pix ligado** em *Settings → Payment methods*. Sem isso a sessão de Pix é
-   recusada na criação, e só o cartão funciona.
-3. **Webhook** em *Developers → Webhooks*, apontando para
-   `https://colexa.fly.dev/api/pagamentos/stripe`, com os eventos
+2. **Pix: nada a fazer.** Ele ficou **fora do lançamento** (decisão 102,
+   mudança de 21/09) — a Stripe o libera por convite para empresas brasileiras,
+   e esperar atrasaria a abertura. O código dorme atrás de `STRIPE_PIX`. Se um
+   dia entrar: pedir o convite, ligar o Pix em *Settings → Payment methods* e
+   pôr `STRIPE_PIX=1` no ambiente. Sem as duas coisas, a sessão de Pix é
+   recusada na criação.
+3. **Webhook** em *Workbench → Webhooks*, apontando para
+   `https://colexa.com.br/api/pagamentos/stripe`, com os **sete** eventos:
    `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`,
-   `customer.subscription.updated` e `customer.subscription.deleted`. Anote o
-   `whsec_...`.
+   `customer.subscription.updated`, `customer.subscription.deleted`,
+   `charge.refunded` e `charge.dispute.created`. Anote o `whsec_...`.
+
+   **Os dois últimos cortam o acesso** de quem foi estornado ou contestou a
+   cobrança (decisão 102, mudanças de 21/09). Sem eles marcados, o código nunca
+   roda e quem pede o dinheiro de volta fica com o ciclo inteiro de graça — foi
+   assim que o defeito apareceu.
 4. **Portal do cliente** em *Settings → Billing → Customer portal*: ative
    cancelamento e troca de cartão. É essa tela que o botão "Gerenciar
    pagamento" abre, e ela precisa estar certa para a cobrança ser legítima.
@@ -486,6 +512,10 @@ produção, as duas primeiras são segredos (`fly secrets set`), e as duas últi
 também podem ir por lá — nenhuma entra no pacote do navegador, porque a tela
 mostra o preço a partir do domínio, e não do que a Stripe devolve.
 
+**`STRIPE_PIX=1` liga o Pix**, e a ausência dela o desliga. É a chave que devolve
+o botão no dia em que o convite da Stripe chegar, sem publicar código novo. Não
+é segredo: pode ir em `[env]` no `fly.toml`, num PR.
+
 **Para testar sem cobrar ninguém**, use as chaves de teste da própria Stripe
 (`sk_test_...`), o cartão `4242 4242 4242 4242` e o `stripe listen` para
 encaminhar os avisos ao `localhost`. O Pix em modo de teste tem um botão de
@@ -494,6 +524,69 @@ encaminhar os avisos ao `localhost`. O Pix em modo de teste tem um botão de
 **O que nunca fazer:** liberar Premium a partir da volta da tela
 (`/conta/premium?pago=1`). Esse endereço é adivinhável. Quem libera é o aviso
 assinado, em `handle-payment-event.ts`.
+
+### 6.9 Virar a cobrança para o modo ao vivo (etapa B)
+
+**Feito em 21/09**, e conferido com uma compra mensal de verdade. O roteiro fica
+aqui porque ele vale de novo no dia em que a conta da Stripe mudar — e porque o
+que se aprende nele não se aprende duas vezes de graça.
+
+**Nenhuma linha de código muda.** Os quatro valores são de ambiente, e a virada
+é trocar segredo. É o troco de a Stripe morar atrás de uma porta (`http`).
+
+O que confunde e custa tempo: **o modo ao vivo é outro mundo dentro da mesma
+conta**. Preço, webhook, cliente e assinatura do modo de teste **não existem**
+lá. Nada é migrado, e nenhum identificador serve nos dois.
+
+Pela ordem:
+
+1. **Ativar a conta para receber**, no painel: CPF ou CNPJ, dados bancários e o
+   que a Stripe pedir. Sem isso o modo ao vivo não aceita pagamento.
+2. **Criar os dois preços de novo**, agora no modo ao vivo: R$ 14,90/mês e
+   R$ 149,00/ano, no produto "ColeXa Premium". Os `price_...` são **outros**.
+3. **Criar o webhook de novo**, no modo ao vivo, para
+   `https://colexa.com.br/api/pagamentos/stripe`, com os mesmos **sete**
+   eventos. O `whsec_...` é **outro**: o do modo de teste não valida nada lá, e
+   a assinatura do aviso vai falhar em silêncio se for reaproveitado.
+4. **Conferir o portal do cliente** no modo ao vivo: a configuração dele também
+   é por modo.
+5. **Limpar as fichas de teste** de quem comprou testando, antes de virar a
+   chave:
+   `npm run supabase -- limpar-assinaturas <email> --confirmar`. Sem isso, a
+   ficha aponta para um cliente que não existe no modo ao vivo, "Gerenciar
+   pagamento" falha e a trava de "já tem assinatura ativa" recusa a pessoa de
+   assinar de verdade. Os avisos em `payment_events` ficam de propósito: são o
+   rastro de cobrança contestada.
+6. **Trocar os quatro segredos** na Fly, com os valores do modo ao vivo, numa
+   chamada só — assim as máquinas reiniciam uma vez, e não quatro
+   (`fly secrets set` no terminal de quem tem as chaves; elas nunca passam por
+   uma conversa). As máquinas reiniciam sozinhas: **não precisa publicar**.
+
+   **A chave costuma ser `rk_live_`, e não `sk_live_`.** Criar a chave
+   escolhendo permissões — o caminho recomendado — produz uma *restricted key*,
+   com o prefixo `rk_`. Ela vai em `STRIPE_SECRET_KEY` do mesmo jeito: o código
+   manda a credencial como `Authorization: Bearer` e **não confere prefixo**.
+   Escolha *"Acesso total (exceto operações sensíveis)"*: o ColeXa só cria
+   sessão de pagamento e sessão do portal, e o que fica de fora é justamente
+   mover dinheiro para fora da conta — o que importa se a chave vazar do
+   servidor. As permissões **não podem ser editadas depois**; mudar é chave
+   nova.
+7. **Conferir com uma compra de verdade**, de preferência a mensal, e pedir
+   reembolso pelo painel logo depois. É o único teste que prova que a chave, o
+   preço e o webhook do modo ao vivo combinam entre si — e o único que prova que
+   o `whsec_` é o do webhook certo.
+8. **Desligar ou apagar o webhook do modo de teste.** Ele continua apontando
+   para o mesmo endereço, e o que ele mandar vai ser **recusado** pela
+   conferência de assinatura — que é o certo, mas enche o log de `aviso
+   recusado`. Daqui a um mês isso parece defeito, e não é.
+
+**Conferir sem ver segredo:** `fly secrets list --app colexa` mostra nome e um
+resumo de cada valor, nunca o valor. Digest que mudou é a prova de que a troca
+entrou.
+
+**A cobrança abriu antes dos Termos** (decisão 102, mudança de 21/09). Enquanto
+eles não existirem, cancelamento e reembolso se resolvem pelo painel da Stripe,
+à mão.
 
 ## 7. Git
 

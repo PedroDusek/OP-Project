@@ -4,6 +4,36 @@ import { describe, expect, it } from 'vitest'
 import { parseCardList } from '@/server/domain/catalog/parse-card-list'
 import { KNOWN_MECHANICS, PROMO_SET } from '@/server/domain/catalog/types'
 
+/**
+ * Uma carta de um tipo qualquer, com custo e poder escolhidos.
+ *
+ * Existe para o traço: a fonte escreve `-` tanto para "zero" quanto para "este
+ * tipo não tem este campo", e só o tipo da carta distingue os dois.
+ */
+function parseTipo(tipo: string, custo: string, poder: string) {
+  const block = `
+    <dl class="modalCol" id="TST-002">
+      <dt>
+        <div class="infoCol"><span>TST-002</span> | <span>C</span> | <span>${tipo.toUpperCase()}</span></div>
+        <div class="cardName">Carta de teste</div>
+      </dt>
+      <dd>
+        <div class="backCol">
+          <div class="cost"><h3>${tipo === 'Leader' ? 'Life' : 'Cost'}</h3>${custo}</div>
+          <div class="power"><h3>Power</h3>${poder}</div>
+          <div class="counter"><h3>Counter</h3>-</div>
+          <div class="color"><h3>Color</h3>Red</div>
+          <div class="feature"><h3>Type</h3>Teste</div>
+          <div class="text"><h3>Effect</h3>Nada</div>
+          <div class="getInfo"><h3>Card Set(s)</h3>TESTE [TST-01]</div>
+        </div>
+      </dd>
+    </dl>`
+  const parsed = parseCardList(block)
+  expect(parsed.rejected).toEqual([])
+  return parsed.cards[0]
+}
+
 /** Monta uma entrada minima com o texto de efeito informado. */
 function parseSingle(effectText: string) {
   const block = `
@@ -83,7 +113,13 @@ describe('parser da listagem de cartas', () => {
     expect(character?.life).toBeNull()
   })
 
-  it('converte o traco da fonte em ausencia de valor', () => {
+  /*
+   * O traço vira ausência **onde o tipo não tem o campo**. Event não tem poder
+   * nenhum, e counter é opcional para todos. Onde o tipo exige — custo de Event,
+   * poder de Character — ele vira zero, e isso tem testes próprios no fim
+   * (armadilha 87).
+   */
+  it('converte o traco em ausencia onde o tipo nao tem o campo', () => {
     const event = page.cards.find((c) => c.type === 'Event')
     expect(event?.power).toBeNull()
     expect(event?.counter).toBeNull()
@@ -301,5 +337,49 @@ describe('variantes que a fonte deixa sem set', () => {
 
   it('nao sinaliza nada quando toda variante tem set', () => {
     expect(page.variantsWithoutSet).toEqual([])
+  })
+})
+
+/**
+ * O traço da fonte, e os dois significados dele (armadilha 87).
+ *
+ * Relatado por um usuário em 22/09: existem cartas de custo 0 e poder 0, e o
+ * filtro não as alcançava. A causa não era o filtro — era a leitura. A Bandai
+ * escreve `-` tanto para "zero" quanto para "este tipo não tem este campo", e
+ * lendo tudo como nulo **152 Characters de poder 0 e 23 Events de custo 0**
+ * ficavam fora de qualquer faixa.
+ *
+ * Conferido contra a fonte ao vivo: `OP03-044 Kaya`, um Character de poder 0,
+ * chega como `-`.
+ */
+describe('o traço quer dizer zero quando o tipo exige o campo', () => {
+  it('Character sem poder é poder zero', () => {
+    expect(parseTipo('Character', '1', '-')).toMatchObject({ cost: 1, power: 0 })
+  })
+
+  it('Event sem custo é custo zero, e segue sem poder', () => {
+    // Event não tem poder nenhum: ali o traço continua sendo ausência.
+    expect(parseTipo('Event', '-', '-')).toMatchObject({ cost: 0, power: null })
+  })
+
+  it('Stage sem custo é custo zero, e segue sem poder', () => {
+    expect(parseTipo('Stage', '-', '-')).toMatchObject({ cost: 0, power: null })
+  })
+
+  /* O primeiro campo do Leader é Life, e ele também é obrigatório. */
+  it('Leader lê Life, e o poder dele nunca some', () => {
+    expect(parseTipo('Leader', '5', '-')).toMatchObject({ cost: null, life: 5, power: 0 })
+  })
+
+  it('não inventa zero onde há número', () => {
+    expect(parseTipo('Character', '3', '5000')).toMatchObject({ cost: 3, power: 5000 })
+  })
+
+  /*
+   * Counter fica de fora de propósito: ali o traço é mesmo "sem counter", e a
+   * busca já trata o zero como isso (decisão 066).
+   */
+  it('counter continua nulo com o traço', () => {
+    expect(parseTipo('Character', '1', '1000').counter).toBeNull()
   })
 })

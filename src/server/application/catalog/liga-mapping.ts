@@ -58,6 +58,18 @@ export interface LigaWorksheetRow {
   link: LigaLink
   /** O que se lê do endereço conferido. `suffix` nulo: o `num` não começa pelo código da carta. */
   liga: { ed: string; num: string; suffix: string | null } | null
+  /**
+   * Outras artes desta planilha que apontam para o **mesmo** endereço da Liga.
+   *
+   * Um produto não pode ter dois donos, e colar o endereço errado é o erro
+   * fácil de cometer mapeando centenas à mão. A revisão de artes repetidas
+   * (`/dev/liga/repetidas`) agrupa **por carta**, então não enxerga isto: no
+   * DON!! cada arte é uma carta própria, e duas apontando para a mesma página
+   * passariam batido. Encontrado assim em 23/09, na conferência dos DON!!.
+   *
+   * Vazio quando o endereço é só desta arte.
+   */
+  mesmoEnderecoQue: string[]
 }
 
 /** A amostra das normais de uma raridade: a regra da normal vale se nenhuma divergir. */
@@ -120,6 +132,16 @@ export async function readLigaWorksheet(
     },
   })
 
+  /*
+   * Quantas artes usam cada endereco. Calculado uma vez, e nao por linha: sao
+   * ate algumas centenas, e comparar todas contra todas seria quadratico.
+   */
+  const artesPorUrl = new Map<string, string[]>()
+  for (const entry of tabela.values()) {
+    if (!entry.url) continue
+    artesPorUrl.set(entry.url, [...(artesPorUrl.get(entry.url) ?? []), entry.arte])
+  }
+
   const rows = variantes
     .map((v) => {
       const setCodes = v.printings.map((p) => p.set.code)
@@ -136,7 +158,7 @@ export async function readLigaWorksheet(
       })
       return compareCatalogOrder(chave(a), chave(b)) || (a.v.id < b.v.id ? -1 : 1)
     })
-    .map(({ v, setCodes, inSet }) => montarLinha(v, setCodes, inSet, tabela.get(v.sourceId!)))
+    .map(({ v, setCodes, inSet }) => montarLinha(v, setCodes, inSet, tabela.get(v.sourceId!), artesPorUrl))
 
   return { setCode, sets, rows, sample: normalSample(rows) }
 }
@@ -154,6 +176,7 @@ function montarLinha(
   setCodes: string[],
   inSet: boolean,
   entry: LigaCardEntry | undefined,
+  artesPorUrl: Map<string, string[]> = new Map(),
 ): LigaWorksheetRow {
   const verified = entry ? entry.url : undefined
   const lido = entry?.url ? parseLigaUrl(entry.url) : null
@@ -173,6 +196,9 @@ function montarLinha(
       lido && !('error' in lido)
         ? { ed: lido.ed, num: lido.num, suffix: ligaSuffix(lido.num, v.card.code) }
         : null,
+    mesmoEnderecoQue: entry?.url
+      ? (artesPorUrl.get(entry.url) ?? []).filter((arte) => arte !== v.sourceId)
+      : [],
   }
 }
 

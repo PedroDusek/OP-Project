@@ -58,17 +58,21 @@ describe('readCollectionDashboard', () => {
     await expect(readCollectionDashboard(testPrisma(), free)).rejects.toMatchObject({ code: PREMIUM_REQUIRED })
   })
 
-  it('usa o preço mais recente, a cotação do dia, e filtra pelo código da coleção', async () => {
+  /*
+   * A linha de `a` valia 1 ontem e vale 3 hoje. Antes da decisão 107 as duas
+   * coexistiam e o teste provava que o dashboard pegava a mais recente; agora
+   * `card_prices` tem **uma linha por variante**, e o preço de ontem não existe
+   * mais em lugar nenhum. O que se protege aqui passou a ser a conta: 2×3 + 10.
+   */
+  it('usa o preço de hoje, a cotação do dia, e filtra pelo código da coleção', async () => {
     const dona = await pessoa()
     const a = await carta('OP01-010', ['OP-01'])
     const b = await carta('OP02-010', ['OP-02'])
     await own(dona.collectionId, a.id, 2)
     await own(dona.collectionId, b.id, 1)
 
-    const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000)
     await testPrisma().cardPrice.createMany({
       data: [
-        { cardVariantId: a.id, value: 1, capturedAt: ontem },
         { cardVariantId: a.id, value: 3, capturedAt: new Date() },
         { cardVariantId: b.id, value: 10, capturedAt: new Date() },
       ],

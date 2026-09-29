@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { isDonCode } from '@/server/domain/catalog/don'
 import {
   ligaCardLink,
   ligaEdition,
@@ -216,5 +217,98 @@ describe('a paralela conferida como reimpressão que é suspeita', () => {
         normalSets: ['PRB-02'],
       }),
     ).toBe(false)
+  })
+})
+
+/**
+ * O DON!! e a Liga (decisão 112).
+ *
+ * O código do DON!! é inventado por nós — `DON-482236`, do `productId` do
+ * TCGplayer — e não existe na Liga. Um link direto seria falso, e uma busca
+ * pelo nosso código não acharia nada.
+ */
+describe('DON!!', () => {
+  it('vai para a busca pelo nome, e nao pelo codigo', () => {
+    const link = ligaCardLink({
+      cardCode: 'DON-482236',
+      cardName: 'DON!! Card (Luffy)',
+      variantType: 'Parallel',
+    })
+
+    expect(link.exact).toBe(false)
+    expect(link.href).toContain('view=cards/search')
+    expect(decodeURIComponent(link.href)).toContain('DON!! Card (Luffy)')
+    // O codigo inventado nao pode vazar para a busca: la ele nao existe.
+    expect(link.href).not.toContain('DON-482236')
+  })
+
+  /* Nem a arte comum ganha link direto: a montagem depende da edicao, que o DON nao tem. */
+  it('a arte Normal tambem vai para a busca', () => {
+    const link = ligaCardLink({
+      cardCode: 'DON-482236',
+      cardName: 'DON!! Card',
+      variantType: 'Normal',
+    })
+
+    expect(link.exact).toBe(false)
+    expect(link.href).toContain('view=cards/search')
+  })
+
+  /*
+   * A tabela conferida continua vencendo, como em toda carta: e por ela que um
+   * DON!! ganha link exato, no dia em que alguem conferir que a Liga o tem.
+   */
+  it('a tabela conferida vence', () => {
+    const link = ligaCardLink({
+      cardCode: 'DON-482236',
+      cardName: 'DON!! Card (Luffy)',
+      variantType: 'Parallel',
+      verified: 'https://www.ligaonepiece.com.br/?view=cards/card&card=DON&ed=OP-01&num=DON',
+    })
+
+    expect(link.exact).toBe(true)
+    expect(link.href).toContain('view=cards/card')
+  })
+
+  /*
+   * "Conferido: nao existe pagina" tambem cai na busca — e tambem pelo nome.
+   *
+   * Este teste nasceu fraco: conferia so que a busca era uma busca, e passou
+   * enquanto o codigo procurava pelo codigo inventado. A linha do `not.toContain`
+   * e a que pega o defeito.
+   */
+  it('conferido como inexistente busca pelo nome, e nao pelo codigo', () => {
+    const link = ligaCardLink({
+      cardCode: 'DON-482236',
+      cardName: 'DON!! Card (Luffy)',
+      variantType: 'Parallel',
+      verified: null,
+    })
+
+    expect(link.exact).toBe(false)
+    expect(link.href).toContain('view=cards/search')
+    expect(decodeURIComponent(link.href)).toContain('DON!! Card (Luffy)')
+    expect(link.href).not.toContain('DON-482236')
+  })
+})
+
+/**
+ * O termo da busca do DON!! na planilha (decisão 112, 23/09).
+ *
+ * Pedido do dono do produto com a tela na mão: procurar pelo nome, e não pelo
+ * nosso código. A regra que o componente usa é esta — `isDonCode` decide, e o
+ * link sai de `ligaSearchLink`.
+ */
+describe('a busca do DON!! sai pelo nome', () => {
+  it('o codigo do DON e reconhecido, e o das outras cartas nao', () => {
+    expect(isDonCode('DON-482237')).toBe(true)
+    expect(isDonCode('OP01-001')).toBe(false)
+  })
+
+  it('a busca pelo nome monta o endereco da Liga', () => {
+    const href = ligaSearchLink('DON!! Card (Red)')
+
+    expect(href).toContain('view=cards/search')
+    expect(decodeURIComponent(href)).toContain('DON!! Card (Red)')
   })
 })

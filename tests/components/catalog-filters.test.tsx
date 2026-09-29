@@ -57,6 +57,50 @@ function pushed(): URLSearchParams {
   return new URLSearchParams(href.slice(href.indexOf('?') + 1))
 }
 
+/*
+ * Defeito relatado pelo dono do produto em 21/09: no Deck Builder, digitar um
+ * código e apertar Enter **abria os filtros** em vez de buscar.
+ *
+ * A causa não estava no Deck Builder. Lá o campo de busca, o gatilho dos
+ * filtros e o botão Buscar moram no **mesmo** `<form>`, e um `<button>` sem
+ * `type` é `submit` por padrão: o Enter dispara o primeiro botão de envio da
+ * árvore, que era o dos filtros. Nas outras telas o campo e o gatilho estão em
+ * formulários diferentes, e por isso só o Deck Builder adoecia.
+ *
+ * O teste monta o arranjo do Deck Builder em miniatura, porque é o arranjo —
+ * e não o componente sozinho — que produzia o defeito.
+ */
+describe('dentro de um formulário de busca', () => {
+  it('o Enter no campo busca, e não abre os filtros', async () => {
+    const enviar = vi.fn((evento: React.FormEvent) => evento.preventDefault())
+    render(
+      <form onSubmit={enviar}>
+        <input type="search" aria-label="Buscar carta" />
+        <CatalogFilters vocabulary={VOCABULARY} activeCount={0} />
+        <button type="submit">Buscar</button>
+      </form>,
+    )
+
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Buscar carta' }), 'OP01-001{Enter}')
+
+    expect(enviar).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  /* E o gatilho continua abrindo os filtros no clique, que é o trabalho dele. */
+  it('o clique no gatilho continua abrindo os filtros', async () => {
+    render(
+      <form onSubmit={(evento) => evento.preventDefault()}>
+        <CatalogFilters vocabulary={VOCABULARY} activeCount={0} />
+      </form>,
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: /Filtros/ }))
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument()
+  })
+})
+
 describe('escolher vários na mesma seção', () => {
   it('mantém as duas cores marcadas', async () => {
     const painel = await abrir()
@@ -340,5 +384,45 @@ describe('counter', () => {
       'aria-pressed',
       'true',
     )
+  })
+})
+
+/**
+ * A ordem sobrevive a mexer nos filtros (decisão 110).
+ *
+ * A escolha mora fora do painel (`CatalogSort`), mas era aqui que ela se
+ * perdia: o painel devolve um objeto que **substitui** os filtros anteriores, e
+ * sem carregar a ordem junto ela sumia a cada Aplicar.
+ */
+describe('a ordem que mora fora do painel', () => {
+  const aplicar = (painel: HTMLElement) =>
+    userEvent.click(within(painel).getByRole('button', { name: /^Aplicar filtros/ }))
+
+  it('aplicar um filtro nao desfaz a ordem', async () => {
+    search.value = new URLSearchParams('ordem=custo-desc')
+    const painel = await abrir()
+
+    await userEvent.click(within(painel).getByRole('button', { name: 'Blue' }))
+    await aplicar(painel)
+
+    expect(pushed().get('cor')).toBe('Blue')
+    expect(pushed().get('ordem')).toBe('custo-desc')
+  })
+
+  it('o Limpar tambem nao desfaz a ordem', async () => {
+    search.value = new URLSearchParams('ordem=nome&cor=Blue')
+    const painel = await abrir()
+
+    await userEvent.click(within(painel).getByRole('button', { name: /Limpar/ }))
+    await aplicar(painel)
+
+    expect(pushed().has('cor')).toBe(false)
+    expect(pushed().get('ordem')).toBe('nome')
+  })
+
+  /* E o painel nao oferece a escolha: ela nao e um filtro. */
+  it('o painel nao tem mais a secao de ordenar', async () => {
+    const painel = await abrir()
+    expect(within(painel).queryByRole('combobox', { name: 'Ordenar por' })).not.toBeInTheDocument()
   })
 })

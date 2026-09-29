@@ -22,6 +22,9 @@ const POOL_MAX = 4
  *   npm run supabase import             importa o catalogo, baixando da fonte
  *   npm run supabase import 569117      importa apenas as series informadas
  *   npm run supabase -- import --from=DIR  importa de um snapshot local
+ *   npm run supabase don                importa os DON!! do tcgcsv (decisao 112)
+ *   npm run supabase imagens            converte as artes para o volume (decisao 113)
+ *   npm run supabase -- imagens --limite=50   so as primeiras, para conferir
  *   npm run supabase status             mostra o que existe la hoje
  *   npm run supabase storage            cria o bucket das imagens do usuario
  *   npm run supabase prices             importa precos de arte comum e cambio
@@ -32,6 +35,8 @@ const POOL_MAX = 4
  *   npm run supabase -- premium <email> --remover          volta a conta para Free
  *   npm run supabase limpar-contas      mostra as contas que existem, sem apagar
  *   npm run supabase -- limpar-contas --confirmar   apaga todas as contas
+ *   npm run supabase -- limpar-assinaturas <email>  mostra as fichas da conta
+ *   npm run supabase -- limpar-assinaturas <email> --confirmar   apaga as fichas
  *
  * Prefira `--from` quando o snapshot ja existir: rebaixar o catalogo inteiro a
  * cada importacao e carga evitavel sobre a origem (decisao 020).
@@ -120,7 +125,123 @@ async function main(): Promise<void> {
       const report = await importCatalog(prisma, provider, {
         seriesIds: seriesIds.length > 0 ? seriesIds : undefined,
       })
-      if (report.seriesFailed > 0) process.exitCode = 1
+
+      /*
+       * A ultima palavra do comando diz **quais** series falharam, e nao so
+       * quantas. Em 22/09 a importacao terminou com "falhas=1" e ninguem tinha
+       * como saber qual sem rodar os vinte minutos de novo.
+       *
+       * Sai por `console.log`, e nao `error`: e o resumo do comando, e quem o
+       * chamou costuma capturar so a saida padrao.
+       */
+      if (report.seriesFailed > 0) {
+        console.log(
+          `[supabase] import: ${report.seriesFailed} serie(s) falharam. Rode de novo so elas:`,
+        )
+        console.log(`[supabase]   npm run supabase import ${report.failures.map((f) => f.seriesId).join(' ')}`)
+        for (const falha of report.failures) {
+          console.log(`[supabase]   serie=${falha.seriesId}: ${falha.reason}`)
+        }
+        process.exitCode = 1
+      }
+    } finally {
+      await prisma.$disconnect()
+    }
+    return
+  }
+
+  /*
+   * Os DON!! vem do tcgcsv, e nao da Bandai: o catalogo oficial e a lista de
+   * cartas de deck, e o DON!! nao e uma delas (decisao 112). Comando proprio, e
+   * nao uma opcao do `import`, porque e outra fonte com outro ritmo — o DON!!
+   * muda raramente, e nao ha motivo para reler o catalogo inteiro por ele.
+   */
+  if (command === 'don') {
+    const prisma = createPrisma(url, { max: POOL_MAX })
+    try {
+      const { TcgCsvDonProvider } = await import(
+        '@/server/infrastructure/catalog/tcgcsv-don-provider'
+      )
+      const provider = new TcgCsvDonProvider()
+      console.log('[supabase] lendo os DON!! do tcgcsv')
+
+      const report = await importCatalog(prisma, provider)
+      console.log(
+        `[supabase] don: cartas=${report.cardsUpserted} artes=${report.variantsUpserted}` +
+          ` grupos=${report.seriesProcessed} falhas=${report.seriesFailed}`,
+      )
+
+      /*
+       * O vinculo com o TCGplayer nasce aqui, e nao na rodada de precos: o
+       * `source_id` da arte **e** o productId, porque foi de la que ela veio.
+       * Nao ha o que deduzir, e sem isto o DON!! ficaria sem preco para sempre —
+       * a deducao normal casa pelo codigo da carta, que o DON!! nao tem.
+       */
+      const { linkDonProducts } = await import('@/server/application/catalog/link-don-products')
+      const vinculos = await linkDonProducts(prisma)
+      console.log(
+        `[supabase] don: vinculos com o TCGplayer — artes=${vinculos.variants}` +
+          ` criados=${vinculos.created} atualizados=${vinculos.updated}`,
+      )
+
+      /*
+       * E as colecoes levantadas a mao (decisao 112). O arquivo e a verdade; o
+       * banco recebe o que ele diz. Nao apaga impressao nenhuma: tirar uma
+       * exigiria decidir o que fazer com a colecao de quem ja via a carta ali.
+       */
+      const { applyDonSets } = await import('@/server/application/catalog/don-sets')
+      const colecoes = await applyDonSets(prisma)
+      console.log(
+        `[supabase] don: colecoes da tabela — artes=${colecoes.entries}` +
+          ` impressoes=${colecoes.printings}`,
+      )
+      if (colecoes.unknownArts.length > 0) {
+        console.log(
+          `[supabase]   ${colecoes.unknownArts.length} arte(s) da tabela nao existem no catalogo:` +
+            ` ${colecoes.unknownArts.slice(0, 5).join(', ')}`,
+        )
+      }
+      if (colecoes.unknownSets.length > 0) {
+        console.log(`[supabase]   set(s) desconhecido(s): ${colecoes.unknownSets.join(', ')}`)
+      }
+
+      if (report.seriesFailed > 0) {
+        for (const falha of report.failures) {
+          console.log(`[supabase]   grupo=${falha.seriesId}: ${falha.reason}`)
+        }
+        process.exitCode = 1
+      }
+    } finally {
+      await prisma.$disconnect()
+    }
+    return
+  }
+
+  /*
+   * O preparo das artes (decisao 113).
+   *
+   * **Roda aqui, e nunca na Fly.** Ele baixa da Bandai, e de la a Bandai
+   * responde a 8 KB/s desde 25/09: as 4.431 artes levariam umas 53 h. Daqui
+   * levam umas 2 h 30. O banco e so lido — o que muda e a pasta local, que
+   * depois sobe para o volume.
+   */
+  if (command === 'imagens') {
+    const limite = Number(args.find((a) => a.startsWith('--limite='))?.slice('--limite='.length) ?? 0)
+    const prisma = createPrisma(url, { max: POOL_MAX })
+    try {
+      const { prepararImagens } = await import('@/server/application/catalog/preparar-imagens')
+      const r = await prepararImagens(prisma, {
+        limite: limite > 0 ? limite : undefined,
+        logger: console,
+      })
+      console.log(
+        `[supabase] imagens: artes=${r.total} convertidas=${r.convertidas} ja tinha=${r.jaExistiam}` +
+          ` falharam=${r.falharam} | ${(r.bytes / 1024 ** 2).toFixed(0)} MB em ${r.pasta}`,
+      )
+      if (r.falhas.length > 0) {
+        console.log(`[supabase]   ${r.falhas.length} falha(s):`)
+        for (const f of r.falhas.slice(0, 10)) console.log(`[supabase]     ${f.sourceId}: ${f.motivo}`)
+      }
     } finally {
       await prisma.$disconnect()
     }
@@ -198,7 +319,7 @@ async function main(): Promise<void> {
      * Poucas em paralelo de proposito: a fonte e de terceiro, e a decisao 020
      * pede cortesia com ela.
      */
-    const site = (args.find((a) => a.startsWith('--url='))?.slice('--url='.length) ?? process.env.APP_URL ?? 'https://colexa.fly.dev').trim()
+    const site = (args.find((a) => a.startsWith('--url='))?.slice('--url='.length) ?? process.env.APP_URL ?? 'https://colexa.com.br').trim()
     const limite = Number(args.find((a) => a.startsWith('--limite='))?.slice('--limite='.length) ?? 200)
     const paralelas = Number(args.find((a) => a.startsWith('--paralelas='))?.slice('--paralelas='.length) ?? 3)
     /*
@@ -335,6 +456,71 @@ async function main(): Promise<void> {
           ? '[supabase] premium: conta de volta ao Free.'
           : `[supabase] premium: Premium ate ${premiumUntil!.toISOString()}.`,
       )
+    } finally {
+      await prisma.$disconnect()
+    }
+    return
+  }
+
+  if (command === 'limpar-assinaturas') {
+    /*
+     * Apaga as fichas de assinatura de uma conta (21/09).
+     *
+     * Existe por causa da virada de modo de teste para modo ao vivo: uma ficha
+     * criada com chave de teste aponta para um cliente que **nao existe** no
+     * modo ao vivo. Com ela no lugar, "Gerenciar pagamento" falha e a trava de
+     * "ja tem assinatura ativa" recusa a pessoa de assinar de verdade.
+     *
+     * So as fichas. Os avisos em `payment_events` ficam: sao o rastro de
+     * cobranca contestada, e apagar rastro e pior que conviver com ele.
+     *
+     * Sem `--confirmar`, so mostra. Nao da para distinguir teste de ao vivo
+     * pelo identificador — a Stripe usa `cus_`/`sub_` nos dois modos —, entao
+     * quem confere e quem roda.
+     */
+    const email = args.find((a) => !a.startsWith('--'))?.trim().toLowerCase()
+    if (!email) {
+      throw new Error('Informe o e-mail: npm run supabase -- limpar-assinaturas <email> --confirmar')
+    }
+    const confirmar = args.includes('--confirmar')
+
+    const prisma = createPrisma(url, { max: POOL_MAX })
+    try {
+      const conta = await prisma.user.findFirst({
+        where: { email, deletedAt: null },
+        select: { id: true },
+      })
+      if (!conta) {
+        console.log('[supabase] limpar-assinaturas: nenhuma conta com esse e-mail (ou conta excluida).')
+        process.exitCode = 1
+        return
+      }
+
+      const fichas = await prisma.subscription.findMany({
+        where: { userId: conta.id },
+        orderBy: { createdAt: 'desc' },
+        select: { status: true, cycle: true, method: true, customerId: true, subscriptionId: true },
+      })
+      if (fichas.length === 0) {
+        console.log('[supabase] limpar-assinaturas: esta conta nao tem ficha nenhuma.')
+        return
+      }
+
+      for (const f of fichas) {
+        console.log(
+          `[supabase] ${f.status} ${f.cycle} ${f.method} cliente=${f.customerId} assinatura=${f.subscriptionId ?? '-'}`,
+        )
+      }
+      if (!confirmar) {
+        // Armadilha 73: o npm engole a flag sem o `--` antes do comando.
+        console.log(
+          `[supabase] limpar-assinaturas: ${fichas.length} ficha(s). Nada foi apagado. Para apagar: npm run supabase -- limpar-assinaturas ${email} --confirmar`,
+        )
+        return
+      }
+
+      const { count } = await prisma.subscription.deleteMany({ where: { userId: conta.id } })
+      console.log(`[supabase] limpar-assinaturas: ${count} ficha(s) apagada(s). Os avisos foram mantidos.`)
     } finally {
       await prisma.$disconnect()
     }
@@ -529,7 +715,7 @@ async function main(): Promise<void> {
 
   throw new Error(
     `Comando desconhecido: ${command ?? '(nenhum)'}. ` +
-      'Use migrate, import, prices, contas, premium, aquecer, limpar-contas, status ou storage.',
+      'Use migrate, import, prices, contas, premium, aquecer, limpar-contas, limpar-assinaturas, status ou storage.',
   )
 }
 

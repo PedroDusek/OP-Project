@@ -9,6 +9,39 @@ import { EmptyState, ErrorState } from '@/components/ui/states'
 import { Switch } from '@/components/ui/switch'
 
 describe('CardTile', () => {
+  /*
+   * A legenda poe o **codigo** em destaque, porque e assim que quem coleciona
+   * se refere a carta: `OP01-001` e o nome que se fala no grupo.
+   */
+  it('poe o codigo em destaque e o nome embaixo', () => {
+    const { container } = render(
+      <CardTile code="OP01-001" name="Roronoa Zoro" imageUrl={null} />,
+    )
+
+    const linhas = [...container.querySelectorAll('span.truncate')]
+    expect(linhas[0]).toHaveTextContent('OP01-001')
+    expect(linhas[0].className).toContain('font-semibold')
+    expect(linhas[1]).toHaveTextContent('Roronoa Zoro')
+    expect(linhas[1].className).toContain('text-text-muted')
+  })
+
+  /*
+   * No DON!! e o contrario, e nao por gosto: o codigo dele e inventado por nos
+   * (`DON-482241`, do productId do TCGplayer) e nao existe fora daqui. Quem
+   * distingue uma arte da outra e o nome. Pedido do dono do produto em 24/09.
+   */
+  it('no DON!! inverte: o nome em destaque e o codigo apagado', () => {
+    const { container } = render(
+      <CardTile code="DON-482241" name="DON!! Card (Silver)" imageUrl={null} />,
+    )
+
+    const linhas = [...container.querySelectorAll('span.truncate')]
+    expect(linhas[0]).toHaveTextContent('DON!! Card (Silver)')
+    expect(linhas[0].className).toContain('font-semibold')
+    expect(linhas[1]).toHaveTextContent('DON-482241')
+    expect(linhas[1].className).toContain('text-text-muted')
+  })
+
   /**
    * A arte passa pelo otimizador do Next, que a serve do nosso dominio.
    *
@@ -20,7 +53,18 @@ describe('CardTile', () => {
    * O que continua garantido: a URL da origem e o que alimenta o otimizador, e
    * o banco guarda so ela.
    */
-  it('serve a arte pelo otimizador, apontando para a origem', () => {
+  /**
+   * **A regra mudou em 25/09 (decisão 113).**
+   *
+   * Este teste afirmava que a arte ia ao otimizador apontando para a origem —
+   * o desenho da decisão 038. Ele deixou de valer quando a Bandai passou a
+   * estrangular o endereço da Fly (2,1 s daqui contra 27 a 30 s de lá) e o
+   * Next desistiu aos 7 s, que é um limite fixo no código dele.
+   *
+   * Agora a arte é nossa, servida do disco da máquina, e não passa pelo
+   * otimizador: ela já vem convertida e no tamanho.
+   */
+  it('serve a arte guardada por nos, sem passar pelo otimizador', () => {
     render(
       <CardTile
         code="OP01-001"
@@ -32,10 +76,24 @@ describe('CardTile', () => {
 
     const src = screen.getByRole('img', { name: 'OP01-001 — Roronoa Zoro' }).getAttribute('src')
 
+    expect(src).toBe('/imagens/cartas/OP01-001.webp')
+    // A origem nao e mais pedida: e o ponto inteiro da mudanca.
+    expect(src).not.toContain('/_next/image')
+    expect(src).not.toContain('onepiece-cardgame.com')
+  })
+
+  /*
+   * Origem que nao reconhecemos segue pelo otimizador, como antes. E o que faz a
+   * troca ser reversivel, e o que impede uma fonte nova virar imagem quebrada
+   * sem ninguem ver.
+   */
+  it('origem desconhecida continua indo pelo otimizador', () => {
+    render(<CardTile code="OP01-001" name="Roronoa Zoro" imageUrl="https://exemplo.com/arte.png" />)
+
+    const src = screen.getByRole('img', { name: 'OP01-001 — Roronoa Zoro' }).getAttribute('src')
+
     expect(src).toContain('/_next/image')
-    expect(decodeURIComponent(src ?? '')).toContain(
-      'https://en.onepiece-cardgame.com/images/cardlist/card/OP01-001.png',
-    )
+    expect(decodeURIComponent(src ?? '')).toContain('https://exemplo.com/arte.png')
   })
 
   it('mostra o codigo quando nao ha imagem', () => {

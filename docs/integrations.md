@@ -421,3 +421,203 @@ Toda execução de importação registra, como eventos estruturados:
 - término, com a duração e as contagens finais.
 
 Logs nunca contêm credenciais, tokens ou dados pessoais.
+
+## 5. Fontes por jogo: Pokémon e Magic (passo 7 do plano da decisão 104)
+
+Levantamento feito em 20/09/2026, antes de qualquer código. A pergunta do dono
+do produto foi direta: "existe base pública já com cartas, preços e variações,
+sem o trabalho de vínculo um a um que o One Piece exigiu?"
+
+**Existe, e para os dois jogos.** É a diferença mais importante entre este
+trabalho e o da decisão 020.
+
+### 5.1 Por que o One Piece foi caro, e estes não serão
+
+No One Piece, três coisas se somaram: a fonte publica **HTML**, não dados; ela
+não numera as artes paralelas; e o preço vem de **outra** fonte, que precisa ser
+casada carta a carta. Daí saíram `variant_source_products`, o trabalho manual
+conferido e a tabela da Liga.
+
+Em Pokémon e Magic, **a mesma fonte entrega carta, arte, imagem, idioma e
+preço**, já ligados. O vínculo — o pedaço mais caro do nosso pipeline — deixa de
+existir.
+
+### 5.2 Pokémon
+
+| Fonte | O que entrega | Situação |
+|---|---|---|
+| **TCGdex** (`tcgdex.dev`) | cartas, sets, imagens, raridade, ilustrador, **variantes** (normal, reverse, holo, primeira edição), **preços** de TCGplayer (USD) e Cardmarket (EUR), **10+ idiomas** incluindo português e japonês; REST e GraphQL, sem chave | **recomendada** |
+| **pokemontcg.io** | foi a referência do ecossistema | **descontinuada**: chaves funcionam até 01/03/2027, e o time migrou para o Scrydex |
+| **Scrydex** | sucessora comercial da anterior | paga, a partir de US$ 29/mês |
+| **tcgcsv** (categoria 3) | preços do espelho do TCGplayer, diário às 20:00 UTC | **já usamos** para One Piece; serve de segunda fonte de preço |
+
+**Por que TCGdex**: o banco de cartas é **open source, licença MIT**
+(`github.com/tcgdex/cards-database`), traz os três idiomas que a decisão 104
+escolheu, e os preços vêm junto da carta. Se a API pública sair do ar, dá para
+**hospedar por conta própria** a partir do repositório — o que nenhuma outra
+opção oferece.
+
+**Confirmado contra a API em 22/09**, e não só pela documentação (decisão 106):
+
+- **220 sets, 23.964 cartas** em inglês — 8,6x o nosso One Piece.
+- A carta traz `variants` (`normal`, `reverse`, `holo`, `firstEdition`,
+  `wPromo`), `variants_detailed` e **`pricing` anexado**. É isso que faz o
+  vínculo manual do One Piece — 773 respostas à mão, decisões 068 a 078 — **não
+  se repetir aqui**.
+- O tamanho foi medido antes de qualquer importação, e **refeito** depois de a
+  decisão 107 apagar o histórico de preço: **~84 MB de Pokémon, ~107 MB somando
+  One Piece**, contra os 500 MB do plano gratuito. **Cabe.** A primeira conta
+  dizia o contrário porque contava um histórico de preço que deixou de existir;
+  a correção está na decisão 106.
+- A importação está parada **por prioridade**, e não por limite de banco.
+
+**O que ela não documenta**, e precisa ser conferido antes de importar em
+escala: **limites de requisição e termos de uso** não estão publicados no site
+nem no SDK. Na prática isso significa duas coisas: perguntar no canal deles
+antes de rodar a primeira importação, e manter o mesmo hábito de cortesia da
+decisão 020 — requisições serializadas, importação sob demanda, nunca a cada
+visita de usuário.
+
+**O aviso legal da própria fonte**: "não é produzida, endossada, apoiada ou
+afiliada à Nintendo ou à The Pokémon Company". O nosso rodapé precisa dizer o
+equivalente para Pokémon, como já diz para a Bandai.
+
+#### 5.2.1 O preço não vem da mesma porta que a carta
+
+Pergunta do dono do produto em 22/09: *"o preço vai junto? não deveríamos
+atualizar o preço todo dia?"* As duas coisas são verdadeiras, e a resposta é que
+**continuam sendo dois pipelines**, como já são hoje.
+
+O `pricing` da TCGdex vem anexado à carta, **mas só no recurso individual**.
+Conferido contra a API: a listagem em massa (`/v2/en/cards?set=…`) devolve apenas
+`id`, `localId`, `name` e `image`. Atualizar preço por ali seriam **~24.000
+requisições por dia**, o que é inviável e contra a cortesia da decisão 020.
+
+O desenho, então, é o mesmo do One Piece:
+
+| | One Piece | Pokémon |
+|---|---|---|
+| **Catálogo**, quando há coisa nova | Bandai | **TCGdex** |
+| **Preço**, diário às 04:00 | tcgcsv categoria 68 | **tcgcsv categoria 3** |
+
+**O que a TCGdex resolve é a ponte.** Ela entrega, por variante, o `productId` do
+TCGplayer:
+
+```json
+"tcgplayer": {
+  "normal":           { "productId": 219333, "marketPrice": 0.20 },
+  "reverse-holofoil": { "productId": 219333, "marketPrice": 0.45 }
+}
+```
+
+Esse número é **exatamente o que os 773 vínculos manuais do One Piece
+produziram**. Lá ninguém dizia qual produto correspondia a qual arte; aqui a
+fonte diz. E como o `productId` se repete entre acabamentos, a separação vem do
+nome da variante — que casa com o `subTypeName` que o nosso provedor de preços
+**já lê** (`tcgcsv-price-provider.ts`).
+
+Na prática: a importação de catálogo grava o `productId` de cada variante, como
+`variant_source_products` já faz; a tarefa diária não precisa saber que a TCGdex
+existe.
+
+**A consequência operacional**: carta nova sem importação de catálogo **não tem
+preço**, porque não tem `productId`. É a mesma armadilha que deixou o catálogo
+parado em 07/09 enquanto o preço se atualizava sozinho — e com dois jogos ela
+dobra. Agendar a importação de catálogo (semanal, não diária) é a decisão que
+evita isso, e está em aberto.
+
+**Não medido**: se toda variante traz `productId` preenchido. Foi visto numa
+carta. Japonesas, promocionais e antigas podem não ter produto no TCGplayer, e
+aí ficam sem preço — como as 94 paralelas que hoje dizem "Sem cartas vendidas".
+
+#### 5.2.2 O link da Liga não vem junto, e nem poderia
+
+Pergunta do dono do produto em 22/09. A resposta curta é **não**: a Liga é um
+site brasileiro sem relação com a TCGdex.
+
+A boa notícia é que a **Liga Pokémon usa a mesma estrutura de endereço** da Liga
+One Piece — é a mesma empresa:
+
+```
+https://www.ligapokemon.com.br/?view=cards/card&card=<Nome>
+https://www.ligapokemon.com.br/?view=cards/search&card=<Nome>
+```
+
+Então `domain/catalog/liga.ts` é **estruturalmente reaproveitável**.
+
+A má notícia é que o caro nunca foi o formato do endereço: foi **descobrir como a
+Liga cadastrou cada arte**. Sufixos (`-PAR`, `-E`), edição entre colchetes,
+pré-lançamento, reimpressão — nada disso é dedutível, e a Liga está atrás de
+proteção anti-bot, então **quem descobre é gente abrindo o site** (decisões 071 a
+077, e 158 paralelas apontando para a arte errada antes de a tabela existir).
+
+Para Pokémon, o que **não** se sabe: como a Liga nomeia as edições, e como
+distingue reverse holo, holo e primeira edição. Isso só se descobre olhando.
+
+**Mas dá para entregar valor sem nada disso.** A regra 3 do `liga.ts` já manda
+para a **busca por nome** toda arte que não está na tabela conferida. Um link de
+Pokémon pode nascer assim — busca por nome, zero trabalho manual — e ganhar
+precisão depois, se e quando o dono do produto quiser. É um caminho que o One
+Piece não teve, porque lá a tabela veio antes.
+
+### 5.3 Magic
+
+| Fonte | O que entrega | Situação |
+|---|---|---|
+| **Scryfall** (`scryfall.com/docs/api`) | texto oficial, imagens, **todos os idiomas**, preço diário por acabamento, e **download em bloco** | **recomendada** |
+| **MTGJSON** | os mesmos dados mais **histórico de preço**, em arquivo de ~150 MB | complemento, se um dia quisermos histórico |
+
+**As exigências do Scryfall são explícitas, e viram requisito nosso**:
+
+- **`User-Agent` e `Accept` obrigatórios**, com o nome da nossa aplicação. Não
+  deixar a biblioteca HTTP escolher.
+- **Menos de 10 requisições por segundo**, sustentadas. Excesso responde 429 e
+  pode virar bloqueio.
+- **Usar o download em bloco** para importar catálogo, em vez de percorrer a API
+  carta a carta.
+- **Imagem tem regra própria**: as imagens são da Wizards of the Coast (e, em
+  sets antigos, dos artistas). **Não se pode cobrir, cortar ou recortar o aviso
+  de copyright nem o nome do artista.** Se um dia usarmos o recorte da arte, o
+  nome do artista e o copyright precisam aparecer na mesma tela.
+
+Esta última regra tem consequência de interface: a nossa grade mostra a carta
+inteira, o que já atende; qualquer recorte futuro, não.
+
+### 5.4 O que vale para os dois, e o que muda no nosso pipeline
+
+**Continua igual**: o catálogo entra por um adaptador atrás da porta
+`CatalogProvider`; preço entra por `PriceProvider`; imagem passa pelo nosso
+otimizador, com cache em volume e rodízio noturno.
+
+**Muda**:
+
+1. **Some o vínculo manual de arte.** `variant_source_products` e a tabela da
+   Liga são específicos do One Piece.
+2. **A imagem vem da fonte de dados**, e não de um terceiro com cabeçalho
+   hostil. Ainda assim passa pelo nosso otimizador, porque é ele que sustenta o
+   cache e o tamanho.
+3. **Preço já vem por variante**, o que combina com a decisão 104: reverse holo
+   é variante do catálogo, não atributo da cópia.
+4. **Idioma vem da fonte**, o que abre uma possibilidade que a decisão 104 não
+   previu: mostrar a carta na língua que a pessoa marcou. Fica registrado como
+   possibilidade, não como escopo.
+
+### 5.5 Dois avisos honestos
+
+- **Preço em bloco envelhece.** As duas fontes dizem, com todas as letras, que
+  preço em arquivo serve para estimar valor e tendência, **não** para sustentar
+  venda. Como o nosso uso é exatamente estimar o valor da coleção, serve — e a
+  tela precisa continuar dizendo de quando é o dado, como já faz.
+- **Tamanho.** Magic tem mais de 30 mil cartas, e com idiomas o catálogo cresce
+  muito além do que o One Piece exigiu. O dashboard hoje lê o catálogo inteiro a
+  cada abertura; **isso precisa ser resolvido antes** de importar Magic, não
+  depois.
+
+### 5.6 O que falta decidir, por jogo
+
+Cada jogo precisa da sua decisão no lugar da 020, com o dono do produto:
+
+1. Qual fonte, e o que os termos dela permitem.
+2. Quais mitigações assumimos (ritmo, o que guardamos, o que nunca reexpomos).
+3. Qual atribuição aparece no rodapé quando o Modo for aquele.
+4. Se guardamos imagem em cache (hoje sim, com prazo) e se a fonte permite.

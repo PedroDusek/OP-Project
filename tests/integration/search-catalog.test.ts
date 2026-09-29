@@ -212,3 +212,92 @@ describe('filtros com varios valores', () => {
     expect(comListaVazia.total).toBe(tudo.total)
   })
 })
+
+/**
+ * A ordem escolhida pela pessoa (decisão 110).
+ *
+ * Aqui a cadeia inteira: o critério escolhido, o empate voltando para a ordem
+ * do catálogo e o id por último. A regra pura está em
+ * `tests/domain/catalog-order.test.ts`.
+ */
+describe('a ordem escolhida', () => {
+  /** Os valores na sequencia em que a busca devolveu, pagina a pagina. */
+  async function todos(sort: Parameters<typeof searchCatalog>[1]) {
+    const result = await searchCatalog(testPrisma(), { ...sort, pageSize: 100 })
+    return result.items
+  }
+
+  it('sem ordem escolhida, a lista e a mesma de sempre', async () => {
+    const padrao = await todos({})
+    const explicita = await todos({ sort: 'codigo' })
+    expect(explicita.map((i) => i.variantId)).toEqual(padrao.map((i) => i.variantId))
+  })
+
+  it('por custo crescente, os valores nao descem', async () => {
+    const items = await todos({ sort: 'custo' })
+    const valores = items.map((i) => i.cost).filter((v): v is number => v !== null)
+    expect(valores).toEqual([...valores].sort((a, b) => a - b))
+  })
+
+  it('por custo decrescente, os valores nao sobem', async () => {
+    const items = await todos({ sort: 'custo-desc' })
+    const valores = items.map((i) => i.cost).filter((v): v is number => v !== null)
+    expect(valores).toEqual([...valores].sort((a, b) => b - a))
+  })
+
+  /*
+   * Leader nao tem custo e Event nao tem poder. Nulo e "nao se aplica", nao
+   * zero — entao ele nao disputa posicao e fica no fim das duas vezes.
+   */
+  it('quem nao tem o campo fica no fim, nas duas direcoes', async () => {
+    for (const sort of ['poder', 'poder-desc'] as const) {
+      const items = await todos({ sort })
+      const semPoder = items.findIndex((i) => i.power === null)
+      // O fixture tem Event e Stage, que nao tem poder. Sem esta linha o teste
+      // passaria sem verificar nada no dia em que o fixture mudasse.
+      expect(semPoder).toBeGreaterThan(-1)
+      // Depois do primeiro nulo nao pode voltar a aparecer valor.
+      expect(items.slice(semPoder).every((i) => i.power === null)).toBe(true)
+    }
+
+    // O mesmo pelo lado do custo, que e o Leader quem nao tem.
+    for (const sort of ['custo', 'custo-desc'] as const) {
+      const items = await todos({ sort })
+      const semCusto = items.findIndex((i) => i.cost === null)
+      expect(semCusto).toBeGreaterThan(-1)
+      expect(items.slice(semCusto).every((i) => i.cost === null)).toBe(true)
+    }
+  })
+
+  it('por nome, a ordem e a do alfabeto e ignora caixa', async () => {
+    const items = await todos({ sort: 'nome' })
+    const nomes = items.map((i) => i.cardName)
+    expect(nomes).toEqual([...nomes].sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })))
+  })
+
+  /*
+   * O defeito que este teste existe para impedir: ordenar **a pagina** em vez
+   * de **todas as artes que casam com o filtro**. Com pageSize 2, a primeira
+   * pagina por custo decrescente tem de trazer os dois maiores do catalogo
+   * inteiro, e nao os dois maiores entre os que por acaso vieram primeiro.
+   */
+  it('ordena o catalogo inteiro, e nao a pagina', async () => {
+    const inteiro = await todos({ sort: 'custo-desc' })
+    const primeira = await searchCatalog(testPrisma(), { sort: 'custo-desc', pageSize: 2, page: 1 })
+    const segunda = await searchCatalog(testPrisma(), { sort: 'custo-desc', pageSize: 2, page: 2 })
+
+    expect(primeira.items.map((i) => i.variantId)).toEqual(inteiro.slice(0, 2).map((i) => i.variantId))
+    expect(segunda.items.map((i) => i.variantId)).toEqual(inteiro.slice(2, 4).map((i) => i.variantId))
+  })
+
+  /*
+   * Sem desempate estavel, artes que empatam no criterio trocariam de lugar
+   * entre uma leva e a seguinte — a mesma carta apareceria duas vezes ou
+   * nenhuma na rolagem infinita.
+   */
+  it('a mesma consulta devolve sempre a mesma sequencia', async () => {
+    const uma = await todos({ sort: 'custo-desc' })
+    const outra = await todos({ sort: 'custo-desc' })
+    expect(outra.map((i) => i.variantId)).toEqual(uma.map((i) => i.variantId))
+  })
+})

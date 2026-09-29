@@ -658,14 +658,28 @@ describe('o pacote do compartilhamento', () => {
     vi.resetModules()
   })
 
-  it('manda a legenda junto quando o aparelho aceita', async () => {
+  /**
+   * **A regra mudou em 26/09.**
+   *
+   * A legenda era o resumo da lista — "Procuro 1 carta · 2 cópias". Isso
+   * repetia o que a imagem já mostra escrito no topo, e gastava o único campo
+   * de texto que chega ao grupo. O dono do produto passou a usar a folha para
+   * divulgar, e quem a recebe precisa saber **para onde ir**.
+   *
+   * Vai como URL inteira, e não `colexa.com.br` solto: é o que faz o aplicativo
+   * de mensagens transformar em link clicável.
+   */
+  it('manda o endereco do site como legenda', async () => {
     const share = await comNavegador(() => true)
 
     await userEvent.click(await screen.findByRole('button', { name: /compartilhar/i }))
 
     const enviado = share.mock.calls[0][0] as ShareData
     expect(enviado.files).toHaveLength(1)
-    expect(enviado.text).toMatch(/procuro 1 carta/i)
+    expect(enviado.text).toBe('https://colexa.com.br')
+    expect(enviado.text).not.toMatch(/procuro|cartas|cópias/i)
+    // O titulo continua dizendo o que e: quem carrega o endereco e o texto.
+    expect(enviado.title).toBe('Procuro estas cartas')
   })
 
   /* O caso do iOS: imagem sim, imagem com texto nao. O botao tem de continuar. */

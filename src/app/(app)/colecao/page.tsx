@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Layers, Star } from 'lucide-react'
 import { PageHeader } from '@/components/layout/app-shell'
 import { CatalogFilters } from '@/components/catalog/catalog-filters'
+import { CatalogSort } from '@/components/catalog/catalog-sort'
 import { CatalogSearch } from '@/components/catalog/catalog-search'
 import { InfiniteCollectionGrid } from '@/components/collection/infinite-collection-grid'
 import { CollectionScope } from '@/components/collection/collection-scope'
@@ -124,6 +125,8 @@ export default async function ColecaoPage({ searchParams }: PageProps<'/colecao'
           />
         )}
 
+        <CatalogSort />
+
         {atual.total === 0 ? (
           <EmptyState
             title="Nada neste recorte"
@@ -155,6 +158,21 @@ export default async function ColecaoPage({ searchParams }: PageProps<'/colecao'
       <p className="mt-8 text-xs text-text-subtle">
         {premium ? (
           <>Progresso do catálogo: {summary.uniqueVariants} de {summary.catalogVariants} variantes. </>
+        ) : null}
+        {/*
+          O DON!! é contagem, e não progresso (decisão 112): ele não entra no
+          "X de Y" acima, nem como numerador nem como denominador. A frase só
+          aparece para quem tem algum — dizer "você possui 0 DON diferentes" a
+          quem nunca registrou um seria ruído.
+
+          Fora do bloco Premium: DON!! é coleção, e ver a própria coleção é de
+          todos (decisão 093).
+        */}
+        {summary.donVariants > 0 ? (
+          <>
+            Você possui {summary.donVariants}{' '}
+            {summary.donVariants === 1 ? 'DON diferente' : 'DON diferentes'}.{' '}
+          </>
         ) : null}
         <Link href="/catalogo" className="underline underline-offset-2">
           Explorar o catálogo

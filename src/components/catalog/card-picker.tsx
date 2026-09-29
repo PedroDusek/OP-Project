@@ -2,8 +2,10 @@
 
 import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Loader2, Minus, Plus, SearchX } from 'lucide-react'
+import { PLAYSET_SIZE } from '@/server/domain/collection/counting'
 import { CardArt } from '@/components/catalog/card-art'
 import { CatalogFilters } from '@/components/catalog/catalog-filters'
+import { CatalogSort } from '@/components/catalog/catalog-sort'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { SearchBar } from '@/components/ui/search-bar'
@@ -334,6 +336,8 @@ export function CardPicker({
         />
       </div>
 
+      <CatalogSort values={filters} onChange={setFilters} />
+
       {/*
         A escolha que ficou de antes. Aparece antes da grade, porque depois de
         recomeçar a marcar ela não serve mais para nada — e some assim que a
@@ -415,11 +419,21 @@ export function CardPicker({
       ) : null}
 
       {/*
-        A barra fica presa embaixo, acima da navegação, porque a escolha é feita
-        rolando: um resumo no topo sairia da tela na primeira carta escolhida.
+        A barra fica presa embaixo porque a escolha é feita rolando: um resumo no
+        topo sairia da tela na primeira carta escolhida.
+
+        O deslocamento é **só a área segura mais uma folga**, e não mais 80 px.
+        Aqueles 80 px reservavam a barra de navegação inferior do celular, que
+        deixou de existir em 10/09, quando a navegação virou gaveta. O resto
+        ficou: no celular a barra flutuava com um vão enorme embaixo, sobre as
+        cartas, esperando uma barra que não vinha mais — relatado pelo dono do
+        produto em 23/09.
+
+        `env(safe-area-inset-bottom)` é o que sobra: num aparelho com barra de
+        gestos ela passa de 30 px, e sem somá-la o resumo encostaria nela.
       */}
       {copies > 0 ? (
-        <div className="sticky bottom-20 z-10 md:bottom-4">
+        <div className="sticky bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-10">
           <div className="flex items-center gap-3 rounded-card border border-border bg-surface p-3 shadow-sheet">
             <span className="flex min-w-0 flex-1 flex-col">
               <span className="text-sm font-semibold text-text tabular-nums">
@@ -530,14 +544,14 @@ function PickTile({
         <span className="truncate text-xs text-text-muted">{card.cardName}</span>
       </span>
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5">
         <button
           type="button"
           aria-label={`Tirar uma cópia de ${card.cardCode}`}
           disabled={value <= 0}
           onClick={() => onChange(value - 1)}
           className={cn(
-            'inline-flex size-11 shrink-0 items-center justify-center rounded-control',
+            'inline-flex size-10 shrink-0 items-center justify-center rounded-control',
             'border border-border bg-surface text-text transition-colors',
             'hover:bg-surface-muted disabled:pointer-events-none disabled:opacity-40',
           )}
@@ -558,12 +572,38 @@ function PickTile({
           aria-label={`Acrescentar uma cópia de ${card.cardCode}`}
           onClick={() => onChange(value + 1)}
           className={cn(
-            'inline-flex size-11 shrink-0 items-center justify-center rounded-control',
+            'inline-flex size-10 shrink-0 items-center justify-center rounded-control',
             'border border-accent-ink/30 bg-accent-soft text-accent-ink transition-colors',
             'hover:brightness-95',
           )}
         >
           <Plus className="size-4" aria-hidden />
+        </button>
+
+        {/*
+          O playset de uma vez, na **mesma fileira**.
+
+          Ele já teve linha própria, porque na grade de duas colunas o cartão tem
+          166 px e o número ficava com 16. O dono do produto preferiu o contrário
+          (28/09): a linha a mais empurrava as cartas seguintes para fora da
+          tela, e ver mais cartas de uma vez vale mais que o número centralizado.
+
+          Os três têm o **mesmo tamanho**, a 40 px em vez dos 44 do resto do app:
+          o dono do produto autorizou reduzir para que o `+4` não ficasse menor
+          que os vizinhos. É a única tela onde isso vale — ela é uma grade densa
+          de duas colunas, e o gesto é repetido carta após carta.
+        */}
+        <button
+          type="button"
+          aria-label={`Acrescentar ${PLAYSET_SIZE} cópias de ${card.cardCode}`}
+          onClick={() => onChange(value + PLAYSET_SIZE)}
+          className={cn(
+            'inline-flex size-10 shrink-0 items-center justify-center rounded-control',
+            'border border-accent-ink/30 bg-accent-soft text-sm font-semibold',
+            'text-accent-ink tabular-nums transition-colors hover:brightness-95',
+          )}
+        >
+          +{PLAYSET_SIZE}
         </button>
       </div>
     </div>

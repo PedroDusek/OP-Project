@@ -23,6 +23,7 @@
     "prices:import": "tsx scripts/import-prices.ts",
     "paralelas:candidatos": "tsx scripts/levantar-candidatos.ts",
     "liga:conflitos": "tsx scripts/levantar-conflitos.ts",
+    "religar-local": "tsx scripts/religar-local.ts",
     "supabase": "tsx scripts/supabase.ts"
   },
   "dependencies": {

@@ -1,4 +1,4 @@
-# Handoff — estado em 18/09/2026
+﻿# Handoff — estado em 28/09/2026
 
 Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
 
@@ -8,11 +8,15 @@ Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
    carregou ao subir (armadilha 40), e só lê o `.env` ao subir — `RESEND_API_KEY`
    e `EMAIL_FROM` entraram nele em 17/09.
 2. `npm run supabase status` — mostra o que produção tem e o que falta. Em
-   18/09 ela estava **em dia: 19 de 19 migrations**.
-3. **O site está publicado em `https://colexa.fly.dev`** desde 17/09 (decisões
-   089 e 090), para teste do dono do produto — ainda **não é o lançamento**.
-   Publicar de novo é à mão: `development.md` 6.6.
-4. Leia "Produção, em 17/09/2026", "O dashboard da coleção", "A Social" e
+   28/09 ela estava **em dia: 23 de 23 migrations**, com 3.024 cartas, 4.670
+   artes e 61 sets.
+3. **O site está em `https://colexa.com.br`** desde 21/09 (decisões
+   089 e 090), com cobrança do Premium **em modo real** desde 22/09. Publicar é
+   à mão: `development.md` 6.6. A última publicação foi a **v47**.
+4. **A arte da carta agora é nossa** (decisão 113). Ela **não** vem mais da
+   Bandai em tempo de acesso, e a conversão **nunca roda na Fly** — leia a
+   armadilha 88 antes de mexer em imagem.
+5. Leia "Produção, em 17/09/2026", "O dashboard da coleção", "A Social" e
    "Próximo passo", abaixo.
 
 O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
@@ -36,7 +40,7 @@ O acordo de trabalho e as camadas estão em `CLAUDE.md`, na raiz.
 |---|---|
 | Node | 20.20.2 — o `@supabase/supabase-js` já avisa que 20 está depreciado |
 | PostgreSQL local | 18.6, bancos `optcg` e `optcg_test` |
-| Produção | Supabase em São Paulo (banco, autenticação, Storage) e o site na Fly.io em São Paulo, `colexa.fly.dev` |
+| Produção | Supabase em São Paulo (banco, autenticação, Storage) e o site na Fly.io em São Paulo, `colexa.com.br` |
 | `.env` | ignorado pelo Git; desde 17/09 com `RESEND_API_KEY`, `EMAIL_FROM` (decisão 086) e `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (decisão 088) |
 
 **Produção nunca é alvo padrão.** `DATABASE_URL` é sempre o banco local; o
@@ -46,9 +50,9 @@ existe comando de reset para produção, de propósito.
 
 ## O que está pronto
 
-**Checkpoints 0 a 13 concluídos, a Social, o Deck Builder e o dashboard da
-coleção.** 1.657 testes de unidade, integração e componente, mais 36 ponta a
-ponta. Lint, typecheck e build passando.
+**Checkpoints 0 a 13 concluídos, a Social, os Decks, o dashboard da coleção, o
+DON!! e as artes guardadas por nós.** 1.865 testes de unidade, integração e
+componente, mais 36 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
 |---|---|
@@ -113,7 +117,14 @@ ponta. Lint, typecheck e build passando.
 | — | Excluir a conta, com 30 dias para desistir (decisão 091) |
 | — | Premium e Free: o que cada plano faz, com as travas aplicadas (decisão 093) |
 | — | As imagens das cartas preparadas depois de publicar (decisão 094) |
-| — | Deck Builder: conferência das 51 cartas, sem guardar deck (decisão 095) |
+| — | Deck Builder: conferência das 51 cartas (decisão 095) |
+| — | Decklists salvas, com nome, capa do líder e progresso (decisão 108, que muda a 095) |
+| — | Transferir a decklist inteira para uma deckbox (decisão 109) |
+| — | A pessoa escolhe a ordem da listagem: código, nome, custo e poder (decisão 110) |
+| — | O DON!! entra como tipo de carta, vindo do tcgcsv: 239 cartas, sem progresso (decisão 112) |
+| — | `/dev/liga?set=DON` e `/dev/don`: as duas telas do vínculo manual dos DON!! (decisão 112) |
+| — | A arte da carta passa a ser nossa, servida do volume da Fly (decisão 113, que muda a 020) |
+| — | Deck Builder vira **Decks**, com deckboxes e decklists em abas; a deckbox sai de Binders (decisão 111) |
 | — | Enviar feedback, por e-mail ao suporte (decisão 096) |
 | — | O mesmo e-mail por outra forma de entrar é recusado (decisão 097) |
 | — | O dashboard da coleção no Início, Premium (decisão 098) |
@@ -135,13 +146,13 @@ para teste. O domínio `colexa.com.br` **não** aponta para ele ainda.
 | Aplicação | `colexa`, uma máquina `shared-cpu-1x` de 1 GB em `gru`, sempre ligada |
 | Volume | `colexa_cache`, 1 GB, montado em `.next/cache` (imagens otimizadas das cartas) |
 | Segredos na Fly | `DATABASE_URL` (Session pooler, usuário `postgres.<ref>`, host `aws-0-sa-east-1.pooler.supabase.com`), `SUPABASE_SECRET_KEY`, `RESEND_API_KEY` |
-| Valores em `fly.toml` | `APP_URL=https://colexa.fly.dev`, `EMAIL_FROM`, `SUPABASE_STORAGE_BUCKET` |
+| Valores em `fly.toml` | `APP_URL=https://colexa.com.br`, `ALLOW_INDEXING=0` (decisão 105), `EMAIL_FROM`, `SUPABASE_STORAGE_BUCKET` |
 | GitHub | segredo `FLY_API_TOKEN` (token de deploy `publicar-github`, criado 16:01:34 de 17/09 — **o único ativo**; os cinco das tentativas foram revogados pelo dono do produto, conferido com `fly tokens list --app colexa`; vale até 2046, então vazou é revogar e gerar outro pelo Git Bash, armadilha 59); *variables* com os três `NEXT_PUBLIC_*` |
-| Painéis | Turnstile com `colexa.fly.dev`; Supabase com `https://colexa.fly.dev/**` nas *Redirect URLs* (Site URL continua `http://localhost:3000`); Google com a origem `https://colexa.fly.dev` |
+| Painéis | **Tudo no domínio oficial desde 21/09**: Turnstile com `colexa.com.br` e `www` (o `.fly.dev` saiu, porque lá nada chega a desenhar antes do redirecionamento); Supabase com Site URL `https://colexa.com.br` e o `/**` dos dois domínios nas *Redirect URLs*; Google com os três links de branding em `colexa.com.br`, o logo, e os domínios autorizados `colexa.com.br`, `colexa.fly.dev` e o do Supabase |
 | Cobrança | o trial acabou em 17/09 — **2 horas de máquina ligada, não 7 dias** —, e o dono do produto cadastrou cartão. ~US$ 7/mês da máquina, US$ 0,15 do volume |
 | Build | nos builders geridos (`--depot=true`). `--remote-only` criava um app de build com volume de 50 GB (armadilha 64) |
 | Depois de publicar | o workflow prepara 200 cartas (400 imagens), sem poder derrubar a publicação (decisão 094). A primeira vez levou ~90 s; com o volume guardando o cache, a segunda achou 392 de 400 prontas e levou 32 s |
-| Toda noite | o workflow **Aquecer** prepara 800 cartas em rodízio, às 4:00 de Brasília (decisão 103). Seis noites cobrem o catálogo, e a imagem dura 30 dias em disco. Rodar à mão: `npm run supabase -- aquecer --rodizio --limite=800 --url=https://colexa.fly.dev` — **o `--url` importa fora da CI**, senão vale o `APP_URL` do `.env`, que é o localhost |
+| Toda noite | o workflow **Aquecer** prepara 800 cartas em rodízio, às 4:00 de Brasília (decisão 103). Seis noites cobrem o catálogo, e a imagem dura 30 dias em disco. Rodar à mão: `npm run supabase -- aquecer --rodizio --limite=800 --url=https://colexa.com.br` — **o `--url` importa fora da CI**, senão vale o `APP_URL` do `.env`, que é o localhost |
 
 Conferido pelo assistente em 17/09: a checagem de saúde passa, o servidor roda
 como `node`, o banco conecta, o CAPTCHA desenha, e a mesma imagem de carta leva
@@ -276,17 +287,25 @@ outra hora, e isso é verdade, não defeito.
 
 ## As decisões que mais restringem o que vem depois
 
-As 74 estão em `decisions.md`. Estas mudam o que se pode fazer:
+As 113 estão em `decisions.md`. Estas mudam o que se pode fazer:
 
 - **019 + 020** — o catálogo vem do site oficial da Bandai, cujos termos proíbem
   reprodução sem permissão. O risco foi assumido explicitamente pelo dono do
   produto, com mitigações **obrigatórias**: requisições serializadas com
-  intervalo, apenas dados factuais, imagens referenciadas na origem e nunca
-  copiadas, atribuição visível, e o catálogo nunca reexposto como API pública.
+  intervalo, apenas dados factuais, atribuição visível, e o catálogo nunca
+  reexposto como API pública. A mitigação de **nunca copiar a imagem** deixou de
+  valer na 113 — ver abaixo.
 - **038** — revoga a 026 e altera uma mitigação da 020. O servidor da Bandai
   manda `cross-origin-resource-policy: same-site`, então o navegador **recusa**
-  desenhar a imagem vinda direto da origem. Ela passa pelo otimizador do
-  `next/image` e é servida do nosso domínio; o banco guarda só a URL.
+  desenhar a imagem vinda direto da origem. Ela passava pelo otimizador do
+  `next/image`; o banco guardava só a URL. **Alterada pela 113.**
+- **113** — muda a 020 e substitui o desenho da 038. A Bandai passou a
+  estrangular o endereço da Fly, e o limite do Next para buscar na origem é fixo
+  em 7 s. A arte passou a ser **convertida por nós** e servida do volume. O banco
+  continua guardando a URL de origem — ela é o que permite reconverter.
+- **112** — o DON!! é um tipo de carta que **não vem da Bandai**: o catálogo
+  oficial não o publica. Ele vem do tcgcsv, tem código inventado por nós e um set
+  artificial. Não conta progresso e não fecha playset.
 - **030** — Termos de Uso e Política de Privacidade **não existem**, e isso é
   bloqueio de lançamento. Ver abaixo.
 - **021** — `effects` fica vazia. Os nove efeitos da especificação não aparecem
@@ -655,9 +674,10 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     Conexão nova em produção precisa caber nessa conta.
 72. **Preço e cotação do banco local não se atualizam sozinhos.** A tarefa
     diária **Preços** escreve só em produção. No local, `npm run prices:import`
-    à mão; sem isso, passados três dias a cotação fica velha e o real some da
+    à mão; sem isso, passada uma semana a cotação fica velha e o real some da
     tela (`MAX_RATE_AGE_IN_DAYS`), o que parece defeito e não é. Em 19/09 o
-    local estava com a cotação de 15/09.
+    local estava com a cotação de 15/09. (A janela era de três dias até 21/09 —
+    ver 84.)
 73. **O `npm run` engole as opções sem `--`.** `npm run supabase limpar-contas
     --confirmar` executa **sem** o `--confirmar` (npm 10: a opção vira
     configuração do npm e não chega ao script). O dono do produto tropeçou
@@ -692,6 +712,160 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     objeto novo a cada renderização — `JSON.parse` direto do `localStorage`, por
     exemplo — renderiza para sempre. `leva-rascunho.ts` guarda o texto lido ao
     lado do resultado para a identidade ser estável.
+79. **Domínio oficial não é o mesmo que "pronto para o Google".** Ao migrar em
+    21/09, salvar o branding do OAuth falhava com "a ação falhou, tente
+    novamente" — sem dizer o motivo. A causa: **domínio autorizado precisa
+    estar verificado no Search Console**. A verificação é um TXT na zona DNS, e
+    a primeira tentativa falha enquanto ele não propaga. Confira com
+    `Resolve-DnsName colexa.com.br -Type TXT -Server 8.8.8.8` antes de clicar em
+    verificar de novo — mexer no DNS de novo só reinicia a espera.
+80. **Redirecionar o domínio antigo não pode incluir a checagem de saúde.** A
+    Fly consulta `/api/saude` a cada 30 segundos e espera 2xx; um 308 ali seria
+    lido como máquina doente e derrubaria a publicação. A exceção está em
+    `lib/dominio.ts`, com teste.
+81. **A Stripe mudou onde a fatura guarda a assinatura — e a fatura chega
+    primeiro.** Na primeira compra de verdade (21/09) a ficha foi criada e o
+    acesso não. Duas causas somadas: na API `2026-08-26`, `subscription` e
+    `metadata` saíram do topo da fatura para `parent.subscription_details`, e
+    `current_period_end` saiu do topo da assinatura para `items.data[]`; e o
+    `invoice.paid` chegou **antes** do `checkout.session.completed`, então ler
+    os dados só na sessão não bastava. Sem achar o `user_id`, o aviso era
+    descartado como "de outra integração" — silencioso, porque é exatamente o
+    que se faz com aviso de outra conta. `handle-payment-event.ts` lê os dois
+    formatos (`assinaturaDe`, `metadataDe`, `fimDoCiclo`), e
+    `billing-api-nova.test.ts` usa o corpo real como molde. Para olhar um aviso
+    guardado sem adivinhar pela documentação:
+    `npx tsx scripts/ver-evento.ts invoice.paid`.
+82. **A Stripe libera Pix por convite, e o botão pronto levava a um erro.** O
+    código do Pix está inteiro e testado desde 19/09, mas em 21/09 a conta do
+    ColeXa ainda não tinha sido convidada: a sessão é recusada na criação, e a
+    pessoa descobria isso *depois* de escolher e sair do site. Agora o Pix nasce
+    desligado e volta com `STRIPE_PIX=1`, sem publicar código novo. No mesmo
+    dia o dono do produto **desistiu do Pix para o lançamento** (decisão 102,
+    mudança de 21/09), então a chave deixou de ser espera e virou escolha. A
+    lição que fica é anterior ao Pix: **forma de pagamento pronta no código não
+    é forma de pagamento disponível** — o provedor decide, e a tela tem de
+    perguntar a ele antes de oferecer.
+83. **`<button>` sem `type` dentro de `<form>` é `submit`.** Relatado pelo dono
+    do produto em 21/09: no Deck Builder, digitar um código e apertar Enter
+    **abria os filtros** em vez de buscar. O Enter num campo de texto dispara o
+    **primeiro botão de envio da árvore**, e o gatilho dos filtros — um
+    `<Button>` sem `type` — vinha antes do botão Buscar. Nas outras telas o
+    campo e o gatilho ficam em formulários diferentes, e por isso só o Deck
+    Builder adoecia. Corrigido com `type="button"` no gatilho
+    (`catalog-filters.tsx`), com teste que monta o arranjo do Deck Builder em
+    miniatura. **O `Button` do projeto não define `type` padrão**, então
+    qualquer `<Button>` novo dentro de um formulário repete isso — vale conferir
+    ao colocar um.
+84. **A PTAX do dia só sai à tarde, e a tarefa roda às 04:00.** Relatado pelo
+    dono do produto em 21/09: o site inteiro com preço só em dólar. Não era
+    defeito de importação — era o calendário somado ao horário. O PTAX não
+    existe em sábado e domingo, e na **segunda de manhã ele ainda não foi
+    publicado**, então a tarefa das 04:00 encontra a cotação de **sexta**. À
+    meia-noite UTC (21:00 de Brasília) a conta chegava a quatro dias, e a janela
+    de três derrubava o real da tela **toda segunda à noite**, no horário de
+    maior uso, até a tarefa da terça consertar sozinha.
+
+    A janela passou de 3 para **7 dias**, por escolha do dono do produto — que
+    preferiu alargar a tolerância a mexer no horário que ele mesmo escolheu. O
+    que segura o risco é a tela **dizer a data da cotação** ao lado do valor: o
+    número nunca se apresenta como sendo de hoje se não for.
+
+    O diagnóstico, se reaparecer, é `npm run supabase status` — ele imprime a
+    data da cotação. `npm run supabase prices` à mão conserta na hora, desde que
+    a PTAX do dia já tenha saído.
+85. **No `next dev` os dados são locais, mas o login é o de produção.**
+    `DATABASE_URL` aponta para o Postgres da máquina e
+    `NEXT_PUBLIC_SUPABASE_URL` para o projeto hospedado: as duas metades de uma
+    conta moram em lugares diferentes.
+
+    A consequência apareceu em 21/09. Apagar as contas de produção
+    (`limpar-contas`, em 19/09) apagou também os usuários do **Supabase Auth**,
+    e os `auth_user_id` guardados no banco local viraram órfãos. Entrar de novo
+    cria uma identidade nova, com id novo, que não bate com a linha antiga — e a
+    trava da decisão 097 recusa o login com *"este e-mail já tem uma conta no
+    ColeXa, criada com outra forma de entrar"*. **Parece defeito do login, e não
+    é**: é lixo local, e a trava está fazendo o trabalho dela.
+
+    Conserto sem apagar nada: `npm run religar-local` troca o `auth_user_id` da
+    linha local pelo que o Supabase tem agora, preservando coleção, want list,
+    binders e plano. Com um e-mail (`-- <email>`) faz só uma. Ele **recusa rodar
+    se `DATABASE_URL` não for da própria máquina**, e do Supabase só lê.
+
+    Quem nunca entrou desde a limpeza ainda não tem identidade, e o script diz
+    isso em vez de inventar uma: entre uma vez, e rode de novo.
+86. **Contagem de falha não é relato de falha.** Em 22/09 a importação do
+    catálogo rodou vinte minutos e terminou com `falhas=1` — e **não havia como
+    saber qual série**. O identificador existia no relatório e nunca era
+    impresso; a linha do erro saía por `console.error`, e numa execução de
+    sessenta séries ela se perde, ou nem chega ao arquivo de quem chamou.
+
+    Corrigido: o resumo nomeia as séries (`falhas=1 (569999)`), lista cada uma
+    com o motivo, e o comando ainda imprime a linha para **rodar só elas** —
+    `npm run supabase import <ids>`. Tudo por saída padrão, que é o que se
+    captura.
+
+    A lição vale além deste caso: **numa tarefa longa e sem plateia, um número
+    de falhas sem identificador é um ponto cego**. Quem escrever a próxima tarefa
+    agendada precisa dizer *o quê* falhou, e não *quantos*.
+87. **O traço da Bandai quer dizer duas coisas, e só o tipo da carta separa.**
+    Relatado por um usuário em 22/09: existem cartas de custo 0 e poder 0, e o
+    filtro não as alcançava. **A causa não era o filtro** — todo o caminho dele
+    já tratava zero corretamente. Era a **leitura**: a fonte escreve `-` tanto
+    para "zero" quanto para "este tipo não tem este campo", e o parser lia os
+    dois como nulo.
+
+    O estrago, medido em produção: **152 Characters de poder 0** e **23 Events
+    de custo 0** com `null` no banco, fora de qualquer filtro de faixa — e o
+    mínimo de poder aparecia como 1000 em vez de 0. Conferido contra a fonte ao
+    vivo: `OP03-044 Kaya`, Character de poder 0, chega como `-`.
+
+    A regra agora é do tipo: **campo que o tipo obriga, traço é zero**. Leader e
+    Character sempre têm poder; Character, Event e Stage sempre têm custo;
+    Leader tem Life. **Counter fica de fora**: ali o traço é mesmo "sem
+    counter", e a busca já trata o zero como isso (decisão 066).
+
+    **Corrigir o código não corrige o banco**: as 175 cartas só mudam na próxima
+    `npm run supabase import`.
+88. **A conversão das artes nunca roda na Fly, e o limite do Next é fixo.**
+    Em 25/09 a Bandai passou a estrangular o endereço da Fly. Medido nos dois
+    lados, com os mesmos arquivos no mesmo instante: **2,1 s da máquina de
+    desenvolvimento, 27 a 30 s da Fly**, quando não estoura — cerca de 8 KB/s.
+
+    E o Next desiste antes: o tempo de buscar a imagem na origem é
+    `AbortSignal.timeout(7000)`, **escrito fixo no código dele**. Não há
+    configuração. `imgOptTimeoutInSeconds`, que a decisão 090 ajustou achando que
+    era isso, vai para `sharp().timeout()` — o tempo de **processar**, não o de
+    **baixar**. A 090 funcionou na época porque o cache encheu.
+
+    Por isso a decisão 113 guarda a arte convertida no volume. E por isso
+    **`npm run supabase imagens` roda fora da Fly**: de lá, refazer as 4.431
+    artes levaria ~53 h contra ~2 h 30 daqui. Quem escrever um comando que gere
+    imagem no servidor reintroduz o defeito inteiro.
+89. **Imagem quebrada não é imagem ausente, e `next/image` responde 500.**
+    O TCGplayer publica a URL da arte mesmo quando não tem o arquivo, e ela
+    devolve **403** — 4 dos 239 DON!!. Guardada, ela vira ícone quebrado.
+
+    Pior: host que não esteja em `remotePatterns` faz `next/image` responder
+    **500 na tela inteira**, e não uma imagem quebrada. Aconteceu em 23/09 na
+    planilha da Liga assim que as 239 passaram a renderizar.
+
+    A importação do DON!! confere cada imagem antes de guardar, com uma trava:
+    403 é também o que um limitador de tráfego devolve, então acima de 20% de
+    falhas **nada** é descartado. E a conferência é **uma vez para o catálogo
+    inteiro**, não por grupo: por grupo, muitos têm uma ou duas cartas, e aí uma
+    falha é 100% — a trava lia como bloqueio e não descartava nada. Medido: por
+    grupo, nenhuma das 4 quebradas era descartada.
+90. **O volume da Fly tinha 1 GB, não 7,8 GB.** O `df -h` mostra os dois: 7,8 G
+    é o disco raiz da máquina (`/.fly-upper-layer`), e o volume montado em
+    `/app/.next/cache` é outra linha. Ler a errada quase pôs 515 MB num volume
+    com 573 MB livres. Confira com `fly volumes list`, que não tem ambiguidade.
+    Hoje ele tem **3 GB**, com snapshots agendados e retenção de 5.
+91. **Filtro que cruza com DON!! devolve sempre zero.** DON!! não tem cor,
+    trait, atributo nem raridade comum, então marcá-lo junto de qualquer outra
+    faceta não tem resposta. Por isso ele **não é oferecido** como chip de tipo
+    (decisão 112) — o tipo existe e a busca sabe filtrá-lo, o que saiu foi o
+    convite. A entrada dele é a porta própria no catálogo.
 
 ## Pendências
 
@@ -703,11 +877,19 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 2. ~~**SMTP próprio no Supabase**~~ — **resolvido em 17/09**: configurado pelo
    dono do produto com o Resend, e ele confirmou que o e-mail de cadastro chega
    com o nome ColeXa (decisão 086).
-3. **O domínio.** `fly certs add colexa.com.br`, os registros de DNS, `APP_URL`
-   para `https://colexa.com.br` em `fly.toml`, e nos painéis: `https://colexa.com.br/**`
-   nas *Redirect URLs* e **Site URL** do Supabase, e a origem no Google
-   (`development.md` 6.6). A Site URL é o destino quando o endereço de volta não
-   está na lista (armadilha 61).
+3. ~~**O domínio**~~ — **feito em 21/09.** `colexa.com.br` e `www` com
+   certificado emitido pela Fly, DNS no `registro.br` (A e AAAA para os dois),
+   `APP_URL` publicado, e os três painéis atualizados. `colexa.fly.dev`
+   continua respondendo e **redireciona** com 308 para o oficial — menos a
+   checagem de saúde, que a Fly precisa que responda 2xx.
+   **Cuidados que ficaram:**
+   - o `.fly.dev` segue nas *Redirect URLs* do Supabase, porque e-mails enviados
+     antes da migração apontam para lá; **remover depois de uma semana**;
+   - o logo no Google só entrou agora; pedir a **verificação do app** exige
+     Termos e Política de verdade, e hoje ela seria recusada;
+   - a tela de consentimento do Google continua mostrando o endereço do
+     Supabase. Trocar exige domínio personalizado: **US$ 10/mês**, e só em
+     plano pago (US$ 25/mês), que já está recomendado pelo backup.
 4. ~~**`RESEND_API_KEY` e `EMAIL_FROM` no ambiente de produção**~~ — **resolvido
    em 17/09**: na Fly (segredo e `fly.toml`), assim como a chave do Turnstile no
    build.
@@ -733,16 +915,34 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
    primeiro na rede. **Meio de pagamento e preço, decididos em 19/09**
    (decisão 102): Stripe, cartão recorrente e Pix avulso, R$ 14,90/mês ou
    R$ 149,00/ano, e quem testou fica 6 meses de cortesia depois do lançamento
-   da cobrança. **Nada disso está construído** — é o Checkpoint 15, e ele exige
-   colunas novas em `users`, que é conversa antes de código.
+   da cobrança. **Construído em 19 e 20/09 e aberto em 21/09** — ver o item 9.
+   O Pix ficou de fora do lançamento, e o teste grátis de 7 dias entrou
+   (decisão 102, mudanças de 21/09). As colunas em `users` já existiam desde a
+   decisão 041: nenhuma foi criada para isso.
 
-9. **Ligar a cobrança na Stripe** (decisão 102). O código está publicado e
-   desligado. Falta, **no painel da Stripe e com o dono do produto**: dois
-   preços recorrentes (R$ 14,90/mês e R$ 149,00/ano), o Pix ligado, o webhook
-   para `https://colexa.fly.dev/api/pagamentos/stripe` com cinco eventos, o
-   portal do cliente, e as quatro variáveis nos segredos (`development.md`
-   6.8). Antes de abrir a cobrança de verdade: política de cancelamento e
-   reembolso nos Termos, e o contador para a nota.
+9. ~~**Abrir a cobrança**~~ — **aberta em 21/09** (decisão 102). O modo ao vivo
+   está ligado, com os **sete eventos** no webhook, e foi conferido com uma
+   **compra mensal de verdade**: aviso assinado e aceito, ciclo mensal, data um
+   mês à frente, e o estorno depois. O roteiro da virada ficou em
+   `development.md` 6.9, para o dia em que a conta da Stripe mudar.
+
+   **Seis dos sete eventos já rodaram com dinheiro real.** O que nunca rodou é
+   o `charge.dispute.created` — e, com sorte, vai demorar. No lugar dele há sete
+   testes de integração. Ensaiar exigiria voltar as chaves para o modo de teste,
+   que custa mais do que ganha.
+
+   O que **ainda** falta na cobrança:
+   - O **contador**, para a nota da receita recorrente. É a única pendência
+     dela que não é de software.
+   - **Os Termos ficaram para depois da abertura**, por decisão do dono do
+     produto em 21/09 (decisão 102, mudança). O risco assumido está escrito lá,
+     e eles **continuam sendo bloqueio de lançamento** (decisão 030). Enquanto
+     não vierem, cancelamento e reembolso são à mão, pelo painel da Stripe.
+   - **Disputa ganha por nós não devolve o acesso sozinha** — pergunta em aberto
+     para o dono do produto. Até lá, `npm run supabase -- premium`.
+   - **Pix não é pendência**: ficou fora do lançamento por decisão (102,
+     mudança de 21/09). Se um dia entrar, é pedir o convite à Stripe e ligar
+     `STRIPE_PIX=1` no `[env]` do `fly.toml`.
 10. **Duas contas com cortesia vitalícia** em produção desde 19 e 20/09:
     `pedrodusek30@gmail.com` (o dono do produto) e `joaoguerra444@gmail.com`
     (quem ajudou no desenho do produto), as duas **até 19/09/2046**. Não há
@@ -767,6 +967,14 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
 
 ### Perguntas em aberto
 
+- ~~**Artes de campanha, tipo Dash Pack**~~ — **decidido em 22/09**: não entram.
+  O catálogo é espelho da lista oficial da Bandai, e ela **não publica** essas
+  artes (conferido: `OP15-076_p1.png` dá 404 nos sites inglês **e** japonês).
+  Quem as tem — TCGplayer, lojas — as tira do catálogo **comercial**, não da
+  base de cartas. Está no acréscimo de 22/09 à decisão 020, com o caminho
+  recusado por ora (lista manual de artes extras).
+  **Resposta de suporte:** o ColeXa segue a lista oficial; artes de campanha que
+  a Bandai não publica não aparecem aqui.
 - **Credencial do TCGplayer.** O preço virá de lá (decisão 047), mas a API é de
   programa de parceiros: sem aprovação e chaves não há coleta a construir. É o
   único bloqueio da valoração — armazenamento e cadência já estão medidos e não
@@ -987,12 +1195,18 @@ Coisas para não desfazer sem querer:
   índice único de `variant_source_products` dá um dono por produto. Mostrar nas
   duas exigiria mudar o modelo, e o dono escolheu deixar como está.
 
-## O Deck Builder (decisão 095)
+## As decklists (decisão 095)
 
 Construído em 17/09, com o dono do produto testando a cada rodada. Premium, em
 `/deck`, com destino próprio na gaveta.
 
+**Duas coisas desta seção mudaram depois, e o texto abaixo é de 17/09:** a
+decisão 108 passou a **guardar** as listas, nas tabelas `decks` e `deck_items`;
+a decisão 111 renomeou a tela para **Decks** e pôs as decklists numa aba, ao
+lado das deckboxes.
+
 - **Conferência, não guardador:** a lista vive na tela. Nenhuma tabela nova.
+  *(Deixou de valer na 108.)*
 - **Um líder e 50 cartas.** A única regra de combinação é **uma cor em comum
   com o líder** — trait não importa (um líder Straw Hat vermelho aceita uma
   Baroque Works vermelha). No máximo 4 cópias por código, somando as artes. O
@@ -1098,10 +1312,28 @@ crédito da folha à advogada junto com os Termos de Uso.
 
 ## A cobrança do Premium (decisão 102)
 
-Construída em 19 e 20/09 e **publicada desligada**: sem as chaves da Stripe, a
-tela de Premium diz que a assinatura não está aberta e o webhook responde 503.
-Ligar é configurar, não programar — o passo a passo está em `development.md`
-6.8, e o que falta ao dono do produto está em "Pendências".
+Construída em 19 e 20/09, e **aberta de verdade em 21/09**: modo ao vivo, seis
+eventos no webhook, e uma compra mensal com cartão real que entrou, liberou o
+acesso e foi estornada. A configuração está em `development.md` 6.8, e a virada
+para o modo ao vivo em 6.9. Sem chaves, a tela diz que a assinatura não está
+aberta e o webhook responde 503 — é assim que o ambiente local roda.
+
+**O detalhe que mais vale guardar deste dia:** o `invoice.paid` chegou **antes**
+do `checkout.session.completed` nas **três** compras — as duas de teste e a de
+verdade —, com meio segundo de diferença. A ordem dos avisos não é garantida, e
+é por isso que nenhum aviso pode ser a única porta do acesso. A primeira compra
+falhou exatamente por depender disso (armadilha 81).
+
+**O lançamento é só no cartão** (decisão 102, mudança de 21/09). O Pix está
+pronto e dormindo atrás de `STRIPE_PIX`; a Stripe o libera por convite, e o
+dono do produto desistiu de esperar.
+
+As fichas criadas no **modo de teste** foram apagadas antes da virada
+(`limpar-assinaturas`), porque apontavam para clientes que não existem no modo
+ao vivo. A conta do dono do produto ficou com **uma ficha `CANCELED` real**, da
+compra estornada: ela é histórico legítimo e fica. A consequência de mantê-la é
+que a tela dele mostra "Gerenciar pagamento" e os planos, mesmo sendo Premium —
+assinatura cancelada é um dos casos que precisam de ação.
 
 - **O acesso continua em `users.premium_until`.** A tabela `subscriptions` diz
   o que a Stripe sabe; aquela coluna diz o que o ColeXa libera. Nenhuma trava
@@ -1111,8 +1343,37 @@ Ligar é configurar, não programar — o passo a passo está em `development.md
 - **`payment_events` é a trava contra processar o mesmo aviso duas vezes**, e o
   rastro para cobrança contestada. Falha deixa `handled_at` nulo de propósito,
   para o reenvio da Stripe poder ser processado.
+- **Estorno e contestação cortam o acesso na hora** (decisão 102, mudanças de
+  21/09), e são a única exceção à regra de nunca encurtar. Os limites são de
+  propósito: só estorno **total**, e só o que **aquele pagamento** deu — quem
+  tem cortesia mais longa não perde nada. Dependem de `charge.refunded` e
+  `charge.dispute.created` estarem marcados no painel — **estão, desde 21/09**,
+  e quem montar um destino novo precisa marcar os sete.
+- **A contestação é a única coisa que faz o webhook perguntar à Stripe.** O
+  aviso de disputa traz `charge` e `payment_intent` e **não** traz o cliente, e
+  sem cliente não há de quem cortar; `customerOfCharge` resolve isso com um
+  `GET /v1/charges/{id}`. Ele engole a falha e devolve nulo de propósito: um GET
+  fora do ar não pode derrubar o webhook, ou a Stripe reenviaria para sempre.
+  **Disputa ganha por nós não devolve o acesso** — é pergunta em aberto, e até
+  lá se resolve com `npm run supabase -- premium`.
 - **Pix é pagamento avulso**: cada um compra um ciclo, contado por nós. Cartão
-  renova sozinho.
+  renova sozinho. **O Pix está desligado e fica fora do lançamento** (decisão
+  102, mudança de 21/09): o botão some e o caso de uso recusa `forma=PIX`. O
+  código continua inteiro e testado — voltar é `STRIPE_PIX=1`, num PR de uma
+  linha.
+- **Quem já assina no cartão é recusado antes de sair da tela**, com "Você já
+  tem uma assinatura ativa. Veja em Gerenciar pagamento". Espelha a trava de
+  "uma assinatura por cliente" do painel, cuja recusa chegaria como erro de
+  integração. Cancelada, atrasada e Pix não caem nessa trava, de propósito.
+- **O teste grátis de 7 dias** (decisão 102, mudança de 21/09) é a única porta
+  de Premium que não passa pela Stripe. Uma vez por conta, travado por
+  `users.trial_started_at` — coluna que existia desde a decisão 041 e nunca
+  fora usada, então **não houve mudança de modelo de dados**. A trava mora no
+  `where` do update, e não num `if`: dois toques no botão passariam pelos dois
+  `if` e, pior, um resgate junto com um pagamento encurtaria o acesso para sete
+  dias. A brecha de criar outra conta foi **aceita por escrito** pelo dono do
+  produto; fechar exigiria cartão ou documento, que é o atrito que o teste
+  existe para evitar.
 - **Quem já é Premium não vê os planos**, menos no Pix e em assinatura
   cancelada ou atrasada, que precisam de ação.
 
@@ -1125,6 +1386,10 @@ Coisas para não desfazer sem querer:
   cortesia longa e resolve assinar.
 - **O corpo do webhook é lido como texto cru.** `request.json()` reserializa e
   a assinatura deixa de conferir.
+- **Os avisos são lidos nos dois formatos de API** (armadilha 81), e **nenhum
+  aviso é a única porta**: a fatura sozinha já libera o acesso, porque a ordem
+  de chegada não é garantida. Quem mexer aqui não deve voltar a depender de
+  `objeto.subscription` nem de `objeto.metadata` no topo.
 
 ## A leva de cartas, depois do defeito de 20/09
 
@@ -1236,22 +1501,33 @@ Uma conta num navegador, a outra noutro ou numa janela anônima.
 
 ## Próximo passo
 
-**Abrir o ColeXa a 15 ou 20 testadores**, escolha do dono do produto em 17/09, em
-`colexa.fly.dev`. A revisão da decisão 092 corrigiu o que dependia só de nós; o
-que falta para receber gente de fora:
+**Abrir o ColeXa a 15 ou 20 testadores**, escolha do dono do produto em 17/09,
+hoje em `colexa.com.br` (o endereço mudou em 21/09; `colexa.fly.dev` redireciona
+para lá). A revisão da decisão 092 corrigiu o que dependia só de nós; o que
+falta para receber gente de fora:
 
 - **Termos de Uso e Política de Privacidade** (decisão 030). Testador é pessoa
   real, e a LGPD vale para os 20 primeiros como para os próximos. A tabela de
   `integrations.md` 3.3 diz quais serviços a Política precisa citar.
 - **Idade mínima** (decisão 060), se houver.
-- **Site URL do Supabase** ainda é `http://localhost:3000`: qualquer e-mail que
-  não carregue `redirect_to` manda o testador para a máquina de quem
-  desenvolve. Trocar para `https://colexa.fly.dev` enquanto o domínio não existe.
+- **Site URL do Supabase**: se ainda for `http://localhost:3000`, qualquer
+  e-mail que não carregue `redirect_to` manda o testador para a máquina de quem
+  desenvolve. O valor certo hoje é `https://colexa.com.br`. **Conferir no
+  painel** — não dá para verificar daqui.
 - **Limites do Supabase Auth** (*Authentication → Rate Limits*): o padrão conta
   por IP, e vários testadores na mesma rede — uma loja, um evento — batem no
   teto juntos. Conferir antes.
-- **Backup do banco**: o plano gratuito não tem. Com dado de gente real, é o
-  maior risco da operação.
+- **Backup do banco** — continua **sem backup nenhum**, e o dono do produto
+  **adiou o Pro em 22/09** (decisão 106, correção). Não é pendência a cobrar: é
+  escolha registrada. O que fica no ar: desde 21/09 há assinatura paga,
+  histórico de cobrança e coleção de gente real, e o plano gratuito não tem de
+  onde voltar.
+
+  **O backup é o único motivo que sobrou** para o Pro, e sempre foi independente
+  de espaço. O argumento de espaço caiu quando a decisão 107 apagou o histórico
+  de preço: Pokémon cabe no gratuito. O Pro ainda destravaria o teto de conexões
+  (armadilha 71) e o domínio personalizado do Supabase (mais US$ 10/mês), que
+  tira `zcyavtxrnpxinkvfnftf.supabase.co` da tela de consentimento do Google.
 - ~~**Um caminho para o testador relatar**~~ — **construído em 18/09**
   (decisão 096): "Enviar feedback" em Minha conta, por e-mail a
   `suporte@colexa.com.br` com o assunto `FEEDBACK`. O dono do produto testou e
@@ -1268,9 +1544,23 @@ O que continua combinado para depois:
   linha de lista, estado vazio —, que o dono do produto adiou para depois da
   Social. A revisão visual e textual tela a tela, e os links das cartas, ficam
   para o fim.
-- **Os bloqueios de lançamento** (seção "Pendências"): Termos e Política, idade
-  mínima, meio de pagamento e preço do Premium, limpar as
-  contas de teste e ligar o domínio.
+- **Os bloqueios de lançamento** (seção "Pendências"): Termos e Política, e
+  idade mínima. Meio de pagamento e preço saíram da lista — decididos na 102,
+  construídos, e a cobrança **aberta ao vivo** em 21/09 —, e o domínio entrou no
+  ar no mesmo dia.
+- **Pokémon e Magic** — o **passo 7 da decisão 104 fechou em 22/09**
+  (decisão 106): a fonte é o **TCGdex**, confirmada contra a API, e **nada foi
+  importado**. O que ela resolve: a variante tem identidade própria e o preço
+  vem anexado, então **o vínculo manual do One Piece não se repete**.
+
+  **Cabe no plano gratuito**, ao contrário do que a decisão 106 dizia: aquele
+  cálculo era anterior à 107, que apagou o histórico de preço e derrubou o termo
+  que dominava a conta. Medido depois: **~84 MB de Pokémon, ~107 MB com One
+  Piece, de 500 MB**. A correção está na 106.
+
+  Então **Pokémon está parado por prioridade, e não por limite de banco.** Ficam
+  para decidir o modelo multi-jogo, o idioma por carta e a cadência de
+  importação.
 - **CSP de scripts** (decisão 092 deixou de fora): fechar de onde o navegador
   pode carregar script. Feito errado, derruba o login sem aviso, então pede uma
   passada própria.
@@ -1461,6 +1751,34 @@ Três coisas para não desfazer sem querer:
 - **Tabela inválida é erro**, e o teste `liga-cards-file` lê o arquivo do
   repositório: um PR de conferência com JSON quebrado reprova na CI.
 
+## As artes das cartas (decisão 113)
+
+O que mais mudou de operação nesta leva, e o que mais dói se for esquecido.
+
+**A arte não vem mais da Bandai em tempo de acesso.** Ela está convertida no
+volume da Fly, em `/app/.next/cache/cartas`, e é servida pela rota
+`/imagens/cartas/[arquivo]` — leitura de disco, sem passar pelo otimizador.
+
+Números de 25/09: **4.666 artes, zero falhas, 525 MB**, num volume de 3 GB com
+2,0 GB livres. Antes: 500 e 504 depois de 7 s. Depois: **200 em menos de 0,12 s**.
+
+**O que é preciso fazer, e de onde:**
+
+```
+npm run supabase imagens          # converte só o que falta — RODAR FORA DA FLY
+```
+
+Depois de cada coleção nova, ele converte as artes novas e pula as prontas. O
+envio para o volume é à mão: empacotar, `fly ssh sftp put`, extrair. Da Fly, a
+mesma conversão levaria ~53 h — ver a armadilha 88.
+
+**A troca acontece num lugar só:** `CardArt` deriva a arte guardada do próprio
+endereço de origem, porque o `source_id` está dentro dele. Endereço que não
+reconhecemos **segue para a origem** — é o que torna isto reversível.
+
+**Sobrou faxina:** os 335 MB do cache do otimizador ficaram obsoletos para
+carta. Apagar é seguro agora, e ninguém apagou ainda.
+
 ## O que espera resposta do dono do produto
 
 - **Idade mínima.** Expor perfil de menor de idade a estranhos é assunto sério
@@ -1475,7 +1793,21 @@ Três coisas para não desfazer sem querer:
   Supabase (o ColeXa não usa), recomendado em 17/09. *Network Restrictions* **saiu
   da recomendação** (decisão 089): a Fly e o workflow de preços saem por IPs que
   mudam.
-- **Plano do Supabase**: backup automático só no Pro.
+- **Plano do Supabase**: backup automático só no Pro. Recusado em 22/09 — o
+  banco segue **sem backup**. O volume das artes, esse, tem snapshots da Fly.
+- **O par de links repetidos da Liga**: `692132` e `702306`, os dois DON!! de
+  Elbaph Luffy, apontam para a mesma página. São cartas diferentes, então uma
+  está errada. A planilha avisa; ninguém decidiu ainda.
+- **Duas artes de DON!! sem link da Liga**: `710745` e `710746`, do Heroines
+  Special Set, que também não têm imagem no TCGplayer.
+- **A resolução das artes de DON!!**: elas ficaram em 200×280 porque guardamos a
+  miniatura `_200w` do TCGplayer. Existe `_in_1000x1000.jpg`. Melhorar exige
+  reimportar os 239 e reconverter.
+- **Vincular cada DON!! à coleção em que saiu** (decisão 112): a tela `/dev/don`
+  está pronta e a tabela `data/don-sets.json` está vazia. Fica registrado o que
+  foi dito na hora: um DON!! dentro da OP01 **passa a contar no progresso da
+  OP01**, e aí o progresso global, que exclui DON!! por tipo, vai discordar do
+  progresso por coleção.
 
 O protocolo continua: uma branch e um PR por checkpoint, o assistente merge
 quando estiver completo e sem pendência, e para antes de iniciar o próximo

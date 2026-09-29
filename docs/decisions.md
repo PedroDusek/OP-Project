@@ -754,6 +754,42 @@ As mitigações fazem parte da decisão e são obrigatórias na implementação:
 - **Importação sob demanda.** Executada manualmente ou em agenda esparsa, nunca
   a cada requisição de usuário.
 
+## Acréscimo em 22/09: o catálogo é espelho da lista oficial, e só dela
+
+Um usuário relatou a falta de uma carta: **OP15-076, na arte do Dash Pack** —
+aquelas artes alternativas que a Bandai distribui em campanha, na compra de uma
+booster box. Ela não está na Liga, e a loja que a vendia era a única a mostrá-la.
+
+O que a investigação achou:
+
+- **A carta existe** na nossa base, com a arte Normal.
+- **A arte do Dash Pack não está na lista oficial**, nem em inglês nem em
+  japonês. As URLs `OP15-076_p1.png` dos dois sites respondem **404**; só a
+  `OP15-076.png` existe.
+- Quem tem essa arte — TCGplayer, lojas — não a tira da base de cartas da
+  Bandai, e sim do **catálogo comercial**, o que está à venda. São coisas
+  diferentes: uma é o que o jogo publica, a outra é o que o mercado negocia.
+
+**Decisão do dono do produto: não incluir.** O catálogo do ColeXa é espelho da
+lista oficial, e **arte que a Bandai não publica não existe aqui**.
+
+Por que isso é coerente com a 020, e não uma limitação aceita por preguiça:
+
+- A decisão original já dizia que **nenhuma fonte intermediária resolve**, porque
+  nenhuma tem direito de sublicenciar os dados da Bandai. Puxar do catálogo
+  comercial seria exatamente isso.
+- Os nomes de produto do TCGplayer são a bagunça que obrigou a **773 vínculos
+  manuais** (decisões 068 a 078). Deixá-los criar variantes trocaria um catálogo
+  conferido por um catálogo adivinhado.
+- E não haveria imagem: a 020 proíbe copiar arte, e a Bandai não publica essa.
+
+O custo assumido: quem tem uma arte de campanha não consegue registrá-la, e vai
+relatar de novo. A resposta de suporte é que o ColeXa segue a lista oficial.
+
+**Se um dia isso pesar**, o caminho examinado e recusado por ora é uma lista
+manual de artes extras, no espírito do `paralelas-candidatas.json` — o dono do
+produto decidindo arte a arte, e não uma regra automática.
+
 ## Motivo
 
 Escolhida pelo dono do produto depois de a limitação ter sido apresentada com
@@ -766,7 +802,7 @@ origem não alcance o resto do sistema.
 
 ## Data
 
-2026-09-06
+2026-09-06 (acréscimo sobre o escopo em 2026-09-22)
 
 ---
 
@@ -2701,6 +2737,20 @@ daquele dia — duas linhas com data, e não um número congelado.
 fim de semana com feriado emendado, que é o buraco mais longo que o calendário
 brasileiro produz sem que algo esteja errado. Passando disso, a importação
 parou, e converter por taxa velha seria apresentar um palpite com cara de dado.
+
+> **Mudança em 21/09: o limite passou para sete dias.** Três não cobriam o que
+> se imaginava. A tarefa roda às 04:00 de Brasília e **a PTAX do dia só sai no
+> meio da tarde**, então na segunda de manhã ela ainda encontra a cotação de
+> sexta — e à meia-noite UTC, que são 21:00 de Brasília, a conta chegava a
+> quatro dias. O real sumia da tela **toda segunda à noite**, no horário de
+> maior uso, até a tarefa da terça consertar sozinha. O dono do produto relatou
+> o sintoma em 21/09 e escolheu **alargar a janela em vez de mexer no horário**,
+> que é escolha dele desde a decisão 051.
+>
+> O que se perde: uma importação que pare demora até uma semana para aparecer
+> na tela. O que segura: a tela **diz a data da cotação** ao lado do valor, como
+> a decisão 4 abaixo exige — o número nunca se apresenta como sendo de hoje se
+> não for.
 
 ## Decisão 3 — Duas tabelas novas, aprovadas pelo dono do produto
 
@@ -6213,7 +6263,8 @@ pagamento e preço").
 4. **Quem testou ganha 6 meses de Premium** contados do lançamento da cobrança,
    com aviso antes de acabar. Depois disso, assina como qualquer pessoa.
 5. **Sem teste grátis de 7 dias** por enquanto. O campo `trial_started_at`
-   continua sem uso, e ligar isso é decisão de outro dia.
+   continua sem uso, e ligar isso é decisão de outro dia. **(Mudado em 21/09 —
+   ver abaixo.)**
 
 ## Por que Stripe, e o que se perde
 
@@ -6236,9 +6287,190 @@ cerca de R$ 14,01.
 - **Política de cancelamento e reembolso**, que precisa constar nos Termos de
   Uso (decisão 030) antes de a cobrança abrir.
 
+## Mudança em 21/09: o lançamento é só no cartão
+
+**O item 1 muda: o ColeXa lança com cartão, sem Pix.**
+
+Começou como impedimento e virou escolha, no mesmo dia. O impedimento: em 21/09
+a Stripe libera Pix **por convite** para empresas brasileiras, e a conta do
+ColeXa não foi convidada — com o Pix não liberado, a sessão de pagamento é
+recusada lá, e a pessoa escolheria o Pix, sairia do ColeXa e voltaria com um
+erro que não explica nada. Por isso o Pix foi desligado atrás de `STRIPE_PIX`.
+
+Horas depois, com a cobrança no cartão testada de ponta a ponta e funcionando,
+o dono do produto **desistiu do Pix para o lançamento**: não vale segurar a
+abertura esperando um convite com data desconhecida.
+
+O que isso significa:
+
+- **Nenhum código muda.** O Pix já estava desligado; o que mudou foi deixar de
+  ser espera e passar a ser decisão. `STRIPE_PIX` continua existindo.
+- **O código do Pix fica**, inteiro e testado, dormindo atrás da chave. Não foi
+  apagado de propósito: ele não custa nada parado, e apagá-lo seria escrevê-lo
+  de novo no dia em que o Pix entrar. Se um dia o peso mudar, apagar é fácil —
+  ressuscitar não.
+- **Não é para sempre.** Abrir o Pix depois é ligar a chave, num PR de uma
+  linha, sem tocar em tela nem em caso de uso.
+- O resto da decisão 102 não muda: preço, ciclos, cortesia e o teste grátis
+  ausente seguem como estavam.
+
+O custo assumido: quem não tem cartão de crédito não assina. O dono do produto
+aceitou isso para não atrasar o lançamento.
+
+## Mudança em 21/09: o teste grátis de 7 dias entra
+
+**O item 5 muda: o teste grátis existe.** Pedido do dono do produto no mesmo
+dia em que a cobrança passou no teste de ponta a ponta.
+
+A regra: **uma conta resgata 7 dias de Premium, sem cartão e sem cobrança, uma
+vez na vida**. Não passa pela Stripe — é a única porta de Premium que não é
+pagamento nem comando de operação.
+
+- **Não é automático, é resgatado.** A conta nasce Free e o relógio só começa
+  quando a pessoa pede. Dar automático no cadastro gastaria o teste de quem
+  entrou para olhar e voltou um mês depois.
+- **Vale para qualquer conta que nunca resgatou**, nova ou antiga. Uma data de
+  corte criaria "por que ele pode e eu não" entre testadores, sem ganhar nada.
+- **Quem já é Premium não resgata**, e a tela nem oferece: queimaria os sete
+  dias sem ganhar um só, porque o acesso nunca é encurtado. Fica guardado.
+- **Os planos continuam à vista durante o teste**, com um contador dos dias que
+  faltam. O contador é o único aviso do fim: **não há e-mail**. Mandar e-mail
+  exigiria tarefa agendada e modelo novos, e o dono do produto preferiu não
+  atrasar por isso — se o teste converter pouco, o e-mail é o primeiro ajuste.
+
+### Nenhuma coluna nova
+
+`users.trial_started_at` existe desde a decisão 041 e nunca foi usada. Ela é a
+trava inteira: nulo é "ainda não resgatou", preenchido é "já foi". O acesso
+continua saindo de `premium_until`, como qualquer outro Premium — nenhuma trava
+do produto sabe que trial existe, e "esta conta está em teste" se descobre
+comparando `premium_until` com o fim calculado, em vez de virar um segundo
+lugar para a mesma verdade.
+
+### A brecha, aceita por escrito
+
+A trava é por **conta**, não por pessoa: outro e-mail dá outros sete dias.
+
+Não há como fechar sem cartão ou documento, e pedir cartão é exatamente o
+atrito que o teste existe para evitar. Cogitou-se parar de limpar o carimbo na
+exclusão de conta, e **não resolveria**: a anonimização troca o e-mail por um
+sintético irreversível (`deleted+id@deleted.invalid`), então nada liga um
+cadastro novo à conta antiga.
+
+O dono do produto aceitou a brecha em 21/09, sabendo disso. Sete dias de
+Premium custam pouco, e quem quer burlar sempre consegue. Se o abuso aparecer,
+a saída é medir antes de agir — quantas contas resgatam e nunca voltam — e não
+adivinhar agora.
+
+## Mudança em 21/09: estorno corta o acesso na hora
+
+Descoberto na primeira compra em modo ao vivo: o dono do produto estornou os
+R$ 14,90 pelo painel e **continuou Premium até o fim do ciclo**. O webhook
+tratava cinco eventos, e nenhum deles era estorno.
+
+Com um cliente real isso não é detalhe. O **direito de arrependimento do CDC**
+— sete dias em compra online — vale querendo ou não, então o pedido de estorno
+*vai* acontecer: a pessoa recebia o dinheiro de volta e ficava com o ciclo
+inteiro de Premium de graça.
+
+**A regra nova:** estorno total corta o acesso na hora. É a **exceção** à regra
+de nunca encurtar (item 5 de 8.1 nas regras de negócio).
+
+Os limites da exceção, que são o que importa:
+
+- **Só estorno total.** Devolver parte do valor não desfaz a compra, e cortar o
+  mês inteiro por causa de R$ 1 puniria quem foi ressarcido de um erro nosso.
+- **Só o que aquele pagamento deu.** Quem tem acesso mais longo que o ciclo
+  estornado não perde nada — a data veio de cortesia (item 4), e o estorno não
+  tem o que fazer com ela. Sem isso, um assinante com cortesia até 2046 que
+  pedisse estorno de um mês perderia vinte anos.
+- **Na dúvida, corta.** Ficha sem fim de ciclo gravado: das duas falhas
+  possíveis, deixar Premium de graça para quem foi ressarcido custa dinheiro
+  toda vez, e a outra se conserta com um comando.
+- **Estorno não é cancelamento.** O status da assinatura não muda: a tabela
+  `subscriptions` diz o que a Stripe sabe, e para ela a assinatura continua de
+  pé. Quem estorna sem cancelar é cobrado de novo no mês seguinte, e o acesso
+  volta com o pagamento — que é o certo.
+
+**Contestação de cobrança (chargeback) corta igual**, decidido pelo dono do
+produto no mesmo dia. O corte acontece na **abertura** da disputa
+(`charge.dispute.created`), que é quando o dinheiro sai da conta, e vale os
+mesmos limites do estorno.
+
+Duas coisas ficaram em aberto, de propósito:
+
+- **Disputa ganha por nós não devolve o acesso sozinha.** O dinheiro volta, mas
+  nada reabre o Premium — até alguém decidir a regra, se resolve com
+  `npm run supabase -- premium <email> --ate=...`. Automatizar sem decidir seria
+  inventar regra.
+- **A disputa não diz de quem é.** Ao contrário do estorno, o aviso traz
+  `charge` e `payment_intent`, e **não** o cliente. Por isso o webhook passou a
+  perguntar ao provedor de quem é a cobrança (`customerOfCharge`) — a única
+  operação em que ele pergunta em vez de só ler. A alternativa era guardar o id
+  da cobrança em `subscriptions`, e coluna nova é conversa (decisão 041).
+
+**Os eventos `charge.refunded` e `charge.dispute.created` precisam estar
+marcados no painel da Stripe**, nos dois modos. Sem eles o código nunca é
+chamado, e o sintoma é exatamente o que motivou esta mudança.
+
+## Mudança em 21/09: o mensal vem primeiro, e vem marcado
+
+O item 3 ("os dois ciclos são oferecidos, e a pessoa escolhe") não dizia **qual
+vem marcado**, e até aqui era o anual. Passa a ser o **mensal**, primeiro na
+ordem e pré-selecionado, a pedido do dono do produto.
+
+Fica registrado porque não é layout: qual ciclo vem marcado é qual plano se
+empurra. O primeiro número que a pessoa vê passa a ser **R$ 14,90**, e não
+R$ 149,00.
+
+**A consequência que veio junto:** a frase "você economiza R$ 29,80 no ano"
+existe só quando o anual está selecionado, e portanto **não aparece mais de
+entrada** — ela agora depende de a pessoa tocar em "Anual". É efeito da
+escolha, não descuido; se o anual converter menos, mostrar a economia sempre é
+o primeiro ajuste a tentar.
+
+## Mudança em 21/09: a cobrança abre antes dos Termos
+
+A decisão original dizia, em "o que ainda falta providenciar", que a **política
+de cancelamento e reembolso precisava constar nos Termos de Uso antes de a
+cobrança abrir**. O dono do produto decidiu em 21/09 **abrir antes**, e esta
+seção existe para que isso não fique só numa conversa.
+
+**O risco, escrito por inteiro:** a partir da chave `sk_live_`, gente real paga
+de verdade sem Termos de Uso, sem Política de Privacidade publicada e sem
+política de reembolso escrita. O Código de Defesa do Consumidor dá **sete dias
+de arrependimento** em compra online (art. 49) valha o que valer o que está —
+ou não está — publicado. Sem nada escrito, cada pedido de reembolso vira
+negociação caso a caso, e a exposição é do dono do produto.
+
+**O que reduz o estrago enquanto os Termos não vêm:**
+
+- O site está **fora dos buscadores** (`ALLOW_INDEXING=0`), então quem chega é
+  quem foi convidado.
+- Cancelamento e reembolso se resolvem **pelo painel da Stripe**, à mão, e a
+  Stripe devolve ao cartão sem custo do lado de cá.
+- O **teste grátis de 7 dias** é a porta recomendada para quem quiser
+  experimentar: não cobra nada, e não gera reembolso nenhum.
+
+**Os Termos continuam sendo bloqueio de lançamento** (decisão 030). O que mudou
+é a ordem, não o dever: abrir antes é decisão consciente do dono do produto,
+tomada com o risco acima na frente dele.
+
+## Mudança em 21/09: uma assinatura por pessoa, dita em português
+
+A conta está com "uma assinatura por cliente" ligada no painel da Stripe.
+A recusa dela chega como erro de integração, e a pessoa veria "algo deu errado"
+sem saber que o problema é já ter o que está tentando comprar. O ColeXa passa a
+recusar antes de sair da tela: **"Você já tem uma assinatura ativa. Veja em
+Gerenciar pagamento."**
+
+Vale só para **cartão ativo**. Cancelada e atrasada continuam podendo pagar de
+novo — são exatamente os casos em que pagar é o que a pessoa quer —, e o Pix,
+sendo avulso, não cria assinatura do lado de lá.
+
 ## Data
 
-2026-09-19
+2026-09-19 (mudanças em 2026-09-21)
 ---
 
 # Decisão: 103 — As imagens preparadas em rodízio, toda noite
@@ -6284,3 +6516,871 @@ passava disso pagava a espera, e às vezes o tempo esgotava.
 ## Data
 
 2026-09-20
+---
+
+# Decisão: 104 — Vários jogos, um produto: o Modo
+
+Definido pelo dono do produto em 20/09, ao planejar a entrada de Pokémon e
+Magic. Esta decisão fixa o **modelo**; a fonte de dados de cada jogo é decisão
+própria, jogo a jogo (ver a 020 para One Piece).
+
+## Decisão
+
+1. **O app tem Modo**: Modo One Piece, Modo Pokémon, Modo Magic. A pessoa troca
+   de modo, e **a interface é a mesma**, adaptada ao jogo escolhido. Não são
+   três produtos nem três contas: conta, sessão e rede continuam únicas.
+2. **Uma coleção por pessoa e por jogo.** Hoje `collections` é uma por pessoa;
+   passa a ser uma por pessoa e jogo. Contagem, playset, progresso e dashboard
+   passam a ser do modo em que a pessoa está.
+3. **Binder também é por jogo.** O mesmo binder físico pode ser cadastrado em
+   dois modos, e cada um mostra só as cartas daquele jogo. É o que corresponde
+   ao uso real: a pessoa separa as cartas por jogo dentro do mesmo móvel.
+4. **Trocas e Trade Binder são do modo.** Quem abre um Trade Binder vê as cartas
+   de um jogo, e uma troca acontece dentro de um jogo.
+5. **Idioma entra na identidade da cópia**: inglês, japonês e português. Três
+   cópias em português e duas em inglês são linhas diferentes da coleção, e o
+   mesmo vale na want list. Playset continua somando tudo — a carta é uma só.
+6. **Acabamento não vira atributo da cópia.** Reverse holo, holo e primeira
+   edição entram como **variantes do catálogo**, que é como Alternate Art e
+   Manga já vivem hoje. Assim o preço sai certo sem a pessoa ter de marcar
+   acabamento ao registrar.
+7. **As regras que mudam por jogo moram no domínio**, num registro por jogo:
+   playset (Magic tem terreno básico, Pokémon tem energia básica), tipos de
+   carta, filtros e regras de deck.
+
+## O que isso exige do modelo de dados (aprovado pelo dono do produto)
+
+- `game` em `sets`, `cards`, `card_variants`, `collections` e
+  `storage_locations`.
+- `cards.code` único por `(game, code)`, e não mais global.
+- `collections` único por `(user_id, game)`.
+- `language` em `collection_items` e `want_items`, entrando na chave única.
+
+## O que fica para decidir
+
+- **A assinatura vale para a conta inteira ou por modo?** A hipótese de trabalho
+  é conta inteira — quem paga tem Premium em todos os jogos —, mas isso é
+  escolha comercial e ainda não foi decidida.
+- **Onde a troca de Modo vive na interface**: gaveta, perfil ou cabeçalho.
+- **O que acontece com quem nunca escolheu modo**: entra em One Piece por
+  padrão, ou escolhe no primeiro acesso.
+
+## Data
+
+2026-09-20
+
+---
+
+# Decisão: 105 — A indexação é ligada à mão, e não pelo domínio
+
+Definido pelo dono do produto em 21/09, ao migrar para `colexa.com.br`.
+
+## Contexto
+
+A decisão 092 fez o site pedir `noindex` fora do domínio oficial. A consequência
+não intencional: **trocar de endereço ligaria a indexação junto**. No dia em que
+isso aconteceria, os Termos de Uso ainda diziam "em preparação", o cadastro
+estava aberto a quem tivesse o link, e o teste com 15 a 20 pessoas nem tinha
+começado.
+
+Sair do Google depois é demorado, e o endereço fica no cache deles por um tempo.
+Entrar é rápido: liga-se e pede-se a indexação.
+
+## Decisão
+
+1. **Duas condições para aparecer em busca**: estar no domínio oficial **e**
+   `ALLOW_INDEXING` estar ligada (`1`, `true` ou `sim`).
+2. **A chave nasce desligada**, inclusive em produção (`fly.toml`).
+3. **Quem liga é o dono do produto**, no dia do lançamento, sem publicar código
+   novo — é variável de ambiente, não deploy.
+4. A regra mora em `src/lib/indexacao.ts`, pura e testada; o middleware só a
+   aplica.
+
+## Data
+
+2026-09-21
+
+---
+
+# Decisão: 106 — A fonte de Pokémon, e o que ela custa em disco
+
+Passo 7 do plano da decisão 104, retomado em 22/09 a pedido do dono do produto:
+**definir a fonte, sem importar nada**. O levantamento de 20/09 já apontava um
+caminho (`integrations.md` 5.2); aqui ele é confirmado com números medidos, e a
+conta de espaço é feita **antes** de qualquer carta entrar no Supabase.
+
+## Decisão 1 — A fonte é o TCGdex
+
+Confirmada hoje contra a API, e não só pela documentação:
+
+- **220 sets e 23.964 cartas** em inglês.
+- Cada carta traz `variants` (`normal`, `reverse`, `holo`, `firstEdition`,
+  `wPromo`), `variants_detailed`, imagem, raridade, ilustrador — e **`pricing`
+  junto da carta**.
+- Banco open source com licença MIT (`github.com/tcgdex/cards-database`), REST e
+  GraphQL, sem chave, com os três idiomas da decisão 104.
+
+### O trabalho manual do One Piece não se repete
+
+Esta é a razão principal, e vale explicá-la porque ela não é óbvia.
+
+No One Piece, o código da carta **não identifica a arte**, e o preço vem de
+**outra** fonte, que precisa ser casada carta a carta. Disso nasceram
+`variant_source_products`, a tabela da Liga e **773 vínculos manuais** conferidos
+pelo dono do produto (decisões 068 a 078) — o pedaço mais caro do pipeline.
+
+No TCGdex a variante tem identidade própria e o preço vem anexado à carta.
+**O vínculo deixa de existir**, e com ele some a conferência um a um.
+
+### E se a API sair do ar
+
+O banco é público e licenciado: dá para hospedar por conta própria a partir do
+repositório. Nenhuma das alternativas oferece isso — a `pokemontcg.io` foi
+descontinuada (chaves até 01/03/2027) e a sucessora, Scrydex, é paga e tem
+modelo de dados incompatível com o nosso (`integrations.md` 2.0).
+
+As mitigações da decisão 020 continuam valendo: requisições serializadas,
+importação sob demanda, imagens referenciadas e nunca copiadas.
+
+## Decisão 2 — O plano do Supabase passa a ser o Pro
+
+A conta foi feita com o banco real, e não por estimativa de fora:
+
+| | |
+|---|---:|
+| Banco hoje | **23 MB** (de 500 MB no plano gratuito) |
+| `card_prices` | 24.543 linhas, 2,9 MB, ~125 bytes por linha |
+| Crescimento de preço, One Piece | **~1.800 linhas/dia ≈ 82 MB/ano** |
+| Catálogo Pokémon, estimado | ~100 MB, uma vez |
+| Crescimento com Pokémon, estimado | **~1 GB/ano** |
+
+O limite de 500 MB do plano gratuito **não é um aviso**: passando dele o projeto
+entra em **modo somente leitura**, e o site para de aceitar cadastro, coleção,
+troca e pagamento. Pokémon estouraria isso em meses.
+
+O Pro (US$ 25/mês) inclui 8 GB e cobra US$ 0,125 por GB/mês além disso — o que
+dá **~7 anos** de folga, e centavos depois. Ele também resolve, na mesma
+despesa, **o backup** (o maior risco operacional aberto, agora que há assinatura
+paga e coleção de gente real) e o teto de conexões que já nos mordeu
+(armadilha 71).
+
+### Correção no mesmo dia: a conta acima está errada, e o Pro ficou para depois
+
+**A decisão 2 foi justificada por um número que a decisão 107 invalidou horas
+depois.** Ela fica registrada como estava, porque foi o que se decidiu na hora,
+mas **não deve ser usada como argumento**: a conta certa é esta.
+
+O `~1 GB/ano` era **o histórico de preço crescendo**. A decisão 107 mandou parar
+de guardar histórico — `card_prices` passou a ter uma linha por variante,
+sobrescrita — e **aquele termo, que dominava a conta inteira, deixou de
+existir**. Sem ele sobra só o catálogo, que entra uma vez e não cresce.
+
+Medido no banco de produção depois da 107, por linha:
+
+| Tabela | Bytes por linha |
+|---|---:|
+| `cards` | 503 |
+| `card_variants` | 481 |
+| `card_prices` | 507 |
+| `variant_printings` | 119 |
+| cores, traits, atributos, mecânicas | ~195 cada |
+
+Pokémon são **23.964 cartas** e cerca de **48.000 variantes** (duas por carta:
+normal e reverse):
+
+| | |
+|---|---:|
+| `cards` | ~12 MB |
+| `card_variants` | ~23 MB |
+| `card_prices` | ~24 MB |
+| `variant_printings` | ~6 MB |
+| cores, traits, atributos, mecânicas | ~19 MB |
+| `variant_source_products` | **0** — Pokémon não precisa de vínculo |
+| **Pokémon** | **~84 MB** |
+| **Com One Piece (23 MB)** | **~107 MB de 500 MB** |
+
+**Pokémon cabe no plano gratuito**, com folga de quase 80%. Errando em 50% nas
+variantes, ainda cabe.
+
+O dono do produto decidiu **não ligar o Pro por enquanto**, e a conta corrigida
+sustenta isso. O que muda no registro:
+
+- **O argumento de espaço para o Pro caiu.** Ele valia enquanto havia histórico
+  de preço; não vale mais.
+- **Pokémon não depende do Pro.** O passo 7 está parado por prioridade, e não
+  por limite de banco.
+- **O backup continua de pé como motivo**, e sempre foi independente do espaço:
+  o plano gratuito não tem de onde voltar, e há assinatura paga e coleção de
+  gente real dentro. Risco aceito, e não item esquecido.
+- **Sem histórico, o banco quase não cresce**: sets novos algumas vezes por ano,
+  e os dados que os usuários criam.
+
+## Decisão 3 — O histórico de preço fica como está
+
+Cogitou-se parar de gravar histórico, ou podá-lo por janela, para conter o
+crescimento. **O dono do produto decidiu manter**, e a investigação que levou a
+isso vale registro:
+
+- **Hoje o histórico não é lido por ninguém.** `dashboard.ts`, `analyze-deck.ts`
+  e `read-prices.ts` pegam todos a linha mais recente, e **não existe uma única
+  consulta de preço numa data passada**. A regra 5.1 — valor do trade pelo preço
+  vigente em `completed_at` — **está escrita e não está implementada**.
+- Logo, abandonar o histórico não quebraria nada **que existe hoje**. Custaria a
+  *possibilidade* da 5.1, que não se recupera depois: ninguém vende o preço de
+  ontem.
+- E havia 0 trades concluídos em produção, com 13 dias de histórico. Era o
+  momento mais barato da vida do produto para abandoná-lo.
+
+Mesmo assim fica, porque com o Pro o espaço custa **~US$ 1,50 por ano** e a
+decisão deixa de ser sobre disco. Trocar uma funcionalidade futura por esse
+valor seria decidir pelo motivo errado.
+
+## O que isto não decide
+
+**Nada foi importado**, e o pedido era só definir a fonte. Ficam para depois: o
+modelo de dados multi-jogo, o idioma por carta, e a cadência de importação.
+
+## Data
+
+2026-09-22
+
+---
+
+# Decisão: 107 — O preço é sobrescrito: não há histórico
+
+Pergunta do dono do produto em 22/09, enquanto se media o custo de Pokémon
+(decisão 106): *"nós não vamos armazenar valor de carta em troca alguma, então
+faz sentido armazenar histórico de preço?"*
+
+## O que a investigação achou
+
+**Ninguém lia o histórico.** `dashboard.ts`, `analyze-deck.ts` e
+`read-prices.ts` pegam todos a linha mais recente, e **não existia uma única
+consulta de preço numa data passada** em todo o `src/`.
+
+A regra 5.1 — valor de um trade concluído pelo preço vigente em `completed_at` —
+**estava escrita e nunca foi implementada**. Ela era a única justificativa da
+série, e o dono do produto acabava de tirá-la da mesa: o produto não guarda
+valor de carta em troca nenhuma.
+
+O que sobrava era uma funcionalidade hipotética — gráfico de evolução de preço,
+"sua coleção subiu 12% no mês" —, apresentada explicitamente antes da decisão,
+porque ela tem a mesma armadilha: **não se reconstrói depois**. O dono do
+produto a descartou.
+
+## Decisão
+
+**`card_prices` passa a ter uma linha por variante, sobrescrita.** O índice
+único vai de `(card_variant_id, captured_at)` para `(card_variant_id)`.
+
+A escrita **continua acontecendo só quando o valor muda** (decisão 050,
+mantida). Isso deixou de ser economia de linhas e passou a ser o que dá sentido
+a `captured_at`: ela significa **desde quando a carta está neste preço**.
+Atualizá-la a cada conferência a transformaria em "quando rodamos a importação",
+afirmação que já mora em `price_imports` e é a que a tela mostra.
+
+## Por que agora, e não depois
+
+Era o momento mais barato da vida do produto: **13 dias de histórico e zero
+trades concluídos**. Nada de real se perdeu.
+
+E o custo de adiar era conhecido: com Pokémon, a série cresceria da ordem de
+**1 GB por ano** (decisão 106), contra ~82 MB/ano só de One Piece.
+
+## O que isto não foi
+
+**Não foi economia.** No plano Pro, o espaço do histórico custaria cerca de
+**US$ 1,50 por ano** — isso foi dito ao dono do produto antes da decisão,
+justamente para ele não escolher pelo motivo errado. A decisão é sobre o produto
+não ter a funcionalidade, e não sobre disco.
+
+## Consequências registradas
+
+- Regra 5 reescrita: não há histórico de preço.
+- **Regra 5.1 marcada como abandonada**, com o motivo.
+- Regra 5.0 perdeu o argumento que dependia do valor histórico do trade; o
+  motivo que sobrou — o Banco Central corrige cotação publicada — já bastava.
+- A migration `20260922180000_preco_sem_historico` **apaga dados e não tem
+  volta**: mantém a captura mais recente de cada variante e troca o índice.
+- Os dois leitores que usavam `DISTINCT ON ... ORDER BY captured_at DESC`
+  viraram consultas diretas: desempatar por data deixou de fazer sentido.
+
+## Data
+
+2026-09-22
+
+---
+
+# Decisão: 108 — As decklists são guardadas
+
+Pedido de usuários, trazido pelo dono do produto em 22/09. **Inverte o item 2 da
+decisão 095**, que dizia em letras claras: *"o deck não é guardado. Nenhuma
+tabela nova: a lista vive na tela... o ColeXa confere decks; guardá-los é outro
+produto."*
+
+Não era limitação técnica: era escolha de escopo. O uso pediu o contrário —
+montar aos poucos, dar nome, e acompanhar quanto falta de cada lista.
+
+## O que muda na tela
+
+`/deck` deixa de ser o builder e passa a ser a **estante**: as listas primeiro, e
+o gesto de criar depois, como em Binders. Montar acontece em `/deck/novo`, e
+abrir uma lista em `/deck/[id]`.
+
+O builder é o mesmo — regras, conferência, onde está e quanto custa o que falta
+seguem a 095. O que ele ganhou foi o fim: dar um nome e salvar.
+
+## As regras, decididas pelo dono do produto
+
+1. **O líder é obrigatório**, e continua sendo a primeira escolha. Ele define as
+   cores do resto e é a **capa** da lista.
+2. **Lista incompleta pode ser salva**, e ganha a marca "incompleta". Montar aos
+   poucos é o caso normal — era a queixa que originou o pedido.
+3. **O progresso conta qualquer arte** da mesma carta, limitado ao que a lista
+   pede. Responde "consigo jogar isto?", e para jogar a arte não importa.
+4. **Quem perde o Premium não perde as listas**: elas ficam guardadas e param de
+   abrir.
+
+## O que não virou coluna
+
+**A capa** é a arte do líder e **"incompleta"** é a soma das cópias abaixo de
+cinquenta. Guardar qualquer um dos dois criaria uma segunda verdade que
+envelhece: bastaria a lista ser editada, ou a carta trocar de arte no catálogo,
+para o banco contar uma história diferente da tela.
+
+## O modelo, aprovado pelo dono do produto
+
+```
+decks       id · user_id · name · leader_variant_id · created_at · updated_at
+deck_items  deck_id · card_variant_id · copies      (chave composta)
+```
+
+`leader_variant_id` é **NOT NULL**, consequência direta da regra 1. A chave de
+`deck_items` é composta e sem `id` próprio: uma variante aparece uma vez por
+deck, e duas linhas da mesma arte seriam a mesma afirmação escrita duas vezes.
+
+RESTRICT nas variantes, como em `collection_items`: o catálogo não apaga carta
+que alguém pôs numa lista. CASCADE do usuário e do deck para os itens.
+
+## Salvar e conferir usam o mesmo código
+
+`conferirLista` foi extraída de `analyzeDeck` e é chamada pelos dois. Duplicar as
+regras criaria dois lugares para a mesma verdade, e no dia em que divergissem a
+lista salva aceitaria o que a tela recusa — com o erro aparecendo só ao reabrir.
+
+## Por que listar não exige Premium
+
+Porque a regra 4 exige o contrário. Se a listagem recusasse, quem deixou de
+assinar veria uma tela vazia, e "ficam guardadas" viraria mentira. Ler e salvar
+exigem Premium; listar e apagar, não — quem deixou de assinar continua dono do
+que criou.
+
+## Data
+
+2026-09-22
+
+---
+
+# Decisão: 109 — Transferir a decklist para uma deckbox
+
+Pedido do dono do produto em 22/09: montado o deck de papel, dizer ao ColeXa que
+aquelas cartas agora moram na caixa do deck — em vez de corrigir o local de
+cinquenta e uma cartas a mão.
+
+## O conflito que deu forma a tudo
+
+A **regra 3.3** diz: *"Alocações nunca são removidas silenciosamente, e nenhuma
+ordem de remoção é presumida. O que a regra protege é a escolha: ninguém decide
+por quem tem a carta de qual local as cópias saem."*
+
+Transferir um deck inteiro esbarra nisso de frente. O conflito foi apresentado
+ao dono do produto **antes de qualquer código**, e ele resolveu assim:
+
+1. **Só o que a lista pede.** Ter oito cópias não manda oito para a caixa.
+2. **Uma única pilha fora de troca que cobre tudo? o sistema tira de lá.** Não há
+   escolha a fazer, então não há o que presumir.
+3. **Mais de uma possibilidade? o sistema pergunta**, carta a carta.
+4. **Local de troca não entra por padrão.** O sistema tenta completar sem ele, e
+   só usa o que está em troca se a pessoa confirmar — mover de lá **tira a carta
+   do Trade Binder público**, que outras pessoas veem.
+5. **O destino é do tipo `DECK`**, e só ele.
+
+A regra 3.3 **não muda**: ela continua valendo, e é justamente por ela que os
+itens 2 e 3 existem.
+
+## "Alocação", e não "local"
+
+No banco a unidade é **arte × local** (`collection_item_locations`). Uma carta
+pode estar em dois lugares *e* em duas artes, e as duas são a mesma pergunta: de
+qual pilha sai esta cópia. Tratá-las juntas é o que mantém a transferência
+coerente com a barra de progresso, que já conta qualquer arte.
+
+**O aviso de outra arte veio junto**, lembrado pelo dono do produto: a
+conferência já diz quando uma cópia que contou é de outra arte
+(`DeckPlace.otherArt`, decisão 095). A transferência usa o mesmo vocabulário e
+avisa igual — inclusive quando resolve sozinha. O sistema não impede, porque para
+jogar a arte não importa; mas quem pediu uma arte e vai guardar outra na caixa
+precisa saber antes de fechar a tampa.
+
+## A confirmação é uma afirmação
+
+Trocar o local de uma carta **apaga de onde ela estava**, e essa informação não
+existe em nenhum outro lugar. Por isso a tela tem duas etapas: primeiro mostra o
+que aconteceria, e só depois confirma — com o aviso mais destacado da tela
+dizendo para **só confirmar depois de ter movido as cartas de verdade**.
+
+O botão diz "Já movi as cartas — confirmar", e não "Transferir". A diferença é o
+ponto: quem clica está afirmando um fato sobre o mundo físico, e não pedindo uma
+operação.
+
+## "Deixar onde está" precisou ser uma escolha
+
+A primeira versão travava o botão enquanto houvesse carta sem origem escolhida, e
+**não oferecia** a opção de não mover. O dono do produto perguntou se dava para
+transferir sem ter todas as cartas, e a pergunta revelou o defeito.
+
+Faltar carta nunca travou nada — o que a pessoa não tem é pulado. O que travava
+era a **decisão pendente**, e no caso das cartas que só existem em local de troca
+isso a deixava sem saída: ou tirava a carta do Trade Binder, ou não transferia
+nada. Era a regra 5 valendo ao contrário.
+
+Agora toda carta que exige decisão pode ser deixada de fora, e a que só existe em
+local de troca **já começa marcada assim**. A tela também resume, antes da
+confirmação, quantas cópias saem do lugar e quantas cartas ficam — porque a ação
+não tem volta.
+
+## Data
+
+2026-09-22
+
+# Decisão: 110 — A pessoa escolhe a ordem da listagem
+
+Pedido do dono do produto em 23/09: além da ordem por código, deixar ordenar por
+custo (maior→menor e menor→maior) e por nome. Os critérios foram escolhidos por
+ele entre três conjuntos; preço ficou de fora nesta rodada, porque mora em outra
+tabela e por arte, e a ordenação passaria a depender de junção.
+
+## O padrão não muda
+
+A ordem por código das decisões **040** e **069** continua sendo a de quem não
+escolhe nada. Isto é um acréscimo, e não uma alteração: nada do que já foi
+decidido sobre ordem deixou de valer.
+
+As sete opções: código do set (padrão), nome A→Z, nome Z→A, custo ↑, custo ↓,
+poder ↑, poder ↓.
+
+## O critério escolhido manda; o empate volta para o catálogo
+
+Ordenando por custo, centenas de cartas empatam em 3. Sem um segundo critério
+estável elas trocariam de lugar entre uma página e a seguinte, e na rolagem
+infinita a mesma carta apareceria duas vezes ou nenhuma — exatamente o estrago
+que o desempate por id já existia para evitar (decisão 069).
+
+A cadeia é: **critério escolhido → ordem do catálogo → id**. Com `codigo` o
+primeiro passo devolve empate para todo par, e sobra precisamente o
+comportamento anterior.
+
+## Nulo vai para o fim, nas duas direções
+
+Um Leader não tem custo; um Event não tem poder. Depois da armadilha 87 essa
+diferença passou a ser real no banco: `null` quer dizer **"este tipo de carta
+não tem este campo"**, e `0` é um valor.
+
+Um não-valor não pode competir por posição. Então ele não sobe no crescente nem
+no decrescente: sai do caminho e fica no fim das duas vezes. Tratar `null` como
+zero poria todo Leader no topo de "custo, menor primeiro"; tratá-lo como
+infinito o poria no topo do decrescente. As duas coisas afirmam sobre a carta
+algo que a fonte não diz.
+
+Zero ordena normalmente. Em "poder, menor primeiro" a `OP01-006 Otama`, de poder
+0, é a primeira da lista — e isso é o resultado certo.
+
+## A ordem não é um filtro, e por isso saiu do painel
+
+Ela não muda **quais** cartas aparecem, só a sequência.
+
+A primeira versão a punha dentro do painel de filtros, e o dono do produto pediu
+para tirá-la de lá no mesmo dia. O motivo vale registrar: o painel é uma
+pergunta que se monta e se aplica de uma vez, com Limpar e um distintivo de
+quantos filtros estão ativos — e a ordem não pertence a nenhuma dessas três
+coisas. Fora dele ela também fica visível sem abrir nada, que é o gesto que se
+repete: filtrar uma vez e reordenar várias.
+
+**Mexer nos filtros não mexe na ordem**, e isso precisou de código. Na URL sai de
+graça, porque `buildCatalogHref` preserva o que não foi citado. Mas nas telas
+que guardam os filtros em estado local o painel devolve um objeto que substitui
+o anterior inteiro — deixar a ordem de fora a apagaria a cada Aplicar. Por isso
+o painel **carrega a ordem intacta**, sem oferecê-la.
+
+O Limpar também não a desfaz, e `?ordem=codigo` não é escrito na URL, porque diz
+o mesmo que não dizer nada.
+
+## Onde aparece
+
+Nas cinco telas que compartilham o painel de filtros, por escolha do dono do
+produto: catálogo, catálogo por set, coleção, seletor de cartas e deck builder.
+Quem aprende a ordenar no catálogo espera o mesmo na coleção.
+
+No catálogo o controle fica **abaixo dos atalhos de Sets e Starter Decks e
+separado deles**, e não colado — posição pedida pelo dono do produto.
+
+A ordem viaja também no `/api/catalog`, e não só na primeira página. Sem isso a
+rolagem infinita traria a página 1 por custo e a 2 pela ordem do catálogo.
+
+## Data
+
+2026-09-23
+
+# Decisão: 111 — Decks passa a ter deckboxes e decklists
+
+Pedido do dono do produto em 23/09: renomear o **Deck Builder** para **Decks**,
+e ali dentro oferecer duas opções — **deckbox** e **decklist** — no mesmo
+seletor de abas que o app já usa. As deckboxes saem de Binders e passam a ser
+criadas em Decks.
+
+O motivo é de campo, e não de arquitetura: **usuários não achavam a deckbox
+para criar**. Procuravam em Decks, e ela estava em Binders, ao lado do binder e
+da caixa.
+
+## É remanejamento posicional, e nada mais
+
+O modelo de dados **não mudou**. Uma deckbox continua sendo um
+`storage_location` de tipo `DECK`, com `purpose` nulo, exatamente como a regra
+3.1 descreve. Uma deckbox criada antes desta mudança continua valendo, continua
+guardando as mesmas cartas e continua aparecendo na transferência da decklist
+(decisão 109). O que mudou foi a porta de entrada.
+
+O arranjo final:
+
+| Tela | Cria e lista |
+|---|---|
+| **Binders** | binder de coleção, binder de troca, caixa |
+| **Decks** | deckbox (aba 1) e decklist (aba 2) |
+
+## A deckbox é a primeira aba, e a padrão
+
+A ordem é a que o dono do produto escreveu, e ela resolve o problema que
+motivou a mudança: abrir em Decklists deixaria a gaveta que ninguém achava
+escondida atrás de um toque.
+
+## As duas gavetas têm travas diferentes
+
+Deckbox é armazenamento, como binder e caixa — **de todos**. Decklist é Premium
+(decisão 093). Por isso a trava não está na página, e sim dentro da aba: gatear
+a tela inteira tiraria de quem não é Premium um lugar de guardar cartas que
+sempre foi dele.
+
+## Um formulário, duas portas
+
+`LocationForm` e `LocationList` ganharam um recorte de tipos em vez de virarem
+dois componentes. Duplicar o formulário criaria duas regras de criação que
+divergiriam na primeira mudança — e a `createLocationAction` continua sendo uma
+só. Com um tipo só, o seletor nem aparece: escolher entre uma opção não é uma
+escolha, e o valor vai num campo escondido.
+
+## A seta do detalhe segue o tipo
+
+Abrir uma deckbox e voltar levava a Binders, onde ela não aparece mais. Agora a
+volta é para a tela onde o local mora: `/deck` para o tipo `DECK`, `/binders`
+para os outros.
+
+## Data
+
+2026-09-23
+
+# Decisão: 112 — O DON!! entra como tipo de carta
+
+Pedido do dono do produto em 23/09: pôr o DON!! no projeto, como uma categoria
+própria ao lado de Leader, Character, Event e Stage. **Sem progresso**, mas com
+a contagem "você possui X DON diferentes".
+
+## A fonte oficial não tem DON!!
+
+Esta foi a primeira coisa a verificar, e a resposta mudou o desenho. Conferido
+de quatro jeitos em 23/09:
+
+1. as **60 séries** lidas pelo nosso provedor: **0 rejeitados** — nenhum tipo
+   fora dos quatro;
+2. a série de **promoções** (374 entradas): só `CHARACTER`, `LEADER`, `EVENT`,
+   `STAGE`;
+3. o filtro **"Card type" do próprio site**: oferece quatro opções, não cinco;
+4. a **busca livre** do site: zero para `DON!!` e para `DON`, enquanto devolve
+   349 para `Luffy` e 195 para `Donquixote` — ou seja, a busca funciona.
+
+O catálogo oficial é a lista de cartas **de deck**, e o DON!! não é uma delas.
+
+## Ele vem do tcgcsv, que já era nosso
+
+O espelho que usamos para preço tem 239 DON!! e **rotula o tipo**
+(`extendedData.CardType === 'DON!!'`), então a extração não depende de casar
+nome — "DON!!" aparece em texto de efeito de carta comum.
+
+Isso torna o tcgcsv **fonte de catálogo**, e não só de preço. A consequência a
+registrar: um dia em que ele mudar de formato deixa de ser "preço desatualizado"
+e passa a ser "cartas sumiram". Vale para 239 cartas, e não para as 4.431.
+
+## O código é inventado, e é para sempre
+
+DON!! **não tem código**: no tcgcsv o campo `Number` vem `-` nas 239. A
+identidade disponível é `(grupo, nome)`, que não cabe num código curto — e
+"DON!! Card (Alternate Art)" se repete entre grupos.
+
+O código é `DON-<productId>`, do TCGplayer: numérico, único no catálogo inteiro,
+estável, e **já é a chave que o nosso preço usa**. O DON!! não estreia um
+identificador novo no sistema.
+
+Ele vai parar na coleção das pessoas, então trocá-lo depois exige migração de
+dados. Por isso sai de um id estável, e não de nome ou posição.
+
+O prefixo `DON-` tem uma consequência prática de graça: `ligaEdition` só
+reconhece `LETRAS+DÍGITOS-`, então ele nunca produz um link direto da Liga para
+uma carta que a Liga talvez nem tenha.
+
+## Um set artificial, chamado `DON`
+
+Os grupos do TCGplayer não são os nossos sets: a abreviação dele é `OP18`,
+`EB-05`, `OP18 RE`, e o nosso código vem da Bandai. Mapear os 87 grupos aos 60
+sets sem poder conferir seria adivinhar — e adivinhar vínculo é o que já custou
+773 conferências manuais aqui.
+
+A primeira versão deixou os DON!! **sem set nenhum**, por isso. O dono do
+produto mudou: existe um set artificial `DON`, e a pessoa vê os DON!! separados
+no catálogo por ele.
+
+Ele **não existe na Bandai**, e não finge que existe: tem espécie própria
+(`don`), ao lado de coleção, starter deck e promocional. Assim ordena por último
+e aparece com rótulo próprio, em vez de se passar por uma coleção que saiu em
+booster.
+
+O set também resolveu, de graça, um problema que a versão sem set tinha criado:
+a planilha de conferência da Liga é **por coleção**, e os 239 não apareciam em
+lugar nenhum — o vínculo manual, que é o único possível para eles, não teria por
+onde ser feito. Com o set, ela funciona pelo caminho normal.
+
+## Contagem, e não progresso
+
+Por escolha do dono do produto:
+
+- **fora do progresso do catálogo**, no numerador **e** no denominador. Se só um
+  dos dois excluísse, o progresso passaria de 100%. Sem isso, os 239 entrariam
+  no total e o progresso de todo mundo cairia da noite para o dia por uma carta
+  que nem entra em deck;
+- **nunca fecha playset**: um deck usa dez DON!!, iguais, e "faltam N para
+  quatro" não é pergunta que alguém faça;
+- **conta no total de cartas**: um DON!! possuído é uma carta possuída;
+- **"você possui X DON diferentes"**, que aparece só para quem tem algum.
+
+O progresso **por set** ficou imune sozinho, porque DON!! não tem set.
+
+## A Liga é manual, e pode não existir
+
+O vínculo automático é **impossível**, e não difícil: o endereço é montado a
+partir da edição, que sai do código — e o nosso código não significa nada lá.
+
+A rede de segurança é a busca **pelo nome**, e não pelo código inventado, que
+não acharia nada. A tabela conferida continua vencendo, e entradas de DON!!
+caem nela sem uma linha de código nova.
+
+**Não foi verificado se a Liga sequer tem página de DON!!.** Ela está atrás de
+proteção anti-bot, e a decisão 047 diz que quem descobre é gente abrindo o site.
+
+## A imagem vem do TCGplayer, e o host precisa estar liberado
+
+As 239 têm imagem, no CDN do **TCGplayer** — aprovado pelo dono do produto. A
+decisão 020 combinou referenciar a origem sem copiar, e foi negociada com a
+Bandai; esta é outra origem, e a aprovação é o que a estende.
+
+**O host em `remotePatterns` não é detalhe de configuração.** `next/image`
+recusa host desconhecido com **500 na tela inteira**, e não com uma imagem
+quebrada. Aconteceu em 23/09, na planilha da Liga, assim que as 239 passaram a
+renderizar — e valeria igual para o catálogo, que mostra a arte de toda
+variante. Tirar `tcgplayer-cdn.tcgplayer.com` de lá derruba o catálogo.
+
+## O preço precisou de mais que o vínculo
+
+Os 239 vínculos estavam gravados e mesmo assim as cartas ficaram **sem preço** —
+relatado pelo dono do produto em 24/09, com valor visível na Liga e no
+TCGplayer.
+
+A causa era **antes** do vínculo. O provedor de preços descarta todo produto sem
+`Number` logo na leitura de cada grupo, e o DON!! não tem um. Descartado ali, ele
+nunca chegava ao laço que preça pelo vínculo — o laço estava certo e nunca era
+alcançado.
+
+Agora o DON!! entra em `otherProducts`, que é exatamente o balde de quem só
+recebe preço **por vínculo** (decisão 072), com o nosso código sintético para
+formar grupo próprio e não se misturar ao casamento por número das cartas da
+Bandai.
+
+Medido depois da correção: **237 dos 239 com preço** — os outros dois não têm
+valor de mercado na fonte.
+
+## O vínculo com o TCGplayer nasce na importação
+
+`linkArtProducts` casa arte com produto **pelo código da carta**, e foi escrito
+assim porque, nas cartas da Bandai, o código é o único elo entre duas fontes que
+não conversam. Para DON!! não serve: não há código na origem.
+
+Aqui não há o que deduzir — o `source_id` da arte **é** o `productId`, porque foi
+de lá que ela veio. O vínculo é cópia, e não palpite, e por isso nasce junto da
+importação. Sem ele o DON!! ficaria sem preço para sempre.
+
+Fica com `origin = 'automatic'`, e não `manual`: ninguém conferiu nada à mão, e
+`manual` tem significado próprio no vínculo normal — é intocável pela dedução
+(decisão 074).
+
+## O DON!! não é um chip de filtro
+
+Relatado pelo dono do produto em 23/09, com a primeira versão no ar: marcar
+DON!! junto de **qualquer outra faceta** devolvia **zero**, sempre. DON!! não
+tem cor, trait, atributo nem raridade comum, então o cruzamento nunca tem
+resposta — e um filtro que devolve vazio sem explicar por quê é exatamente o
+defeito que o vocabulário existe para evitar.
+
+O chip saiu. O tipo continua existindo, e a busca continua sabendo filtrá-lo: o
+que mudou é que ele não é mais **oferecido** ao lado das outras facetas.
+
+A entrada dos DON!! passou a ser uma porta própria no catálogo, na mesma fileira
+de **Sets** e **Starter Decks**, que leva ao set `DON` — todos e apenas eles.
+
+## Os DON!! também vão para as coleções
+
+Decisão do dono do produto, no mesmo dia: além do set `DON`, ele vai **vincular
+à mão** cada DON!! à coleção em que saiu, porque eles são lançados junto delas.
+
+Eu havia argumentado contra, e o argumento fica registrado porque ele continua
+valendo: um DON!! dentro da OP01 **conta no progresso da OP01**. A decisão é do
+dono do produto, que a tomou com isso dito.
+
+Fica uma pergunta em aberto para o dia do vínculo: o progresso **global** do
+catálogo exclui DON!! por tipo, enquanto o progresso **por coleção** passará a
+incluí-los. Os dois números vão discordar, e qual dos dois muda é escolha dele.
+
+O vínculo é feito em `/dev/don`, e o que ele grava mora em `data/don-sets.json`
+— **num arquivo, e não no banco**, pelo mesmo motivo da tabela da Liga: são
+centenas de vínculos feitos à mão, que precisam sobreviver a um banco recriado e
+chegar a produção por PR. Não há backup do banco, e este é trabalho que não se
+refaz sozinho.
+
+A tabela é aplicada na importação dos DON!!, depois do catálogo e do vínculo de
+preço. Ela **nunca apaga impressão**: tirar uma arte da tabela deixa a impressão
+que ela já ganhou, porque apagá-la exigiria decidir o que fazer com a coleção de
+quem já via a carta ali — e isso é conversa, não efeito colateral de importação.
+
+## Comando próprio
+
+`npm run supabase don`, e não uma opção do `import`: é outra fonte com outro
+ritmo. O DON!! muda raramente, e não há motivo para reler o catálogo inteiro por
+ele.
+
+## O parser da Bandai continua recusando DON
+
+`DON` é um `CardType` válido, mas `toCardType` o recusa de propósito. Aceitá-lo
+faria um tipo novo da fonte entrar calado no dia em que ela mudasse — que é
+exatamente o que a rejeição explícita existe para impedir.
+
+## Data
+
+2026-09-23
+
+# Decisão: 113 — A arte da carta passa a ser nossa (muda a 020)
+
+Em 25/09 o dono do produto relatou imagens sem carregar em produção, depois de
+vários recarregamentos.
+
+## O que estava acontecendo
+
+Medido nos dois lados, com os mesmos arquivos no mesmo instante:
+
+| De onde | Tempo | Velocidade |
+|---|---|---|
+| Máquina de desenvolvimento | **2,1 s** | ~80–110 KB/s |
+| Máquina da Fly | **27–30 s, ou estouro** | **~8 KB/s** |
+
+A Bandai passou a estrangular o endereço da Fly, cerca de 10× mais lento.
+
+E o Next desiste antes: o tempo limite para buscar a imagem na origem é
+`AbortSignal.timeout(7000)` — **escrito fixo no código dele**, sem configuração.
+O log da máquina confirmou: `TimeoutError: The operation was aborted due to
+timeout`, aos 7 s.
+
+**Não havia ajuste possível do nosso lado**, porque o limite não é nosso.
+
+## Um engano da decisão 090, corrigido aqui
+
+A 090 pôs `imgOptTimeoutInSeconds: 30` acreditando que aquilo era o tempo de
+esperar pela Bandai. **Não é.** Conferido no código do Next: esse valor vai para
+`sharp().timeout()`, que é o tempo de **processar** a imagem. O tempo de
+**baixar** nunca teve configuração. A 090 funcionou na época porque o cache
+encheu, e não porque o ajuste agiu.
+
+## O que não era
+
+A hipótese fácil era vencimento do cache. Medido e descartado: as entradas
+expiram em **21 a 23 de outubro**, não agora — a data está gravada no nome de
+cada arquivo do cache. O que quebra é **falta**: 8.026 entradas para 4.666 artes
+em duas larguras, e as 470 dos DON!! nunca aquecidas.
+
+Aquecer também não resolvia: o aquecimento sai da mesma máquina e bate no mesmo
+estrangulamento.
+
+## A mudança
+
+A decisão 020 combinou referenciar a origem e **nunca copiar**. Isso deixa de
+valer para a arte da carta, com aprovação do dono do produto em 25/09.
+
+Agora a arte é convertida **uma vez**, fora da Fly, e servida do disco da
+máquina. Nenhuma tela depende mais de a Bandai responder.
+
+- **Formato:** `webp`, 700 px de largura, qualidade 80.
+- **Medido:** 4.666 artes, **zero falhas**, **515 MB** — num volume de 7,8 GB
+  que usava 335 MB. O original seria 1,30 GB.
+- **Onde:** `.next/cache/cartas`, ao lado do cache do otimizador e no mesmo
+  volume, que sobrevive à publicação.
+- **Nome do arquivo:** o `source_id`, porque é a **arte** que tem imagem, e não
+  a carta (decisão 019).
+
+## A regra que não pode ser quebrada
+
+**A conversão nunca roda na Fly.** De lá a Bandai responde a 8 KB/s: refazer as
+4.431 artes levaria ~53 h, contra ~2 h 30 daqui. Quem escrever um comando que
+gere imagem no servidor reintroduz o defeito que esta decisão remove. O aviso
+está escrito no código, em dois lugares.
+
+## A troca acontece num lugar só
+
+O `source_id` já está dentro do endereço das duas origens — `.../card/OP01-016_p3.png`
+e `.../product/482236_200w.jpg` —, então `CardArt` deriva a arte guardada sem
+mexer nas dezenas de telas que passam `imageUrl` adiante.
+
+Endereço que não reconhecemos **segue para a origem**, como antes. É o que torna
+a troca reversível e impede que uma fonte nova vire imagem quebrada calada.
+
+## O que continua custando
+
+- **Carta nova exige o comando.** `npm run supabase imagens` converte só o que
+  falta. Esquecer significa carta sem arte.
+- **O volume mora numa máquina só.** Ele **tem** snapshots agendados pela Fly,
+  com retenção de 5 — eu havia afirmado o contrário ao propor isto, e estava
+  errado. Mesmo sem eles, isto é **reconstruível**: ~2 h 30 daqui, sem ninguém
+  olhando, o que é bem diferente do banco.
+- **Mais de uma máquina** exigiria uma cópia por máquina. Hoje é uma só.
+- **O volume foi de 1 GB para 3 GB** para caber. Eu havia lido 7,8 GB, que era o
+  disco raiz da máquina e não o volume montado — o erro foi corrigido antes da
+  subida, com o aumento aprovado pelo dono do produto. Ocupação final: 525 MB de
+  artes, 2,0 GB livres.
+
+## O que foi descartado no caminho
+
+O dono do produto encontrou o repositório de imagens da Liga
+(`repositorio.sbrauble.com`) e perguntou se ajudaria. Investigado: responde sem
+autenticação, atrás da Cloudflare, sem regra no `robots.txt`. **Não serve**, por
+três motivos independentes: é **miniatura** (350×489, contra os 700 px que
+precisamos); a URL é um **hash opaco** que não sai do código da carta, exigindo
+colher uma por arte de páginas atrás de proteção anti-bot (decisão 047); e seria
+**a banda deles**, trocando a dependência da Bandai pela da Liga — a mesma classe
+de falha que causou isto.
+
+## Data
+
+2026-09-25

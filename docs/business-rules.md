@@ -83,6 +83,39 @@ duplicidade ali.
 
 ## 3. Armazenamento físico
 
+### 2.5 O DON!! (decisão 112)
+
+O DON!! é um **tipo de carta**, ao lado de Leader, Character, Event e Stage. Ele
+não vem do catálogo oficial — a Bandai publica a lista de cartas **de deck**, e
+o DON!! não é uma delas. Vem do tcgcsv, que rotula o tipo.
+
+Três coisas o separam das demais:
+
+1. **Não tem código.** A fonte não dá um, então ele recebe `DON-<productId>` do
+   TCGplayer. O código é nosso, e não existe na Liga.
+2. **Tem um set artificial**, de código `DON`, que não existe na Bandai. Ele
+   existe para a pessoa ver os DON!! separados no catálogo — os grupos do
+   TCGplayer não são os nossos sets, e mapeá-los seria adivinhar.
+3. **Não tem custo, poder, vida nem counter.** Nulo, que é "não se aplica" —
+   nunca zero.
+
+Na contagem:
+
+| | DON!! |
+|---|---|
+| Progresso do catálogo | **fora**, no numerador e no denominador |
+| Progresso por set | o set `DON` fica fora: é artificial e não tem meta a completar |
+| Playset | **nunca fecha** |
+| Total de cartas | **conta** |
+| Contagem própria | "você possui X DON diferentes" |
+
+Ele também não entra em deck: um deck é 1 líder e 50 cartas (seção 7), e o
+DON!! não é carta de deck.
+
+**Não é oferecido como filtro de tipo.** DON!! não tem cor, trait, atributo nem
+raridade comum, então marcá-lo junto de qualquer outra faceta devolve zero. A
+entrada dele é uma porta própria no catálogo, ao lado de Sets e Starter Decks.
+
 ### 3.1 Locais de armazenamento
 
 Um local de armazenamento tem `type` e `purpose`:
@@ -95,8 +128,15 @@ Um local de armazenamento tem `type` e `purpose`:
 
 Uma box pode ser de troca. Isso é explicitamente permitido.
 
-Deck é um local de armazenamento do tipo `DECK`. Não existe tabela separada de
-deck, nem deck builder, validação de leader, formato ou banlist nesta versão.
+**Deckbox** é um local de armazenamento do tipo `DECK`: a caixa física onde um
+deck montado mora. É criada e listada em **Decks** (decisão 111), e não em
+Binders.
+
+Não confundir com **decklist**, que é a lista montada na tela e vive nas tabelas
+`decks` e `deck_items` (decisão 108, seção 7.1). São coisas diferentes: a
+deckbox guarda cartas da coleção; a decklist diz quais cartas o deck pede.
+
+Formato e banlist continuam não existindo.
 
 ### 3.2 Alocação
 
@@ -334,14 +374,19 @@ decidir no lugar dela.
 
 ## 5. Preços e valoração
 
-`card_prices` mantém histórico: uma linha por variante por captura, com
-`captured_at`. Preços nunca são sobrescritos.
+`card_prices` guarda **o preço de agora**: uma linha por variante, sobrescrita
+(decisão 107, 22/09). **Não há histórico de preço.**
 
-A captura **só grava quando o valor muda** (decisão 050): a série é esparsa, e o
-preço vigente em T é a última linha com `captured_at <= T`. Quando cada
-importação rodou fica em `price_imports`, e não em `card_prices` — são duas
-afirmações diferentes, e confundi-las faz a tela dizer "atualizado hoje" sobre
-uma mudança de três semanas atrás.
+Até 22/09 a tabela era histórica, para sustentar a 5.1 abaixo. A regra nunca foi
+implementada, o dono do produto decidiu que **o produto não guarda valor de carta
+em troca nenhuma**, e nenhuma consulta do sistema lê preço de data passada —
+dashboard, análise de deck e página da carta leem o valor corrente.
+
+A escrita **só acontece quando o valor muda** (decisão 050, mantida): é o que dá
+sentido a `captured_at`, que significa **desde quando a carta está neste preço**.
+Quando cada importação rodou fica em `price_imports`, e não em `card_prices` —
+são duas afirmações diferentes, e confundi-las faz a tela dizer "atualizado hoje"
+sobre uma mudança de três semanas atrás.
 
 ### 5.0 Moeda
 
@@ -349,9 +394,9 @@ Os preços são cotados em **dólar**, e é assim que ficam gravados. O valor em
 real é **derivado na leitura**, multiplicando pela cotação de `exchange_rates`
 do dia — nunca guardado (decisão 051).
 
-Guardar o convertido criaria duas verdades para o mesmo fato, e o valor
-histórico de um trade deixaria de fechar: em real, ele é o preço daquele dia
-vezes a cotação daquele dia, duas linhas com data, e não um número congelado.
+Guardar o convertido criaria duas verdades para o mesmo fato: o Banco Central
+corrige cotação publicada, e o número gravado continuaria contando a história
+antiga. Derivar custa uma multiplicação e não pode divergir.
 
 Sem cotação utilizável, o valor em real não é exibido. Converter por taxa velha
 seria apresentar um palpite com cara de dado.
@@ -363,14 +408,19 @@ seria apresentar um palpite com cara de dado.
 | Valor do Trade Binder | idem, restrito às alocações em armazenamento `TRADE` |
 | Valor do trade | idem, por lado do trade |
 
-### 5.1 Valor histórico do trade
+### 5.1 Valor histórico do trade — **abandonada em 22/09**
 
-O valor de um trade concluído reflete o preço vigente em `trades.completed_at`,
-resolvido a partir de `card_prices`. Não existe coluna de snapshot de preço em
-`trade_items`.
+A regra dizia: *"o valor de um trade concluído reflete o preço vigente em
+`trades.completed_at`, resolvido a partir de `card_prices`"*.
 
-Uma variação posterior de preço nunca altera o valor histórico registrado de um
-trade passado.
+**Ela nunca foi implementada, e não será.** O dono do produto decidiu em 22/09
+que o ColeXa **não guarda valor de carta em troca nenhuma** — nem snapshot em
+`trade_items`, nem resolução por data. Um trade concluído é o registro de quais
+cartas trocaram de mãos, e nada mais.
+
+Com isso caiu a única justificativa do histórico de preço, e ele foi removido
+(decisão 107). O efeito prático: o valor que a tela mostra durante a negociação
+(5.2) continua sendo **indicativo e de hoje**, e nada é registrado ao concluir.
 
 ### 5.2 Durante a negociação
 
@@ -458,17 +508,23 @@ ou modificar recursos privados de outro usuário.
 
 ---
 
-## 7. Deck Builder
+## 7. Decks
 
-Definido pelo dono do produto em 17/09 (decisão 095).
+Definido pelo dono do produto em 17/09 (decisão 095). A tela chamava-se **Deck
+Builder** até 23/09, quando virou **Decks** e passou a ter duas gavetas: as
+**deckboxes** (locais do tipo `DECK`, regra 3.1) e as **decklists** desta seção
+(decisão 111).
 
 Um deck tem **1 líder e 50 cartas**, e **toda carta precisa ter alguma cor do
 líder** — líder de duas cores aceita as duas. O trait não importa: a cor em
 comum é a única exigência de combinação. No máximo **4 cópias da mesma
 carta**, somando as artes: duas artes da mesma carta são a mesma carta.
 
-O ColeXa **não guarda decks**. A pessoa monta a lista na tela e o produto
-responde três coisas:
+**As listas são guardadas** (decisão 108, 22/09). Até então não eram — a 095
+dizia que o ColeXa conferia decks e que guardá-los era outro produto. Usuários
+pediram o contrário: montar aos poucos, dar nome e acompanhar quanto falta.
+
+A pessoa monta a lista na tela e o produto responde três coisas:
 
 1. **quantas cópias ela já tem**, das **51 cartas** — o líder é conferido
    junto;
@@ -485,6 +541,51 @@ cópia nunca cobre duas linhas.
 O que não pode ser jogado é **recusado**, e não avisado: passar de 4 cópias, pôr
 carta fora da cor ou um segundo líder. O total de 50 é contagem, porque um deck
 em construção passa a maior parte do tempo incompleto.
+
+### 7.1 As decklists salvas (decisão 108)
+
+1. **O líder é obrigatório para salvar**, e continua sendo a primeira escolha. É
+   ele que define as cores do resto, e é a **capa** da lista.
+2. **A lista pode ser salva incompleta**, e aí ganha a marca **"incompleta"**.
+   Montar aos poucos é o caso normal, e foi o que motivou o pedido.
+3. **O nome é obrigatório**, e serve só para a pessoa se guiar entre as listas.
+4. **A capa é sempre a arte do líder** — não se escolhe imagem.
+5. **O progresso é "X de 51"**: quantas cartas a pessoa já tem, contando
+   **qualquer arte** da mesma carta, limitado ao que a lista pede. Responde
+   "consigo jogar isto?", e para jogar a arte não importa.
+6. **Salvar não aceita o que a conferência recusa**: as regras da seção 7 valem
+   igual, e são o mesmo código.
+7. **Sem limite de listas**, como os binders.
+8. **Quem perde o Premium não perde as listas.** Elas continuam guardadas e
+   **param de abrir**; a tela diz isso onde a pessoa está. Apagar continua
+   possível — quem deixou de assinar segue dono do que criou.
+
+### 7.2 Transferir a lista para uma deckbox (decisão 109)
+
+Montado o deck de papel, a lista pode dizer ao ColeXa que aquelas cartas agora
+estão na caixa do deck. O que sai da coleção para a deckbox:
+
+1. **Só o que a lista pede.** Ter oito cópias não manda oito.
+2. **O destino é um local do tipo `DECK`**, e só ele.
+3. **Uma única pilha fora de troca que cobre tudo**: o sistema tira de lá. Não
+   há escolha a fazer, então a regra 3.3 não é ferida.
+4. **Mais de uma possibilidade**: o sistema **pergunta**, carta a carta. É a 3.3
+   valendo — ninguém decide por quem tem a carta de qual local as cópias saem.
+5. **Local de troca não entra por padrão.** O sistema tenta completar sem ele, e
+   só usa o que está em troca se a pessoa confirmar: mover de lá **tira a carta
+   do Trade Binder público**.
+6. **Cópias de outra arte são avisadas**, como na conferência (7, decisão 095).
+   Não são impedidas — para jogar a arte não importa.
+7. **A confirmação é uma afirmação de fato**: trocar o local apaga de onde a
+   carta estava, e não há como recuperar. A tela exige que a pessoa confirme
+   **só depois de ter movido as cartas de verdade**.
+8. **Não é preciso ter a lista inteira.** O que a pessoa não tem é pulado, e a
+   transferência leva o que existe.
+9. **"Deixar onde está" é uma escolha**, e não a ausência de uma. Toda carta que
+   exige decisão pode ser deixada de fora — e a que só existe em local de troca
+   **já começa marcada assim**, que é a regra 5 escrita na tela. Sem isso a
+   pessoa ficaria presa: ou tirava a carta do Trade Binder, ou não transferia
+   nada.
 
 ## 8. Planos: Free e Premium
 
@@ -505,7 +606,7 @@ Stripe, com cartão ou Pix.
 4. **Compartilhar a want list** — a folha com o que falta, em imagem ou
    impressa. Montá-la e usá-la como quiser é o recurso; **manter a want list**
    continua no Free.
-5. **O Deck Builder** (seção 7).
+5. **As decklists** (seção 7).
 6. **Aparecer primeiro na rede** (6.1.3).
 
 **No Free, sem limite:** cadastrar, **ver, buscar e filtrar** a coleção inteira, binders e caixas, a want list
@@ -528,6 +629,14 @@ o direito de negociar.
    do nosso lado, e a tela diz isso antes de a pessoa escolher.
 4. **Atraso e cancelamento não cortam o ciclo já pago.** O dinheiro daquele
    período entrou; o acesso cai sozinho quando a data chega.
+4.1. **Estorno corta o acesso na hora** (mudança de 21/09). É a exceção à regra
+   5: devolveu o dinheiro, acabou o serviço. Vale só para **estorno total** —
+   devolver parte não desfaz a compra. E corta só o que **aquele pagamento**
+   deu: quem tem acesso mais longo, vindo de cortesia, não perde nada.
+4.2. **Contestação de cobrança corta igual ao estorno** (mudança de 21/09), na
+   abertura da disputa — que é quando o dinheiro sai da conta. Mesmos limites
+   da 4.1. **Disputa ganha por nós não devolve o acesso sozinha**: é pergunta em
+   aberto, e até lá se resolve com `npm run supabase -- premium`.
 5. **Pagar nunca encurta um Premium mais longo** — é o caso de quem tem
    cortesia e resolve assinar.
 6. **Pagar antes de vencer emenda no que falta**; pagar depois recomeça no dia
@@ -536,8 +645,35 @@ o direito de negociar.
    aviso antes de acabar.
 8. **Quem já é Premium não vê os planos** — assinar por cima cobraria sem dar
    um dia a mais, porque o acesso nunca é encurtado. Continuam à vista para
-   quem paga no Pix, que renova na mão, e para quem cancelou ou está com
-   cobrança atrasada.
+   quem paga no Pix, que renova na mão, para quem cancelou ou está com cobrança
+   atrasada, e para quem está no teste grátis (8.2).
+9. **Quem já assina no cartão não assina de novo**: a tela recusa antes de
+   levar ao provedor, dizendo para gerenciar a assinatura que já existe.
+10. **O lançamento é só no cartão.** O Pix está construído e desligado — a
+    Stripe o libera por convite, e o dono do produto não quis esperar.
+
+### 8.2 O teste grátis de 7 dias (decisão 102, mudança de 21/09)
+
+1. **Sete dias de Premium, sem cartão e sem cobrança.** Não passa pelo provedor
+   de pagamento: é a única porta de Premium que não é pagamento nem comando de
+   operação.
+2. **Uma vez por conta**, para sempre. A trava é `users.trial_started_at`: nulo
+   é "ainda não resgatou", preenchido é "já foi". Acabado o teste, o carimbo
+   continua lá e o botão não reaparece.
+3. **É resgatado, não automático.** A conta nasce Free; os sete dias começam a
+   correr quando a pessoa pede, e não quando ela se cadastra — assim ninguém
+   perde o teste sem ter usado.
+4. **Vale para qualquer conta que nunca resgatou**, nova ou antiga.
+5. **Quem já é Premium não resgata.** Queimaria os sete dias sem ganhar um só,
+   porque o acesso nunca é encurtado (8.1, regra 5). Fica guardado para quando
+   o acesso atual acabar.
+6. **O teste nunca encurta um acesso mais longo** — a mesma regra do pagamento,
+   pelo mesmo motivo.
+7. **Os planos continuam à vista durante o teste**, com um contador de quantos
+   dias faltam. O contador **é** o aviso do fim: não há e-mail.
+8. **A trava é por conta, não por pessoa.** Outro e-mail dá outro teste, e não
+   há como impedir sem cartão ou documento — que o teste existe para evitar. A
+   brecha foi aceita pelo dono do produto em 21/09, por escrito.
 
 ## 9. Testes obrigatórios de domínio
 

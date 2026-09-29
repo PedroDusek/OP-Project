@@ -6,7 +6,7 @@ import {
   type PaymentMethod,
   type SubscriptionStatus,
 } from '@/server/domain/billing/plans'
-import type { PaymentEventData } from '@/server/http/payment-provider'
+import type { PaymentEventData, PaymentProvider } from '@/server/http/payment-provider'
 
 /**
  * O que o provedor avisou vira acesso (decisão 102).
@@ -33,6 +33,8 @@ const TRATADOS = new Set([
   'invoice.payment_failed',
   'customer.subscription.updated',
   'customer.subscription.deleted',
+  'charge.refunded',
+  'charge.dispute.created',
 ])
 
 export interface EventOutcome {
@@ -47,6 +49,13 @@ export async function handlePaymentEvent(
   prisma: PrismaClient,
   event: PaymentEventData,
   now: Date = new Date(),
+  /*
+   * Só a contestação de cobrança precisa dele, e só para perguntar de quem é a
+   * cobrança (a disputa não traz o cliente). É opcional para o resto do
+   * processamento continuar funcionando sem rede — que é como a maioria dos
+   * testes roda, e como deve ser.
+   */
+  provider?: Pick<PaymentProvider, 'customerOfCharge'>,
 ): Promise<EventOutcome> {
   const jaVisto = await prisma.paymentEvent.findUnique({ where: { eventId: event.id } })
   if (jaVisto?.handledAt) {
@@ -80,7 +89,7 @@ export async function handlePaymentEvent(
   }
 
   try {
-    const userId = await aplicar(prisma, event, now)
+    const userId = await aplicar(prisma, event, now, provider)
     await marcarTratado(prisma, event.id)
     return { duplicate: false, ignored: false, userId }
   } catch (error) {
@@ -108,6 +117,23 @@ async function marcarTratado(prisma: PrismaClient, eventId: string): Promise<voi
 
 // ------------------------------------------------------------------ aplicar
 
+/**
+ * O aviso da Stripe, nas duas formas que ele tem.
+ *
+ * A API nova (conferida em 21/09, versão `2026-08-26`) **mudou de lugar** três
+ * coisas que o código lia:
+ *
+ * | antes | agora |
+ * |---|---|
+ * | `invoice.subscription` | `invoice.parent.subscription_details.subscription` |
+ * | `invoice.metadata` | `invoice.parent.subscription_details.metadata` |
+ * | `subscription.current_period_end` | `subscription.items.data[].current_period_end` |
+ *
+ * Os dois formatos ficam aceitos: a versão do aviso é escolhida no painel, por
+ * destino, e um webhook antigo pode continuar mandando a forma velha. Ler os
+ * dois é mais barato que descobrir, num sábado, que a conta de alguém não
+ * virou Premium.
+ */
 interface StripeObjeto {
   object?: string
   id?: string
@@ -119,13 +145,51 @@ interface StripeObjeto {
   cancel_at_period_end?: boolean
   current_period_end?: number | null
   metadata?: Record<string, string> | null
+  /** Na cobrança estornada: o total e o quanto já voltou, em centavos. */
+  amount?: number | null
+  amount_refunded?: number | null
+  /** Na contestação: a cobrança contestada. A disputa **não** traz o cliente. */
+  charge?: string | null
+  items?: { data?: { current_period_end?: number | null }[] } | null
+  parent?: {
+    subscription_details?: {
+      subscription?: string | null
+      metadata?: Record<string, string> | null
+    } | null
+  } | null
   lines?: { data?: { period?: { end?: number | null } | null }[] } | null
 }
 
+/**
+ * O identificador da assinatura, no lugar novo ou no antigo.
+ *
+ * `ehAssinatura` vem de **quem chama**, e não do corpo: no aviso da própria
+ * assinatura o id dela é o id do objeto, e depender de um campo `object` que a
+ * Stripe pode deixar de mandar seria trocar uma certeza por um palpite.
+ */
+function assinaturaDe(objeto: StripeObjeto, ehAssinatura = false): string | null {
+  if (ehAssinatura && typeof objeto.id === 'string') return objeto.id
+  const daFatura = objeto.parent?.subscription_details?.subscription
+  if (typeof daFatura === 'string') return daFatura
+  if (typeof objeto.subscription === 'string') return objeto.subscription
+  return null
+}
+
+/** Os dados que mandamos junto do pagamento, no lugar novo ou no antigo. */
+function metadataDe(objeto: StripeObjeto): Record<string, string> {
+  return { ...(objeto.parent?.subscription_details?.metadata ?? {}), ...(objeto.metadata ?? {}) }
+}
+
 /** Aplica o aviso e devolve de quem é a conta, quando dá para saber. */
-async function aplicar(prisma: PrismaClient, event: PaymentEventData, now: Date): Promise<bigint | null> {
+async function aplicar(
+  prisma: PrismaClient,
+  event: PaymentEventData,
+  now: Date,
+  provider?: Pick<PaymentProvider, 'customerOfCharge'>,
+): Promise<bigint | null> {
   const objeto = ((event.payload as { data?: { object?: StripeObjeto } }).data?.object ?? {}) as StripeObjeto
-  const customerId = typeof objeto.customer === 'string' ? objeto.customer : null
+  const customerId =
+    typeof objeto.customer === 'string' ? objeto.customer : await clienteDaDisputa(objeto, provider)
 
   const userId = await acharUsuario(prisma, objeto, customerId)
   if (!userId) {
@@ -165,7 +229,7 @@ async function aplicar(prisma: PrismaClient, event: PaymentEventData, now: Date)
     await gravar(prisma, {
       userId,
       customerId,
-      subscriptionId: typeof objeto.subscription === 'string' ? objeto.subscription : null,
+      subscriptionId: assinaturaDe(objeto),
       status: 'ACTIVE',
       cycle,
       method: 'CARD',
@@ -180,7 +244,7 @@ async function aplicar(prisma: PrismaClient, event: PaymentEventData, now: Date)
     await gravar(prisma, {
       userId,
       customerId,
-      subscriptionId: typeof objeto.subscription === 'string' ? objeto.subscription : null,
+      subscriptionId: assinaturaDe(objeto),
       status: 'ACTIVE',
       cycle,
       method,
@@ -188,6 +252,27 @@ async function aplicar(prisma: PrismaClient, event: PaymentEventData, now: Date)
       cancelAtPeriodEnd: false,
     })
     if (fim) await liberar(prisma, userId, fim)
+    return userId
+  }
+
+  if (event.type === 'charge.dispute.created') {
+    /*
+     * Contestação corta igual ao estorno (decisão 102, mudança de 21/09). O
+     * dinheiro sai da conta assim que a disputa abre, e o serviço acompanha.
+     *
+     * Não há conta de valor parcial aqui: a Stripe abre a disputa pelo valor
+     * contestado, e uma contestação parcial de assinatura mensal não é caso
+     * que exista no ColeXa — cada ciclo é uma cobrança só.
+     */
+    await cortarAcesso(prisma, userId)
+    return userId
+  }
+
+  if (event.type === 'charge.refunded') {
+    // Estorno parcial nao corta: devolver parte do valor nao e desfazer a
+    // compra, e cortar tudo por causa de R$ 1 seria punir quem foi ressarcido.
+    if (!estornoTotal(objeto)) return userId
+    await cortarAcesso(prisma, userId)
     return userId
   }
 
@@ -203,11 +288,11 @@ async function aplicar(prisma: PrismaClient, event: PaymentEventData, now: Date)
     event.type === 'customer.subscription.deleted'
       ? 'CANCELED'
       : statusFromStripe(objeto.status ?? '')
-  const fim = objeto.current_period_end ? new Date(objeto.current_period_end * 1000) : null
+  const fim = fimDoCiclo(objeto)
   await gravar(prisma, {
     userId,
     customerId,
-    subscriptionId: typeof objeto.id === 'string' ? objeto.id : null,
+    subscriptionId: assinaturaDe(objeto, true),
     status,
     cycle,
     method: 'CARD',
@@ -221,12 +306,23 @@ async function aplicar(prisma: PrismaClient, event: PaymentEventData, now: Date)
 }
 
 function cicloDe(objeto: StripeObjeto): BillingCycle {
-  return objeto.metadata?.cycle === 'ANNUAL' ? 'ANNUAL' : 'MONTHLY'
+  return metadataDe(objeto).cycle === 'ANNUAL' ? 'ANNUAL' : 'MONTHLY'
 }
 
-/** O fim do período pago vem na linha da fatura. */
+/**
+ * O fim do período pago.
+ *
+ * Na fatura vem na linha; na assinatura vinha no topo e agora vem no item.
+ * **`invoice.period_end` não serve**: ele é o fim do período *daquela fatura*,
+ * que no primeiro pagamento é o mesmo instante do começo — usá-lo daria Premium
+ * vencido no mesmo segundo.
+ */
 function fimDoCiclo(objeto: StripeObjeto): Date | null {
-  const fim = objeto.lines?.data?.[0]?.period?.end ?? objeto.current_period_end ?? null
+  const fim =
+    objeto.lines?.data?.[0]?.period?.end ??
+    objeto.items?.data?.[0]?.current_period_end ??
+    objeto.current_period_end ??
+    null
   return fim ? new Date(fim * 1000) : null
 }
 
@@ -242,7 +338,7 @@ async function acharUsuario(
   objeto: StripeObjeto,
   customerId: string | null,
 ): Promise<bigint | null> {
-  const doAviso = objeto.client_reference_id ?? objeto.metadata?.user_id ?? null
+  const doAviso = objeto.client_reference_id ?? metadataDe(objeto).user_id ?? null
   if (doAviso && /^\d+$/.test(doAviso)) {
     const existe = await prisma.user.findUnique({ where: { id: BigInt(doAviso) }, select: { id: true } })
     if (existe) return existe.id
@@ -317,6 +413,78 @@ async function atualizarStatus(prisma: PrismaClient, userId: bigint, status: Sub
     select: { id: true },
   })
   if (atual) await prisma.subscription.update({ where: { id: atual.id }, data: { status } })
+}
+
+/**
+ * O cliente de uma contestação, perguntado ao provedor.
+ *
+ * O aviso de disputa traz `charge` e `payment_intent`, e **não** traz o
+ * cliente — ao contrário do estorno, onde a cobrança vem inteira. Sem o cliente
+ * não há como saber de quem é a conta, então esta é a única vez em que o
+ * webhook pergunta algo ao provedor em vez de só ler o que chegou.
+ *
+ * Guardar o id da cobrança em `subscriptions` seria a alternativa, e custaria
+ * uma coluna nova — conversa, e não detalhe (decisão 041).
+ *
+ * Sem provedor (o caso dos testes que não tocam a rede) devolve `null`, e o
+ * aviso segue o caminho normal de quem não tem dono.
+ */
+async function clienteDaDisputa(
+  objeto: StripeObjeto,
+  provider?: Pick<PaymentProvider, 'customerOfCharge'>,
+): Promise<string | null> {
+  if (!provider || typeof objeto.charge !== 'string') return null
+  return provider.customerOfCharge(objeto.charge)
+}
+
+/**
+ * O dinheiro voltou inteiro?
+ *
+ * A Stripe manda `charge.refunded` tanto no estorno total quanto no parcial —
+ * o que separa os dois é `amount_refunded` ter alcançado `amount`. Sem esta
+ * conta, devolver R$ 1 de R$ 14,90 cortaria o mês inteiro.
+ */
+function estornoTotal(objeto: StripeObjeto): boolean {
+  const total = objeto.amount
+  const devolvido = objeto.amount_refunded
+  if (typeof total !== 'number' || typeof devolvido !== 'number') return false
+  return devolvido >= total
+}
+
+/**
+ * Estorno corta o acesso na hora (decisão 102, mudança de 21/09).
+ *
+ * É a **exceção** à regra de nunca encurtar: devolveu o dinheiro, acabou o
+ * serviço. Sem isto, o direito de arrependimento do CDC — sete dias, e ele vale
+ * querendo ou não — daria um ciclo inteiro de Premium de graça a quem pedisse o
+ * dinheiro de volta.
+ *
+ * ## O que ela não corta
+ *
+ * Quem tem acesso **mais longo do que o ciclo estornado** não perde nada: a
+ * data veio de outro lugar (cortesia, decisão 102 item 4), e o estorno só
+ * desfaz o que aquele pagamento deu. Sem esta conferência, um assinante com
+ * cortesia até 2046 que pedisse estorno de um mês perderia vinte anos.
+ *
+ * Quando não dá para saber o que o pagamento deu — ficha sem fim de ciclo —, o
+ * acesso **cai**. Das duas falhas possíveis, deixar Premium de graça para quem
+ * foi ressarcido é a que custa dinheiro toda vez; a outra se conserta com
+ * `npm run supabase -- premium <email> --ate=...`.
+ */
+async function cortarAcesso(prisma: PrismaClient, userId: bigint): Promise<void> {
+  const [usuario, ficha] = await Promise.all([
+    prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { premiumUntil: true } }),
+    prisma.subscription.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: { currentPeriodEnd: true },
+    }),
+  ])
+
+  const fimDoPago = ficha?.currentPeriodEnd ?? null
+  if (usuario.premiumUntil && fimDoPago && usuario.premiumUntil > fimDoPago) return
+
+  await prisma.user.update({ where: { id: userId }, data: { plan: 'FREE', premiumUntil: null } })
 }
 
 /**

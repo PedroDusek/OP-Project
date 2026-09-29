@@ -160,7 +160,20 @@ describe('a serie so cresce quando o preco muda', () => {
     expect(segunda).toMatchObject({ written: 0, unchanged: 1 })
   })
 
-  it('acrescenta linha quando o valor muda, sem apagar a anterior', async () => {
+  /*
+   * **A regra mudou em 22/09** (decisão 107): antes a linha nova era
+   * acrescentada e a anterior ficava, formando a série. Agora a linha é
+   * **sobrescrita** — `card_prices` guarda o preço de agora, e não o histórico.
+   *
+   * O histórico existia para a regra 5.1, que nunca foi implementada, e o dono
+   * do produto decidiu que o produto não guardará valor de carta em troca
+   * nenhuma. Nenhuma consulta lê preço de data passada.
+   *
+   * O que o teste protege continua sendo o mesmo de antes, menos a contagem:
+   * `since` acompanha a mudança, porque é **desde quando a carta está neste
+   * preço**.
+   */
+  it('sobrescreve quando o valor muda, e a data acompanha', async () => {
     const { normal } = await carta('OP01-007')
     const db = testPrisma()
     const ontem = new Date('2026-09-05T12:00:00Z')
@@ -175,8 +188,30 @@ describe('a serie so cresce quando o preco muda', () => {
       capturedAt: hoje,
     })
 
-    expect(await db.cardPrice.count()).toBe(2)
+    expect(await db.cardPrice.count()).toBe(1)
     expect(await getMarketPrice(db, normal.id)).toMatchObject({ value: 9, since: hoje })
+  })
+
+  /*
+   * O contrário do de cima, e o que dá sentido a `captured_at`: conferir sem
+   * mudança **não** mexe na data. Se mexesse, a coluna passaria a dizer "quando
+   * rodamos a importação" — afirmação que já mora em `price_imports`.
+   */
+  it('não mexe na data quando o preço não mudou', async () => {
+    const { normal } = await carta('OP01-009')
+    const db = testPrisma()
+    const ontem = new Date('2026-09-05T12:00:00Z')
+
+    await importPrices(db, fakeProvider([usd('OP01-009', 4.25)]).provider, {
+      logger: silent,
+      capturedAt: ontem,
+    })
+    await importPrices(db, fakeProvider([usd('OP01-009', 4.25)]).provider, {
+      logger: silent,
+      capturedAt: new Date('2026-09-06T12:00:00Z'),
+    })
+
+    expect(await getMarketPrice(db, normal.id)).toMatchObject({ value: 4.25, since: ontem })
   })
 
   /** Cair de preco e mudanca como qualquer outra. */
@@ -312,14 +347,21 @@ describe('cotacao do dolar', () => {
     expect(await testPrisma().exchangeRate.count()).toBe(0)
   })
 
-  /** Converter por taxa velha seria apresentar palpite com cara de dado. */
+  /*
+   * Converter por taxa velha seria apresentar palpite com cara de dado.
+   *
+   * **A janela mudou em 21/09**, de tres para sete dias: a tarefa roda as 04:00
+   * de Brasilia e a PTAX do dia so sai a tarde, entao na segunda ela ainda
+   * encontra a de sexta, e tres dias derrubavam o real toda segunda a noite
+   * (armadilha 84). A data da cotacao continua na tela ao lado do valor.
+   */
   it('esconde a cotacao velha demais', async () => {
     const db = testPrisma()
     await importExchangeRate(db, fakeRates([{ rate: 5.1253, quoteDate: dia }]), { logger: silent })
 
-    // Tres dias ainda valem: cobrem o fim de semana com feriado emendado.
-    expect(await getUsdBrlRate(db, new Date('2026-09-11T12:00:00Z'))).not.toBeNull()
-    expect(await getUsdBrlRate(db, new Date('2026-09-12T12:00:00Z'))).toBeNull()
+    // Uma semana ainda vale: e o atraso estrutural da tarefa, nao defeito.
+    expect(await getUsdBrlRate(db, new Date('2026-09-15T12:00:00Z'))).not.toBeNull()
+    expect(await getUsdBrlRate(db, new Date('2026-09-16T12:00:00Z'))).toBeNull()
   })
 })
 

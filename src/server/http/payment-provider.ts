@@ -42,9 +42,29 @@ export interface PaymentProvider {
   readonly name: string
   /** `false` quando as chaves não estão configuradas neste ambiente. */
   readonly available: boolean
+  /**
+   * `false` enquanto o provedor não libera Pix para esta conta.
+   *
+   * Separado de `available` porque as duas coisas falham por motivos
+   * diferentes: sem chave **nada** funciona; sem Pix o cartão continua
+   * funcionando. Quem decide é o ambiente, não o código (armadilha 82).
+   */
+  readonly pixAvailable: boolean
   createCheckout(request: CheckoutRequest): Promise<CheckoutSession>
   /** Endereço do portal onde a pessoa troca o cartão ou cancela. */
   createPortalSession(customerId: string, returnUrl: string): Promise<string>
+  /**
+   * De quem é a cobrança, pelo identificador dela.
+   *
+   * Existe por causa da contestação de cobrança: o aviso de disputa traz a
+   * cobrança e o pagamento, **mas não o cliente** — e sem o cliente não há como
+   * saber de quem é a conta. É a única operação que pergunta algo ao provedor
+   * em vez de mandar; guardar o id da cobrança no banco seria a alternativa, e
+   * custaria uma coluna nova.
+   *
+   * Devolve `null` quando a cobrança não existe ou não tem cliente.
+   */
+  customerOfCharge(chargeId: string): Promise<string | null>
   /**
    * Confere a assinatura do aviso e devolve o conteúdo.
    *

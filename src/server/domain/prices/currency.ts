@@ -33,14 +33,33 @@ export function convertToBrl(valueInUsd: number, rate: number): number {
  * A cotação está velha demais para ser chamada de "do dia"?
  *
  * O PTAX só existe em dia útil: numa segunda-feira, a cotação mais recente é a
- * de sexta, e isso é normal. Três dias cobrem o fim de semana com um feriado
- * emendado — que é o buraco mais longo que o calendário brasileiro produz sem
- * que algo esteja errado.
+ * de sexta, e isso é normal.
  *
- * Passando disso, a importação parou de rodar, e o número na tela deixa de ser
- * uma conversão para virar um palpite com cara de dado.
+ * ## Por que sete, e não três (21/09)
+ *
+ * Três dias pareciam cobrir o fim de semana com um feriado emendado, e não
+ * cobriam. A tarefa de preços roda às 04:00 de Brasília, e **a PTAX do dia só
+ * sai no meio da tarde** — então na segunda de manhã ela ainda encontra a
+ * cotação de sexta. A conta chegava a quatro dias à meia-noite UTC, que são
+ * 21:00 de Brasília, e o real sumia da tela **toda segunda à noite**, no
+ * horário de maior uso, até a tarefa da terça consertar sozinha.
+ *
+ * O dono do produto escolheu alargar a janela para uma semana em vez de mexer
+ * no horário da tarefa. Sete dias absorvem esse atraso estrutural e qualquer
+ * feriado prolongado.
+ *
+ * ## O que se perde, e o que segura
+ *
+ * Com uma semana de tolerância, uma importação que pare de rodar demora até
+ * sete dias para aparecer na tela. **O que segura isso é a tela dizer a data da
+ * cotação** ao lado do valor (`market-price.tsx`): o número nunca se apresenta
+ * como sendo de hoje se não for. Quem olhar vê "5,11 em 21/09" e tira a própria
+ * conclusão.
+ *
+ * Passando de sete dias o real some, e aí é sinal de que a importação parou —
+ * não de calendário.
  */
-export const MAX_RATE_AGE_IN_DAYS = 3
+export const MAX_RATE_AGE_IN_DAYS = 7
 
 export function isRateStale(quoteDate: Date, today: Date): boolean {
   return daysBetween(quoteDate, today) > MAX_RATE_AGE_IN_DAYS

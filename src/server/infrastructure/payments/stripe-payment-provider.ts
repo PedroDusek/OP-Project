@@ -25,6 +25,16 @@ import type {
  * volta. Quem conta o ciclo é o ColeXa (`cycleEnd`), e o preço vai inline, em
  * `price_data` — sem isso seriam quatro preços cadastrados à mão no painel, e
  * dois deles só para o Pix.
+ *
+ * ## O Pix está pronto e dorme
+ *
+ * A Stripe libera Pix **por convite** para empresas brasileiras, e a conta do
+ * ColeXa não foi convidada. Em 21/09 o dono do produto desistiu de esperar: o
+ * lançamento é só no cartão (decisão 102, mudança de 21/09).
+ *
+ * O código ficou de propósito. Parado não custa nada, e apagá-lo seria
+ * escrevê-lo de novo no dia em que o Pix entrar — ligar é `STRIPE_PIX=1`, sem
+ * publicar código novo.
  */
 
 const API = 'https://api.stripe.com/v1'
@@ -45,6 +55,17 @@ export class StripePaymentProvider implements PaymentProvider {
 
   get available(): boolean {
     return this.config() !== null
+  }
+
+  /**
+   * O Pix só aparece quando o ambiente diz que a conta tem Pix.
+   *
+   * Desligado é o padrão, e de propósito: com o Pix não liberado, a sessão de
+   * pagamento é recusada pela Stripe e a pessoa vê um erro depois de escolher —
+   * pior do que não ter o botão.
+   */
+  get pixAvailable(): boolean {
+    return this.available && process.env.STRIPE_PIX === '1'
   }
 
   private async post<T>(path: string, form: Record<string, string>): Promise<T> {
@@ -112,6 +133,38 @@ export class StripePaymentProvider implements PaymentProvider {
     const session = await this.post<{ id: string; url: string | null }>('/checkout/sessions', form)
     if (!session.url) throw new Error('A Stripe não devolveu o endereço da sessão de pagamento.')
     return { url: session.url, sessionId: session.id }
+  }
+
+  /**
+   * O cliente de uma cobrança, para a contestação saber de quem é a conta.
+   *
+   * Engole a falha e devolve `null`: um `GET` que não responde não pode
+   * derrubar o webhook inteiro — a Stripe reenviaria o aviso para sempre. O
+   * motivo vai para o log, e a contestação sem dono fica registrada em
+   * `payment_events` para ser vista à mão.
+   */
+  async customerOfCharge(chargeId: string): Promise<string | null> {
+    const config = this.config()
+    if (!config) return null
+
+    try {
+      const response = await fetch(`${API}/charges/${encodeURIComponent(chargeId)}`, {
+        headers: { Authorization: `Bearer ${config.secretKey}` },
+        signal: AbortSignal.timeout(20_000),
+      })
+      if (!response.ok) {
+        console.warn('[pagamentos] cobranca nao encontrada', { chargeId, status: response.status })
+        return null
+      }
+      const cobranca = (await response.json()) as { customer?: string | null }
+      return typeof cobranca.customer === 'string' ? cobranca.customer : null
+    } catch (erro) {
+      console.warn('[pagamentos] falha ao ler a cobranca', {
+        chargeId,
+        erro: erro instanceof Error ? erro.message : String(erro),
+      })
+      return null
+    }
   }
 
   async createPortalSession(customerId: string, returnUrl: string): Promise<string> {

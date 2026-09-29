@@ -1,9 +1,11 @@
 'use client'
 
 import { useCallback, useMemo, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { AlertTriangle, ArrowLeftRight, Check, Package, Plus, Sparkles } from 'lucide-react'
 import { CardArt } from '@/components/catalog/card-art'
 import { CatalogFilters } from '@/components/catalog/catalog-filters'
+import { CatalogSort } from '@/components/catalog/catalog-sort'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { QuantitySelector } from '@/components/ui/quantity-selector'
@@ -13,10 +15,15 @@ import { Switch } from '@/components/ui/switch'
 import { countActiveFilters, type CatalogSearchParams } from '@/lib/catalog-params'
 import { deckCatalogQuery } from '@/lib/deck-query'
 import type { CatalogVocabulary } from '@/server/application/catalog/vocabulary'
+import { Field, Input } from '@/components/ui/field'
+import { TransferDeckSheet, type DeckBox } from '@/components/decks/transfer-deck-sheet'
+import type { SavedDeck } from '@/server/application/decks'
 import {
   adicionarFaltantesAction,
   conferirDeckAction,
+  salvarDeckAction,
   type DeckState,
+  type SaveState,
   type WantsState,
 } from '@/app/(app)/deck/actions'
 
@@ -74,20 +81,31 @@ const TAMANHO_DO_DECK = 50
 export function DeckBuilder({
   initialLeaders,
   vocabulary,
+  savedDeck,
+  deckboxes = [],
 }: {
   initialLeaders: Carta[]
   vocabulary: CatalogVocabulary
+  /** Preenchido ao abrir uma lista salva: salvar regrava esta, e não cria outra. */
+  savedDeck?: SavedDeck
+  /** As deckboxes da pessoa, para o quarto passo. Vazio some com o botão. */
+  deckboxes?: DeckBox[]
 }) {
-  const [leader, setLeader] = useState<Lider | null>(null)
+  const [leader, setLeader] = useState<Lider | null>(savedDeck?.leader ?? null)
   const [sugestoes, setSugestoes] = useState<Carta[]>([])
   const [lendoLider, setLendoLider] = useState(false)
   const [erroLider, setErroLider] = useState<string | null>(null)
-  const [linhas, setLinhas] = useState<Linha[]>([])
+  const [linhas, setLinhas] = useState<Linha[]>(savedDeck?.lines ?? [])
   const [autoComplete, setAutoComplete] = useState(true)
   const [resultado, setResultado] = useState<DeckState>({ status: 'idle' })
   const [wants, setWants] = useState<WantsState>({ status: 'idle' })
   const [conferindo, conferir] = useTransition()
   const [enviando, enviarWants] = useTransition()
+
+  const router = useRouter()
+  const [nome, setNome] = useState(savedDeck?.name ?? '')
+  const [salvo, setSalvo] = useState<SaveState>({ status: 'idle' })
+  const [salvando, salvar] = useTransition()
 
   const total = linhas.reduce((soma, linha) => soma + linha.copies, 0)
   const porCodigo = useMemo(() => {
@@ -302,6 +320,68 @@ export function DeckBuilder({
                 {resultado.message}
               </p>
             ) : null}
+
+            {/*
+              Salvar (decisão 108). Fica ao lado de conferir, e não escondido no
+              fim da análise: a lista pode ser salva **incompleta**, e quem monta
+              aos poucos precisa guardar antes de ter o que conferir.
+
+              O nome é obrigatório porque é ele que guia a pessoa entre as
+              listas; a capa não se escolhe, é a arte do líder.
+            */}
+            <Panel className="flex flex-col gap-3 p-4">
+              <Field label="Nome da lista">
+                {(props) => (
+                  <Input
+                    {...props}
+                    value={nome}
+                    onChange={(evento) => setNome(evento.target.value)}
+                    maxLength={100}
+                    placeholder="Luffy vermelho, agressivo"
+                  />
+                )}
+              </Field>
+              <Button
+                variant="secondary"
+                block
+                loading={salvando}
+                disabled={nome.trim().length === 0}
+                onClick={() =>
+                  salvar(async () => {
+                    const resultado = await salvarDeckAction({
+                      id: savedDeck?.id ?? null,
+                      name: nome,
+                      leaderVariantId: leader.variantId,
+                      lines: linhas.map((linha) => ({ variantId: linha.variantId, copies: linha.copies })),
+                    })
+                    setSalvo(resultado)
+
+                    /*
+                     * Lista nova salva vira lista aberta. Sem isto, o quarto
+                     * passo — colocar na deckbox — só apareceria depois de sair
+                     * e voltar, e quem acabou de montar o deck está justamente
+                     * com as cartas na mão.
+                     */
+                    if (!savedDeck && resultado.status === 'ok') {
+                      router.replace(`/deck/${resultado.id}`)
+                    }
+                  })
+                }
+              >
+                {savedDeck ? 'Salvar alterações' : 'Salvar a lista'}
+              </Button>
+
+              {salvo.status === 'ok' ? (
+                <p className="text-sm text-success">
+                  {salvo.message} {total < TAMANHO_DO_DECK ? 'Ela fica marcada como incompleta.' : ''}
+                </p>
+              ) : null}
+              {salvo.status === 'error' ? (
+                <p role="alert" className="text-sm text-danger">
+                  {salvo.message}
+                </p>
+              ) : null}
+            </Panel>
           </section>
 
           {analysis ? (
@@ -478,6 +558,21 @@ export function DeckBuilder({
               ) : null}
             </section>
           ) : null}
+
+          {/*
+            O quarto passo, a pedido do dono do produto: ele fecha o caminho —
+            escolher o líder, montar, conferir, e guardar as cartas na caixa.
+            Antes o botão ficava no topo da página, fora da sequência.
+
+            Só aparece em lista **salva**: transferir precisa de uma lista que
+            exista no banco, e uma que ainda não foi salva não tem o que mover.
+          */}
+          {savedDeck ? (
+            <section className="flex flex-col gap-3">
+              <h2 className="text-sm font-semibold text-text">4. Colocar na deckbox</h2>
+              <TransferDeckSheet deckId={savedDeck.id} boxes={deckboxes} />
+            </section>
+          ) : null}
         </>
       ) : null}
     </div>
@@ -590,6 +685,14 @@ function BuscaDeCartas({
           Buscar
         </Button>
       </form>
+
+      <CatalogSort
+        values={filtros}
+        onChange={(novos) => {
+          setFiltros(novos)
+          void buscar(termo, novos)
+        }}
+      />
 
       {erro ? (
         <p role="alert" className="text-sm text-danger">

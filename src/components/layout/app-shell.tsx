@@ -19,14 +19,16 @@ import { AttributionFooter } from '@/components/legal/attribution-footer'
  * partida, e as duas navegacoes sao a **mesma** lista de destinos, nunca duas
  * arvores diferentes.
  *
- * O espaco reservado embaixo no celular precisa cobrir a barra inferior fixa,
- * e ela **nao tem altura fixa**: sao 56 px mais `env(safe-area-inset-bottom)`,
- * que num aparelho com barra de gestos passa de 30 px. Reservar 80 px fixos
- * dava conta no navegador de mesa, onde a area segura e zero, e deixava o
- * ultimo elemento da pagina debaixo da barra no celular de verdade — foi assim
- * que o botao de carregar mais ficou dificil de acertar.
+ * A reserva de baixo soma `env(safe-area-inset-bottom)`, que num aparelho com
+ * barra de gestos passa de 30 px. Um valor fixo dava conta no navegador de
+ * mesa, onde a area segura e zero, e deixava o ultimo elemento da pagina
+ * debaixo da barra do sistema no celular de verdade — foi assim que o botao de
+ * carregar mais ficou dificil de acertar.
  *
- * Por isso a reserva soma a mesma area segura que a barra usa, mais folga.
+ * **Nao ha mais barra de navegacao inferior.** Ela virou gaveta em 10/09, e o
+ * que ficou aqui e so a area segura do aparelho. Quem copiar este arranjo nao
+ * precisa reservar altura de navegacao nenhuma — reservar deixa um vao grande
+ * sobre o conteudo, que foi o defeito do resumo da adicao em massa.
  */
 
 export interface AppShellProps {

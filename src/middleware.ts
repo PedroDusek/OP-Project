@@ -1,5 +1,7 @@
-import { createServerClient } from '@supabase/ssr'
+﻿import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { rotaParaOficial } from '@/lib/dominio'
+import { podeIndexar } from '@/lib/indexacao'
 
 /**
  * Renovacao do token de sessao.
@@ -13,6 +15,9 @@ import { NextResponse, type NextRequest } from 'next/server'
  * dois lugares diferentes daria duas fontes de verdade para o mesmo cookie.
  */
 export async function middleware(request: NextRequest) {
+  const paraOficial = redirecionarParaOficial(request)
+  if (paraOficial) return paraOficial
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
@@ -44,22 +49,39 @@ export async function middleware(request: NextRequest) {
   return indexable(request, response)
 }
 
-/** O unico endereco que buscadores devem indexar (decisao 092). */
-const OFFICIAL_HOSTS = new Set(['colexa.com.br', 'www.colexa.com.br'])
+/**
+ * O endereco antigo leva ao oficial (21/09).
+ *
+ * **308, e nao 302**: e permanente e preserva o metodo, entao um formulario
+ * enviado ao endereco antigo nao vira GET no caminho. A regra — inclusive a
+ * guarda contra laco e a checagem de saude — mora em `lib/dominio.ts`, pura e
+ * testada.
+ */
+function redirecionarParaOficial(request: NextRequest): NextResponse | null {
+  const destino = rotaParaOficial(
+    request.headers.get('host'),
+    request.nextUrl.pathname,
+    request.nextUrl.search,
+    process.env.APP_URL,
+  )
+  return destino ? NextResponse.redirect(destino, 308) : null
+}
 
 /**
- * Fora do dominio oficial, pede aos buscadores para nao indexar.
+ * Pede aos buscadores para nao indexar, a menos que duas coisas valham.
  *
- * O site de teste em `colexa.fly.dev` declarava `index, follow` como qualquer
- * pagina: apareceria em busca antes do lancamento, e depois dele viraria copia
- * do dominio oficial. Pelo cabecalho `X-Robots-Tag`, e decidido **por
- * requisicao**, a partir do `Host`: o layout e as paginas estaticas sao montados
- * no build, sem saber em que endereco vao ser servidos. Entre o cabecalho e a
- * meta tag, o buscador obedece a mais restritiva.
+ * Pelo cabecalho `X-Robots-Tag`, decidido **por requisicao** a partir do
+ * `Host`: o layout e as paginas estaticas sao montados no build, sem saber em
+ * que endereco vao ser servidos. Entre o cabecalho e a meta tag, o buscador
+ * obedece a mais restritiva.
+ *
+ * As duas condicoes — dominio oficial **e** `ALLOW_INDEXING` — e o porque da
+ * segunda estao em `lib/indexacao.ts` (decisao 105).
  */
 function indexable(request: NextRequest, response: NextResponse): NextResponse {
-  const host = (request.headers.get('host') ?? '').split(':')[0].toLowerCase()
-  if (!OFFICIAL_HOSTS.has(host)) response.headers.set('X-Robots-Tag', 'noindex, nofollow')
+  if (!podeIndexar(request.headers.get('host'), process.env.ALLOW_INDEXING)) {
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow')
+  }
   return response
 }
 

@@ -1,5 +1,6 @@
 import type { CatalogQuery } from '@/server/application/catalog/search-cards'
 import { parseCounterValue, type CounterValue } from '@/server/domain/catalog/counter'
+import { DEFAULT_CATALOG_SORT, parseCatalogSort } from '@/server/domain/catalog/order'
 
 /**
  * A tradução entre a query string e os filtros do catálogo.
@@ -31,6 +32,7 @@ export const PARAM = {
   custoMax: 'custoMax',
   poderMin: 'poderMin',
   poderMax: 'poderMax',
+  ordem: 'ordem',
   pagina: 'pagina',
 } as const
 
@@ -102,6 +104,13 @@ export function toCatalogQuery(
     costMax: number(params[PARAM.custoMax]),
     powerMin: number(params[PARAM.poderMin]),
     powerMax: number(params[PARAM.poderMax]),
+    /*
+     * A ordem **não** é um filtro: ela não muda quais cartas aparecem, só a
+     * sequência. Por isso não entra em `countActiveFilters` nem some no
+     * Limpar — quem limpa os filtros quer ver tudo, e não voltar a ordenar
+     * por código sem ter pedido.
+     */
+    sort: parseCatalogSort(first(params[PARAM.ordem])),
     page: number(params[PARAM.pagina]) ?? 1,
     ...extra,
   }
@@ -206,6 +215,11 @@ export function toApiQuery(query: CatalogQuery): string {
   put('costMax', query.costMax)
   put('powerMin', query.powerMin)
   put('powerMax', query.powerMax)
+  // A ordem vai junto: a rolagem infinita pede a leva seguinte por aqui, e sem
+  // ela a pagina 2 voltaria na ordem do catalogo. A padrao fica de fora, para a
+  // consulta nao mudar de texto sem mudar de sentido — a grade se reinicia
+  // quando o texto muda.
+  put('sort', query.sort === DEFAULT_CATALOG_SORT ? undefined : query.sort)
   put('pageSize', query.pageSize)
 
   return params.toString()

@@ -162,8 +162,28 @@ export async function importCatalog(
     )
   }
 
+  /*
+   * As falhas, de novo e por extenso, antes do resumo.
+   *
+   * Cada uma já saiu no momento em que aconteceu, mas por `console.error` — e
+   * numa importação de vinte minutos essa linha se perde no meio de sessenta
+   * outras, ou nem chega ao arquivo de log de quem chamou. Em 22/09 o resumo
+   * disse "falhas=1" e **não havia como saber qual série** sem rodar tudo de
+   * novo.
+   *
+   * Aqui saem todas: são no máximo sessenta, e falha é justamente o que se quer
+   * ler ao chegar no fim.
+   */
+  if (report.failures.length > 0) {
+    log.warn(`[import] ${report.failures.length} serie(s) falharam:`)
+    for (const falha of report.failures) {
+      log.warn(`[import]   serie=${falha.seriesId}: ${falha.reason}`)
+    }
+  }
+
   log.info(
-    `[import] fim processadas=${report.seriesProcessed} falhas=${report.seriesFailed} ` +
+    `[import] fim processadas=${report.seriesProcessed} ` +
+      `falhas=${report.seriesFailed}${report.seriesFailed > 0 ? ` (${report.failures.map((f) => f.seriesId).join(', ')})` : ''} ` +
       `cards=${report.cardsUpserted} variants=${report.variantsUpserted} ` +
       `rejeitados=${report.rejected.length} promocionais=${report.promotionalProductNames.length} ` +
       `sem_set=${report.variantsWithoutSet.length} ` +

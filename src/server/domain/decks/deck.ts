@@ -14,6 +14,16 @@ import { ValidationError } from '@/server/domain/errors'
 export const DECK_SIZE = 50
 
 /**
+ * As 51: o líder é conferido junto (regra 7).
+ *
+ * Mora no domínio, e não na camada de aplicação, porque **a tela precisa dele** —
+ * é o total da barra de progresso das decklists. Importá-lo de `application`
+ * arrastaria o Prisma para dentro de um componente, que é a fronteira que o
+ * lint do projeto existe para proteger.
+ */
+export const DECK_TOTAL_WITH_LEADER = DECK_SIZE + 1
+
+/**
  * Quatro cópias por **código**, e não por arte: a regra oficial conta a carta, e
  * duas artes da mesma carta são a mesma carta para o deck.
  */

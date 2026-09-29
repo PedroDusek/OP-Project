@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from 'vitest'
+﻿import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { SubscriptionPanel } from '@/components/billing/subscription-panel'
 import { PLANS } from '@/server/domain/billing/plans'
 import type { BillingView } from '@/server/application/billing/subscribe'
@@ -15,18 +16,43 @@ import type { BillingView } from '@/server/application/billing/subscribe'
 vi.mock('@/app/(app)/conta/premium/actions', () => ({
   startCheckoutAction: vi.fn(async () => ({ status: 'idle' })),
   openPortalAction: vi.fn(async () => ({ status: 'idle' })),
+  claimTrialAction: vi.fn(async () => ({ status: 'idle' })),
 }))
+
+/** Quem já resgatou, ou já é Premium por outro motivo: sem oferta e sem contador. */
+const SEM_TESTE = { claimable: false, daysLeft: null }
 
 const base: BillingView = {
   premium: false,
   premiumUntil: null,
   subscription: null,
   available: true,
+  pixAvailable: true,
+  trial: SEM_TESTE,
 }
 
 describe('SubscriptionPanel', () => {
-  it('mostra o preço do domínio, e o que o anual economiza', () => {
+  /*
+   * **A regra mudou em 21/09**: até então o anual vinha pré-selecionado, e este
+   * teste conferia o preço dele e a economia numa renderização só. Com o mensal
+   * pré-selecionado a pedido do dono do produto, a economia do anual **não
+   * aparece mais de entrada** — ela é consequência da escolha, não um descuido.
+   *
+   * O que o teste protege continua o mesmo: os dois preços vêm do domínio (e
+   * `plans.test.ts` compara com o que a Stripe cobra), e a economia do anual
+   * continua sendo dita a quem chega nele.
+   */
+  it('mostra o preço do domínio em cada ciclo', () => {
     render(<SubscriptionPanel billing={base} voltouDoPagamento={false} />)
+
+    expect(screen.getByText(PLANS.MONTHLY.label)).toBeInTheDocument()
+    expect(screen.queryByText(/economiza/i)).not.toBeInTheDocument()
+  })
+
+  it('no anual, diz quanto se economiza', async () => {
+    render(<SubscriptionPanel billing={base} voltouDoPagamento={false} />)
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Anual' }))
 
     expect(screen.getByText(PLANS.ANNUAL.label)).toBeInTheDocument()
     expect(screen.getByText(/economiza/i)).toHaveTextContent('R$')
@@ -38,6 +64,95 @@ describe('SubscriptionPanel', () => {
     expect(screen.getByRole('button', { name: /cartão/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /pix/i })).toBeInTheDocument()
     expect(screen.getByText(/cada pagamento vale por um período/i)).toBeInTheDocument()
+  })
+
+  /*
+   * Em 21/09 a Stripe libera Pix por convite, e a conta do ColeXa não tem.
+   * Um botão que leva a erro é pior que botão nenhum (armadilha 82), e a frase
+   * que explica o Pix sai junto — senão prometeria uma forma que não existe.
+   */
+  it('esconde o Pix, e o que ele explica, quando o provedor não tem Pix', () => {
+    render(<SubscriptionPanel billing={{ ...base, pixAvailable: false }} voltouDoPagamento={false} />)
+
+    expect(screen.getByRole('button', { name: /cartão/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /pix/i })).not.toBeInTheDocument()
+    expect(screen.queryByText(/cada pagamento vale por um período/i)).not.toBeInTheDocument()
+    expect(screen.getByText(/renova sozinha/i)).toBeInTheDocument()
+  })
+
+  /*
+   * Ordem e pré-seleção, pedidas pelo dono do produto em 21/09: do período
+   * menor para o maior, e o mensal já marcado. Qual plano se empurra é escolha
+   * de negócio, então o teste fixa as duas coisas — trocar por engano mudaria
+   * o primeiro número que a pessoa vê, de R$ 14,90 para R$ 149,00.
+   */
+  it('mostra Mensal antes de Anual, e começa no mensal', () => {
+    render(<SubscriptionPanel billing={base} voltouDoPagamento={false} />)
+
+    expect(screen.getAllByRole('tab').map((c) => c.textContent)).toEqual(['Mensal', 'Anual'])
+    expect(screen.getByRole('tab', { name: 'Mensal' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByText(PLANS.MONTHLY.label)).toBeInTheDocument()
+  })
+
+  /* A porta sem atrito: aparece antes dos planos, e diz o limite antes do clique. */
+  it('oferece o teste grátis a quem nunca resgatou', () => {
+    render(
+      <SubscriptionPanel
+        billing={{ ...base, trial: { claimable: true, daysLeft: null } }}
+        voltouDoPagamento={false}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: /resgatar 7 dias/i })).toBeInTheDocument()
+    expect(screen.getByText(/sem cartão e sem cobrança/i)).toBeInTheDocument()
+    expect(screen.getByText(/uma vez por conta/i)).toBeInTheDocument()
+  })
+
+  it('não oferece o teste a quem já resgatou', () => {
+    render(<SubscriptionPanel billing={base} voltouDoPagamento={false} />)
+
+    expect(screen.queryByRole('button', { name: /resgatar/i })).not.toBeInTheDocument()
+  })
+
+  /*
+   * Quem está no teste **é** Premium, mas é para ele que os planos existem:
+   * esconder seria esconder a conversão. O contador é o único aviso do fim —
+   * não há e-mail (decisão 102, mudança de 21/09).
+   */
+  it('durante o teste, mostra o que falta e mantém os planos à vista', () => {
+    render(
+      <SubscriptionPanel
+        billing={{
+          ...base,
+          premium: true,
+          premiumUntil: new Date('2026-09-28T12:00:00Z'),
+          trial: { claimable: false, daysLeft: 5 },
+        }}
+        voltouDoPagamento={false}
+      />,
+    )
+
+    expect(screen.getByText(/você está no teste grátis/i)).toBeInTheDocument()
+    expect(screen.getByText(/faltam 5 dias/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /cartão/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /resgatar/i })).not.toBeInTheDocument()
+  })
+
+  /* "Falta 1 dia" soa como sobra; "acaba amanhã" é o que faz decidir. */
+  it('no último dia, diz que acaba amanhã', () => {
+    render(
+      <SubscriptionPanel
+        billing={{
+          ...base,
+          premium: true,
+          premiumUntil: new Date('2026-09-22T12:00:00Z'),
+          trial: { claimable: false, daysLeft: 1 },
+        }}
+        voltouDoPagamento={false}
+      />,
+    )
+
+    expect(screen.getByText(/acaba amanhã/i)).toBeInTheDocument()
   })
 
   /*
@@ -65,6 +180,8 @@ describe('SubscriptionPanel', () => {
             cancelAtPeriodEnd: false,
           },
           available: true,
+          pixAvailable: true,
+          trial: SEM_TESTE,
         }}
         voltouDoPagamento={false}
       />,
@@ -106,6 +223,8 @@ describe('SubscriptionPanel', () => {
             cancelAtPeriodEnd: false,
           },
           available: true,
+          pixAvailable: true,
+          trial: SEM_TESTE,
         }}
         voltouDoPagamento={false}
       />,
@@ -131,6 +250,8 @@ describe('SubscriptionPanel', () => {
             cancelAtPeriodEnd: true,
           },
           available: true,
+          pixAvailable: true,
+          trial: SEM_TESTE,
         }}
         voltouDoPagamento={false}
       />,
@@ -154,6 +275,8 @@ describe('SubscriptionPanel', () => {
             cancelAtPeriodEnd: true,
           },
           available: true,
+          pixAvailable: true,
+          trial: SEM_TESTE,
         }}
         voltouDoPagamento={false}
       />,
@@ -184,6 +307,8 @@ describe('SubscriptionPanel', () => {
             cancelAtPeriodEnd: false,
           },
           available: true,
+          pixAvailable: true,
+          trial: SEM_TESTE,
         }}
         voltouDoPagamento={false}
       />,

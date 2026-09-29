@@ -156,6 +156,8 @@ export function QuantitySheet({
             value={quantity}
             onValueChange={setQuantity}
             label="Quantidade"
+            /* O playset de uma vez: esta e a tela de cadastrar quanto se tem. */
+            bulk
             size="lg"
             disabled={pending}
           />
