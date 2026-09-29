@@ -544,14 +544,14 @@ function PickTile({
         <span className="truncate text-xs text-text-muted">{card.cardName}</span>
       </span>
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5">
         <button
           type="button"
           aria-label={`Tirar uma cópia de ${card.cardCode}`}
           disabled={value <= 0}
           onClick={() => onChange(value - 1)}
           className={cn(
-            'inline-flex size-11 shrink-0 items-center justify-center rounded-control',
+            'inline-flex size-10 shrink-0 items-center justify-center rounded-control',
             'border border-border bg-surface text-text transition-colors',
             'hover:bg-surface-muted disabled:pointer-events-none disabled:opacity-40',
           )}
@@ -572,7 +572,7 @@ function PickTile({
           aria-label={`Acrescentar uma cópia de ${card.cardCode}`}
           onClick={() => onChange(value + 1)}
           className={cn(
-            'inline-flex size-11 shrink-0 items-center justify-center rounded-control',
+            'inline-flex size-10 shrink-0 items-center justify-center rounded-control',
             'border border-accent-ink/30 bg-accent-soft text-accent-ink transition-colors',
             'hover:brightness-95',
           )}
@@ -580,32 +580,32 @@ function PickTile({
           <Plus className="size-4" aria-hidden />
         </button>
 
+        {/*
+          O playset de uma vez, na **mesma fileira**.
+
+          Ele já teve linha própria, porque na grade de duas colunas o cartão tem
+          166 px e o número ficava com 16. O dono do produto preferiu o contrário
+          (28/09): a linha a mais empurrava as cartas seguintes para fora da
+          tela, e ver mais cartas de uma vez vale mais que o número centralizado.
+
+          Os três têm o **mesmo tamanho**, a 40 px em vez dos 44 do resto do app:
+          o dono do produto autorizou reduzir para que o `+4` não ficasse menor
+          que os vizinhos. É a única tela onde isso vale — ela é uma grade densa
+          de duas colunas, e o gesto é repetido carta após carta.
+        */}
+        <button
+          type="button"
+          aria-label={`Acrescentar ${PLAYSET_SIZE} cópias de ${card.cardCode}`}
+          onClick={() => onChange(value + PLAYSET_SIZE)}
+          className={cn(
+            'inline-flex size-10 shrink-0 items-center justify-center rounded-control',
+            'border border-accent-ink/30 bg-accent-soft text-sm font-semibold',
+            'text-accent-ink tabular-nums transition-colors hover:brightness-95',
+          )}
+        >
+          +{PLAYSET_SIZE}
+        </button>
       </div>
-
-      {/*
-        O playset de uma vez, em **linha própria**.
-
-        Esta é a tela de cadastrar em massa, e quem registra coleção grande
-        tocava `+` quatro vezes por carta. Mas aqui a grade é de duas colunas no
-        celular: o cartão tem 166 px, e um terceiro botão na mesma fileira
-        deixava o número com **16 px** — medido a 375 px. Cabia, e não era
-        confortável; três dígitos apertariam.
-
-        Em linha própria ele fica com a largura do cartão, e a fileira de cima
-        continua com o número folgado.
-      */}
-      <button
-        type="button"
-        aria-label={`Acrescentar ${PLAYSET_SIZE} cópias de ${card.cardCode}`}
-        onClick={() => onChange(value + PLAYSET_SIZE)}
-        className={cn(
-          'inline-flex h-11 w-full items-center justify-center rounded-control',
-          'border border-accent-ink/30 bg-accent-soft text-sm font-semibold',
-          'text-accent-ink tabular-nums transition-colors hover:brightness-95',
-        )}
-      >
-        +{PLAYSET_SIZE}
-      </button>
     </div>
   )
 }
