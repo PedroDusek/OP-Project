@@ -25,6 +25,7 @@ const POOL_MAX = 4
  *   npm run supabase don                importa os DON!! do tcgcsv (decisao 112)
  *   npm run supabase imagens            converte as artes para o volume (decisao 113)
  *   npm run supabase -- imagens --limite=50   so as primeiras, para conferir
+ *   npm run supabase -- imagens --local  converte as artes do banco **local**
  *   npm run supabase status             mostra o que existe la hoje
  *   npm run supabase storage            cria o bucket das imagens do usuario
  *   npm run supabase prices             importa precos de arte comum e cambio
@@ -91,6 +92,43 @@ async function main(): Promise<void> {
   // e nao deve falhar por causa dela.
   if (command === 'storage') {
     await provisionBucket()
+    return
+  }
+
+  /*
+   * `imagens --local` le a lista de artes do banco **local**.
+   *
+   * A decisao 113 tem uma regra so, e ela e sobre **onde a conversao roda**:
+   * nunca na Fly, porque de la a Bandai responde a 8 KB/s. Qual banco fornece a
+   * lista de `source_id` nao muda nada disso — a conversao roda nesta maquina e
+   * grava na mesma pasta dos dois jeitos.
+   *
+   * Existe porque sem ele uma colecao recem-importada so ganha arte **depois**
+   * de ir para producao: o comando sem a bandeira le o catalogo de la, e o que
+   * ainda nao subiu nao aparece na lista. As telas locais ficam com 404 no lugar
+   * da carta, e `/dev/liga` — que existe para mostrar a arte — perde a serventia.
+   *
+   * A trava e o espelho da de `target()`: la producao nunca pode ser local, aqui
+   * o alvo nunca pode ser producao.
+   */
+  if (command === 'imagens' && args.includes('--local')) {
+    const local = process.env.DATABASE_URL
+    if (!local) throw new Error('DATABASE_URL nao esta definida.')
+
+    let host: string
+    try {
+      host = new URL(local).hostname
+    } catch {
+      throw new Error('DATABASE_URL nao e uma URL valida.')
+    }
+    if (!['localhost', '127.0.0.1', '::1'].includes(host)) {
+      throw new Error(
+        `DATABASE_URL aponta para ${host}. Com --local o alvo e o banco da propria maquina.`,
+      )
+    }
+
+    console.log(`[supabase] alvo: banco local em ${host} (--local)`)
+    await converterImagens(local, args)
     return
   }
 
@@ -226,25 +264,7 @@ async function main(): Promise<void> {
    * depois sobe para o volume.
    */
   if (command === 'imagens') {
-    const limite = Number(args.find((a) => a.startsWith('--limite='))?.slice('--limite='.length) ?? 0)
-    const prisma = createPrisma(url, { max: POOL_MAX })
-    try {
-      const { prepararImagens } = await import('@/server/application/catalog/preparar-imagens')
-      const r = await prepararImagens(prisma, {
-        limite: limite > 0 ? limite : undefined,
-        logger: console,
-      })
-      console.log(
-        `[supabase] imagens: artes=${r.total} convertidas=${r.convertidas} ja tinha=${r.jaExistiam}` +
-          ` falharam=${r.falharam} | ${(r.bytes / 1024 ** 2).toFixed(0)} MB em ${r.pasta}`,
-      )
-      if (r.falhas.length > 0) {
-        console.log(`[supabase]   ${r.falhas.length} falha(s):`)
-        for (const f of r.falhas.slice(0, 10)) console.log(`[supabase]     ${f.sourceId}: ${f.motivo}`)
-      }
-    } finally {
-      await prisma.$disconnect()
-    }
+    await converterImagens(url, args)
     return
   }
 
@@ -715,7 +735,8 @@ async function main(): Promise<void> {
 
   throw new Error(
     `Comando desconhecido: ${command ?? '(nenhum)'}. ` +
-      'Use migrate, import, prices, contas, premium, aquecer, limpar-contas, limpar-assinaturas, status ou storage.',
+      'Use migrate, import, don, imagens, prices, contas, premium, aquecer, limpar-contas, ' +
+      'limpar-assinaturas, status ou storage.',
   )
 }
 
@@ -760,6 +781,40 @@ async function fatiaDoDia(
   const fatia = await daPosicao(inicio, limite)
   if (fatia.length >= limite || fatia.length >= quantas) return fatia
   return [...fatia, ...(await daPosicao(0, limite - fatia.length))]
+}
+
+/**
+ * O preparo das artes (decisao 113).
+ *
+ * **Roda aqui, e nunca na Fly.** Ele baixa da Bandai, e de la a Bandai responde
+ * a 8 KB/s desde 25/09: as 4.431 artes levariam umas 53 h. Daqui levam umas
+ * 2 h 30. O banco e so lido — o que muda e a pasta local, que depois sobe para o
+ * volume.
+ *
+ * Uma implementacao so para os dois alvos: o `url` e que decide de qual catalogo
+ * sai a lista de artes. O resto — a pasta, o formato, o pular o que ja existe —
+ * e identico, porque a conversao e a mesma.
+ */
+async function converterImagens(url: string, args: string[]): Promise<void> {
+  const limite = Number(args.find((a) => a.startsWith('--limite='))?.slice('--limite='.length) ?? 0)
+  const prisma = createPrisma(url, { max: POOL_MAX })
+  try {
+    const { prepararImagens } = await import('@/server/application/catalog/preparar-imagens')
+    const r = await prepararImagens(prisma, {
+      limite: limite > 0 ? limite : undefined,
+      logger: console,
+    })
+    console.log(
+      `[supabase] imagens: artes=${r.total} convertidas=${r.convertidas} ja tinha=${r.jaExistiam}` +
+        ` falharam=${r.falharam} | ${(r.bytes / 1024 ** 2).toFixed(0)} MB em ${r.pasta}`,
+    )
+    if (r.falhas.length > 0) {
+      console.log(`[supabase]   ${r.falhas.length} falha(s):`)
+      for (const f of r.falhas.slice(0, 10)) console.log(`[supabase]     ${f.sourceId}: ${f.motivo}`)
+    }
+  } finally {
+    await prisma.$disconnect()
+  }
 }
 
 /**

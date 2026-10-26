@@ -1831,11 +1831,29 @@ os totais não se moveram.
   original em `Imagens OPTCG/Ops/`. O `hasSetCover` cai no fallback, então não
   quebra — a coleção só aparece sem a imagem do pacote. Depende do dono do
   produto desenhar.
-- **As artes convertidas.** `npm run supabase imagens` lê o banco de **produção**,
-  então a EB-05 só entra na conversão depois de `npm run supabase import`. Antes
-  disso, converter não faz nada por ela (decisão 113, e a armadilha 88).
 - **Produção.** Nada foi publicado: a sequência é `npm run supabase status`,
   `import`, `imagens` e o workflow **Publicar** à mão (decisão 089).
+
+**As artes já estão convertidas localmente**: 61 convertidas, 0 falhas, a pasta
+foi de 515 para **522 MB**. A tela `/dev/liga` mostra a arte de cada uma.
+
+Isso exigiu uma bandeira nova, porque `npm run supabase imagens` lê o catálogo de
+**produção** — e uma coleção recém-importada ainda não está lá, então o comando
+não via as 61 e as telas locais davam 404 no lugar da carta:
+
+```
+npm run supabase -- imagens --local
+```
+
+Ela só troca **de qual banco sai a lista de `source_id`**. A regra da decisão 113
+é sobre **onde a conversão roda** — nunca na Fly, porque de lá a Bandai responde
+a 8 KB/s —, e isso não muda: roda nesta máquina e grava na mesma pasta dos dois
+jeitos. A trava é o espelho da de `target()`: com `--local`, `DATABASE_URL` que
+não seja da própria máquina é recusada.
+
+**Este é o passo que faltava no roteiro de coleção nova.** Sem ele, só dá para
+ver a coleção depois de publicar — e `/dev/liga`, que existe para mostrar a arte,
+fica sem serventia justamente quando é preciso.
 
 A ordenação acomodou sozinha: set fora de `RELEASE_ORDER` cai no fim das
 coleções, que hoje é o lugar certo. **`EB05` não foi acrescentado à lista** —
