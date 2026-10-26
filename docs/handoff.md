@@ -1779,6 +1779,69 @@ reconhecemos **segue para a origem** — é o que torna isto reversível.
 **Sobrou faxina:** os 335 MB do cache do otimizador ficaram obsoletos para
 carta. Apagar é seguro agora, e ninguém apagou ainda.
 
+## A EB-05, importada em 26/10 — e o que ela ainda não tem
+
+Primeira coleção importada depois da leva de setembro, e serve de roteiro para a
+próxima. A Bandai publica a série **569205**, `EXTRA BOOSTER -ONE PIECE HEROINES
+EDITION vol.2- [EB-05]`, e o import trouxe **61 cartas e 61 artes, zero
+rejeitadas**. Só no banco local: produção ainda não tem.
+
+```
+npm run catalog:import -- 569205
+```
+
+Totais locais depois dela: 62 sets, 3.085 cartas, 4.731 artes. Entrou um trait
+novo, `Senor Pink's Wife` — o import faz upsert de vocabulário, então valor novo
+não trava.
+
+**Nenhuma paralela, e isso não é defeito nosso.** As 61 são todas `Normal`.
+Medido em 26/10 com o mesmo parser, na mesma hora, para não confundir com erro de
+leitura:
+
+| | cartas | artes | tipos |
+|---|---:|---:|---|
+| EB-03 | 62 | 90 | Normal 62, Parallel 28 |
+| EB-05 | 61 | 61 | Normal 61 |
+
+As imagens confirmam na origem: `EB05-001.png` responde, `EB05-001_p1.png`,
+`EB05-016_p1.png` e `EB05-061_p1.png` dão 404, e `EB03-001_p1.png` responde.
+Controle negativo `EB05-999.png` → 404.
+
+**O mercado já tem mais do que a Bandai publicou.** O grupo `24820` do tcgcsv
+(publicado para 30/10) tem 88 cartas: as 61 base, **18 artes novas** com código
+EB05 (14 Alternate Art, 3 SP, 1 Manga, em 16 cartas) e **9 artes de cartas de
+outras coleções** distribuídas dentro da EB-05 — `OP01-016`, `ST17-004`,
+`OP17-109`, `OP14-033`, `OP17-081` (SP) e `OP14-041`, `OP11-022`, `EB03-001`,
+`OP11-041` (Alternate Art). Essas 9 cartas já existem no catálogo; **essas artes
+não**, e `OP17-081_p1.png` e `OP01-016_p10.png` dão 404. Nada disso entra sem o
+`_pN` da Bandai (decisão 019) — não é falta de trabalho, é o modelo.
+
+Então a EB-05 é de **duas passadas**: o mesmo comando outra vez quando a Bandai
+publicar as paralelas. O import é idempotente, conferido rodando duas vezes —
+os totais não se moveram.
+
+**O que falta nela:**
+
+- **O link da Liga: 61 normais, à mão, em `/dev/liga?set=EB-05`.** As EB são
+  exceção à montagem: a Liga escreve `ed=EB01`, `ed=EB02`, `ed=EB03`, sem hífen,
+  e `ligaEdition()` produz `EB-05`. Foi por isso que EB-01, EB-02 e EB-03 têm
+  **todas** as normais na tabela (61, 61 e 62), e não a amostra por raridade da
+  decisão 071. A EB-05 tem **zero** entradas em `data/liga-cartas.json`.
+- **A capa do set.** Faltam `public/sets/claro/eb05.webp` e o escuro, e o
+  original em `Imagens OPTCG/Ops/`. O `hasSetCover` cai no fallback, então não
+  quebra — a coleção só aparece sem a imagem do pacote. Depende do dono do
+  produto desenhar.
+- **As artes convertidas.** `npm run supabase imagens` lê o banco de **produção**,
+  então a EB-05 só entra na conversão depois de `npm run supabase import`. Antes
+  disso, converter não faz nada por ela (decisão 113, e a armadilha 88).
+- **Produção.** Nada foi publicado: a sequência é `npm run supabase status`,
+  `import`, `imagens` e o workflow **Publicar** à mão (decisão 089).
+
+A ordenação acomodou sozinha: set fora de `RELEASE_ORDER` cai no fim das
+coleções, que hoje é o lugar certo. **`EB05` não foi acrescentado à lista** —
+ela é ordem de lançamento informada pelo dono do produto, e o padrão já acerta.
+Quando a OP-18 chegar, convém confirmar a ordem das duas.
+
 ## O que espera resposta do dono do produto
 
 - **Idade mínima.** Expor perfil de menor de idade a estranhos é assunto sério
@@ -1803,6 +1866,9 @@ carta. Apagar é seguro agora, e ninguém apagou ainda.
 - **A resolução das artes de DON!!**: elas ficaram em 200×280 porque guardamos a
   miniatura `_200w` do TCGplayer. Existe `_in_1000x1000.jpg`. Melhorar exige
   reimportar os 239 e reconverter.
+- **A capa da EB-05**: as duas versões, clara e escura, não existem. Até elas, a
+  coleção aparece sem a imagem do pacote (não quebra nada).
+- **Publicar a EB-05 em produção**, e quando: ela está só no banco local.
 - **Vincular cada DON!! à coleção em que saiu** (decisão 112): a tela `/dev/don`
   está pronta e a tabela `data/don-sets.json` está vazia. Fica registrado o que
   foi dito na hora: um DON!! dentro da OP01 **passa a contar no progresso da
