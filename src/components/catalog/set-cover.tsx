@@ -31,11 +31,18 @@ import { normalizeSetCode } from '@/server/domain/catalog/sets'
  * desenhar — mostra o `fallback`.
  */
 
-/** Os códigos que têm imagem, normalizados. Gerado por `scripts/preparar-capas.ts`. */
+/**
+ * Os códigos que têm imagem, normalizados. Gerado por `scripts/preparar-capas.ts`:
+ * cole aqui a lista que ele imprime.
+ *
+ * Um código aqui **não** quer dizer que o set existe no catálogo. A `OP18` tem
+ * capa desde 26/10 e a Bandai ainda não publicou a coleção; o código nunca é
+ * consultado até ela entrar, e no dia em que entrar a imagem já está pronta.
+ */
 const COM_CAPA = new Set([
-  'EB01', 'EB02', 'EB03',
+  'EB01', 'EB02', 'EB03', 'EB05',
   'OP01', 'OP02', 'OP03', 'OP04', 'OP05', 'OP06', 'OP07', 'OP08', 'OP09', 'OP10',
-  'OP11', 'OP12', 'OP13', 'OP14EB04', 'OP15EB04', 'OP16', 'OP17',
+  'OP11', 'OP12', 'OP13', 'OP14EB04', 'OP15EB04', 'OP16', 'OP17', 'OP18',
   'PRB01', 'PRB02',
   'ST01', 'ST02', 'ST03', 'ST04', 'ST05', 'ST06', 'ST07', 'ST08', 'ST09', 'ST10',
   'ST11', 'ST12', 'ST13', 'ST14', 'ST15', 'ST16', 'ST17', 'ST18', 'ST19', 'ST20',

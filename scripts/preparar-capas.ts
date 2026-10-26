@@ -7,8 +7,13 @@ import { normalizeSetCode } from '@/server/domain/catalog/sets'
  * As capas das coleções e dos decks, a partir das imagens do dono do produto.
  *
  * Roda à mão quando chegar imagem nova: `npx tsx scripts/preparar-capas.ts`.
- * A origem é `Imagens OPTCG/{Ops,Decks}/{Light,Dark}/<CÓDIGO> <Tema>.jpg`, fora
+ * A origem é `Imagens OPTCG/{Ops,Decks}/{Light,Dark}/<CÓDIGO> <Tema>.<ext>`, fora
  * do Git (48 MB); o resultado, `public/sets/{claro,escuro}/<codigo>.webp`, entra.
+ *
+ * A extensão da origem não importa — `jpg`, `jpeg`, `png` ou `webp`. Ela só é
+ * removida para sobrar o código, e o `sharp` lê os quatro. Ficar só no `jpg`
+ * custou a capa da EB-05, que chegou em `png`: o nome não casava, e o arquivo
+ * saía como `eb05lightpng.webp`, que `hasSetCover` nunca encontraria.
  *
  * ## O fundo vira transparente
  *
@@ -91,7 +96,7 @@ async function main() {
       const dir = path.join(ORIGEM, grupo, tema)
       await mkdir(path.join(DESTINO, pasta), { recursive: true })
       for (const nome of await readdir(dir)) {
-        const codigo = normalizeSetCode(nome.replace(new RegExp(` ${tema}\.jpe?g$`, 'i'), ''))
+        const codigo = normalizeSetCode(nome.replace(new RegExp(` ${tema}\\.(jpe?g|png|webp)$`, 'i'), ''))
         const imagem = await semFundo(path.join(dir, nome))
         await sharp(imagem).toFile(path.join(DESTINO, pasta, `${codigo.toLowerCase()}.webp`))
         if (pasta === 'claro') codigos.push(codigo)
