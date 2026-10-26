@@ -31,10 +31,17 @@ describe('SetCover', () => {
     expect(screen.getByText('PROMO')).toBeInTheDocument()
   })
 
-  /** A lista do componente e os arquivos andam juntos: um sem o outro é imagem quebrada. */
+  /**
+   * A lista do componente e os arquivos andam juntos: um sem o outro é imagem
+   * quebrada.
+   *
+   * Eram 58 até 26/10, quando entraram as capas da `EB-05` e da `OP18`. A
+   * contagem é fixa de propósito: ela pega o arquivo apagado, que o laço abaixo
+   * não pega — ele só vai dos arquivos para a lista.
+   */
   it('cada arquivo está na lista, nas duas versões', () => {
     const arquivos = readdirSync('public/sets/claro')
-    expect(arquivos).toHaveLength(58)
+    expect(arquivos).toHaveLength(60)
     for (const arquivo of arquivos) {
       expect(hasSetCover(arquivo.replace('.webp', ''))).toBe(true)
       expect(existsSync(`public/sets/escuro/${arquivo}`)).toBe(true)
