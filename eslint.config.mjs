@@ -89,6 +89,19 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    /*
+     * Os worktrees que o Claude Code cria para suas sessoes.
+     *
+     * Cada um e uma **copia inteira do repositorio**, com `src/`, `tests/` e
+     * `scripts/` dentro. Sem esta linha o `npm run lint` entra neles e reporta o
+     * codigo de la como se fosse o daqui: em 26/10 um worktree esquecido de
+     * 1,2 GB rendia 21.939 problemas, 1.223 deles erros, nenhum deste projeto.
+     * O lint passava a mentir nas duas direcoes — ninguem le 1.223 erros, e um
+     * erro de verdade se perderia no meio.
+     *
+     * O `.gitignore` ja ignora `.claude/`, mas o eslint tem a lista dele.
+     */
+    ".claude/**",
   ]),
 ]);
 
