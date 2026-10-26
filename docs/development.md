@@ -231,6 +231,8 @@ explícitos:
 | `npm run supabase import` | importa o catálogo, baixando da fonte |
 | `npm run supabase import 569117` | importa apenas as séries informadas |
 | `npm run supabase -- import --from=DIR` | importa de um snapshot local |
+| `npm run supabase imagens` | converte as artes do catálogo de **produção** (decisão 113) |
+| `npm run supabase -- imagens --local` | converte as artes do catálogo **local**, para ver uma coleção recém-importada antes de publicar |
 | `npm run supabase storage` | cria (ou confere) o bucket das imagens do usuário |
 
 **Prefira `--from` quando o snapshot já existir.** Rebaixar o catálogo inteiro a

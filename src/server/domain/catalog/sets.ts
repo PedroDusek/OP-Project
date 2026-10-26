@@ -77,7 +77,8 @@ export const SET_KIND_LABEL: Record<SetKind, string> = {
  *
  *   ST-01 a ST-36   STARTER DECK, STARTER DECK EX, ULTRA DECK
  *   OP-01 a OP-17   BOOSTER PACK
- *   EB-01 a EB-03   EXTRA BOOSTER
+ *   EB-01 a EB-05   EXTRA BOOSTER (o EB-04 nao e set proprio: veio em OP14-EB04
+ *                   e OP15-EB04)
  *   PRB-01, PRB-02  PREMIUM BOOSTER
  *   PROMO           Promotion card
  *   GC-01           Other Product Card
