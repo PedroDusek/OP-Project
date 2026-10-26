@@ -8,11 +8,11 @@ Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
    carregou ao subir (armadilha 40), e só lê o `.env` ao subir — `RESEND_API_KEY`
    e `EMAIL_FROM` entraram nele em 17/09.
 2. `npm run supabase status` — mostra o que produção tem e o que falta. Em
-   28/09 ela estava **em dia: 23 de 23 migrations**, com 3.024 cartas, 4.670
-   artes e 61 sets.
+   26/10 ela estava **em dia: 23 de 23 migrations**, com 3.085 cartas, 4.731
+   artes e 62 sets, já com a EB-05.
 3. **O site está em `https://colexa.com.br`** desde 21/09 (decisões
    089 e 090), com cobrança do Premium **em modo real** desde 22/09. Publicar é
-   à mão: `development.md` 6.6. A última publicação foi a **v47**.
+   à mão: `development.md` 6.6. A última publicação foi a **v50**, em 26/10.
 4. **A arte da carta agora é nossa** (decisão 113). Ela **não** vem mais da
    Bandai em tempo de acesso, e a conversão **nunca roda na Fly** — leia a
    armadilha 88 antes de mexer em imagem.
@@ -866,6 +866,24 @@ imagem e o documento discordarem, o documento vence — já discordaram na cor d
     faceta não tem resposta. Por isso ele **não é oferecido** como chip de tipo
     (decisão 112) — o tipo existe e a busca sabe filtrá-lo, o que saiu foi o
     convite. A entrada dele é a porta própria no catálogo.
+92. **Importar a coleção em produção antes de subir as artes deixa ela no ar
+    sem imagem.** O volume da Fly **sobrevive** à publicação, e por isso as
+    artes **não** viajam no deploy: o envio é à mão, e é um passo separado. Mas
+    o site lê o banco de produção **na hora**, então no instante em que
+    `npm run supabase import` termina as cartas novas já aparecem — e a rota
+    `/imagens/cartas/[arquivo]` devolve **404 seco** quando o arquivo não está
+    no volume. Não há volta para a origem nessa camada: ela existe justamente
+    para não depender da Bandai. Pago em 26/10 com as 61 da EB-05, que ficaram
+    alguns minutos no ar sem arte. **A ordem é: converter, subir ao volume,
+    importar em produção, publicar.**
+93. **`fly` no Git Bash come o caminho remoto.** `fly ssh sftp put arq
+    /app/.next/cache/x.tgz` vira `C:/Program Files/Git/app/.next/cache/x.tgz` e
+    falha com "file does not exist" — é a conversão de caminho do MSYS, e não a
+    Fly. Prefixe `MSYS_NO_PATHCONV=1`. Vale para `fly ssh console -C` também.
+94. **O token da Fly expira.** Em 26/10 o `~/.fly/config.yml` era de 28/09 e o
+    `fly` recusava tudo com "no access token available", apesar do arquivo
+    existir. `fly auth login` resolve, abre o navegador e **tem que ser o dono
+    do produto** — é interativo, e ninguém cola segredo na conversa.
 
 ## Pendências
 
@@ -1820,14 +1838,26 @@ Então a EB-05 é de **duas passadas**: o mesmo comando outra vez quando a Banda
 publicar as paralelas. O import é idempotente, conferido rodando duas vezes —
 os totais não se moveram.
 
-**O que falta nela:**
+**Publicada em 26/10, na v50.** A sequência que funcionou, e que é o roteiro de
+coleção nova:
 
-- **A capa do set.** Faltam `public/sets/claro/eb05.webp` e o escuro, e o
-  original em `Imagens OPTCG/Ops/`. O `hasSetCover` cai no fallback, então não
-  quebra — a coleção só aparece sem a imagem do pacote. Depende do dono do
-  produto desenhar.
-- **Produção.** Nada foi publicado: a sequência é `npm run supabase status`,
-  `import`, `imagens` e o workflow **Publicar** à mão (decisão 089).
+1. `npm run catalog:import -- <serie>` — no banco local
+2. `npm run supabase -- imagens --local` — converte as artes novas aqui
+3. **empacotar e subir ao volume** — `tar`, `fly ssh sftp put`, extrair
+4. `npm run supabase import <serie>` — produção
+5. `npm run supabase status`, e então *Actions → Publicar → Run workflow*
+
+**O passo 3 vem antes do 4, e isso custou caro:** ver a armadilha 92. Eu
+inverti, e as 61 cartas ficaram alguns minutos no ar sem imagem.
+
+Conferido depois da publicação: `/api/saude` responde `{"ok":true}`, a capa e as
+artes vêm em **200**, e `EB05-001.webp` sai em **0,10 s** — o número que a
+decisão 113 promete. O volume manteve as 4.727 artes através do deploy.
+
+**A capa veio junto** (PR 192), nas duas versões, mais a da **OP18**, que ainda
+não tem coleção. `preparar-capas.ts` passou a aceitar `png` e `webp` além de
+`jpg`: as imagens chegaram em `png`, o nome não casava com a regra antiga, e a
+capa sairia como `eb05lightpng.webp` — ausente, sem erro nenhum aparecer.
 
 **As artes já estão convertidas localmente**: 61 convertidas, 0 falhas, a pasta
 foi de 515 para **522 MB**. A tela `/dev/liga` mostra a arte de cada uma.
@@ -1912,9 +1942,11 @@ Quando a OP-18 chegar, convém confirmar a ordem das duas.
 - **A resolução das artes de DON!!**: elas ficaram em 200×280 porque guardamos a
   miniatura `_200w` do TCGplayer. Existe `_in_1000x1000.jpg`. Melhorar exige
   reimportar os 239 e reconverter.
-- **A capa da EB-05**: as duas versões, clara e escura, não existem. Até elas, a
-  coleção aparece sem a imagem do pacote (não quebra nada).
-- **Publicar a EB-05 em produção**, e quando: ela está só no banco local.
+- **A segunda passada da EB-05**: as 18 paralelas e as 9 artes de outras
+  coleções entram quando a Bandai publicar o `_pN`. É o mesmo
+  `npm run catalog:import -- 569205`, que é idempotente, e depois o roteiro dos
+  passos 2 a 5. Vale conferir a partir do lançamento, 30/10.
+- **A `EB05-061`**: único endereço da coleção sem confirmação direta na Liga.
 - **Vincular cada DON!! à coleção em que saiu** (decisão 112): a tela `/dev/don`
   está pronta e a tabela `data/don-sets.json` está vazia. Fica registrado o que
   foi dito na hora: um DON!! dentro da OP01 **passa a contar no progresso da
