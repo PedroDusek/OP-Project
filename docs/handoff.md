@@ -1822,11 +1822,6 @@ os totais não se moveram.
 
 **O que falta nela:**
 
-- **O link da Liga: 61 normais, à mão, em `/dev/liga?set=EB-05`.** As EB são
-  exceção à montagem: a Liga escreve `ed=EB01`, `ed=EB02`, `ed=EB03`, sem hífen,
-  e `ligaEdition()` produz `EB-05`. Foi por isso que EB-01, EB-02 e EB-03 têm
-  **todas** as normais na tabela (61, 61 e 62), e não a amostra por raridade da
-  decisão 071. A EB-05 tem **zero** entradas em `data/liga-cartas.json`.
 - **A capa do set.** Faltam `public/sets/claro/eb05.webp` e o escuro, e o
   original em `Imagens OPTCG/Ops/`. O `hasSetCover` cai no fallback, então não
   quebra — a coleção só aparece sem a imagem do pacote. Depende do dono do
@@ -1854,6 +1849,39 @@ não seja da própria máquina é recusada.
 **Este é o passo que faltava no roteiro de coleção nova.** Sem ele, só dá para
 ver a coleção depois de publicar — e `/dev/liga`, que existe para mostrar a arte,
 fica sem serventia justamente quando é preciso.
+
+### O link da Liga, conferido pelo dono do produto em 26/10
+
+As 61 estão em `data/liga-cartas.json`, e a tabela foi de 3.369 para 3.430 artes.
+
+**A EB-05 não repete a exceção das outras EB.** Eu havia previsto que repetiria:
+a Liga escreve `ed=EB01`, `ed=EB02` e `ed=EB03` **sem hífen**, enquanto
+`ligaEdition()` produz `EB-05`, e foi por isso que aquelas três têm todas as
+normais na tabela (61, 61 e 62) em vez da amostra por raridade. **Estava errado
+para esta.** Na EB-05 a Liga usa `ed=EB-05`, com hífen — exatamente o que o
+montador produz.
+
+A prova não é o palpite: das 61 entradas, **29 foram coladas da Liga** e todas
+trazem `ed=EB-05`. Dá para separar uma coisa da outra pela codificação, e isto
+serve para qualquer conferência futura:
+
+| | `card=` no endereço |
+|---|---|
+| Colado da Liga | `Nami+%28055%29` — espaço vira `+` |
+| Montado por nós | `Jewelry%20Bonney` — espaço vira `%20` |
+
+As outras 32 ficaram com o endereço montado. Não é defeito: com `ed=EB-05`
+confirmado e o nome sem ambiguidade, o montado **é** o endereço certo — tanto que
+a `EB05-001`, montada, foi aberta e caiu na carta.
+
+**Onde o montado poderia errar é só no nome repetido**, porque é ali que a Liga
+desempata sozinha. Na EB-05 há dois: `Nami` (`EB05-055` e `EB05-061`) e
+`Nico Robin` (`EB05-010`, `EB05-016` e `EB05-033`). Quatro dos cinco foram
+colados, e a Liga mostrou o padrão — numera os repetidos e deixa **um** com o
+nome puro (`Nico Robin (010)`, `Nico Robin (016)`, e `Nico Robin` seco no 033).
+
+Sobra **`EB05-061`**, montada como `Nami` puro. Pelo padrão do 033 está certa, e
+ninguém abriu para ver. É o único endereço da coleção sem confirmação direta.
 
 A ordenação acomodou sozinha: set fora de `RELEASE_ORDER` cai no fim das
 coleções, que hoje é o lugar certo. **`EB05` não foi acrescentado à lista** —
