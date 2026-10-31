@@ -1910,8 +1910,14 @@ desempata sozinha. Na EB-05 há dois: `Nami` (`EB05-055` e `EB05-061`) e
 colados, e a Liga mostrou o padrão — numera os repetidos e deixa **um** com o
 nome puro (`Nico Robin (010)`, `Nico Robin (016)`, e `Nico Robin` seco no 033).
 
-Sobra **`EB05-061`**, montada como `Nami` puro. Pelo padrão do 033 está certa, e
-ninguém abriu para ver. É o único endereço da coleção sem confirmação direta.
+Sobrava a **`EB05-061`**, montada como `Nami` puro: a única da coleção que
+ninguém tinha aberto. **O dono do produto conferiu em 31/10 — está certa**, e o
+padrão deduzido do `033` se confirmou. A EB-05 fica com as 96 artes conferidas
+uma a uma.
+
+Vale o que isso ensina sobre a montagem: quando o `ed` está certo e o nome não
+repete, o endereço montado **é** o conferido. O risco mora só no nome repetido,
+que é onde a Liga desempata sozinha — e ali não há como adivinhar.
 
 A ordenação acomodou sozinha: set fora de `RELEASE_ORDER` cai no fim das
 coleções, que hoje é o lugar certo. **`EB05` não foi acrescentado à lista** —
@@ -1987,9 +1993,6 @@ numa tarde de cliques em vez de uma caçada.
 - **A resolução das artes de DON!!**: elas ficaram em 200×280 porque guardamos a
   miniatura `_200w` do TCGplayer. Existe `_in_1000x1000.jpg`. Melhorar exige
   reimportar os 239 e reconverter.
-- **A `EB05-061`**: a normal é o único endereço da coleção sem confirmação
-  direta na Liga — ficou com a forma montada em 26/10, e o padrão da `EB05-033`
-  diz que está certa. A paralela dela foi conferida em 31/10.
 - **Vincular cada DON!! à coleção em que saiu** (decisão 112): a tela `/dev/don`
   está pronta e a tabela `data/don-sets.json` está vazia. Fica registrado o que
   foi dito na hora: um DON!! dentro da OP01 **passa a contar no progresso da
