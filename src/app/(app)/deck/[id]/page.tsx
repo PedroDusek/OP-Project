@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { PageHeader } from '@/components/layout/app-shell'
 import { DeckBuilder } from '@/components/decks/deck-builder'
+import { DeleteDeck } from '@/components/decks/delete-deck'
+import { PanelList } from '@/components/ui/surface'
 import { listStorageLocations } from '@/server/application/storage'
 import { isAppError } from '@/server/domain/errors'
 import { getCatalogVocabulary, searchCatalog } from '@/server/application/catalog'
@@ -66,6 +68,16 @@ export default async function DecklistPage({ params }: PageProps<'/deck/[id]'>) 
         savedDeck={deck}
         deckboxes={deckboxes}
       />
+
+      {/*
+        Excluir fica no fim, como no binder: é o que se procura depois de
+        desistir da lista, e nunca o que se encontra antes de editá-la.
+      */}
+      <div className="mt-4">
+        <PanelList>
+          <DeleteDeck id={deck.id} name={deck.name} />
+        </PanelList>
+      </div>
     </>
   )
 }

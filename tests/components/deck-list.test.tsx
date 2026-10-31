@@ -1,7 +1,15 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import { DeckList } from '@/components/decks/deck-list'
 import type { SavedDeckSummary } from '@/server/application/decks/saved-decks'
+
+/*
+ * A linha ganhou o excluir, e com ele a Server Action — que importa o caso de
+ * uso, que importa o Prisma. Num teste de componente isso só pediria
+ * `DATABASE_URL` para nada: o que se desenha aqui é a linha. A ação tem teste
+ * próprio em `tests/unit/delete-deck-action.test.ts`.
+ */
+vi.mock('@/app/(app)/deck/actions', () => ({ excluirDeckAction: vi.fn() }))
 
 /**
  * A estante de decklists (decisão 108).

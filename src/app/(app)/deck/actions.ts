@@ -1,8 +1,10 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import {
   analyzeDeck,
+  deleteDeck,
   executeDeckTransfer,
   planDeckTransfer,
   saveDeck,
@@ -11,7 +13,9 @@ import {
 } from '@/server/application/decks'
 import { bulkAddWants } from '@/server/application/wants'
 import { isAppError } from '@/server/domain/errors'
+import { formError, formErrorFrom } from '@/server/http/form-state'
 import { currentViewer } from '@/server/http/viewer'
+import type { DeckDeleteState } from './state'
 
 /**
  * As ações do Deck Builder (decisão 095).
@@ -169,4 +173,38 @@ export async function adicionarFaltantesAction(
     if (isAppError(error)) return { status: 'error', message: error.message }
     throw error
   }
+}
+
+/**
+ * Apaga a decklist.
+ *
+ * **Não exige Premium**, como o caso de uso: quem deixou de assinar continua
+ * dono do que criou. Por isso o controle existe também na linha de `/deck`, que
+ * é a única tela de decklist que abre sem Premium — deixá-lo só no detalhe
+ * prenderia a pessoa a uma lista que ela não consegue nem abrir nem apagar.
+ *
+ * Volta para `/deck` nos dois casos. Vindo do detalhe é obrigatório: a lista que
+ * a tela mostrava não existe mais. Vindo da própria `/deck` é a mesma tela
+ * outra vez, já sem a linha.
+ */
+export async function excluirDeckAction(
+  _previous: DeckDeleteState,
+  data: FormData,
+): Promise<DeckDeleteState> {
+  const viewer = await currentViewer()
+  if (!viewer) return formError(SESSAO_EXPIRADA)
+
+  const id = String(data.get('id') ?? '')
+  if (!/^\d+$/.test(id)) return formError('Lista inválida.')
+
+  try {
+    await deleteDeck(viewer, id)
+  } catch (error) {
+    return formErrorFrom(error)
+  }
+
+  // Só `/deck` mostra decklist. A coleção não muda: a lista é uma conferência,
+  // e nunca foi dona de cópia nenhuma.
+  revalidatePath('/deck')
+  redirect('/deck')
 }
