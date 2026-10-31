@@ -96,12 +96,28 @@
       "produto": "629167"
     },
     {
+      "variante": "EB03-001_p1",
+      "produto": "672740"
+    },
+    {
+      "variante": "EB03-001_p2",
+      "produto": "724623"
+    },
+    {
       "variante": "EB03-061_p1",
       "produto": "672816"
     },
     {
       "variante": "EB03-061_p2",
       "produto": "672817"
+    },
+    {
+      "variante": "EB04-028_p1",
+      "produto": "694875"
+    },
+    {
+      "variante": "EB04-028_p2",
+      "produto": "671339"
     },
     {
       "variante": "EB04-044_p1",
@@ -118,6 +134,70 @@
     {
       "variante": "EB04-061_p2",
       "produto": "710857"
+    },
+    {
+      "variante": "EB05-001_p1",
+      "produto": "723250"
+    },
+    {
+      "variante": "EB05-006_p1",
+      "produto": "725868"
+    },
+    {
+      "variante": "EB05-006_p2",
+      "produto": "722703"
+    },
+    {
+      "variante": "EB05-010_p1",
+      "produto": "722644"
+    },
+    {
+      "variante": "EB05-010_p2",
+      "produto": "726218"
+    },
+    {
+      "variante": "EB05-014_p1",
+      "produto": "723376"
+    },
+    {
+      "variante": "EB05-014_p2",
+      "produto": "718677"
+    },
+    {
+      "variante": "EB05-016_p1",
+      "produto": "723248"
+    },
+    {
+      "variante": "EB05-016_p2",
+      "produto": "712885"
+    },
+    {
+      "variante": "EB05-021_p1",
+      "produto": "726590"
+    },
+    {
+      "variante": "EB05-034_p1",
+      "produto": "723308"
+    },
+    {
+      "variante": "EB05-046_p1",
+      "produto": "723307"
+    },
+    {
+      "variante": "EB05-052_p1",
+      "produto": "722774"
+    },
+    {
+      "variante": "EB05-055_p1",
+      "produto": "726593"
+    },
+    {
+      "variante": "EB05-055_p2",
+      "produto": "726216"
+    },
+    {
+      "variante": "EB05-055_p3",
+      "produto": "722645"
     },
     {
       "variante": "OP01-001_p1",
@@ -1753,6 +1833,14 @@
       "produto": "632368"
     },
     {
+      "variante": "OP11-022_p1",
+      "produto": "632383"
+    },
+    {
+      "variante": "OP11-022_p2",
+      "produto": "724621"
+    },
+    {
       "variante": "OP11-041_p1",
       "produto": "632406"
     },
@@ -1763,6 +1851,10 @@
     {
       "variante": "OP11-041_p3",
       "produto": "675637"
+    },
+    {
+      "variante": "OP11-041_p4",
+      "produto": "724683"
     },
     {
       "variante": "OP11-054_p1",
@@ -1897,6 +1989,14 @@
       "produto": "657368"
     },
     {
+      "variante": "OP13-100_p1",
+      "produto": "657378"
+    },
+    {
+      "variante": "OP13-100_p2",
+      "produto": "726598"
+    },
+    {
       "variante": "OP13-118_p1",
       "produto": "657403"
     },
@@ -1961,12 +2061,28 @@
       "produto": "666527"
     },
     {
+      "variante": "OP14-041_p1",
+      "produto": "668335"
+    },
+    {
+      "variante": "OP14-041_p3",
+      "produto": "724620"
+    },
+    {
       "variante": "OP14-119_p1",
       "produto": "668643"
     },
     {
       "variante": "OP14-119_p2",
       "produto": "671448"
+    },
+    {
+      "variante": "OP15-039_p1",
+      "produto": "685383"
+    },
+    {
+      "variante": "OP15-039_p2",
+      "produto": "726599"
     },
     {
       "variante": "OP15-118_p1",
