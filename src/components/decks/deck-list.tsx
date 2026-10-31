@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { CardArt } from '@/components/catalog/card-art'
+import { DeleteDeck } from '@/components/decks/delete-deck'
 import { Badge } from '@/components/ui/badge'
 import { ProgressBar } from '@/components/ui/progress-bar'
 import { Panel } from '@/components/ui/surface'
@@ -44,7 +45,7 @@ export function DeckList({ decks, premium }: { decks: SavedDeckSummary[]; premiu
 
 function DeckRow({ deck, premium }: { deck: SavedDeckSummary; premium: boolean }) {
   const conteudo = (
-    <Panel className="flex items-center gap-3 p-3">
+    <>
       <CardArt
         src={deck.leader.imageUrl}
         alt=""
@@ -72,28 +73,39 @@ function DeckRow({ deck, premium }: { deck: SavedDeckSummary; premium: boolean }
       {deck.incomplete ? (
         <Badge tone="warning">Incompleta</Badge>
       ) : null}
-    </Panel>
+    </>
   )
 
   /*
-   * Sem Premium a lista aparece e não abre (escolha do dono do produto em
-   * 22/09). Um link que leva a uma tela de recusa seria pior que nenhum: a
-   * pessoa clica, perde o lugar e volta. A marca diz o motivo onde ela está.
+   * O painel deixou de ser o link inteiro para caber o excluir: botão dentro de
+   * `<a>` é HTML inválido, e o navegador decide sozinho o que fazer no clique.
+   * Agora o link cobre a arte e o texto — a parte que leva a algum lugar — e o
+   * botão é irmão dele.
    */
-  if (!premium) {
-    return (
-      <div className="relative">
-        {conteudo}
-        <span className="absolute right-3 bottom-3 text-xs font-medium text-accent-ink">
-          Premium para abrir
-        </span>
-      </div>
-    )
-  }
-
   return (
-    <Link href={`/deck/${deck.id}`} className="block rounded-panel focus-visible:outline-2 focus-visible:outline-accent-ink">
-      {conteudo}
-    </Link>
+    <Panel className="flex items-center gap-3 p-3">
+      {premium ? (
+        <Link
+          href={`/deck/${deck.id}`}
+          className="flex min-w-0 flex-1 items-center gap-3 rounded-panel focus-visible:outline-2 focus-visible:outline-accent-ink"
+        >
+          {conteudo}
+        </Link>
+      ) : (
+        /*
+         * Sem Premium a lista aparece e não abre (escolha do dono do produto em
+         * 22/09). Um link que leva a uma tela de recusa seria pior que nenhum: a
+         * pessoa clica, perde o lugar e volta. A marca diz o motivo onde ela
+         * está — e o excluir continua ao lado, porque apagar nunca dependeu do
+         * Premium.
+         */
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          {conteudo}
+          <span className="shrink-0 text-xs font-medium text-accent-ink">Premium para abrir</span>
+        </div>
+      )}
+
+      <DeleteDeck id={deck.id} name={deck.name} variant="icone" />
+    </Panel>
   )
 }
