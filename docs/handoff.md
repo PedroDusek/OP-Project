@@ -8,11 +8,11 @@ Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
    carregou ao subir (armadilha 40), e só lê o `.env` ao subir — `RESEND_API_KEY`
    e `EMAIL_FROM` entraram nele em 17/09.
 2. `npm run supabase status` — mostra o que produção tem e o que falta. Em
-   26/10 ela estava **em dia: 23 de 23 migrations**, com 3.085 cartas, 4.731
-   artes e 62 sets, já com a EB-05.
+   31/10 ela estava **em dia: 23 de 23 migrations**, com 3.085 cartas, 4.766
+   artes e 62 sets, com a EB-05 inteira.
 3. **O site está em `https://colexa.com.br`** desde 21/09 (decisões
    089 e 090), com cobrança do Premium **em modo real** desde 22/09. Publicar é
-   à mão: `development.md` 6.6. A última publicação foi a **v50**, em 26/10.
+   à mão: `development.md` 6.6. A última publicação foi a **v51**, em 31/10.
 4. **A arte da carta agora é nossa** (decisão 113). Ela **não** vem mais da
    Bandai em tempo de acesso, e a conversão **nunca roda na Fly** — leia a
    armadilha 88 antes de mexer em imagem.
@@ -1918,6 +1918,51 @@ coleções, que hoje é o lugar certo. **`EB05` não foi acrescentado à lista**
 ela é ordem de lançamento informada pelo dono do produto, e o padrão já acerta.
 Quando a OP-18 chegar, convém confirmar a ordem das duas.
 
+### A segunda passada: as 35 paralelas, em 31/10
+
+A Bandai publicou as paralelas um dia depois do lançamento. A página passou a
+dar **72 cartas e 96 artes** — as 96 que a Liga já mostrava em 26/10, quando a
+Bandai tinha 61 e o tcgcsv 88. **A loja estava na frente da fonte**, e é o que
+vale lembrar na próxima coleção: o catálogo oficial sai por último.
+
+Nenhuma carta nova. As 11 de outras coleções distribuídas na EB-05 já existiam e
+só ganharam arte. Produção foi de 4.731 para **4.766** artes, publicada na v51.
+
+**O roteiro de cinco passos funcionou, desta vez na ordem certa** — as artes
+subiram ao volume e já respondiam em 200 **antes** do import em produção.
+
+#### O que esta coleção ensinou sobre o vínculo com o TCGplayer
+
+Depois de conferir a Liga, 19 das 35 paralelas continuavam sem vínculo. A causa
+não é a Liga nem a conferência: **a EB-05 trouxe tratamentos que o TCGplayer
+inventou e que a Liga chama de forma genérica.**
+
+| A Liga diz | O TCGplayer diz | |
+|---|---|---|
+| `Alternate Art` | `Heroine Leader` | 6 artes, todas Leader de outras coleções |
+| `Alternate Art` | `Super Rare Alternate Art` | 8 artes SR |
+| `Alternate Art` | `Super Leader Alternate Art` | a `EB05-010` |
+| `Cat`, `Hearts` | `Kentaro Yabuki` e `Kentaro Yabuki (Gold Stamped)` | as três da `EB05-055` |
+
+**A tabela de sinônimos da decisão 074 não resolve isto, e tentar seria um
+defeito.** Um `alternate art → heroine leader` é global, e quebraria todas as
+outras coleções, onde `Alternate Art` casa consigo mesmo. O sinônimo serve a
+nomes que significam o mesmo **em toda parte**; aqui o mesmo nome da Liga aponta
+para tratamentos diferentes conforme a coleção.
+
+O caminho certo foi o arquivo de vínculos manuais (decisão 068), pela tela
+`/dev/paralelas`: **29 respostas**, 777 → 806. É julgamento por arte, que é
+exatamente o que aquele arquivo existe para guardar.
+
+Medido depois: **96 de 96 artes vinculadas, 90 com preço**. As 6 sem preço são as
+que o TCGplayer ainda não precificou — na fonte, 90 das 96 têm `marketPrice`.
+Cobertura completa do que o mercado tem.
+
+**Espere isto de novo em coleção temática.** O que a EB-05 fez com `Heroine
+Leader` a próxima fará com outro nome, e o levantamento
+(`npm run paralelas:candidatos`, depois `/dev/paralelas`) é o que transforma isso
+numa tarde de cliques em vez de uma caçada.
+
 ## O que espera resposta do dono do produto
 
 - **Idade mínima.** Expor perfil de menor de idade a estranhos é assunto sério
@@ -1942,11 +1987,9 @@ Quando a OP-18 chegar, convém confirmar a ordem das duas.
 - **A resolução das artes de DON!!**: elas ficaram em 200×280 porque guardamos a
   miniatura `_200w` do TCGplayer. Existe `_in_1000x1000.jpg`. Melhorar exige
   reimportar os 239 e reconverter.
-- **A segunda passada da EB-05**: as 18 paralelas e as 9 artes de outras
-  coleções entram quando a Bandai publicar o `_pN`. É o mesmo
-  `npm run catalog:import -- 569205`, que é idempotente, e depois o roteiro dos
-  passos 2 a 5. Vale conferir a partir do lançamento, 30/10.
-- **A `EB05-061`**: único endereço da coleção sem confirmação direta na Liga.
+- **A `EB05-061`**: a normal é o único endereço da coleção sem confirmação
+  direta na Liga — ficou com a forma montada em 26/10, e o padrão da `EB05-033`
+  diz que está certa. A paralela dela foi conferida em 31/10.
 - **Vincular cada DON!! à coleção em que saiu** (decisão 112): a tela `/dev/don`
   está pronta e a tabela `data/don-sets.json` está vazia. Fica registrado o que
   foi dito na hora: um DON!! dentro da OP01 **passa a contar no progresso da
