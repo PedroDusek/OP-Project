@@ -1813,6 +1813,10 @@
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Nefeltari+Vivi+%28001%29+%28Alternate+Art%29%20(EB03-001-AA)&ed=EB03&num=EB03-001-AA"
     },
     {
+      "arte": "EB03-001_p2",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Nefeltari+Vivi+%28001%29+%28Alternate+Art%29%20(EB03-001-AA)&ed=EB-05&num=EB03-001-AA"
+    },
+    {
       "arte": "EB03-002",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Ain%20(EB03-002)&ed=EB03&num=EB03-002"
     },
@@ -2513,6 +2517,10 @@
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Jewelry%20Bonney%20(EB05-001)&ed=EB-05&num=EB05-001"
     },
     {
+      "arte": "EB05-001_p1",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Jewelry+Bonney+%28Alternate+Art%29%20(EB05-001-AA)&ed=EB-05&num=EB05-001-AA"
+    },
+    {
       "arte": "EB05-002",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Doll%20(EB05-002)&ed=EB-05&num=EB05-002"
     },
@@ -2525,12 +2533,24 @@
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Baby+5%20(EB05-004)&ed=EB-05&num=EB05-004"
     },
     {
+      "arte": "EB05-004_p1",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Baby+5+%28Alternate+Art%29%20(EB05-004-AA)&ed=EB-05&num=EB05-004-AA"
+    },
+    {
       "arte": "EB05-005",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Belo+Betty%20(EB05-005)&ed=EB-05&num=EB05-005"
     },
     {
       "arte": "EB05-006",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Miss+Buckingham+Stussy%20(EB05-006)&ed=EB-05&num=EB05-006"
+    },
+    {
+      "arte": "EB05-006_p1",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Miss+Buckingham+Stussy+%28Alternate+Art%29%20(EB05-006-AA)&ed=EB-05&num=EB05-006-AA"
+    },
+    {
+      "arte": "EB05-006_p2",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Miss+Buckingham+Stussy+%28SP%29%20(EB05-006-SP)&ed=EB-05&num=EB05-006-SP"
     },
     {
       "arte": "EB05-007",
@@ -2549,6 +2569,14 @@
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Nico+Robin+%28010%29%20(EB05-010)&ed=EB-05&num=EB05-010"
     },
     {
+      "arte": "EB05-010_p1",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Nico+Robin+%28010%29+%28Alternate+Art%29%20(EB05-010-AA)&ed=EB-05&num=EB05-010-AA"
+    },
+    {
+      "arte": "EB05-010_p2",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Nico+Robin+%28010%29+%28Manga%29%20(EB05-010-MA)&ed=EB-05&num=EB05-010-MA"
+    },
+    {
       "arte": "EB05-011",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Otohime%20(EB05-011)&ed=EB-05&num=EB05-011"
     },
@@ -2565,6 +2593,14 @@
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Shirahoshi%20(EB05-014)&ed=EB-05&num=EB05-014"
     },
     {
+      "arte": "EB05-014_p1",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Shirahoshi+%28Alternate+Art%29%20(EB05-014-AA)&ed=EB-05&num=EB05-014-AA"
+    },
+    {
+      "arte": "EB05-014_p2",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Shirahoshi+%28Manga%29%20(EB05-014-MA)&ed=EB-05&num=EB05-014-MA"
+    },
+    {
       "arte": "EB05-015",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Tashigi%20(EB05-015)&ed=EB-05&num=EB05-015"
     },
@@ -2573,12 +2609,24 @@
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Nico+Robin+%28016%29%20(EB05-016)&ed=EB-05&num=EB05-016"
     },
     {
+      "arte": "EB05-016_p1",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Nico+Robin+%28016%29+%28Alternate+Art%29%20(EB05-016-AA)&ed=EB-05&num=EB05-016-AA"
+    },
+    {
+      "arte": "EB05-016_p2",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Nico+Robin+%28016%29+%28SP%29%20(EB05-016-SP)&ed=EB-05&num=EB05-016-SP"
+    },
+    {
       "arte": "EB05-017",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Mermaid+Cafe+Dancers%20(EB05-017)&ed=EB-05&num=EB05-017"
     },
     {
       "arte": "EB05-018",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Rebecca%20(EB05-018)&ed=EB-05&num=EB05-018"
+    },
+    {
+      "arte": "EB05-018_p1",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Rebecca+%28Alternate+Art%29%20(EB05-018-AA)&ed=EB-05&num=EB05-018-AA"
     },
     {
       "arte": "EB05-019",
@@ -2591,6 +2639,10 @@
     {
       "arte": "EB05-021",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Alvida%20(EB05-021)&ed=EB-05&num=EB05-021"
+    },
+    {
+      "arte": "EB05-021_p1",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Alvida+%28Alternate+Art%29%20(EB05-021-AA)&ed=EB-05&num=EB05-021-AA"
     },
     {
       "arte": "EB05-022",
@@ -2621,6 +2673,10 @@
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Boa+Hancock+%28028%29%20(EB05-028)&ed=EB-05&num=EB05-028"
     },
     {
+      "arte": "EB05-028_p1",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Boa+Hancock+%28028%29+%28Alternate+Art%29%20(EB05-028-AA)&ed=EB-05&num=EB05-028-AA"
+    },
+    {
       "arte": "EB05-029",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Feather+Cage%20(EB05-029)&ed=EB-05&num=EB05-029"
     },
@@ -2631,6 +2687,10 @@
     {
       "arte": "EB05-031",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Vinsmoke+Reiju%20(EB05-031)&ed=EB-05&num=EB05-031"
+    },
+    {
+      "arte": "EB05-031_p1",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Vinsmoke+Reiju+%28SP%29%20(EB05-031-SP)&ed=EB-05&num=EB05-031-SP"
     },
     {
       "arte": "EB05-032",
@@ -2645,6 +2705,10 @@
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Sugar%20(EB05-034)&ed=EB-05&num=EB05-034"
     },
     {
+      "arte": "EB05-034_p1",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Sugar+%28Alternate+Art%29%20(EB05-034-AA)&ed=EB-05&num=EB05-034-AA"
+    },
+    {
       "arte": "EB05-035",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Speed%20(EB05-035)&ed=EB-05&num=EB05-035"
     },
@@ -2655,6 +2719,10 @@
     {
       "arte": "EB05-037",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Black+Maria%20(EB05-037)&ed=EB-05&num=EB05-037"
+    },
+    {
+      "arte": "EB05-037_p1",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Black+Maria+%28Alternate+Art%29%20(EB05-037-AA)&ed=EB-05&num=EB05-037-AA"
     },
     {
       "arte": "EB05-038",
@@ -2681,6 +2749,10 @@
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Perona%20(EB05-043)&ed=EB-05&num=EB05-043"
     },
     {
+      "arte": "EB05-043_p1",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Perona+%28Alternate+Art%29%20(EB05-043-AA)&ed=EB-05&num=EB05-043-AA"
+    },
+    {
       "arte": "EB05-044",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Ms.+Father%27s+Day%20(EB05-044)&ed=EB-05&num=EB05-044"
     },
@@ -2691,6 +2763,10 @@
     {
       "arte": "EB05-046",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Yamato%20(EB05-046)&ed=EB-05&num=EB05-046"
+    },
+    {
+      "arte": "EB05-046_p1",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Yamato+%28Alternate+Art%29%20(EB05-046-AA)&ed=EB-05&num=EB05-046-AA"
     },
     {
       "arte": "EB05-047",
@@ -2717,6 +2793,10 @@
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Gloriosa%20(EB05-052)&ed=EB-05&num=EB05-052"
     },
     {
+      "arte": "EB05-052_p1",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Gloriosa+%28Alternate+Art%29%20(EB05-052-AA)&ed=EB-05&num=EB05-052-AA"
+    },
+    {
       "arte": "EB05-053",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Charlotte+Praline%20(EB05-053)&ed=EB-05&num=EB05-053"
     },
@@ -2729,12 +2809,28 @@
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Nami+%28055%29%20(EB05-055)&ed=EB-05&num=EB05-055"
     },
     {
+      "arte": "EB05-055_p1",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Nami+%28055%29+%28Alternate+Art%29%20(EB05-055-AA)&ed=EB-05&num=EB05-055-AA"
+    },
+    {
+      "arte": "EB05-055_p2",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Nami+%28055%29+%28Alternate+Art%29+%28Cat%29%20(EB05-055-AC)&ed=EB-05&num=EB05-055-AC"
+    },
+    {
+      "arte": "EB05-055_p3",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Nami+%28055%29+%28Alternate+Art%29+%28Hearts%29%20(EB05-055-AH)&ed=EB-05&num=EB05-055-AH"
+    },
+    {
       "arte": "EB05-056",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Nico+Olvia%20(EB05-056)&ed=EB-05&num=EB05-056"
     },
     {
       "arte": "EB05-057",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Nojiko%20(EB05-057)&ed=EB-05&num=EB05-057"
+    },
+    {
+      "arte": "EB05-057_p1",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Nojiko+%28Alternate+Art%29%20(EB05-057-AA)&ed=EB-05&num=EB05-057-AA"
     },
     {
       "arte": "EB05-058",
@@ -2751,6 +2847,10 @@
     {
       "arte": "EB05-061",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Nami%20(EB05-061)&ed=EB-05&num=EB05-061"
+    },
+    {
+      "arte": "EB05-061_p1",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Nami+%28061%29+%28Alternate+Art%29%20(EB05-061-AA)&ed=EB-05&num=EB05-061-AA"
     },
     {
       "arte": "OP01-001",
@@ -2856,6 +2956,10 @@
     {
       "arte": "OP01-016_p1",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Nami%20(OP01-016-PAR)&ed=OP-01&num=OP01-016-PAR"
+    },
+    {
+      "arte": "OP01-016_p10",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Nami+%28016%29+%28SP%29%20(OP01-016-SP)&ed=EB-05&num=OP01-016-SP"
     },
     {
       "arte": "OP01-016_p2",
@@ -7659,6 +7763,10 @@
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Shirahoshi+%28022%29+%28Alternate+Art%29%20(OP11-022-AA)&ed=OP-11&num=OP11-022-AA"
     },
     {
+      "arte": "OP11-022_p2",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Shirahoshi+%28022%29+%28Alternate+Art%29%20(OP11-022-AA)&ed=EB-05&num=OP11-022-AA"
+    },
+    {
       "arte": "OP11-023_p1",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Arlong+%28Alternate+Art%29%20(OP11-023-AA)&ed=OP-11&num=OP11-023-AA"
     },
@@ -7697,6 +7805,10 @@
     {
       "arte": "OP11-041_p3",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Nami+%28Whole+Cake+Island+Arc%29%20(OP11-041-IA)&ed=PC-01&num=OP11-041-IA"
+    },
+    {
+      "arte": "OP11-041_p4",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Nami+%28041%29+%28Alternate+Art%29%20(OP11-041-AA)&ed=EB-05&num=OP11-041-AA"
     },
     {
       "arte": "OP11-047_p1",
@@ -8431,6 +8543,10 @@
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Jewelry+Bonney+%28Alternate+Art%29%20(OP13-100-AA)&ed=OP-13&num=OP13-100-AA"
     },
     {
+      "arte": "OP13-100_p2",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Jewelry+Bonney+%28100%29+%28Alternate+Art%29%20(OP13-100-AA)&ed=EB-05&num=OP13-100-AA"
+    },
+    {
       "arte": "OP13-108_p1",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Jewelry+Bonney+%28Alternate+Art%29%20(OP13-108-AA)&ed=OP-13&num=OP13-108-AA"
     },
@@ -8711,6 +8827,10 @@
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Perona+%28Extra+Grand+Battle+for+Stores+2026%29%20(OP14-033-EG)&ed=PC-01&num=OP14-033-EG"
     },
     {
+      "arte": "OP14-033_p3",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Perona+%28033%29+%28SP%29%20(OP14-033-SP)&ed=EB-05&num=OP14-033-SP"
+    },
+    {
       "arte": "OP14-034",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Monkey.D.Luffy+%28034%29%20(OP14-034)&ed=OP-14&num=OP14-034"
     },
@@ -8753,6 +8873,10 @@
     {
       "arte": "OP14-041_p1",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Boa+Hancock+%28041%29%28Alternate+Art%29%20(OP14-041-AA)&ed=OP-14&num=OP14-041-AA"
+    },
+    {
+      "arte": "OP14-041_p3",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Boa+Hancock+%28Alternate+Art%29%20(OP14-041-AA)&ed=EB-05&num=OP14-041-AA"
     },
     {
       "arte": "OP14-042",
@@ -9365,6 +9489,10 @@
     {
       "arte": "OP15-039_p1",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Rebecca+%28039%29%28Alternate+Art%29%20(OP15-039-AA)&ed=OP-15&num=OP15-039-AA"
+    },
+    {
+      "arte": "OP15-039_p2",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Rebecca+%28039%29+%28Alternate+Art%29%20(OP15-039-AA)&ed=EB-05&num=OP15-039-AA"
     },
     {
       "arte": "OP15-040",
@@ -10215,6 +10343,10 @@
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Usopp+%28Alternate+Art%29%20(OP17-080-AA)&ed=OP-17&num=OP17-080-AA"
     },
     {
+      "arte": "OP17-081_p1",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Gerd+%28081%29+%28SP%29%20(OP17-081-SP)&ed=EB-05&num=OP17-081-SP"
+    },
+    {
       "arte": "OP17-086",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Nami+%28086%29%20(OP17-086)&ed=OP-17&num=OP17-086"
     },
@@ -10245,6 +10377,10 @@
     {
       "arte": "OP17-107_p1",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Charlotte+Daifuku+%28Pandaman%29%20(OP17-107-PA)&ed=OP-17&num=OP17-107-PA"
+    },
+    {
+      "arte": "OP17-109_p1",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Charlotte+Pudding+%28109%29+%28SP%29%20(OP17-109-SP)&ed=EB-05&num=OP17-109-SP"
     },
     {
       "arte": "OP17-112",
@@ -12889,6 +13025,10 @@
     {
       "arte": "ST17-004",
       "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Boa+Hancock%20(ST17-004)&ed=ST17&num=ST17-004"
+    },
+    {
+      "arte": "ST17-004_p1",
+      "url": "https://www.ligaonepiece.com.br/?view=cards/card&card=Boa+Hancock+%28004%29+%28SP%29%20(ST17-004-SP)&ed=EB-05&num=ST17-004-SP"
     },
     {
       "arte": "ST17-005",
