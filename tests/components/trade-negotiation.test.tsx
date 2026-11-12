@@ -430,3 +430,52 @@ describe('a espera antes de confirmar', () => {
     expect(screen.getByRole('button', { name: /confirmar esta troca/i })).not.toBeDisabled()
   })
 })
+
+/**
+ * O caminho da troca para a carta (pedido do dono do produto em 11/11).
+ *
+ * As tres artes da tela saem do mesmo `CardFace`, e por isso basta provar os
+ * tres chamadores: a oferta do outro, a minha e as sugestoes do cruzamento. A
+ * forma do link esta em `card-art-link.test.tsx`.
+ */
+describe('a arte leva ao catalogo', () => {
+  const sugestao = (over: Partial<TradeView['iCanOffer'][number]> = {}) => ({
+    ...oferta({ variantId: '9', cardCode: 'OP05-009', cardName: 'Nami' }),
+    available: 3,
+    stillWanted: 1,
+    ...over,
+  })
+
+  it('na oferta do outro', () => {
+    render(
+      <TradeNegotiation trade={troca({ other: { ...troca().other!, offer: [oferta()] } })} />,
+    )
+
+    expect(screen.getByRole('link', { name: 'Ver OP01-001 no catálogo' })).toHaveAttribute(
+      'href',
+      '/catalogo/carta/1',
+    )
+  })
+
+  it('na minha oferta, sem atrapalhar o "- N +"', () => {
+    render(<TradeNegotiation trade={troca({ me: { ...troca().me, offer: [oferta()] } })} />)
+
+    expect(screen.getByRole('link', { name: 'Ver OP01-001 no catálogo' })).toHaveAttribute(
+      'href',
+      '/catalogo/carta/1',
+    )
+    expect(
+      screen.getByRole('button', { name: /acrescentar uma cópia de OP01-001/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('nas sugestoes do cruzamento, sem substituir o "Oferecer"', () => {
+    render(<TradeNegotiation trade={troca({ iCanOffer: [sugestao()] })} />)
+
+    expect(screen.getByRole('link', { name: 'Ver OP05-009 no catálogo' })).toHaveAttribute(
+      'href',
+      '/catalogo/carta/9',
+    )
+    expect(screen.getByRole('button', { name: /oferecer 2/i })).toBeInTheDocument()
+  })
+})

@@ -1311,12 +1311,19 @@ Pedido do dono do produto em 11/11: ele sentia falta de tocar na arte e cair no
 catálogo. A regra que saiu da conversa tem duas formas, e a diferença é o que a
 arte já fazia ao ser tocada.
 
-- **Arte sem gesto → link direto na imagem.** É o caso da **decklist**
-  (`/deck/[id]` e `/deck/novo`), nos três lugares em que a arte aparece: o
-  líder, a lista em edição e a conferência. Tocar nela não fazia nada, então o
-  link não tira nada de ninguém. Mora em `ArteDaCarta`, no fim de
-  `deck-builder.tsx` — um componente só, porque três cópias do mesmo link
-  divergiriam no primeiro ajuste de foco ou de rótulo.
+- **Arte sem gesto → link direto na imagem.** Tocar nela não fazia nada,
+  então o link não tira nada de ninguém. Hoje são cinco telas: a **decklist**
+  (`/deck/[id]` e `/deck/novo`, nos três lugares em que a arte aparece — o
+  líder, a lista em edição e a conferência), o **Início** ("As mais
+  valiosas"), o **Trade Binder de alguém** (`/social/[username]`) e a
+  **negociação de uma troca** (`/trocas/[id]`, nos três lugares do
+  `CardFace` — a oferta do outro, a minha e as sugestões do cruzamento).
+  Todas usam `CardArtLink` (`src/components/catalog/card-art-link.tsx`), que
+  nasceu dentro do `deck-builder.tsx` e saiu de lá quando virou cinco telas:
+  cinco cópias do mesmo link divergiriam no primeiro ajuste de foco ou de
+  rótulo. Nas grades, o selo de quantidade entra **dentro** do link, porque é
+  dentro dele que está posicionado — e tocar no selo abre a carta, que é o
+  que quem toca ali quer.
 - **Arte que já abre um painel → o link fica dentro do painel.** Minha Coleção,
   want list e agora as **cartas de um binder** (`AllocationSheet`). Pôr o link
   na imagem custaria o gesto que a pessoa já aprendeu — na grade da Coleção a
@@ -1334,14 +1341,27 @@ clicar nos outros. Mesmo arranjo que o painel da want list já tinha.
 anunciaria a mesma carta duas vezes por linha — numa lista de 51, cento e duas
 leituras onde bastam cinquenta e uma.
 
-**Ficou de fora, e continua disponível:** Início, perfil da Social e as cartas
-de uma troca têm arte sem gesto e poderiam ganhar o mesmo link. **Playsets não
-entra sem decisão**: a linha é por carta, contando todas as artes, e não existe
-"a" variante para onde ir.
+**Três lugares ficaram de fora, e cada um por um motivo:**
 
-Testes: `tests/components/deck-builder.test.tsx` (o link direto e o nome
-acessível) e `tests/components/storage-ui.test.tsx` (o link no painel do
-binder, e a ausência dele dentro da carta).
+- **A prévia da rede** (`/social`): cada carta ali já leva ao Trade Binder de
+  quem a oferece (`network-member.tsx`), e é o gesto certo — o olho está na
+  pessoa, e não na carta. Trocar o destino tiraria o caminho que existe para
+  dar um que a tela de dentro já oferece.
+- **O Trade Binder público** (`/trade/<token>`): é a única página sem sessão,
+  e o catálogo pede login. O link mandaria quem recebeu o endereço no grupo
+  para uma tela de entrar.
+- **A pergunta de origem** ao concluir uma troca (`trade-exchange.tsx`): a
+  arte está dentro de um formulário que escolhe de onde as cópias saem, e sair
+  dele no meio perderia a escolha.
+
+**Playsets não entra sem decisão**: a linha é por carta, contando todas as
+artes, e não existe "a" variante para onde ir.
+
+Testes: `card-art-link.test.tsx` (a forma do link, que as cinco telas
+compartilham), `deck-builder.test.tsx`, `collection-dashboard.test.tsx`,
+`member-binder-page.test.tsx` e `trade-negotiation.test.tsx` (cada tela prova
+que usa o componente), e `storage-ui.test.tsx` (o link no painel do binder, e
+a ausência dele dentro da carta).
 
 ## Textos e atribuição (decisão 100)
 

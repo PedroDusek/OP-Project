@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from 'react'
 import { ArrowRight, Check, Handshake, Minus, Plus, TriangleAlert, X } from 'lucide-react'
-import { CardArt } from '@/components/catalog/card-art'
+import { CardArtLink } from '@/components/catalog/card-art-link'
 import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/ui/surface'
 import { ExchangeControls } from '@/components/trades/trade-exchange'
@@ -214,13 +214,23 @@ function EmptyOffer() {
   )
 }
 
-/** A arte, o código e o nome de uma carta — o miolo dos dois formatos. */
+/**
+ * A arte, o código e o nome de uma carta — o miolo dos dois formatos.
+ *
+ * A arte leva à carta no catálogo (pedido do dono do produto em 11/11), e
+ * isso vale nos três lugares que usam isto: a oferta do outro, a minha e as
+ * sugestões do cruzamento. É onde a dúvida aparece — quanto vale, quais são
+ * as outras artes — e antes disso não havia caminho nenhum daqui para lá.
+ *
+ * O link não atrapalha o resto: o "- N +" da própria oferta e o "Oferecer N"
+ * da sugestão são irmãos da arte, e não vivem dentro dela.
+ */
 function CardFace({
   card,
   sizes,
   quantity,
 }: {
-  card: { cardCode: string; cardName: string; imageUrl: string | null }
+  card: { variantId: string; cardCode: string; cardName: string; imageUrl: string | null }
   sizes: string
   /**
    * Quando dita, aparece na linha do código: "2x". Não sobre a arte — os cantos
@@ -230,7 +240,12 @@ function CardFace({
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-1">
-      <CardArt src={card.imageUrl} alt="" fallback={card.cardCode} sizes={sizes} />
+      <CardArtLink
+        variantId={card.variantId}
+        code={card.cardCode}
+        imageUrl={card.imageUrl}
+        sizes={sizes}
+      />
       <p className="truncate text-sm font-medium text-text">{card.cardName}</p>
       <p className="flex items-baseline justify-between gap-2 text-xs text-text-muted">
         <span className="truncate">{card.cardCode}</span>
