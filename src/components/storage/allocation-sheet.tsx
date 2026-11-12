@@ -1,7 +1,8 @@
 'use client'
 
 import { useActionState, useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRightLeft } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowLeft, ArrowRight, ArrowRightLeft } from 'lucide-react'
 import { moveCopiesAction, setAllocationAction } from '@/app/(app)/binders/actions'
 import { ALLOCATION_IDLE, MOVE_IDLE } from '@/app/(app)/binders/state'
 import { Button } from '@/components/ui/button'
@@ -55,6 +56,14 @@ export interface AllocationSheetProps {
   max: number
   /** Os outros locais, para transferir. Ausente esconde a transferência. */
   locations?: StorageLocationSummary[]
+  /**
+   * O caminho para a carta no catálogo.
+   *
+   * Sai de pé na página da própria carta, que é o único lugar onde este painel
+   * abre sem a pessoa precisar dele: ali o link levaria de volta para onde ela
+   * já está. Mesmo arranjo do painel da want list.
+   */
+  showCatalogLink?: boolean
 }
 
 export function AllocationSheet(props: AllocationSheetProps) {
@@ -145,6 +154,7 @@ function QuantityView({
   locationSubtitle,
   currentQuantity,
   max,
+  showCatalogLink = true,
   onMove,
 }: AllocationSheetProps & { onMove?: (quantity: number) => void }) {
   const [state, action, pending] = useActionState(setAllocationAction, ALLOCATION_IDLE)
@@ -191,6 +201,27 @@ function QuantityView({
             : `Cabem até ${max} aqui, contando o que está em outros locais.`}
         </p>
       </div>
+
+      {/*
+        O caminho para a carta, pedido do dono do produto em 11/11 — o mesmo que
+        o painel irmão de "quantas você tem" e o da want list já ofereciam.
+
+        O texto não é o de lá ("e onde ela está guardada"): quem está aqui já
+        sabe onde ela está, está olhando o local. O que falta daqui é o preço, as
+        outras artes e o link da Liga, e é isso que o rótulo promete.
+
+        Fica depois da pergunta e antes dos botões, como nos outros dois: quem
+        toca aqui abandona a edição, e o lugar disso não é no meio dela.
+      */}
+      {showCatalogLink ? (
+        <Link
+          href={`/catalogo/carta/${variantId}`}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-accent-ink hover:underline"
+        >
+          Ver a carta no catálogo
+          <ArrowRight className="size-4" aria-hidden />
+        </Link>
+      ) : null}
 
       {state.status === 'error' ? (
         <p role="alert" className="text-sm text-danger">

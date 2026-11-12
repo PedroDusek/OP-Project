@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useMemo, useState, useTransition } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle, ArrowLeftRight, Check, Package, Plus, Sparkles } from 'lucide-react'
 import { CardArt } from '@/components/catalog/card-art'
@@ -12,6 +13,7 @@ import { QuantitySelector } from '@/components/ui/quantity-selector'
 import { SearchBar } from '@/components/ui/search-bar'
 import { Panel } from '@/components/ui/surface'
 import { Switch } from '@/components/ui/switch'
+import { cn } from '@/lib/cn'
 import { countActiveFilters, type CatalogSearchParams } from '@/lib/catalog-params'
 import { deckCatalogQuery } from '@/lib/deck-query'
 import type { CatalogVocabulary } from '@/server/application/catalog/vocabulary'
@@ -180,9 +182,13 @@ export function DeckBuilder({
 
         {leader ? (
           <Panel className="flex items-center gap-3 p-3">
-            <span className="w-16 shrink-0">
-              <CardArt src={leader.imageUrl} alt={leader.cardName} fallback={leader.cardCode} sizes="64px" />
-            </span>
+            <ArteDaCarta
+              variantId={leader.variantId}
+              code={leader.cardCode}
+              imageUrl={leader.imageUrl}
+              largura="w-16"
+              sizes="64px"
+            />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-text">{leader.cardName}</p>
               <p className="text-xs text-text-muted tabular-nums">
@@ -244,9 +250,13 @@ export function DeckBuilder({
                 {linhas.map((linha) => (
                   <li key={linha.variantId}>
                     <Panel className="flex items-center gap-3 p-2.5">
-                      <span className="w-12 shrink-0">
-                        <CardArt src={linha.imageUrl} alt={linha.cardName} fallback={linha.cardCode} sizes="48px" />
-                      </span>
+                      <ArteDaCarta
+                        variantId={linha.variantId}
+                        code={linha.cardCode}
+                        imageUrl={linha.imageUrl}
+                        largura="w-12"
+                        sizes="48px"
+                      />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-text">{linha.cardName}</p>
                         <p className="text-xs text-text-muted tabular-nums">
@@ -444,9 +454,13 @@ export function DeckBuilder({
                   <li key={linha.variantId}>
                     <Panel className="flex flex-col gap-2 p-3">
                       <div className="flex items-center gap-3">
-                        <span className="w-12 shrink-0">
-                          <CardArt src={linha.imageUrl} alt={linha.cardName} fallback={linha.cardCode} sizes="48px" />
-                        </span>
+                        <ArteDaCarta
+                          variantId={linha.variantId}
+                          code={linha.cardCode}
+                          imageUrl={linha.imageUrl}
+                          largura="w-12"
+                          sizes="48px"
+                        />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium text-text">
                             {linha.cardName}
@@ -744,5 +758,54 @@ function BuscaDeCartas({
         </Button>
       ) : null}
     </div>
+  )
+}
+
+/**
+ * A arte da carta, levando ao catálogo (pedido do dono do produto em 11/11).
+ *
+ * Um componente só para os três lugares desta tela — o líder, a lista em edição
+ * e a conferência —, porque três cópias do mesmo link divergiriam no primeiro
+ * ajuste de foco ou de rótulo.
+ *
+ * ## Por que aqui é link direto, e nas outras telas não
+ *
+ * Aqui a arte não tinha gesto nenhum: tocar nela não fazia nada. Onde tocar já
+ * abre um painel — Minha Coleção, want list, cartas de um binder — o caminho
+ * para o catálogo é o link **dentro** do painel, porque um link na arte tiraria
+ * da pessoa o gesto que ela já aprendeu.
+ *
+ * ## O nome fica no link, e a imagem não repete
+ *
+ * `alt` vazio: o código e o nome já aparecem escritos ao lado, e com os dois o
+ * leitor de tela anunciaria a mesma carta duas vezes por linha — numa decklist,
+ * 102 leituras onde bastam 51. Quem nomeia o destino é o `aria-label`.
+ */
+function ArteDaCarta({
+  variantId,
+  code,
+  imageUrl,
+  largura,
+  sizes,
+}: {
+  variantId: string
+  code: string
+  imageUrl: string | null
+  /** A classe de largura que o `span` desta linha tinha antes. */
+  largura: string
+  sizes: string
+}) {
+  return (
+    <Link
+      href={`/catalogo/carta/${variantId}`}
+      aria-label={`Ver ${code} no catálogo`}
+      className={cn(
+        'block shrink-0 rounded-card',
+        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink',
+        largura,
+      )}
+    >
+      <CardArt src={imageUrl} alt="" fallback={code} sizes={sizes} />
+    </Link>
   )
 }

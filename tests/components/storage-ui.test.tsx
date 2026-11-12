@@ -371,6 +371,24 @@ describe('StoredCards', () => {
     expect(enviado.get('quantity')).toBe('2')
   })
 
+  /*
+   * O caminho para a carta, pedido do dono do produto em 11/11. O painel irmão
+   * de "quantas você tem" e o da want list já ofereciam o mesmo, e faltava aqui:
+   * quem está conferindo um binder também quer o preço e as outras artes.
+   */
+  it('o painel leva à carta no catálogo', async () => {
+    render_([card({ variantId: '7', quantity: 2 })])
+
+    await userEvent.click(screen.getByRole('button', { name: /OP01-001/ }))
+
+    const painel = await screen.findByRole('dialog', { name: 'Quantas estão aqui' })
+    expect(within(painel).getByRole('link', { name: /Ver a carta no catálogo/ })).toHaveAttribute(
+      'href',
+      '/catalogo/carta/7',
+    )
+  })
+
+
   /**
    * O vazio nao manda mais a pessoa embora: antes dizia "abra uma carta da sua
    * colecao", que era a unica forma de guardar algo — e ficava fora de Binders.
@@ -459,6 +477,21 @@ describe('VariantAllocationsPanel', () => {
     })
 
     expect(screen.queryByText('Onde está guardada')).not.toBeInTheDocument()
+  })
+
+  /*
+   * O painel de "quantas estão aqui" ganhou o link para o catálogo em 11/11, e
+   * aqui ele sai: este quadro abre **dentro** da carta, e o link levaria de
+   * volta para onde a pessoa já está. Link que não leva a lugar nenhum ensina a
+   * não clicar nos outros.
+   */
+  it('dentro da carta, o painel não oferece o link para o catálogo', async () => {
+    painel()
+
+    await userEvent.click(screen.getByRole('button', { name: /Binder Principal/ }))
+
+    const sheet = await screen.findByRole('dialog')
+    expect(within(sheet).queryByRole('link', { name: /catálogo/ })).not.toBeInTheDocument()
   })
 })
 

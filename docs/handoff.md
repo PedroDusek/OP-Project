@@ -1305,6 +1305,44 @@ tem voltar"): lê cada `page.tsx` de `src/app` e falha se não achar uma das
 formas de voltar do projeto. Tela nova sem voltar não passa na CI. Se for uma
 exceção de verdade, ela entra na lista `SEM_VOLTAR` do teste, com o motivo.
 
+## O caminho para a carta, de qualquer tela
+
+Pedido do dono do produto em 11/11: ele sentia falta de tocar na arte e cair no
+catálogo. A regra que saiu da conversa tem duas formas, e a diferença é o que a
+arte já fazia ao ser tocada.
+
+- **Arte sem gesto → link direto na imagem.** É o caso da **decklist**
+  (`/deck/[id]` e `/deck/novo`), nos três lugares em que a arte aparece: o
+  líder, a lista em edição e a conferência. Tocar nela não fazia nada, então o
+  link não tira nada de ninguém. Mora em `ArteDaCarta`, no fim de
+  `deck-builder.tsx` — um componente só, porque três cópias do mesmo link
+  divergiriam no primeiro ajuste de foco ou de rótulo.
+- **Arte que já abre um painel → o link fica dentro do painel.** Minha Coleção,
+  want list e agora as **cartas de um binder** (`AllocationSheet`). Pôr o link
+  na imagem custaria o gesto que a pessoa já aprendeu — na grade da Coleção a
+  arte é quase todo o alvo, e tocar na carta passaria a sair da tela em vez de
+  editar a quantidade, que é o uso mais frequente.
+
+**A exceção que o painel precisa saber:** `AllocationSheet` também abre dentro
+da própria carta, pelo quadro "onde está guardada" (`variant-allocations.tsx`).
+Lá ele recebe `showCatalogLink={false}`, senão o link levaria de volta para a
+tela em que a pessoa está — e link que não leva a lugar nenhum ensina a não
+clicar nos outros. Mesmo arranjo que o painel da want list já tinha.
+
+**Acessibilidade:** no link direto a imagem vai com `alt=""` e quem nomeia é o
+`aria-label` (`Ver OP13-004 no catálogo`). Com os dois, o leitor de tela
+anunciaria a mesma carta duas vezes por linha — numa lista de 51, cento e duas
+leituras onde bastam cinquenta e uma.
+
+**Ficou de fora, e continua disponível:** Início, perfil da Social e as cartas
+de uma troca têm arte sem gesto e poderiam ganhar o mesmo link. **Playsets não
+entra sem decisão**: a linha é por carta, contando todas as artes, e não existe
+"a" variante para onde ir.
+
+Testes: `tests/components/deck-builder.test.tsx` (o link direto e o nome
+acessível) e `tests/components/storage-ui.test.tsx` (o link no painel do
+binder, e a ausência dele dentro da carta).
+
 ## Textos e atribuição (decisão 100)
 
 Ajustes pedidos pelo dono do produto em 18/09, publicados no mesmo dia.
