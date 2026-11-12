@@ -96,6 +96,8 @@ export function VariantAllocationsPanel({
           currentQuantity={editing.quantity}
           // O que cabe aqui é o que se possui menos o que está nos outros.
           max={allocations.ownedQuantity - (allocations.allocated - editing.quantity)}
+          // Este painel já abre dentro da carta: o link levaria para cá mesmo.
+          showCatalogLink={false}
         />
       ) : null}
     </section>
