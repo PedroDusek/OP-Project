@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { ArrowLeft, Package } from 'lucide-react'
-import { CardArt } from '@/components/catalog/card-art'
+import { CardArtLink } from '@/components/catalog/card-art-link'
 import { StartConversationButton } from '@/components/conversations/start-conversation'
 import { PageHeader } from '@/components/layout/app-shell'
 import { InviteMemberButton } from '@/components/trades/invite-member'
@@ -104,17 +104,23 @@ export default async function MemberBinderPage({ params }: PageProps<'/social/[u
               <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
                 {binder.cards.map((card) => (
                   <li key={card.variantId} className="flex flex-col gap-1.5">
-                    <span className="relative block">
-                      <CardArt
-                        src={card.imageUrl}
-                        alt={`${card.cardCode} — ${card.cardName}`}
-                        fallback={card.cardCode}
-                        sizes="(max-width: 639px) 33vw, (max-width: 767px) 25vw, 17vw"
-                      />
+                    {/*
+                      A arte leva à carta no catálogo (pedido do dono do
+                      produto em 11/11): daqui é onde mais se quer conferir o
+                      preço, as outras artes e o link da Liga antes de propor
+                      a troca.
+                    */}
+                    <CardArtLink
+                      variantId={card.variantId}
+                      code={card.cardCode}
+                      imageUrl={card.imageUrl}
+                      className="relative"
+                      sizes="(max-width: 639px) 33vw, (max-width: 767px) 25vw, 17vw"
+                    >
                       <span className="absolute right-1 bottom-1 rounded-md bg-black/75 px-1.5 py-0.5 text-xs font-bold text-white tabular-nums">
                         x{card.quantity}
                       </span>
-                    </span>
+                    </CardArtLink>
                     <span className="truncate text-xs font-semibold text-text tabular-nums">{card.cardCode}</span>
                     <span className="truncate text-xs text-text-muted">{card.cardName}</span>
                     {card.wanted ? <Badge tone="success">Você procura</Badge> : null}
