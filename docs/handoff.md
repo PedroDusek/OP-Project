@@ -8,11 +8,11 @@ Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
    carregou ao subir (armadilha 40), e só lê o `.env` ao subir — `RESEND_API_KEY`
    e `EMAIL_FROM` entraram nele em 17/09.
 2. `npm run supabase status` — mostra o que produção tem e o que falta. Em
-   31/10 ela estava **em dia: 23 de 23 migrations**, com 3.085 cartas, 4.766
-   artes e 62 sets, com a EB-05 inteira.
+   22/11 ela estava **em dia: 23 de 23 migrations**, com 3.204 cartas, 4.925
+   artes e 63 sets, com a **OP-18 inteira** e 4.832 variantes com preço.
 3. **O site está em `https://colexa.com.br`** desde 21/09 (decisões
    089 e 090), com cobrança do Premium **em modo real** desde 22/09. Publicar é
-   à mão: `development.md` 6.6. A última publicação foi a **v51**, em 31/10.
+   à mão: `development.md` 6.6. A última publicação foi a **v54**, em 22/11.
 4. **A arte da carta agora é nossa** (decisão 113). Ela **não** vem mais da
    Bandai em tempo de acesso, e a conversão **nunca roda na Fly** — leia a
    armadilha 88 antes de mexer em imagem.
@@ -2062,13 +2062,65 @@ espaço virou `+` (`Karoo+%28001%29`), e não `%20`. Com o `ed` confirmado e o
 nome sem ambiguidade, as 113 normais que ninguém abriu estão certas de graça: é
 a mesma conclusão da EB-05, agora com a segunda coleção a confirmá-la.
 
+### Publicada em 22/11, na v54
+
+O roteiro de cinco passos, na ordem certa — e desta vez sem nenhuma carta no ar
+sem imagem:
+
+1. `npm run catalog:import -- 569118` — 125 cartas, 159 artes, 0 rejeitadas
+2. `npm run supabase -- imagens --local` — 159 convertidas, 0 falhas, a pasta de
+   522 para **545 MB**
+3. **as artes para o volume** — `tar` das 159 (18,9 MB), `fly ssh sftp put`,
+   extrair. O volume foi de 4.762 para **4.921** arquivos, com 1,9 GB livres
+4. `npm run supabase import 569118` — produção para 63 sets, 3.204 cartas,
+   4.925 artes, 5.328 impressões
+5. `npm run supabase status` e *Actions → Publicar*
+
+Conferido depois: `/api/saude` em `{"ok":true}`, `OP18-001`, `OP18-001_p1`,
+`OP17-119_p3` e `OP18-119_p2` em **200** a ~0,09 s, e o volume intacto através
+do deploy.
+
+**4.925 artes no catálogo e 4.921 arquivos no volume não é defeito.** As quatro
+de diferença são DON!! com `imageUrl` nulo — `DON-677570`, `DON-677571`,
+`DON-710745` e `DON-710746`, os Boa Hancock e os do Heroines Special Set. Elas
+vêm do TCGplayer, não da Bandai, e não há imagem de origem para converter. A
+conta fecha: 4.762 + 159 = 4.921.
+
+### O vínculo com o TCGplayer: 11 artes, em 6 cartas
+
+Depois da primeira importação de preços com a coleção dentro, `/dev/paralelas`
+apontou 10 cartas sem vínculo — **6 delas da OP-18**. O dono do produto
+respondeu as 6 no mesmo dia, e as **11 artes foram todas aceitas**: o vínculo
+manual só entra quando o produto existe na fonte e pertence àquela carta, e
+`manualSkipped` ficou em 0. O arquivo de vínculos foi de 806 para 817.
+
+| | |
+|---|---|
+| Artes da OP-18 com preço | **157 de 159** |
+| Vínculos feitos pela tabela da Liga | 940 |
+| Vínculos feitos por dedução de raridade | **0** |
+
+**Esse zero é o resultado da conferência da Liga**, e é a diferença para a
+EB-05, onde a dedução por raridade ainda entrava. Endereço conferido vale mais
+que palpite, e aqui dá para medir quanto.
+
+As duas sem preço — `OP18-065_p2` (SR) e `OP18-093_p1` (R) — **têm produto
+vinculado e aceito**. Quem ainda não precificou é a fonte. Mesmo caso das 6 da
+EB-05: elas entram sozinhas na importação do dia em que o TCGplayer publicar.
+
+**A OP-18 passou limpa em `/dev/liga/conflitos`.** Os 26 conflitos que a tela
+mostra hoje (US$ 530) são 25 de DON!! e 1 de PROMO, dívida anterior — o
+levantamento no disco era de 16/09 e foi regerado em 22/11.
+
 ### O que fica pendente
 
-**O vínculo das paralelas com o TCGplayer, para o preço.** Na EB-05 isso custou
-29 respostas em `/dev/paralelas`, e só pôde ser feito depois de os preços
-chegarem. Aqui vai ser igual: rodar `npm run paralelas:candidatos` e abrir a
-tela **depois** da primeira importação de preços com a OP-18 em produção. Até
-lá, paralela sem vínculo fica sem preço — não é defeito, é a ordem das coisas.
+- **4 cartas em `/dev/paralelas`**, todas anteriores à OP-18: `OP02-041`,
+  `OP05-076`, `OP10-107` e `OP11-041`.
+- **Os 26 conflitos de DON!!/PROMO**, que valem uma tarde algum dia: são US$ 530
+  em preço apontando para um produto possivelmente errado.
+- **A segunda passada da Bandai.** As paralelas vieram junto desta vez, mas o
+  import é idempotente e o catálogo oficial costuma sair por último. Rodar de
+  novo daqui a alguns dias custa um comando.
 
 ## O que espera resposta do dono do produto
 
