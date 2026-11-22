@@ -2050,7 +2050,28 @@ daqui a alguns dias, porque a lição da EB-05 é que **o catálogo oficial sai 
 
   **A lição é sobre o teste, não sobre a lista:** medir dois elementos de uma
   ordenação não mede a ordenação. O certo era ordenar os 63 códigos reais, que
-  é o que a tela faz.
+  é o que a tela faz. O teste de `compareSetsByRelease` tinha o mesmo vício —
+  parava na OP-17 e não conhecia GC-01 nem PRB — e por isso ficou verde o tempo
+  todo. Agora ele leva **todas** as coleções do catálogo.
+
+  **A correção, em 22/11.** As datas vieram do TCGplayer (`tcgcsv.com`, grupos
+  da categoria 68), e as vinte posições que já existiam batem uma a uma com
+  elas — foi isso que deu confiança para posicionar as novas sem perguntar de
+  novo. Entraram quatro: `PRB01` (08/11/2024), `PRB02` (03/10/2025), `EB05`
+  (30/10/2026) e `OP18` (20/11/2026). A lista agora carrega a data de cada
+  entrada em comentário, para a próxima conferência ser leitura e não pesquisa.
+
+  **A GC-01 ficou de fora de propósito**, por decisão do dono do produto no
+  mesmo dia: ele quis o produto de presente no fim da lista, separado das
+  coleções de booster, e não em novembro de 2023, que é quando saiu. Estar fora
+  de `RELEASE_ORDER` é o que a põe lá.
+
+  **E isso cria a regra que a próxima coleção precisa lembrar:** toda coleção
+  nova entra em `RELEASE_ORDER`. Enquanto a GC-01 for a única de fora, ela é o
+  fim; com duas de fora, o desempate entre as duas volta a ser o prefixo do
+  código — exatamente o defeito que a OP-18 revelou. Há um teste que guarda
+  isso, com a EB-06 (já anunciada pela fonte para 29/01/2027) no papel da
+  segunda esquecida.
 - **Os preços.** Os grupos do TCGplayer não são mapeados aos nossos sets
   (decisão 112), e a importação diária casa sozinha depois que a coleção entra
   em produção.
