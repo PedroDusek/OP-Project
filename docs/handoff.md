@@ -2034,12 +2034,23 @@ daqui a alguns dias, porque a lição da EB-05 é que **o catálogo oficial sai 
 
 - **A capa.** `op18.webp` está nos dois temas e `OP18` já estava em `COM_CAPA`
   desde o PR 192 — posta antes de a coleção existir, exatamente para este dia.
-- **A ordem na lista.** O handoff pedia confirmar a ordem das duas quando a
-  OP-18 chegasse. Medida, e não suposta: o padrão já produz **EB-05 → OP-18**,
-  porque set fora de `RELEASE_ORDER` cai no fim e ali desempata pelo prefixo.
-  **`RELEASE_ORDER` continua sem EB05 e sem OP18.** Vale lembrar que isso é
-  sorte da ordem alfabética: uma EB-06 lançada depois de uma OP-19 apareceria
-  antes dela, e aí a lista precisa da entrada explícita.
+- **A ordem na lista — e aqui eu errei.** O handoff pedia confirmar a ordem das
+  duas quando a OP-18 chegasse. Medi `EB-05` contra `OP-18`, vi **EB-05 →
+  OP-18**, e concluí que `RELEASE_ORDER` não precisava de nada. A medição
+  estava certa e a conclusão, errada: eu testei com uma lista de oito códigos
+  que **não tinha a GC-01 nem as PRB**. O dono do produto viu no filtro do
+  catálogo em 22/11 — a OP-18 aparecendo depois da GIFT COLLECTION 2023.
+
+  **A causa é maior que a OP-18.** Cinco coleções estão fora de
+  `RELEASE_ORDER` — `EB05`, `GC01`, `OP18`, `PRB01`, `PRB02` — e todas caem no
+  fim do grupo de coleções, desempatando pelo prefixo. Daí sai
+  `OP-17 → EB-05 → GC-01 → OP-18 → PRB-01 → PRB-02`, que põe um produto de
+  **2023** entre dois de 2026. A ordem alfabética acertou `EB-05 → OP-18` por
+  coincidência, e foi essa coincidência que eu li como "o padrão funciona".
+
+  **A lição é sobre o teste, não sobre a lista:** medir dois elementos de uma
+  ordenação não mede a ordenação. O certo era ordenar os 63 códigos reais, que
+  é o que a tela faz.
 - **Os preços.** Os grupos do TCGplayer não são mapeados aos nossos sets
   (decisão 112), e a importação diária casa sozinha depois que a coleção entra
   em produção.
