@@ -2007,6 +2007,69 @@ Leader` a próxima fará com outro nome, e o levantamento
 (`npm run paralelas:candidatos`, depois `/dev/paralelas`) é o que transforma isso
 numa tarde de cliques em vez de uma caçada.
 
+## A OP-18, em 22/11
+
+`THE DOMINANCE OF GOD`, série **569118** na Bandai. Era a única coleção que
+faltava: o seletor da Bandai tem 62 séries, e o banco tinha 62 sets com a OP-18
+como o único buraco.
+
+| | |
+|---|---|
+| Cartas | 125 |
+| Artes | **159** — 119 Normal, 40 Parallel |
+| Rejeitadas | 0 |
+| Códigos de outras coleções | 6 |
+
+São **119 cartas novas**. As outras 6 — `OP17-119`, `OP13-012`, `OP13-113`,
+`OP17-040`, `ST24-004`, `ST34-004` — já existiam e só ganharam arte dentro da
+OP-18, o mesmo arranjo da EB-05.
+
+**As paralelas vieram junto, e isso é a diferença para a EB-05.** Lá a Bandai
+publicou as 61 normais primeiro e as 35 paralelas um dia depois, e foram duas
+passadas. Aqui as 40 saíram com as normais. O import é idempotente: vale repetir
+daqui a alguns dias, porque a lição da EB-05 é que **o catálogo oficial sai por
+último** — a loja já tinha 88 quando a Bandai tinha 61.
+
+### O que não precisou de trabalho nenhum
+
+- **A capa.** `op18.webp` está nos dois temas e `OP18` já estava em `COM_CAPA`
+  desde o PR 192 — posta antes de a coleção existir, exatamente para este dia.
+- **A ordem na lista.** O handoff pedia confirmar a ordem das duas quando a
+  OP-18 chegasse. Medida, e não suposta: o padrão já produz **EB-05 → OP-18**,
+  porque set fora de `RELEASE_ORDER` cai no fim e ali desempata pelo prefixo.
+  **`RELEASE_ORDER` continua sem EB05 e sem OP18.** Vale lembrar que isso é
+  sorte da ordem alfabética: uma EB-06 lançada depois de uma OP-19 apareceria
+  antes dela, e aí a lista precisa da entrada explícita.
+- **Os preços.** Os grupos do TCGplayer não são mapeados aos nossos sets
+  (decisão 112), e a importação diária casa sozinha depois que a coleção entra
+  em produção.
+
+### A conferência da Liga: 61 artes, em uma sessão
+
+O dono do produto conferiu em `/dev/liga?set=OP-18`. A tabela foi de 3.465 para
+**3.526 artes**.
+
+- **40 de 40 paralelas**, que é o que a planilha exige: a paralela só vira link
+  direto depois de conferida.
+- **As 7 artes de outras coleções** impressas na OP-18.
+- **A amostra das normais**, uma por raridade: L, C, UC, R, SR e SEC, todas
+  "sem sufixo, como a regra".
+- **Nenhuma marcada como inexistente na Liga.** As 61 têm endereço.
+
+**A OP-18 não repete a exceção das EB.** Os endereços colados trazem `ed=OP-18`,
+igual ao que `ligaEdition()` produz — dá para ver que foram colados porque o
+espaço virou `+` (`Karoo+%28001%29`), e não `%20`. Com o `ed` confirmado e o
+nome sem ambiguidade, as 113 normais que ninguém abriu estão certas de graça: é
+a mesma conclusão da EB-05, agora com a segunda coleção a confirmá-la.
+
+### O que fica pendente
+
+**O vínculo das paralelas com o TCGplayer, para o preço.** Na EB-05 isso custou
+29 respostas em `/dev/paralelas`, e só pôde ser feito depois de os preços
+chegarem. Aqui vai ser igual: rodar `npm run paralelas:candidatos` e abrir a
+tela **depois** da primeira importação de preços com a OP-18 em produção. Até
+lá, paralela sem vínculo fica sem preço — não é defeito, é a ordem das coisas.
+
 ## O que espera resposta do dono do produto
 
 - **Idade mínima.** Expor perfil de menor de idade a estranhos é assunto sério
