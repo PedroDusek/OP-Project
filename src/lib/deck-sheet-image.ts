@@ -53,14 +53,25 @@ import {
  * que não sai de dado nenhum, numa imagem que existe para alguém copiar.
  * Decisão do dono do produto em 23/11.
  *
- * ## O que cada carta mostra
+ * ## Um selo só, e embaixo
  *
- * Custo no canto de cima à esquerda, cópias no de cima à direita, como na
- * referência. **O canto de cima da carta é onde a arte traz custo e poder**, e
- * isso já nos custou um ajuste no Deck Builder — o selo cobre o poder. Aqui foi
- * escolha do dono do produto pelo posicionamento da referência, e vale: numa
- * folha para copiar, saber quantas cópias importa mais do que ler o poder, que
- * quem joga já sabe.
+ * As cópias, no canto de baixo à direita. Nada mais.
+ *
+ * A primeira versão seguia a referência ao pé da letra: custo num selo preto
+ * em cima à esquerda, cópias em cima à direita. **Os dois cobriam o que a
+ * carta já diz** — o canto de cima é onde a arte traz custo e poder, e isso já
+ * nos custou um ajuste no Deck Builder. O preto era pior: tampava o custo
+ * impresso para escrever o mesmo número de novo.
+ *
+ * O dono do produto olhou a folha e perguntou o que eram aqueles números —
+ * que é a resposta sobre eles. O preto saiu em 23/11 e o roxo desceu. No
+ * OPLAY os dois selos se pagam porque o quadro é pequeno e a carta aparece
+ * cortada; aqui a carta inteira está à mostra, legível.
+ *
+ * **Embaixo à direita é onde a folha da want list já põe o número dela**, e
+ * pelo mesmo motivo: ali o selo não come a ilustração que faz a carta ser
+ * reconhecida de relance. O custo não se perde — continua ordenando a seção,
+ * que é o que ele faz de útil numa lista.
  *
  * E **não** há nada sobre o que a pessoa tem ou deixa de ter. Isto é a lista,
  * não a coleção: quem recebe a imagem não precisa saber o que falta a quem
@@ -269,10 +280,9 @@ function drawCard(
   }
   ctx.restore()
 
-  const selo = Math.round(width / 4.6)
-  if (carta.cost !== null) drawBadge(ctx, String(carta.cost), x + 8, y + 8, selo, INK)
   if (carta.copies > 1) {
-    drawBadge(ctx, `${carta.copies}x`, x + width - 8, y + 8, selo, ACCENT, 'right')
+    const selo = Math.round(width / 4.6)
+    drawBadge(ctx, `${carta.copies}x`, x + width - 8, y + height - selo - 8, selo, ACCENT)
   }
 
   ctx.textAlign = 'left'
@@ -286,15 +296,20 @@ function drawCard(
   ctx.fillText(ellipsis(ctx, carta.cardName, width), x, y + height + 26, width)
 }
 
-/** Um selo arredondado com texto centrado. `right` ancora pela borda direita. */
+/**
+ * Um selo arredondado com texto centrado, ancorado pela borda **direita**.
+ *
+ * Pela direita porque é lá que ele mora, e porque a largura depende do texto:
+ * `4x` e `10x` não ocupam o mesmo, e ancorar pela esquerda deixaria a borda
+ * direita dançando de carta para carta.
+ */
 function drawBadge(
   ctx: CanvasRenderingContext2D,
   texto: string,
-  x: number,
+  direita: number,
   y: number,
   altura: number,
   fundo: string,
-  ancora: 'left' | 'right' = 'left',
 ): void {
   const fonte = Math.round(altura * 0.56)
   ctx.font = `700 ${fonte}px system-ui, sans-serif`
@@ -302,7 +317,7 @@ function drawBadge(
   ctx.textBaseline = 'middle'
 
   const largura = Math.max(altura, ctx.measureText(texto).width + altura * 0.6)
-  const esquerda = ancora === 'right' ? x - largura : x
+  const esquerda = direita - largura
 
   ctx.fillStyle = fundo
   roundedPath(ctx, esquerda, y, largura, altura, 8)
