@@ -32,19 +32,24 @@ import {
  * **A decklist não tem esse problema**, e não é por descuido: são cinquenta
  * cartas em **cerca de quinze a vinte linhas distintas**, porque uma decklist
  * repete a mesma carta até quatro vezes e aqui ela é uma linha com `4x`. Uma
- * lista de dezessete linhas dá seis fileiras de quatro e **3.034 px** medidos,
+ * lista de dezessete linhas dá seis fileiras de quatro e **2.966 px** medidos,
  * contra os mais de sete mil que a want list recusa. E a
  * lista partida ao meio seria pior que a want list partida: metade de uma
  * decklist não é uma decklist.
  *
- * ## Em seções, pelo tipo
+ * ## O líder em cima, e o resto numa fila só
  *
- * Líder, personagens, eventos e stages — a ordem em que quem joga lê uma lista,
- * e o arranjo da referência que o dono do produto mandou. Dentro de cada seção,
- * **por custo**: é como as listas são publicadas, e é o que deixa comparar duas
- * curvas de olho.
+ * A ordem continua sendo a que quem joga lê — personagens, eventos, stages, e
+ * dentro de cada grupo por custo —, mas **sem dizer isso em voz alta**.
  *
- * Seção vazia não aparece. Uma lista sem stage não precisa dizer que não tem.
+ * A primeira versão escrevia "Personagens · 37", "Eventos · 11", "Stages · 2".
+ * O dono do produto tirou em 23/11: cada título custa uma linha, e cada grupo
+ * que termina no meio de uma fileira deixa o resto dela vazio. Numa lista de
+ * quinze linhas isso era duas fileiras inteiras gastas para nomear o que a
+ * própria carta já diz — o tipo está escrito nela.
+ *
+ * O líder continua separado, e esse vale a linha: ele é a identidade do deck,
+ * e misturá-lo na fila o esconderia entre cinquenta iguais.
  *
  * ## O DON!! não entra
  *
@@ -108,21 +113,12 @@ const CAPTION = 46
 /** O título de cada seção, e o ar que ele pede acima. */
 const SECTION = 58
 
-/**
- * As seções, na ordem em que quem joga lê uma lista.
- *
- * O rótulo vem daqui, e não de uma tradução do tipo: a fonte escreve `Stage`, e
- * é assim que quem joga chama — traduzir para "cenário" inventaria um termo que
- * ninguém usa na mesa.
- */
-const SECOES: { tipo: string; titulo: string }[] = [
-  { tipo: 'Character', titulo: 'Personagens' },
-  { tipo: 'Event', titulo: 'Eventos' },
-  { tipo: 'Stage', titulo: 'Stages' },
-]
+/** A ordem dos tipos na fila, como quem joga lê uma lista. */
+const ORDEM_DOS_TIPOS = ['Character', 'Event', 'Stage']
 
 interface Secao {
-  titulo: string
+  /** `null` na fila do deck: ela não se anuncia. */
+  titulo: string | null
   cartas: DeckSheetCard[]
 }
 
@@ -134,36 +130,50 @@ function porCusto(a: DeckSheetCard, b: DeckSheetCard): number {
 }
 
 /**
- * As seções que esta lista tem.
+ * Duas: o líder, e o deck.
  *
- * Um tipo que a fonte traga e que não esteja previsto aqui **não some**: vai
- * para uma seção com o nome do próprio tipo, no fim. Sumir seria entregar uma
- * decklist incompleta sem ninguém ver — o mesmo princípio da carta sem vínculo
- * na folha da want list.
+ * A fila do deck sai ordenada por tipo e, dentro do tipo, por custo — sem
+ * nenhuma quebra entre eles, que é o que economiza espaço.
+ *
+ * Um tipo que a fonte traga e que não esteja previsto **não some**: vai para o
+ * fim da fila, junto dos outros imprevistos, em ordem de tipo. Sumir seria
+ * entregar uma decklist incompleta sem ninguém ver — o mesmo princípio da carta
+ * sem vínculo na folha da want list.
  */
 export function deckSections(deck: DeckSheet): Secao[] {
-  const secoes: Secao[] = [{ titulo: 'Líder', cartas: [deck.leader] }]
-  const usados = new Set<string>()
-
-  for (const { tipo, titulo } of SECOES) {
-    const cartas = deck.cards.filter((c) => c.type === tipo).sort(porCusto)
-    usados.add(tipo)
-    if (cartas.length > 0) secoes.push({ titulo, cartas })
+  const posicao = (tipo: string) => {
+    const i = ORDEM_DOS_TIPOS.indexOf(tipo)
+    return i === -1 ? ORDEM_DOS_TIPOS.length : i
   }
 
-  const resto = deck.cards.filter((c) => !usados.has(c.type))
-  for (const tipo of [...new Set(resto.map((c) => c.type))].sort()) {
-    secoes.push({ titulo: tipo, cartas: resto.filter((c) => c.type === tipo).sort(porCusto) })
-  }
+  const fila = [...deck.cards].sort(
+    (a, b) =>
+      posicao(a.type) - posicao(b.type) ||
+      // Dois tipos imprevistos entre si: pelo nome, para a ordem ser estavel.
+      a.type.localeCompare(b.type) ||
+      porCusto(a, b),
+  )
 
-  return secoes
+  return [
+    { titulo: 'Líder', cartas: [deck.leader] },
+    ...(fila.length > 0 ? [{ titulo: null, cartas: fila }] : []),
+  ]
 }
 
 /** A altura que a imagem terá, a partir das seções. Exportada para o teste. */
 export function sheetHeight(secoes: readonly Secao[], cardHeight: number): number {
-  const corpo = secoes.reduce((total, secao) => {
+  const corpo = secoes.reduce((total, secao, indice) => {
     const linhas = Math.ceil(secao.cartas.length / COLUMNS)
-    return total + SECTION + linhas * (cardHeight + CAPTION) + Math.max(0, linhas - 1) * GAP
+    return (
+      total +
+      // O ar entre uma secao e a seguinte. Vinha de graca do titulo enquanto
+      // havia um por tipo; sem ele, a legenda do lider encostava na primeira
+      // fileira do deck — visto no navegador em 23/11.
+      (indice === 0 ? 0 : GAP) +
+      (secao.titulo === null ? 0 : SECTION) +
+      linhas * (cardHeight + CAPTION) +
+      Math.max(0, linhas - 1) * GAP
+    )
   }, 0)
   return HEADER + corpo + FOOTER + PADDING
 }
@@ -201,7 +211,8 @@ export async function renderDeckSheet(deck: DeckSheet): Promise<Blob> {
   const porCarta = new Map(todas.map((carta, i) => [carta, imagens[i]]))
 
   let y = HEADER
-  for (const secao of secoes) {
+  for (const [indice, secao] of secoes.entries()) {
+    if (indice > 0) y += GAP
     y = drawSectionTitle(ctx, secao, y)
 
     secao.cartas.forEach((carta, index) => {
@@ -221,20 +232,15 @@ export async function renderDeckSheet(deck: DeckSheet): Promise<Blob> {
   return toBlob(canvas)
 }
 
-/** O título da seção com a contagem, e devolve onde a grade começa. */
+/** O título da seção, quando ela tem um. Devolve onde a grade começa. */
 function drawSectionTitle(ctx: CanvasRenderingContext2D, secao: Secao, y: number): number {
-  const copias = secao.cartas.reduce((total, c) => total + c.copies, 0)
+  if (secao.titulo === null) return y
 
   ctx.textAlign = 'left'
   ctx.textBaseline = 'alphabetic'
   ctx.fillStyle = INK
   ctx.font = '700 26px system-ui, sans-serif'
   ctx.fillText(secao.titulo, PADDING, y + 28)
-
-  const largura = ctx.measureText(secao.titulo).width
-  ctx.fillStyle = MUTED
-  ctx.font = '400 22px system-ui, sans-serif'
-  ctx.fillText(`· ${copias}`, PADDING + largura + 10, y + 28)
 
   return y + SECTION
 }

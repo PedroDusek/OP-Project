@@ -38,7 +38,15 @@ describe('as seções da folha', () => {
     expect(secoes[0].cartas.map((c) => c.cardCode)).toEqual(['OP13-004'])
   })
 
-  it('personagens, eventos e stages, nessa ordem', () => {
+  /**
+   * **A regra mudou em 23/11.** A folha tinha uma seção por tipo, escrita:
+   * "Personagens · 37", "Eventos · 11", "Stages · 2". O dono do produto tirou
+   * para economizar espaço — cada título custa uma linha, e cada grupo que
+   * termina no meio de uma fileira deixa o resto dela vazia.
+   *
+   * A **ordem** continua a mesma; o que sumiu foi dizê-la em voz alta.
+   */
+  it('o deck vem numa fila só, sem título de tipo', () => {
     const secoes = deckSections(
       deck([
         carta('OP01-010', 'Stage', 2),
@@ -47,18 +55,28 @@ describe('as seções da folha', () => {
       ]),
     )
 
-    expect(secoes.map((s) => s.titulo)).toEqual(['Líder', 'Personagens', 'Eventos', 'Stages'])
+    expect(secoes.map((s) => s.titulo)).toEqual(['Líder', null])
   })
 
-  /* Uma lista sem stage não precisa dizer que não tem. */
-  it('seção sem carta não aparece', () => {
-    const secoes = deckSections(deck([carta('OP01-001', 'Character', 3)]))
+  it('e a fila sai na ordem de quem joga: personagem, evento, stage', () => {
+    const secoes = deckSections(
+      deck([
+        carta('OP01-010', 'Stage', 2),
+        carta('OP01-020', 'Event', 1),
+        carta('OP01-001', 'Character', 3),
+      ]),
+    )
 
-    expect(secoes.map((s) => s.titulo)).toEqual(['Líder', 'Personagens'])
+    expect(secoes[1].cartas.map((c) => c.type)).toEqual(['Character', 'Event', 'Stage'])
+  })
+
+  /* Lista sem carta nenhuma é só o líder: uma fila vazia não vira seção. */
+  it('deck vazio deixa só o líder', () => {
+    expect(deckSections(deck([])).map((s) => s.titulo)).toEqual(['Líder'])
   })
 
   /* É como as listas são publicadas, e o que deixa comparar curvas de olho. */
-  it('dentro da seção, por custo — e o código desempata', () => {
+  it('dentro do tipo, por custo — e o código desempata', () => {
     const secoes = deckSections(
       deck([
         carta('OP01-050', 'Character', 5),
@@ -88,14 +106,24 @@ describe('as seções da folha', () => {
   /**
    * Sumir seria entregar uma decklist incompleta sem ninguém ver — o mesmo
    * princípio da carta sem vínculo na folha da want list.
+   *
+   * Com a fila única (23/11) ele deixou de virar seção e passou a ir para o
+   * fim da fila, que é o mesmo lugar por outro meio.
    */
-  it('tipo que a fonte inventar não some: vira seção própria, no fim', () => {
+  it('tipo que a fonte inventar não some: vai para o fim da fila', () => {
     const secoes = deckSections(
-      deck([carta('OP99-001', 'Tesouro', 2), carta('OP01-001', 'Character', 3)]),
+      deck([
+        carta('OP99-001', 'Tesouro', 2),
+        carta('OP01-050', 'Stage', 1),
+        carta('OP01-001', 'Character', 3),
+      ]),
     )
 
-    expect(secoes.map((s) => s.titulo)).toEqual(['Líder', 'Personagens', 'Tesouro'])
-    expect(secoes[2].cartas.map((c) => c.cardCode)).toEqual(['OP99-001'])
+    expect(secoes[1].cartas.map((c) => c.cardCode)).toEqual([
+      'OP01-001',
+      'OP01-050',
+      'OP99-001',
+    ])
   })
 })
 
@@ -137,7 +165,8 @@ describe('a altura da imagem', () => {
 
     const copias = linhas.reduce((total, c) => total + c.copies, 0)
     expect(copias).toBe(58)
-    // 3.034 px medidos: seis fileiras de quatro, mais os titulos de secao.
-    expect(altura(linhas)).toBeLessThan(3200)
+    // 2.966 px medidos: seis fileiras de quatro, mais o titulo do lider.
+    // Eram 3.034 com uma secao por tipo, ate 23/11.
+    expect(altura(linhas)).toBeLessThan(3000)
   })
 })
