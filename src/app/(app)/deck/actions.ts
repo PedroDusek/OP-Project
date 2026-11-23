@@ -7,8 +7,10 @@ import {
   deleteDeck,
   executeDeckTransfer,
   planDeckTransfer,
+  readDeck,
   saveDeck,
   type DeckAnalysis,
+  type SavedDeck,
   type TransferPlan,
 } from '@/server/application/decks'
 import { bulkAddWants } from '@/server/application/wants'
@@ -207,4 +209,33 @@ export async function excluirDeckAction(
   // e nunca foi dona de cópia nenhuma.
   revalidatePath('/deck')
   redirect('/deck')
+}
+
+export type DeckSheetState =
+  | { status: 'ok'; deck: SavedDeck }
+  | { status: 'error'; message: string }
+
+/**
+ * A lista inteira, para desenhar a folha de compartilhar (23/11).
+ *
+ * Existe porque a tela `/deck` só tem o resumo de cada lista — capa, nome e
+ * contagem. Carregar as cinquenta cartas de **todas** as listas para desenhar
+ * a folha de **uma** seria pagar a consulta inteira por linha, e quase sempre
+ * ninguém compartilha nenhuma.
+ *
+ * `readDeck` já recusa quem não é Premium e quem não é dono: o `id` vem da
+ * tela, mas o dono vem da sessão.
+ */
+export async function carregarDeckAction(id: string): Promise<DeckSheetState> {
+  const viewer = await currentViewer()
+  if (!viewer) return { status: 'error', message: SESSAO_EXPIRADA }
+
+  try {
+    return { status: 'ok', deck: await readDeck(viewer, id) }
+  } catch (error) {
+    return {
+      status: 'error',
+      message: isAppError(error) ? error.message : 'Não foi possível abrir a lista.',
+    }
+  }
 }

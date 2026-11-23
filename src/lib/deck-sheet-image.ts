@@ -1,0 +1,341 @@
+import {
+  ACCENT,
+  CARD_RATIO,
+  INK,
+  LINE,
+  MUTED,
+  PAPER,
+  PLACEHOLDER,
+  SHEET_WIDTH,
+  drawFooter,
+  drawLogotype,
+  drawWatermark,
+  ellipsis,
+  loadImage,
+  roundedPath,
+  toBlob,
+} from './sheet-canvas'
+
+/**
+ * A decklist como uma imagem, para mandar no grupo (pedido do dono do produto
+ * em 23/11).
+ *
+ * Irmã da folha da want list, e a mecânica é a mesma — `sheet-canvas.ts`. O que
+ * muda é a forma, e cada diferença responde a uma pergunta diferente.
+ *
+ * ## Uma imagem só, e aqui isso cabe
+ *
+ * A want list recusa a imagem única de propósito: cem cartas dariam mais de
+ * sete mil pixels de altura, e o WhatsApp recomprime com força justamente o
+ * número no canto, que é o dado que a folha carrega.
+ *
+ * **A decklist não tem esse problema**, e não é por descuido: são cinquenta
+ * cartas em **cerca de quinze a vinte linhas distintas**, porque uma decklist
+ * repete a mesma carta até quatro vezes e aqui ela é uma linha com `4x`. Uma
+ * lista de dezessete linhas dá seis fileiras de quatro e **3.034 px** medidos,
+ * contra os mais de sete mil que a want list recusa. E a
+ * lista partida ao meio seria pior que a want list partida: metade de uma
+ * decklist não é uma decklist.
+ *
+ * ## Em seções, pelo tipo
+ *
+ * Líder, personagens, eventos e stages — a ordem em que quem joga lê uma lista,
+ * e o arranjo da referência que o dono do produto mandou. Dentro de cada seção,
+ * **por custo**: é como as listas são publicadas, e é o que deixa comparar duas
+ * curvas de olho.
+ *
+ * Seção vazia não aparece. Uma lista sem stage não precisa dizer que não tem.
+ *
+ * ## O DON!! não entra
+ *
+ * A referência tem um quadro de DON!! no fim. A nossa decklist é líder mais
+ * cinquenta, e o DON!! não faz parte dela — desenhá-lo seria um enfeite fixo,
+ * que não sai de dado nenhum, numa imagem que existe para alguém copiar.
+ * Decisão do dono do produto em 23/11.
+ *
+ * ## O que cada carta mostra
+ *
+ * Custo no canto de cima à esquerda, cópias no de cima à direita, como na
+ * referência. **O canto de cima da carta é onde a arte traz custo e poder**, e
+ * isso já nos custou um ajuste no Deck Builder — o selo cobre o poder. Aqui foi
+ * escolha do dono do produto pelo posicionamento da referência, e vale: numa
+ * folha para copiar, saber quantas cópias importa mais do que ler o poder, que
+ * quem joga já sabe.
+ *
+ * E **não** há nada sobre o que a pessoa tem ou deixa de ter. Isto é a lista,
+ * não a coleção: quem recebe a imagem não precisa saber o que falta a quem
+ * mandou (decisão do dono do produto em 23/11).
+ */
+
+export interface DeckSheetCard {
+  cardCode: string
+  cardName: string
+  /** O tipo como a fonte escreve: `Leader`, `Character`, `Event`, `Stage`. */
+  type: string
+  cost: number | null
+  copies: number
+  /**
+   * Uma imagem que o `canvas` pode exportar — a nossa arte guardada, de mesma
+   * origem. Nula quando não há: a carta sai com o código no lugar da arte.
+   */
+  sheetImageUrl: string | null
+}
+
+export interface DeckSheet {
+  name: string
+  leader: DeckSheetCard & { colors: readonly string[] }
+  cards: readonly DeckSheetCard[]
+}
+
+const WIDTH = SHEET_WIDTH
+const COLUMNS = 4
+const GAP = 24
+const PADDING = 48
+const HEADER = 150
+const FOOTER = 64
+const CAPTION = 46
+/** O título de cada seção, e o ar que ele pede acima. */
+const SECTION = 58
+
+/**
+ * As seções, na ordem em que quem joga lê uma lista.
+ *
+ * O rótulo vem daqui, e não de uma tradução do tipo: a fonte escreve `Stage`, e
+ * é assim que quem joga chama — traduzir para "cenário" inventaria um termo que
+ * ninguém usa na mesa.
+ */
+const SECOES: { tipo: string; titulo: string }[] = [
+  { tipo: 'Character', titulo: 'Personagens' },
+  { tipo: 'Event', titulo: 'Eventos' },
+  { tipo: 'Stage', titulo: 'Stages' },
+]
+
+interface Secao {
+  titulo: string
+  cartas: DeckSheetCard[]
+}
+
+/** Por custo, e o código desempata: duas de custo 4 saem na ordem da coleção. */
+function porCusto(a: DeckSheetCard, b: DeckSheetCard): number {
+  const custoA = a.cost ?? Number.MAX_SAFE_INTEGER
+  const custoB = b.cost ?? Number.MAX_SAFE_INTEGER
+  return custoA - custoB || a.cardCode.localeCompare(b.cardCode)
+}
+
+/**
+ * As seções que esta lista tem.
+ *
+ * Um tipo que a fonte traga e que não esteja previsto aqui **não some**: vai
+ * para uma seção com o nome do próprio tipo, no fim. Sumir seria entregar uma
+ * decklist incompleta sem ninguém ver — o mesmo princípio da carta sem vínculo
+ * na folha da want list.
+ */
+export function deckSections(deck: DeckSheet): Secao[] {
+  const secoes: Secao[] = [{ titulo: 'Líder', cartas: [deck.leader] }]
+  const usados = new Set<string>()
+
+  for (const { tipo, titulo } of SECOES) {
+    const cartas = deck.cards.filter((c) => c.type === tipo).sort(porCusto)
+    usados.add(tipo)
+    if (cartas.length > 0) secoes.push({ titulo, cartas })
+  }
+
+  const resto = deck.cards.filter((c) => !usados.has(c.type))
+  for (const tipo of [...new Set(resto.map((c) => c.type))].sort()) {
+    secoes.push({ titulo: tipo, cartas: resto.filter((c) => c.type === tipo).sort(porCusto) })
+  }
+
+  return secoes
+}
+
+/** A altura que a imagem terá, a partir das seções. Exportada para o teste. */
+export function sheetHeight(secoes: readonly Secao[], cardHeight: number): number {
+  const corpo = secoes.reduce((total, secao) => {
+    const linhas = Math.ceil(secao.cartas.length / COLUMNS)
+    return total + SECTION + linhas * (cardHeight + CAPTION) + Math.max(0, linhas - 1) * GAP
+  }, 0)
+  return HEADER + corpo + FOOTER + PADDING
+}
+
+export function cardWidthFor(): number {
+  return Math.floor((WIDTH - PADDING * 2 - GAP * (COLUMNS - 1)) / COLUMNS)
+}
+
+export async function renderDeckSheet(deck: DeckSheet): Promise<Blob> {
+  const cardWidth = cardWidthFor()
+  const cardHeight = Math.round(cardWidth * CARD_RATIO)
+  const secoes = deckSections(deck)
+  const height = sheetHeight(secoes, cardHeight)
+
+  const canvas = document.createElement('canvas')
+  canvas.width = WIDTH
+  canvas.height = height
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Este navegador não conseguiu preparar a imagem.')
+
+  ctx.fillStyle = PAPER
+  ctx.fillRect(0, 0, WIDTH, height)
+
+  await drawWatermark(ctx, WIDTH, height)
+  await drawHeader(ctx, deck)
+
+  /*
+   * Todas as imagens de uma vez, e nenhuma pode derrubar a folha: quem falhar
+   * vira o espaço reservado com o código. Uma carta fora do ar não é motivo
+   * para a pessoa ficar sem a lista.
+   */
+  const todas = secoes.flatMap((s) => s.cartas)
+  const imagens = await Promise.all(todas.map((c) => loadImage(c.sheetImageUrl)))
+  const porCarta = new Map(todas.map((carta, i) => [carta, imagens[i]]))
+
+  let y = HEADER
+  for (const secao of secoes) {
+    y = drawSectionTitle(ctx, secao, y)
+
+    secao.cartas.forEach((carta, index) => {
+      const coluna = index % COLUMNS
+      const linha = Math.floor(index / COLUMNS)
+      const x = PADDING + coluna * (cardWidth + GAP)
+      const topo = y + linha * (cardHeight + CAPTION + GAP)
+      drawCard(ctx, carta, porCarta.get(carta) ?? null, x, topo, cardWidth, cardHeight)
+    })
+
+    const linhas = Math.ceil(secao.cartas.length / COLUMNS)
+    y += linhas * (cardHeight + CAPTION) + Math.max(0, linhas - 1) * GAP
+  }
+
+  drawFooter(ctx, WIDTH, height, PADDING)
+
+  return toBlob(canvas)
+}
+
+/** O título da seção com a contagem, e devolve onde a grade começa. */
+function drawSectionTitle(ctx: CanvasRenderingContext2D, secao: Secao, y: number): number {
+  const copias = secao.cartas.reduce((total, c) => total + c.copies, 0)
+
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'alphabetic'
+  ctx.fillStyle = INK
+  ctx.font = '700 26px system-ui, sans-serif'
+  ctx.fillText(secao.titulo, PADDING, y + 28)
+
+  const largura = ctx.measureText(secao.titulo).width
+  ctx.fillStyle = MUTED
+  ctx.font = '400 22px system-ui, sans-serif'
+  ctx.fillText(`· ${copias}`, PADDING + largura + 10, y + 28)
+
+  return y + SECTION
+}
+
+function drawCard(
+  ctx: CanvasRenderingContext2D,
+  carta: DeckSheetCard,
+  image: HTMLImageElement | null,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): void {
+  const radius = 10
+
+  /*
+   * A pilha atrás da carta com mais de uma cópia, como na referência: diz
+   * "tem mais de uma" sem ocupar espaço nem depender de ler o número. Uma
+   * camada só — duas viram sujeira numa imagem que já é recomprimida.
+   */
+  if (carta.copies > 1) {
+    ctx.save()
+    ctx.fillStyle = LINE
+    roundedPath(ctx, x + 7, y - 7, width, height, radius)
+    ctx.fill()
+    ctx.restore()
+  }
+
+  ctx.save()
+  roundedPath(ctx, x, y, width, height, radius)
+  ctx.clip()
+
+  if (image) {
+    ctx.drawImage(image, x, y, width, height)
+  } else {
+    ctx.fillStyle = PLACEHOLDER
+    ctx.fillRect(x, y, width, height)
+    ctx.fillStyle = MUTED
+    ctx.font = `600 ${Math.round(width / 9)}px system-ui, sans-serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(carta.cardCode, x + width / 2, y + height / 2, width - 16)
+  }
+  ctx.restore()
+
+  const selo = Math.round(width / 4.6)
+  if (carta.cost !== null) drawBadge(ctx, String(carta.cost), x + 8, y + 8, selo, INK)
+  if (carta.copies > 1) {
+    drawBadge(ctx, `${carta.copies}x`, x + width - 8, y + 8, selo, ACCENT, 'right')
+  }
+
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'top'
+  ctx.fillStyle = INK
+  ctx.font = `600 ${Math.round(width / 13)}px system-ui, sans-serif`
+  ctx.fillText(carta.cardCode, x, y + height + 8, width)
+
+  ctx.fillStyle = MUTED
+  ctx.font = `400 ${Math.round(width / 14)}px system-ui, sans-serif`
+  ctx.fillText(ellipsis(ctx, carta.cardName, width), x, y + height + 26, width)
+}
+
+/** Um selo arredondado com texto centrado. `right` ancora pela borda direita. */
+function drawBadge(
+  ctx: CanvasRenderingContext2D,
+  texto: string,
+  x: number,
+  y: number,
+  altura: number,
+  fundo: string,
+  ancora: 'left' | 'right' = 'left',
+): void {
+  const fonte = Math.round(altura * 0.56)
+  ctx.font = `700 ${fonte}px system-ui, sans-serif`
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'middle'
+
+  const largura = Math.max(altura, ctx.measureText(texto).width + altura * 0.6)
+  const esquerda = ancora === 'right' ? x - largura : x
+
+  ctx.fillStyle = fundo
+  roundedPath(ctx, esquerda, y, largura, altura, 8)
+  ctx.fill()
+
+  ctx.fillStyle = PAPER
+  ctx.fillText(texto, esquerda + (largura - ctx.measureText(texto).width) / 2, y + altura / 2)
+}
+
+async function drawHeader(ctx: CanvasRenderingContext2D, deck: DeckSheet): Promise<void> {
+  const copias = deck.cards.reduce((total, c) => total + c.copies, 0)
+
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'alphabetic'
+  ctx.fillStyle = INK
+  ctx.font = '700 40px system-ui, sans-serif'
+  /* O nome pode ser qualquer coisa que a pessoa digitou: corta, não transborda. */
+  ctx.fillText(ellipsis(ctx, deck.name, WIDTH - PADDING * 2 - 220), PADDING, 68)
+
+  ctx.fillStyle = MUTED
+  ctx.font = '400 22px system-ui, sans-serif'
+  const cores = deck.leader.colors.join(' e ')
+  const linha =
+    `${deck.leader.cardName} · ${copias} ${copias === 1 ? 'carta' : 'cartas'}` +
+    (cores ? ` · ${cores}` : '')
+  ctx.fillText(ellipsis(ctx, linha, WIDTH - PADDING * 2 - 220), PADDING, 102)
+
+  await drawLogotype(ctx, WIDTH - PADDING, 44, 34)
+
+  ctx.strokeStyle = LINE
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.moveTo(PADDING, HEADER - 32)
+  ctx.lineTo(WIDTH - PADDING, HEADER - 32)
+  ctx.stroke()
+}

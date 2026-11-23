@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client'
 import type { AuthenticatedUser } from '@/server/application/auth'
 import { assertPremium } from '@/server/application/authorization'
+import { sourceImageUrl } from '@/server/domain/prices/source-image'
 import { DECK_SIZE } from '@/server/domain/decks/deck'
 import { NotFoundError, ValidationError } from '@/server/domain/errors'
 import { conferirLista } from './analyze-deck'
@@ -212,6 +213,28 @@ interface CartaSalva {
   cardName: string
   variantType: string
   imageUrl: string | null
+  /**
+   * O tipo e o custo entraram em 23/11, para a folha de compartilhar a
+   * decklist: ela agrupa por tipo e ordena por custo. Saem das colunas que
+   * `cards` já tinha — nenhuma foi criada para isto.
+   */
+  type: string
+  cost: number | null
+  /**
+   * A mesma arte na fonte de preço, ou nulo quando não há vínculo.
+   *
+   * É a imagem preferida da folha de compartilhar, porque costuma ser **limpa**
+   * (decisão 058): a nossa traz a marca "SAMPLE" atravessada na arte
+   * (decisão 067), e numa folha inteira isso vira trinta "SAMPLE". Na tela
+   * quem vale continua sendo `imageUrl`. Mesma regra da want list.
+   *
+   * **"Limpa" é tendência, e não garantia** — medido no navegador em 23/11: a
+   * `OP01-004` e a `OP01-005` vieram limpas da fonte, a `OP01-002` veio com
+   * "SAMPLE", e a OP-18 inteira veio com "SAMPLE" porque a coleção é nova e a
+   * fonte ainda publica o escaneado da Bandai. Não há o que fazer deste lado:
+   * é a melhor imagem disponível, e ela melhora sozinha quando a fonte troca.
+   */
+  sheetImageUrl: string | null
 }
 
 export interface SavedDeck {
@@ -230,6 +253,11 @@ export interface SavedDeck {
  * busca do resto. Devolver só os ids obrigaria a tela a buscar tudo de novo,
  * uma carta por vez, no primeiro desenho.
  */
+/** O endereço da arte na fonte de preço, quando a variante tem vínculo. */
+function arteLimpa(produtos: readonly { sourceProductId: string }[]): string | null {
+  return produtos[0] ? sourceImageUrl(produtos[0].sourceProductId) : null
+}
+
 export async function readDeck(
   prisma: PrismaClient,
   user: AuthenticatedUser,
@@ -242,7 +270,9 @@ export async function readDeck(
     id: true,
     variantType: true,
     imageUrl: true,
-    card: { select: { code: true, name: true } },
+    card: { select: { code: true, name: true, type: true, cost: true } },
+    // So o numero do produto: a imagem nunca entra no nosso banco.
+    sourceProducts: { select: { sourceProductId: true }, take: 1 },
   } as const
 
   const deck = await prisma.deck.findFirst({
@@ -251,7 +281,18 @@ export async function readDeck(
       id: true,
       name: true,
       leaderVariant: {
-        select: { ...carta, card: { select: { code: true, name: true, colors: { select: { color: { select: { name: true } } } } } } },
+        select: {
+          ...carta,
+          card: {
+            select: {
+              code: true,
+              name: true,
+              type: true,
+              cost: true,
+              colors: { select: { color: { select: { name: true } } } },
+            },
+          },
+        },
       },
       items: { select: { copies: true, cardVariant: { select: carta } } },
     },
@@ -267,6 +308,9 @@ export async function readDeck(
       cardName: deck.leaderVariant.card.name,
       variantType: deck.leaderVariant.variantType,
       imageUrl: deck.leaderVariant.imageUrl,
+      type: deck.leaderVariant.card.type,
+      cost: deck.leaderVariant.card.cost,
+      sheetImageUrl: arteLimpa(deck.leaderVariant.sourceProducts),
       colors: deck.leaderVariant.card.colors.map((c) => c.color.name),
     },
     lines: deck.items.map((item) => ({
@@ -275,6 +319,9 @@ export async function readDeck(
       cardName: item.cardVariant.card.name,
       variantType: item.cardVariant.variantType,
       imageUrl: item.cardVariant.imageUrl,
+      type: item.cardVariant.card.type,
+      cost: item.cardVariant.card.cost,
+      sheetImageUrl: arteLimpa(item.cardVariant.sourceProducts),
       copies: item.copies,
     })),
   }
