@@ -12,7 +12,7 @@ Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
    artes e 63 sets, com a **OP-18 inteira** e 4.832 variantes com preço.
 3. **O site está em `https://colexa.com.br`** desde 21/09 (decisões
    089 e 090), com cobrança do Premium **em modo real** desde 22/09. Publicar é
-   à mão: `development.md` 6.6. A última publicação foi a **v54**, em 22/11.
+   à mão: `development.md` 6.6. A última publicação foi a **v56**, em 23/11.
 4. **A arte da carta agora é nossa** (decisão 113). Ela **não** vem mais da
    Bandai em tempo de acesso, e a conversão **nunca roda na Fly** — leia a
    armadilha 88 antes de mexer em imagem.
@@ -1684,6 +1684,103 @@ compartilhar aparece e a folha de envio do iOS abre com as imagens.
 O que ainda vale conferir é a **impressão de uma lista com mais de 24 cartas** —
 que a arte saia em todas as páginas, e não só na primeira. Foi o que o PDF de
 41 cartas denunciou, e a correção não é reproduzível no jsdom.
+
+## A decklist se compartilha como imagem (23/11)
+
+Pedido do dono do produto, com a referência de outro app na mão: um botão ao
+lado do excluir, em `/deck`, que desenha a lista inteira numa imagem e manda
+pela folha do sistema. Irmã da folha da want list, e de propósito — é a mesma
+gestualidade, e agora as duas dividem o mesmo motor.
+
+### A forma, e o que ela respondeu
+
+| | |
+|---|---|
+| Uma imagem só | ~2.966 px de altura numa lista de 17 linhas |
+| O líder | separado, no topo, com rótulo |
+| O resto | **uma fila só**, sem título por tipo |
+| A ordem | personagem, evento, stage; dentro de cada um, por custo |
+| Em cada carta | as cópias, num selo roxo no canto de baixo à direita |
+
+**Uma imagem só, e isso precisou de prova.** A want list recusa a imagem única
+porque cem cartas passariam de sete mil pixels, e o WhatsApp recomprime com
+força justamente o número no canto. A decklist é outra coisa: cinquenta cartas
+em cerca de dezessete linhas distintas, porque `4x` é uma linha. Há um teste
+que guarda a altura medida, em vez de repetir a afirmação.
+
+**Duas mudanças vieram do dono do produto olhando a folha pronta**, e as duas
+tiraram coisa em vez de pôr:
+
+- **O selo preto do custo saiu.** Ele perguntou o que eram aqueles números —
+  que é a resposta sobre eles. Custo e cópias ficavam nos cantos de cima, que é
+  onde a arte já traz custo e poder; o preto tampava o custo impresso para
+  escrever o mesmo número de novo. Ficou um selo só, embaixo à direita, que é
+  onde a folha da want list já põe o dela.
+- **Os títulos por tipo saíram.** Eram "Personagens · 37", "Eventos · 11",
+  "Stages · 2". Cada um custa uma linha, e cada grupo que termina no meio de uma
+  fileira deixa o resto dela vazio. A ordem ficou; dizê-la em voz alta, não — o
+  tipo já está escrito na carta.
+
+**Ao tirar os títulos apareceu um defeito**, visto no navegador e corrigido: o
+ar entre o líder e a primeira fileira vinha de graça do título que havia ali, e
+sem ele a legenda do líder encostava nas cartas. Nenhum teste pegaria: não se
+mede sobreposição num `canvas` desenhado em jsdom.
+
+### Três decisões do dono do produto
+
+- **O DON!! não entra.** A referência tem um quadro dele; a nossa decklist é
+  líder mais cinquenta, e desenhá-lo seria enfeite fixo numa imagem que existe
+  para alguém copiar.
+- **A imagem não diz o que falta.** É a lista, não a coleção — quem recebe não
+  precisa saber o estado da coleção de quem mandou. É a diferença de propósito
+  para a folha da want list, cujo dado **é** o que falta.
+- **Compartilhar é Premium, como abrir.** Excluir continua de todos, e continua
+  ao lado.
+
+### Por que é um painel, e não um toque
+
+`navigator.share` exige a **ativação do toque**, e ela não sobrevive ao
+trabalho: aqui o toque teria de buscar as cinquenta cartas no servidor e
+carregar uma arte por carta antes de desenhar. É a armadilha 45, de novo.
+
+A want list resolve preparando a folha **quando a tela abre**. Aqui não dá: a
+tela é uma **lista** de decklists, e preparar todas seria baixar centenas de
+artes para compartilhar, quase sempre, nenhuma. Então o toque abre o painel, o
+painel prepara, e o segundo toque — já com a imagem pronta — compartilha.
+
+### O que as duas folhas passaram a dividir
+
+- **`lib/sheet-canvas.ts`** — carregar imagem sem contaminar o `canvas`,
+  exportar, canto arredondado, reticências, marca d'água e rodapé.
+- **`lib/compartilhar.ts`** — o pacote que o iOS aceita (e por que são dois),
+  e o download de **um** arquivo por toque.
+
+É conhecimento aprendido em aparelho de verdade, e duas cópias o perderiam pela
+metade na primeira divergência. `want-sheet-image.ts` foi de 358 para 260
+linhas, com os 35 testes dela intactos.
+
+### A arte, e um aviso que vale para a próxima coleção
+
+A folha prefere a arte da **fonte de preço**, porque costuma ser limpa (decisão
+058) — a nossa traz "SAMPLE" atravessado (decisão 067).
+
+**"Limpa" é tendência, e não garantia.** Medido no navegador em 23/11: a
+`OP01-004` e a `OP01-005` vieram limpas, a `OP01-002` veio com "SAMPLE", e **a
+OP-18 inteira vem com "SAMPLE"** — a coleção é nova e a fonte ainda publica o
+escaneado da Bandai. Não há o que fazer deste lado, e melhora sozinho quando a
+fonte trocar. Espere o mesmo em toda coleção recém-lançada.
+
+### Dados
+
+`readDeck` passa a trazer **tipo**, **custo** e o **vínculo com a fonte de
+preço**. São colunas que `cards` já tinha: nenhuma foi criada, e o modelo não
+muda.
+
+### Para testar
+
+`npm run dev` mostra só o **baixar**: `navigator.share` não existe fora de
+contexto seguro (armadilha 48). Para ver o botão de compartilhar, `npm run
+dev:https` ou o site publicado.
 
 ## Onde a troca está hoje
 
