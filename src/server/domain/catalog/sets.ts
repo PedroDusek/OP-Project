@@ -117,27 +117,48 @@ export function setKind(code: string): SetKind {
  * Set que nao estiver aqui — decks, promocionais, e qualquer coletanea futura —
  * cai na ordenacao natural do codigo, depois dos que estao.
  */
+/*
+ * As datas ao lado vêm do TCGplayer, conferidas em 22/11/2026 contra a ordem
+ * que o dono do produto já havia informado: as vinte primeiras batem uma a uma.
+ * Foi por isso que as quatro novas puderam ser posicionadas pela data, sem
+ * perguntar de novo.
+ *
+ * **A GC-01 fica fora de propósito** (decisão do dono do produto em 22/11). Ela
+ * é a GIFT COLLECTION 2023 — treze artes paralelas de cartas que já existem —, e
+ * ele quis o produto de presente no fim da lista, separado das coleções de
+ * booster, e não em novembro de 2023, que é quando saiu. Estar fora daqui é o
+ * que a põe lá.
+ *
+ * **Por isso toda coleção nova entra nesta lista.** Enquanto a GC-01 for a única
+ * de fora, ela é o fim; com duas de fora, o desempate entre as duas volta a ser
+ * o prefixo do código, que é o defeito que a OP-18 revelou — ela aparecia
+ * **depois** da GC-01 porque `GC` vem antes de `OP`.
+ */
 const RELEASE_ORDER = [
-  'OP01',
-  'OP02',
-  'OP03',
-  'OP04',
-  'OP05',
-  'OP06',
-  'EB01',
-  'OP07',
-  'OP08',
-  'OP09',
-  'OP10',
-  'EB02',
-  'OP11',
-  'OP12',
-  'OP13',
-  'OP14EB04',
-  'EB03',
-  'OP15EB04',
-  'OP16',
-  'OP17',
+  'OP01', // 02/12/2022
+  'OP02', // 10/03/2023
+  'OP03', // 30/06/2023
+  'OP04', // 22/09/2023
+  'OP05', // 08/12/2023
+  'OP06', // 15/03/2024
+  'EB01', // 03/05/2024
+  'OP07', // 28/06/2024
+  'OP08', // 13/09/2024
+  'PRB01', // 08/11/2024
+  'OP09', // 13/12/2024
+  'OP10', // 21/03/2025
+  'EB02', // 09/05/2025
+  'OP11', // 06/06/2025
+  'OP12', // 22/08/2025
+  'PRB02', // 03/10/2025
+  'OP13', // 07/11/2025
+  'OP14EB04', // 16/01/2026
+  'EB03', // 20/02/2026
+  'OP15EB04', // 03/04/2026
+  'OP16', // 12/06/2026
+  'OP17', // 28/08/2026
+  'EB05', // 30/10/2026
+  'OP18', // 20/11/2026
 ]
 
 const RELEASE_POSITION = new Map(RELEASE_ORDER.map((code, index) => [code, index]))

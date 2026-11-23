@@ -161,23 +161,54 @@ describe('compareSetsByRelease', () => {
     ])
   })
 
+  /**
+   * **Todas as colecoes do catalogo, e nao uma amostra.**
+   *
+   * A versao anterior deste teste parava na OP-17 e nao tinha GC-01 nem as PRB.
+   * Passava verde enquanto a tela mostrava a OP-18 **depois** da GIFT COLLECTION
+   * 2023 — eu havia conferido a ordem comparando dois codigos de cada vez, e
+   * `EB-05 -> OP-18` acerta por coincidencia alfabetica. Comparar dois elementos
+   * nao mede uma ordenacao; o dono do produto viu o defeito na tela em 22/11.
+   */
   it('a ordem completa das colecoes bate com a informada', () => {
     const catalogo = [
       'OP-16', 'EB-02', 'OP04', 'OP-11', 'OP15-EB04', 'OP01', 'OP-09', 'EB-01',
       'OP-12', 'OP05', 'OP-08', 'OP02', 'OP-17', 'OP-10', 'OP14-EB04', 'OP06',
-      'OP-13', 'EB-03', 'OP03', 'OP-07',
+      'OP-13', 'EB-03', 'OP03', 'OP-07', 'OP-18', 'EB-05', 'PRB-02', 'PRB-01',
+      'GC-01',
     ]
     expect([...catalogo].sort(compareSetsByRelease)).toEqual([
       'OP01', 'OP02', 'OP03', 'OP04', 'OP05', 'OP06',
       'EB-01',
-      'OP-07', 'OP-08', 'OP-09', 'OP-10',
+      'OP-07', 'OP-08',
+      'PRB-01',
+      'OP-09', 'OP-10',
       'EB-02',
-      'OP-11', 'OP-12', 'OP-13',
+      'OP-11', 'OP-12',
+      'PRB-02',
+      'OP-13',
       'OP14-EB04',
       'EB-03',
       'OP15-EB04',
       'OP-16', 'OP-17',
+      'EB-05',
+      'OP-18',
+      // Fora da lista de proposito: o presente de 2023 fica no fim (22/11).
+      'GC-01',
     ])
+  })
+
+  /**
+   * A GC-01 no fim **depende** de ela ser a unica colecao fora da lista.
+   *
+   * Com duas de fora, o desempate entre elas volta a ser o prefixo do codigo, e
+   * uma colecao nova de 2027 apareceria antes do presente de 2023. E a regra que
+   * o proximo set precisa lembrar: coleccao nova entra em RELEASE_ORDER.
+   */
+  it('a colecao que ninguem acrescentou cai junto da GC-01, e ai a ordem e alfabetica', () => {
+    expect(releasePosition('GC-01')).toBeNull()
+    expect(releasePosition('EB-06')).toBeNull()
+    expect(['GC-01', 'EB-06'].sort(compareSetsByRelease)).toEqual(['EB-06', 'GC-01'])
   })
 })
 
