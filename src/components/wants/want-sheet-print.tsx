@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/states'
 import { useToast } from '@/components/ui/toast'
 import { catalogImageForCanvas } from '@/lib/catalog-image'
+import { baixarArquivo, cargaParaCompartilhar } from '@/lib/compartilhar'
 import { CARDS_PER_SHEET, renderWantSheets } from '@/lib/want-sheet-image'
 import { SITE_URL } from '@/lib/indexacao'
 import { SHEET_RIGHTS_NOTICE } from '@/lib/want-sheet-notice'
@@ -162,7 +163,8 @@ export function WantSheetPrint({ wants }: { wants: WantView[] }) {
    */
   const legenda = SITE_URL
 
-  const carga = arquivos === null ? null : cargaParaCompartilhar(arquivos, legenda)
+  const carga =
+    arquivos === null ? null : cargaParaCompartilhar(arquivos, 'Procuro estas cartas', legenda)
   const semCompartilhar = carga === null ? 'sem-suporte' : carga.ok ? null : carga.motivo
   const compartilhavel = carga !== null && carga.ok
 
@@ -425,94 +427,4 @@ function nomeDaFolha(indice: number, total: number): string {
   return total === 1
     ? 'want-list-colexa.jpg'
     : `want-list-colexa-${indice + 1}-de-${total}.jpg`
-}
-
-/**
- * O pacote que este aparelho aceita compartilhar, ou o motivo de não aceitar.
- *
- * ## O motivo mais comum não é o navegador, é o endereço
- *
- * `navigator.share` só existe em **contexto seguro**. Aberto pelo IP da rede
- * local em `http://`, como se testa no celular durante o desenvolvimento, a API
- * simplesmente não está lá — e o mesmo aparelho, no mesmo navegador,
- * compartilha sem problema em `https://`. Ver a armadilha 48 no handoff.
- *
- * ## Por que dois pacotes, e não um
- *
- * O iOS recusa `files` junto de `text` em várias versões: `canShare` devolve
- * `false` para o pacote inteiro, e o botão sumiria mesmo num aparelho que
- * compartilha imagem sem dificuldade nenhuma.
- *
- * Então pergunta-se pelo pacote completo e, se ele não passar, pelos arquivos
- * sozinhos. A legenda é enfeite; as imagens são o assunto, e perder a legenda é
- * muito melhor que perder o botão.
- *
- * O que for aprovado é o que vai ser enviado — conferir um pacote e mandar
- * outro é a forma mais direta de o iOS recusar sem dizer por quê.
- *
- * ## As checagens, e por que são separadas
- *
- * `share` sozinho existe em navegadores que só mandam texto e link; `canShare`
- * sem argumento responde sobre a API, não sobre estes arquivos. Só
- * `canShare({ files })` responde a pergunta que importa, e ele precisa de
- * `File` — com `Blob` devolve `false` sem dizer por quê.
- */
-type CargaDeCompartilhamento =
-  | { ok: true; dados: ShareData }
-  | { ok: false; motivo: 'inseguro' | 'sem-suporte' }
-
-function cargaParaCompartilhar(
-  arquivos: readonly File[],
-  legenda: string,
-): CargaDeCompartilhamento {
-  if (arquivos.length === 0) return { ok: false, motivo: 'sem-suporte' }
-  if (typeof window === 'undefined' || typeof navigator === 'undefined') {
-    return { ok: false, motivo: 'sem-suporte' }
-  }
-
-  if (window.isSecureContext === false) return { ok: false, motivo: 'inseguro' }
-
-  if (typeof navigator.share !== 'function' || typeof navigator.canShare !== 'function') {
-    return { ok: false, motivo: 'sem-suporte' }
-  }
-
-  const files = [...arquivos]
-  const candidatos: ShareData[] = [
-    { files, title: 'Procuro estas cartas', text: legenda },
-    { files },
-  ]
-
-  for (const dados of candidatos) {
-    try {
-      if (navigator.canShare(dados)) return { ok: true, dados }
-    } catch {
-      // Pacote recusado por este navegador. Tenta o proximo.
-    }
-  }
-
-  return { ok: false, motivo: 'sem-suporte' }
-}
-
-/**
- * Entrega um arquivo. **Um**, e sempre a partir de um toque.
- *
- * O `<a>` entra no documento antes do clique e sai depois: o Safari ignora o
- * clique num elemento que nunca esteve na árvore.
- *
- * O endereço não é revogado aqui. `click()` só **inicia** o download; revogar na
- * linha seguinte derruba o endereço antes de o navegador ler os bytes, e o
- * arquivo sai vazio ou nem sai. O minuto é folga larga de propósito.
- */
-function baixarArquivo(arquivo: File): void {
-  const url = URL.createObjectURL(arquivo)
-  const link = document.createElement('a')
-
-  link.href = url
-  link.download = arquivo.name
-  link.style.display = 'none'
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-
-  setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }

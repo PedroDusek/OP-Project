@@ -1,5 +1,19 @@
-import { SYMBOL, LOGOTYPE } from './marca'
-import { SHEET_RIGHTS_NOTICE } from '@/lib/want-sheet-notice'
+import {
+  CARD_RATIO,
+  INK,
+  LINE,
+  MUTED,
+  PAPER,
+  PLACEHOLDER,
+  SHEET_WIDTH,
+  drawFooter,
+  drawLogotype,
+  drawWatermark,
+  ellipsis,
+  loadImage,
+  roundedPath,
+  toBlob,
+} from './sheet-canvas'
 
 /**
  * Desenhar a want list como uma imagem, no aparelho de quem usa.
@@ -58,8 +72,7 @@ export interface SheetCard {
   remaining: number
 }
 
-/** Largura fixa: uma imagem para mandar em grupo, não para ampliar. */
-const WIDTH = 1240
+const WIDTH = SHEET_WIDTH
 const COLUMNS = 4
 /** Doze por folha: quatro colunas, três linhas — o mesmo corte da impressão. */
 export const CARDS_PER_SHEET = 12
@@ -67,14 +80,7 @@ const GAP = 24
 const PADDING = 48
 const HEADER = 132
 const FOOTER = 64
-/** A proporção da carta física. */
-const CARD_RATIO = 7 / 5
 const CAPTION = 46
-
-const INK = '#131219'
-const MUTED = '#6b6a76'
-const PAPER = '#ffffff'
-const ACCENT = '#5b4bd6'
 
 /**
  * Uma imagem por folha de doze.
@@ -135,7 +141,7 @@ export async function renderWantSheet(
   ctx.fillStyle = PAPER
   ctx.fillRect(0, 0, WIDTH, height)
 
-  await drawWatermark(ctx, height)
+  await drawWatermark(ctx, WIDTH, height)
   await drawHeader(ctx, cards, pagina)
 
   /*
@@ -154,7 +160,7 @@ export async function renderWantSheet(
     drawCard(ctx, card, images[index], x, y, cardWidth, cardHeight)
   })
 
-  drawFooter(ctx, height)
+  drawFooter(ctx, WIDTH, height, PADDING)
 
   return toBlob(canvas)
 }
@@ -177,7 +183,7 @@ function drawCard(
   if (image) {
     ctx.drawImage(image, x, y, width, height)
   } else {
-    ctx.fillStyle = '#eceaf3'
+    ctx.fillStyle = PLACEHOLDER
     ctx.fillRect(x, y, width, height)
     ctx.fillStyle = MUTED
     ctx.font = `600 ${Math.round(width / 9)}px system-ui, sans-serif`
@@ -243,116 +249,12 @@ async function drawHeader(
     100,
   )
 
-  const logo = await loadSvg(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${LOGOTYPE.width} ${LOGOTYPE.height}">` +
-      `<path d="${LOGOTYPE.letters}" fill-rule="${LOGOTYPE.fillRule}" fill="${INK}"/>` +
-      `<path d="${LOGOTYPE.symbol}" fill-rule="${LOGOTYPE.fillRule}" fill="${ACCENT}"/>` +
-      `</svg>`,
-  )
-  if (logo) {
-    const logoHeight = 34
-    const logoWidth = (LOGOTYPE.width / LOGOTYPE.height) * logoHeight
-    ctx.drawImage(logo, WIDTH - PADDING - logoWidth, 44, logoWidth, logoHeight)
-  }
+  await drawLogotype(ctx, WIDTH - PADDING, 44, 34)
 
-  ctx.strokeStyle = '#e6e4ee'
+  ctx.strokeStyle = LINE
   ctx.lineWidth = 2
   ctx.beginPath()
   ctx.moveTo(PADDING, HEADER - 24)
   ctx.lineTo(WIDTH - PADDING, HEADER - 24)
   ctx.stroke()
-}
-
-/** O X da marca, apagado ao fundo. Divulgação, e forma própria da marca. */
-async function drawWatermark(ctx: CanvasRenderingContext2D, height: number): Promise<void> {
-  const mark = await loadSvg(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SYMBOL.width} ${SYMBOL.height}">` +
-      `<path d="${SYMBOL.path}" fill-rule="${SYMBOL.fillRule}" fill="${ACCENT}"/></svg>`,
-  )
-  if (!mark) return
-
-  const markHeight = height * 0.9
-  const markWidth = (SYMBOL.width / SYMBOL.height) * markHeight
-
-  ctx.save()
-  ctx.globalAlpha = 0.05
-  ctx.drawImage(mark, WIDTH - markWidth * 0.62, height * 0.05, markWidth, markHeight)
-  ctx.restore()
-}
-
-function drawFooter(ctx: CanvasRenderingContext2D, height: number): void {
-  const y = height - PADDING + 12
-  ctx.textBaseline = 'alphabetic'
-  ctx.fillStyle = MUTED
-  ctx.font = '400 18px system-ui, sans-serif'
-  ctx.textAlign = 'left'
-  ctx.fillText('Lista gerada no ColeXa · colexa.com.br', PADDING, y)
-  ctx.textAlign = 'right'
-  ctx.fillText(SHEET_RIGHTS_NOTICE, WIDTH - PADDING, y)
-}
-
-/**
- * Carrega uma imagem para desenhar, ou devolve nulo.
- *
- * `crossOrigin = 'anonymous'` é obrigatório: sem ele o navegador carrega a
- * imagem mas contamina o canvas, e a falha só apareceria no `toBlob`, longe da
- * causa. Com ele, uma origem sem `Access-Control-Allow-Origin` falha aqui, e
- * a carta cai no espaço reservado.
- */
-function loadImage(url: string | null): Promise<HTMLImageElement | null> {
-  if (!url) return Promise.resolve(null)
-
-  return new Promise((resolve) => {
-    const image = new Image()
-    image.crossOrigin = 'anonymous'
-    image.onload = () => resolve(image)
-    image.onerror = () => resolve(null)
-    image.src = url
-  })
-}
-
-/** SVG vira `data:`, que nunca contamina o canvas por não ter origem. */
-function loadSvg(markup: string): Promise<HTMLImageElement | null> {
-  return loadImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`)
-}
-
-function toBlob(canvas: HTMLCanvasElement): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    canvas.toBlob(
-      (blob) => {
-        if (blob) resolve(blob)
-        else reject(new Error('Não foi possível gerar a imagem.'))
-      },
-      'image/jpeg',
-      0.92,
-    )
-  })
-}
-
-function roundedPath(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number,
-): void {
-  ctx.beginPath()
-  ctx.moveTo(x + radius, y)
-  ctx.arcTo(x + width, y, x + width, y + height, radius)
-  ctx.arcTo(x + width, y + height, x, y + height, radius)
-  ctx.arcTo(x, y + height, x, y, radius)
-  ctx.arcTo(x, y, x + width, y, radius)
-  ctx.closePath()
-}
-
-/** Corta com reticências: nome comprido empurraria o da carta ao lado. */
-function ellipsis(ctx: CanvasRenderingContext2D, text: string, max: number): string {
-  if (ctx.measureText(text).width <= max) return text
-
-  let cut = text
-  while (cut.length > 1 && ctx.measureText(`${cut}…`).width > max) {
-    cut = cut.slice(0, -1)
-  }
-  return `${cut}…`
 }

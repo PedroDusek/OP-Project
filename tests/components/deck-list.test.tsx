@@ -9,7 +9,10 @@ import type { SavedDeckSummary } from '@/server/application/decks/saved-decks'
  * `DATABASE_URL` para nada: o que se desenha aqui é a linha. A ação tem teste
  * próprio em `tests/unit/delete-deck-action.test.ts`.
  */
-vi.mock('@/app/(app)/deck/actions', () => ({ excluirDeckAction: vi.fn() }))
+vi.mock('@/app/(app)/deck/actions', () => ({
+  excluirDeckAction: vi.fn(),
+  carregarDeckAction: vi.fn(),
+}))
 
 /**
  * A estante de decklists (decisão 108).
@@ -97,5 +100,36 @@ describe('DeckList', () => {
     const itens = screen.getAllByRole('listitem')
     expect(itens).toHaveLength(2)
     expect(within(itens[1]).getByText('100%')).toBeInTheDocument()
+  })
+})
+
+/**
+ * Compartilhar a decklist como imagem (pedido do dono do produto em 23/11).
+ *
+ * O botao e Premium, como abrir — e e aqui que isso se decide, porque a linha e
+ * quem sabe se a conta assina. O desenho da folha e o painel tem teste proprio
+ * em `share-deck.test.tsx` e `deck-sheet-image.test.ts`.
+ */
+describe('compartilhar, na linha', () => {
+  it('fica ao lado do excluir para quem tem Premium', () => {
+    render(<DeckList decks={[deck()]} premium />)
+
+    expect(
+      screen.getByRole('button', { name: 'Compartilhar Koala Pirates Party' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Excluir Koala Pirates Party' })).toBeInTheDocument()
+  })
+
+  /*
+   * Sem Premium a lista nem abre, e o caso de uso recusaria depois do toque.
+   * Excluir continua, porque apagar nunca dependeu do Premium.
+   */
+  it('não aparece sem Premium, mas o excluir continua', () => {
+    render(<DeckList decks={[deck()]} premium={false} />)
+
+    expect(
+      screen.queryByRole('button', { name: 'Compartilhar Koala Pirates Party' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Excluir Koala Pirates Party' })).toBeInTheDocument()
   })
 })

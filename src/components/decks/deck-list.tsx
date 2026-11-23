@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { CardArt } from '@/components/catalog/card-art'
 import { DeleteDeck } from '@/components/decks/delete-deck'
+import { ShareDeck } from '@/components/decks/share-deck'
 import { Badge } from '@/components/ui/badge'
 import { ProgressBar } from '@/components/ui/progress-bar'
 import { Panel } from '@/components/ui/surface'
@@ -105,6 +106,13 @@ function DeckRow({ deck, premium }: { deck: SavedDeckSummary; premium: boolean }
         </div>
       )}
 
+      {/*
+        Compartilhar e Premium, como abrir (decisao 093, estendida em 23/11):
+        quem nao assina ja nao ve a lista na tela, e o caso de uso recusaria
+        depois do toque. Excluir fica ao lado e aparece para todos, porque
+        apagar nunca dependeu do Premium.
+      */}
+      {premium ? <ShareDeck id={deck.id} name={deck.name} /> : null}
       <DeleteDeck id={deck.id} name={deck.name} variant="icone" />
     </Panel>
   )
