@@ -51,7 +51,7 @@ existe comando de reset para produção, de propósito.
 ## O que está pronto
 
 **Checkpoints 0 a 13 concluídos, a Social, os Decks, o dashboard da coleção, o
-DON!! e as artes guardadas por nós.** 1.932 testes de unidade, integração e
+DON!! e as artes guardadas por nós.** 1.967 testes de unidade, integração e
 componente, mais 36 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -1787,6 +1787,99 @@ muda.
 `npm run dev` mostra só o **baixar**: `navigator.share` não existe fora de
 contexto seguro (armadilha 48). Para ver o botão de compartilhar, `npm run
 dev:https` ou o site publicado.
+
+## O líder de evento selado, e o deck de todas as cores (25/11)
+
+Pedido do dono do produto: o líder promocional Luffy de todas as cores no Deck
+Builder, para dar para montar deck com todas as cores, como em pré-lançamento.
+É a decisão 115, e ela **muda a 095**.
+
+### A regra do deck não mudou, e isso é o principal
+
+`fitsLeader` pergunta se a carta tem **alguma** cor do líder. Com seis cores,
+toda carta passa — e medido em 25/11, **nenhuma** das 2.816 cartas de deck está
+sem cor, então as seis alcançam o catálogo inteiro de verdade.
+
+Não há exceção no código da regra. **O que faltava era a carta existir.**
+
+### Por que ela não estava no catálogo
+
+| | |
+|---|---|
+| A Bandai | **não a publica**: "Leader Pack" não aparece no snapshot |
+| O TCGplayer | tem — e é a nossa fonte de **preço**, não de catálogo |
+| O campo `Number` | **não existe** nesses produtos, e `cards.code` é a chave |
+
+Mesma situação do DON!! (decisão 112), e entrou pelo mesmo molde: provedor
+próprio lendo o tcgcsv, comando próprio (`npm run supabase lideres`) e código
+derivado do `productId`.
+
+### A carta
+
+| | |
+|---|---|
+| Código | `SB-712746` — `SB` de *Sealed Battle*, como a fonte nomeia a linha |
+| Nome | Monkey.D.Luffy (4th Anniversary Leader Card) |
+| Cores | as **seis** |
+| Vida / poder | 5 / 5000 |
+| Set | `PROMO`, que já existia (decisão 024) |
+
+**Só uma das quatro.** A fonte tem quatro líderes de seis cores: os dois de 2023
+(vida 4), o Sealed Battle 2024 Vol. 2 e o do 4º aniversário. O dono do produto
+escolheu só o último — é o que se usa hoje, e os quatro juntos seriam quatro
+Luffys indistinguíveis na busca de líder.
+
+É uma **lista** (`SEALED_LEADER_PRODUCT_IDS`), e não uma regra que pesque "todo
+líder de seis cores": quais entram é decisão de produto, e uma regra traria
+sozinha o próximo que a fonte publicasse.
+
+### O aviso, que é a exceção à 095
+
+A carta diz, na fonte: *"This Leader can only be used in designated events
+according to the rules."* O item 7 da decisão 095 manda **recusar** o inválido,
+não avisar. O dono do produto escolheu aceitar e anunciar, e a exceção está
+registrada:
+
+- **No Deck Builder**, sob o nome do líder, em laranja com o triângulo:
+  "Só vale em evento designado, como pré-lançamento."
+- **Na folha da decklist**, no título da seção do líder: "Líder · só em evento
+  designado". A imagem sai do produto e vai para um grupo, onde ninguém vê a
+  tela — e uma lista que parece construída e é recusada na mesa é pior que
+  nenhuma. Cabe no título e **não muda a altura da folha**; há teste para isso.
+
+### "todas as cores"
+
+`colors.join(' e ')` produzia "Blue e Green e Purple e Red e Black e Yellow" —
+três linhas no celular, dizendo menos que duas palavras. Cinco das seis **não**
+viram "todas": o rótulo mentiria sobre a que falta.
+
+### A armadilha do vínculo de preço
+
+O `source_id` da arte **é** o `productId`, então o vínculo com o TCGplayer é
+cópia, e não palpite. `linkDonProducts` passou a cobrir as duas famílias — mas
+**o seletor delas não pode ser o mesmo**.
+
+O DON!! entra pelo **tipo**. O líder selado é `Leader`, como 149 cartas da
+Bandai cujo `source_id` é `OP01-003`: casar por tipo daria a cada uma delas um
+vínculo com um "productId" que é o código da carta, e o preço de todas passaria
+a procurar um produto que não existe. Ele entra pela **lista de ids**, e há um
+teste de integração só para guardar essa diferença.
+
+### O prefixo não é enfeite
+
+`SB-` não se passa por código da Bandai, e mantém o link da Liga honesto:
+`ligaEdition` não deriva edição dele, então o "Ver na Liga" cai na busca **por
+nome**, como o DON!! já fazia, em vez de montar um endereço direto para uma
+carta que a Liga não tem.
+
+### Para levar a produção
+
+`npm run supabase lideres` — importa a carta e já cria o vínculo de preço.
+Rodar de novo não duplica nada: medido local, `criados=0 atualizados=0`.
+
+### O modelo de dados não muda
+
+Nenhuma tabela e nenhuma coluna.
 
 ## Playsets virou aba, e passou a mostrar o zero (25/11)
 

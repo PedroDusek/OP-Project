@@ -1,8 +1,10 @@
 import type { PrismaClient } from '@prisma/client'
 import { DON_TYPE } from '@/server/domain/catalog/types'
+import { SEALED_LEADER_PRODUCT_IDS } from '@/server/domain/catalog/lider-selado'
 
 /**
- * Liga cada DON!! ao seu produto no TCGplayer (decisão 112).
+ * Liga ao produto do TCGplayer as cartas cujo `source_id` **é** o `productId`:
+ * os DON!! (decisão 112) e os líderes de evento selado (decisão 115).
  *
  * Camada: application.
  *
@@ -35,8 +37,26 @@ export interface LinkDonProductsResult {
 const SOURCE = 'tcgcsv'
 
 export async function linkDonProducts(prisma: PrismaClient): Promise<LinkDonProductsResult> {
+  /*
+   * Duas familias, e o mesmo motivo (decisao 115).
+   *
+   * Os DON!! entram pelo **tipo**. Os lideres de evento selado nao podem:
+   * eles sao `Leader`, como 149 cartas da Bandai cujo `source_id` e
+   * `OP01-003`, e casar por tipo mandaria todas elas para ca — cada uma
+   * ganharia um vinculo com um "productId" que e o codigo da carta.
+   *
+   * Entao eles entram pela **lista de ids escolhidos**, que e a mesma que a
+   * importacao usa. E a lista curta e explicita, em vez de uma regra que
+   * tentasse reconhecer "source_id numerico".
+   */
   const variants = await prisma.cardVariant.findMany({
-    where: { card: { type: DON_TYPE }, sourceId: { not: null } },
+    where: {
+      sourceId: { not: null },
+      OR: [
+        { card: { type: DON_TYPE } },
+        { sourceId: { in: SEALED_LEADER_PRODUCT_IDS.map(String) } },
+      ],
+    },
     select: { id: true, sourceId: true },
   })
 

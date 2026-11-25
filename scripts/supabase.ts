@@ -23,6 +23,7 @@ const POOL_MAX = 4
  *   npm run supabase import 569117      importa apenas as series informadas
  *   npm run supabase -- import --from=DIR  importa de um snapshot local
  *   npm run supabase don                importa os DON!! do tcgcsv (decisao 112)
+ *   npm run supabase lideres            importa os lideres de evento selado (decisao 115)
  *   npm run supabase imagens            converte as artes para o volume (decisao 113)
  *   npm run supabase -- imagens --limite=50   so as primeiras, para conferir
  *   npm run supabase -- imagens --local  converte as artes do banco **local**
@@ -246,6 +247,58 @@ async function main(): Promise<void> {
       if (report.seriesFailed > 0) {
         for (const falha of report.failures) {
           console.log(`[supabase]   grupo=${falha.seriesId}: ${falha.reason}`)
+        }
+        process.exitCode = 1
+      }
+    } finally {
+      await prisma.$disconnect()
+    }
+    return
+  }
+
+  /*
+   * Os lideres de evento selado (decisao 115), pelo mesmo motivo do DON!!: a
+   * Bandai nao os publica na lista de cartas, e quem os tem e o TCGplayer.
+   *
+   * Comando proprio, e nao parte do `don`, porque sao escolhas diferentes do
+   * dono do produto — e porque um erro num nao pode impedir o outro de rodar.
+   */
+  if (command === 'lideres') {
+    const prisma = createPrisma(url, { max: POOL_MAX })
+    try {
+      const { TcgCsvSealedLeaderProvider } = await import(
+        '@/server/infrastructure/catalog/tcgcsv-sealed-leader-provider'
+      )
+      const provider = new TcgCsvSealedLeaderProvider()
+      console.log('[supabase] lendo os lideres de evento selado do tcgcsv')
+
+      const report = await importCatalog(prisma, provider)
+      console.log(
+        `[supabase] lideres: cartas=${report.cardsUpserted} artes=${report.variantsUpserted}` +
+          ` falhas=${report.seriesFailed}`,
+      )
+      for (const nome of report.promotionalProductNames) {
+        console.log(`[supabase]   ${nome}`)
+      }
+      for (const recusa of report.rejected) {
+        console.log(`[supabase]   recusado ${recusa.sourceId}: ${recusa.reason}`)
+      }
+
+      /*
+       * O vinculo com o TCGplayer, como no DON!!: o `source_id` da arte **e** o
+       * productId. Sem isto a carta ficaria sem preco para sempre, porque a
+       * deducao normal casa pelo codigo da carta — e o codigo dela e nosso.
+       */
+      const { linkDonProducts } = await import('@/server/application/catalog/link-don-products')
+      const vinculos = await linkDonProducts(prisma)
+      console.log(
+        `[supabase] lideres: vinculos com o TCGplayer — artes=${vinculos.variants}` +
+          ` criados=${vinculos.created} atualizados=${vinculos.updated}`,
+      )
+
+      if (report.seriesFailed > 0) {
+        for (const falha of report.failures) {
+          console.log(`[supabase]   serie=${falha.seriesId}: ${falha.reason}`)
         }
         process.exitCode = 1
       }
@@ -735,8 +788,8 @@ async function main(): Promise<void> {
 
   throw new Error(
     `Comando desconhecido: ${command ?? '(nenhum)'}. ` +
-      'Use migrate, import, don, imagens, prices, contas, premium, aquecer, limpar-contas, ' +
-      'limpar-assinaturas, status ou storage.',
+      'Use migrate, import, don, lideres, imagens, prices, contas, premium, aquecer, ' +
+      'limpar-contas, limpar-assinaturas, status ou storage.',
   )
 }
 

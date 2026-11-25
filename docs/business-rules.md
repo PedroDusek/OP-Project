@@ -566,8 +566,28 @@ qualquer arte da mesma carta cobrem a linha; desligado, só a arte escolhida. Um
 cópia nunca cobre duas linhas.
 
 O que não pode ser jogado é **recusado**, e não avisado: passar de 4 cópias, pôr
-carta fora da cor ou um segundo líder. O total de 50 é contagem, porque um deck
-em construção passa a maior parte do tempo incompleto.
+carta fora da cor ou um segundo líder. A única coisa **avisada** em vez de
+recusada é o líder de evento selado (7.0.1). O total de 50 é contagem, porque
+um deck em construção passa a maior parte do tempo incompleto.
+
+### 7.0.1 O líder de evento selado (decisão 115)
+
+A Bandai imprime, para pré-lançamento e evento selado, um líder Luffy com **as
+seis cores** — ele existe para quem abre pacotes na hora montar deck com o que
+saiu, sem a trava de cor.
+
+**A regra de cor acima não muda por causa dele.** "Alguma cor do líder", com um
+líder de seis cores, é toda carta: medido em 25/11, nenhuma das 2.816 cartas de
+deck está sem cor. Não há exceção no código.
+
+**A exceção é ao "recusado, e não avisado" logo abaixo.** A carta só vale em
+evento designado, então o deck montado com ela não é um deck construído válido.
+O produto **aceita e avisa**: na tela, sob o nome do líder, e no título da seção
+do líder na folha da decklist — que sai do produto e vai para um grupo onde
+ninguém vê a tela.
+
+Qual líder entra é escolha do dono do produto, e não uma regra: a fonte tem
+quatro de seis cores, e em 25/11 entrou **só o do 4º aniversário**.
 
 ### 7.1 As decklists salvas (decisão 108)
 
