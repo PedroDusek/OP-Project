@@ -1,61 +1,19 @@
-import type { Metadata } from 'next'
-import { PageHeader } from '@/components/layout/app-shell'
-import { PlaysetList } from '@/components/collection/playset-list'
-import { EmptyState } from '@/components/ui/states'
-import { PremiumNotice } from '@/components/premium/premium-notice'
-import { isPremium } from '@/server/application/authorization'
-import { listPlaysets } from '@/server/application/collection'
-import { requireViewer } from '@/server/http/viewer'
-
-export const metadata: Metadata = { title: 'Playsets' }
+import { redirect } from 'next/navigation'
 
 /**
- * Playsets (tela 19).
+ * A tela 19 mudou de endereço (decisão 114).
  *
- * Lista **cartas**, e não variantes: é a carta que fecha ou não fecha um
- * playset, somando todas as artes (`business-rules.md` 2.1). `Leader` fica de
- * fora inteiro, porque nunca conta.
+ * Playsets saiu de dentro da coleção e virou destino próprio, com o universo do
+ * catálogo e o `0/4`. Este arquivo existe para o endereço antigo continuar
+ * levando a algum lugar: ele esteve em painel na coleção, e um 404 numa rota que
+ * a pessoa pode ter guardado nos favoritos ensina a não guardar nenhuma.
+ *
+ * **Temporário (307), e não permanente.** A rota não volta, então o 308 seria o
+ * semanticamente certo — mas o navegador guarda um 308 e passa a nem pedir o
+ * endereço, e desfazer isso depois não está nas nossas mãos. É uma rota
+ * autenticada, sem indexação (decisão 105): o 308 não traria ganho nenhum para
+ * pagar esse risco.
  */
-export default async function PlaysetsPage() {
-  const viewer = await requireViewer('/colecao/playsets')
-
-  // Decisao 093: a analise da colecao e Premium. O caso de uso tambem recusa.
-  if (!isPremium(viewer)) {
-    return (
-      <>
-        <PageHeader back={{ href: '/colecao', label: 'Minha Coleção' }} title="Playsets" description="Cartas com 4 ou mais cópias." />
-        <PremiumNotice
-          title="A lista de playsets é Premium"
-          description="Ela mostra quantas cartas já fecharam quatro cópias e quantas faltam, somando todas as artes."
-        />
-      </>
-    )
-  }
-
-  const rows = await listPlaysets(viewer)
-
-  const fechados = rows.filter((row) => row.closed).length
-
-  return (
-    <>
-      <PageHeader back={{ href: '/colecao', label: 'Minha Coleção' }}
-        title="Playsets"
-        description={
-          rows.length === 0
-            ? 'Cartas com 4 ou mais cópias.'
-            : `${fechados} de ${rows.length} cartas com 4 ou mais cópias.`
-        }
-      />
-
-      {rows.length === 0 ? (
-        <EmptyState
-          title="Nenhuma carta ainda"
-          description="Playset conta por código de carta, somando todas as artes. Líderes não contam."
-          action={{ label: 'Ver minha coleção', href: '/colecao' }}
-        />
-      ) : (
-        <PlaysetList rows={rows} />
-      )}
-    </>
-  )
+export default function PlaysetsAntigoPage() {
+  redirect('/playsets')
 }

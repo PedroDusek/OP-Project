@@ -142,6 +142,25 @@ export function countActiveFilters(params: CatalogSearchParams): number {
 }
 
 /**
+ * Os mesmos parâmetros, sem raridade nem variante.
+ *
+ * A tela de playsets (decisão 114) não oferece esses dois: playset conta a
+ * **carta**, somando todas as artes, e os dois são propriedades da **variante**
+ * — filtrando por arte paralela, um `2/4` poderia ser duas cópias Normal.
+ *
+ * Serve para a tela e o distintivo concordarem. O caso de uso já descarta os
+ * dois, então um endereço escrito à mão com `raridade=SR` não filtra nada; sem
+ * esta limpeza, o botão ainda diria "1 filtro ativo" sobre um filtro que não
+ * faz nada.
+ */
+export function withoutArtFilters(params: CatalogSearchParams): CatalogSearchParams {
+  const { [PARAM.raridade]: raridade, [PARAM.variante]: variante, ...resto } = params
+  void raridade
+  void variante
+  return resto
+}
+
+/**
  * Monta a query string preservando o que já estava lá.
  *
  * Mexer num filtro sempre volta para a página 1. Sem isso, refinar a busca na

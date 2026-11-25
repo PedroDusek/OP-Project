@@ -57,10 +57,23 @@ describe('toda tela tem voltar', () => {
     })
   }
 
+  /**
+   * Uma página que só redireciona não tem tela, e por isso não pode ter
+   * voltar. Entrou com a decisão 114, que mudou `/colecao/playsets` de lugar
+   * e deixou o endereço antigo apontando para o novo.
+   *
+   * Reconhecida pela forma, e não por nome numa lista: `redirect` sem nenhum
+   * JSX. Uma exceção por nome exigiria alguém lembrar de tirá-la no dia em
+   * que a página voltasse a desenhar algo.
+   */
+  const soRedireciona = (fonte: string) =>
+    /\bredirect\(/.test(fonte) && !fonte.includes('<')
+
   const raiz = path.join(process.cwd(), 'src', 'app')
   const todas = paginas(raiz)
     .map((arquivo) => path.relative(raiz, arquivo).split(path.sep).join('/'))
     .filter((rel) => !rel.startsWith('dev/'))
+    .filter((rel) => !soRedireciona(readFileSync(path.join(raiz, rel), 'utf8')))
 
   it('encontra as páginas', () => {
     expect(todas.length).toBeGreaterThan(30)

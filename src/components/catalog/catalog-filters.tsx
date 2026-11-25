@@ -106,6 +106,19 @@ export interface CatalogFiltersProps {
    * Oferecer o campo ali seria oferecer um controle que nao muda nada.
    */
   hideSetFilter?: boolean
+  /**
+   * Esconde raridade e variante.
+   *
+   * Nos playsets (decisao 114) a linha e a **carta**, somando todas as artes.
+   * Raridade e tipo de arte sao propriedades da **variante**: filtrando por
+   * arte paralela, um `2/4` poderia ser duas copias Normal, e a linha
+   * mentiria. O caso de uso tambem descarta os dois, para quem monta o
+   * endereco a mao.
+   *
+   * Os outros filtros ficam: cor, tipo, custo, poder, atributo, trait,
+   * mecanica e contador sao todos da carta.
+   */
+  hideArtFilters?: boolean
   /** Os filtros atuais, quando não vêm da URL. */
   values?: CatalogSearchParams
 }
@@ -116,6 +129,7 @@ export function CatalogFilters({
   onApply,
   values,
   hideSetFilter = false,
+  hideArtFilters = false,
 }: CatalogFiltersProps) {
   const router = useRouter()
   const pathname = usePathname()
@@ -332,20 +346,24 @@ export function CatalogFilters({
           </ChipRow>
         </FilterSection>
 
-        <ChipSection
-          title="Raridade"
-          param={PARAM.raridade}
-          values={vocabulary.rarities}
-          selected={selected(PARAM.raridade)}
-          onToggle={toggle}
-        />
-        <ChipSection
-          title="Variante"
-          param={PARAM.variante}
-          values={vocabulary.variantTypes}
-          selected={selected(PARAM.variante)}
-          onToggle={toggle}
-        />
+        {hideArtFilters ? null : (
+          <>
+            <ChipSection
+              title="Raridade"
+              param={PARAM.raridade}
+              values={vocabulary.rarities}
+              selected={selected(PARAM.raridade)}
+              onToggle={toggle}
+            />
+            <ChipSection
+              title="Variante"
+              param={PARAM.variante}
+              values={vocabulary.variantTypes}
+              selected={selected(PARAM.variante)}
+              onToggle={toggle}
+            />
+          </>
+        )}
         <ChipSection
           title="Atributo"
           param={PARAM.atributo}

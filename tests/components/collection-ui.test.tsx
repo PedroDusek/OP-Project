@@ -5,7 +5,7 @@ import { CollectionGrid, type CollectionCardView } from '@/components/collection
 import { PlaysetList } from '@/components/collection/playset-list'
 import { AddToCollection } from '@/components/collection/add-to-collection'
 import { ToastProvider } from '@/components/ui/toast'
-import type { PlaysetRow } from '@/server/application/collection/read-collection'
+import type { PlaysetCardRow } from '@/server/application/collection/read-playsets'
 
 /*
  * A acao de servidor arrasta o Prisma no grafo de modulos. No Next ela vira uma
@@ -146,13 +146,14 @@ describe('QuantitySheet', () => {
 })
 
 describe('PlaysetList', () => {
-  const row = (overrides: Partial<PlaysetRow> = {}): PlaysetRow => ({
+  const row = (overrides: Partial<PlaysetCardRow> = {}): PlaysetCardRow => ({
     cardCode: 'OP01-001',
     cardName: 'Roronoa Zoro',
     cardType: 'Character',
     imageUrl: null,
     quantity: 4,
     closed: true,
+    otherArtCopies: 0,
     ...overrides,
   })
 
@@ -200,7 +201,8 @@ describe('PlaysetList', () => {
     await userEvent.click(screen.getByRole('tab', { name: /^Completos/ }))
     expect(listados()).toEqual(['OP01-001'])
 
-    await userEvent.click(screen.getByRole('tab', { name: /^Incompletos/ }))
+    /* A aba chamava "Incompletos" e virou "Faltam" na decisão 114. */
+    await userEvent.click(screen.getByRole('tab', { name: /^Faltam/ }))
     expect(listados()).toEqual(['OP01-002'])
   })
 
@@ -222,6 +224,53 @@ describe('PlaysetList', () => {
     await userEvent.clear(busca)
     await userEvent.type(busca, 'op01-001')
     expect(listados()).toEqual(['OP01-001'])
+  })
+
+  /*
+   * O caso que a tela existe para mostrar, e que era impossivel antes da
+   * decisao 114: a lista saia da colecao, e uma carta que a pessoa nao tem nao
+   * tinha linha nela.
+   */
+  it('a carta em zero aparece, e diz quanto falta', () => {
+    render(<PlaysetList rows={[row({ quantity: 0, closed: false })]} />)
+
+    expect(screen.getByRole('progressbar', { name: /OP01-001/ })).toHaveAttribute(
+      'aria-valuetext',
+      '0 de 4',
+    )
+    expect(screen.getByText('faltam 4')).toBeInTheDocument()
+  })
+
+  /* Uma copia e singular: "faltam 1" seria errado em portugues. */
+  it('concorda o singular quando falta uma', () => {
+    render(<PlaysetList rows={[row({ quantity: 3, closed: false })]} />)
+
+    expect(screen.getByText('falta 1')).toBeInTheDocument()
+  })
+
+  it('a carta fechada diz completo, e nao quanto falta', () => {
+    render(<PlaysetList rows={[row({ quantity: 4, closed: true })]} />)
+
+    expect(screen.getByText('Completo')).toBeInTheDocument()
+    expect(screen.queryByText(/faltam?/)).not.toBeInTheDocument()
+  })
+
+  /**
+   * O aviso da decisao 095, item 4a, agora tambem aqui: um 4/4 com uma copia
+   * paralela aparecia so como "completo", e quem fecha playset muitas vezes
+   * quer quatro iguais.
+   */
+  it('avisa quantas das copias contadas sao de outra arte', () => {
+    render(<PlaysetList rows={[row({ quantity: 4, closed: true, otherArtCopies: 1 })]} />)
+
+    expect(screen.getByText('Completo')).toBeInTheDocument()
+    expect(screen.getByText('1 de outra arte')).toBeInTheDocument()
+  })
+
+  it('nao avisa quando todas sao a arte Normal', () => {
+    render(<PlaysetList rows={[row({ quantity: 4, closed: true, otherArtCopies: 0 })]} />)
+
+    expect(screen.queryByText(/outra arte/)).not.toBeInTheDocument()
   })
 })
 

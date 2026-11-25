@@ -1,7 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import {
   getCollectionSummary,
-  listPlaysets,
   searchCollection,
 } from '@/server/application/collection/read-collection'
 import {
@@ -319,32 +318,19 @@ describe('resumo e listagem', () => {
     expect(soParallel.items[0].playsetClosed).toBe(true)
   })
 
-  it('o recorte de playsets traz so as cartas fechadas', async () => {
-    const { user } = await owner()
-    const fechada = await createCardWithVariant('Character', 'OP01-001')
-    const aberta = await createCardWithVariant('Character', 'OP01-002')
-
-    await setCollectionQuantity(testPrisma(), user, fechada.variant.id, 4)
-    await setCollectionQuantity(testPrisma(), user, aberta.variant.id, 1)
-
-    const playsets = await searchCollection(testPrisma(), user, { scope: 'playsets' })
-    const faltando = await searchCollection(testPrisma(), user, { scope: 'incomplete' })
-
-    expect(playsets.items.map((i) => i.cardCode)).toEqual(['OP01-001'])
-    expect(faltando.items.map((i) => i.cardCode)).toEqual(['OP01-002'])
-  })
-
-  it('listPlaysets agrupa por carta e exclui Leader', async () => {
-    const { user } = await owner()
-    const personagem = await createCardWithVariant('Character', 'OP01-001')
-    const lider = await createCardWithVariant('Leader', 'OP01-002')
-
-    await setCollectionQuantity(testPrisma(), user, personagem.variant.id, 4)
-    await setCollectionQuantity(testPrisma(), user, lider.variant.id, 10)
-
-    const rows = await listPlaysets(testPrisma(), user)
-
-    expect(rows).toHaveLength(1)
-    expect(rows[0]).toMatchObject({ cardCode: 'OP01-001', quantity: 4, closed: true })
-  })
+  /**
+   * **A regra mudou em 25/11 (decisão 114).** Havia aqui dois testes que
+   * saíram junto com o que verificavam:
+   *
+   * - o recorte `scope` desta busca, que alimentava as abas Todas / Playsets
+   *   / Faltam da coleção;
+   * - `listPlaysets`, a tela 19, que listava só as cartas possuídas.
+   *
+   * Playset virou destino próprio, com o universo do **catálogo** e o `0/4`:
+   * as duas perguntas agora vivem em `tests/integration/playsets.test.ts`,
+   * que verifica o que estes não podiam — a carta que a pessoa **não** tem.
+   *
+   * O que ficou desta tela é `playsetClosed` em cada item, logo acima: é a
+   * marca "Playset" na carta, que é outra coisa e continua Premium.
+   */
 })
