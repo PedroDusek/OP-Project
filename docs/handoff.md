@@ -8,11 +8,12 @@ Retomada de contexto. O que existe, o que foi decidido e por quê, e onde parou.
    carregou ao subir (armadilha 40), e só lê o `.env` ao subir — `RESEND_API_KEY`
    e `EMAIL_FROM` entraram nele em 17/09.
 2. `npm run supabase status` — mostra o que produção tem e o que falta. Em
-   22/11 ela estava **em dia: 23 de 23 migrations**, com 3.204 cartas, 4.925
-   artes e 63 sets, com a **OP-18 inteira** e 4.832 variantes com preço.
+   25/11 ela estava **em dia: 23 de 23 migrations**, com 3.205 cartas, 4.926
+   artes e 63 sets, com a **OP-18 inteira**, 4.832 variantes com preço e **22
+   contas**. A carta a mais é o líder de evento selado (decisão 115).
 3. **O site está em `https://colexa.com.br`** desde 21/09 (decisões
    089 e 090), com cobrança do Premium **em modo real** desde 22/09. Publicar é
-   à mão: `development.md` 6.6. A última publicação foi a **v56**, em 23/11.
+   à mão: `development.md` 6.6. A última publicação foi a **v57**, em 25/11.
 4. **A arte da carta agora é nossa** (decisão 113). Ela **não** vem mais da
    Bandai em tempo de acesso, e a conversão **nunca roda na Fly** — leia a
    armadilha 88 antes de mexer em imagem.
@@ -1880,6 +1881,26 @@ Rodar de novo não duplica nada: medido local, `criados=0 atualizados=0`.
 ### O modelo de dados não muda
 
 Nenhuma tabela e nenhuma coluna.
+
+### Publicado em 25/11, na v57
+
+Junto com os playsets. A sequência foi a da armadilha 92, na ordem certa:
+
+1. `npm run supabase -- imagens --local` — **1 convertida**, 4.921 já lá
+2. `fly ssh sftp put` da arte para o volume — 4.921 → **4.922 arquivos**
+3. `npm run supabase lideres` — produção: cartas=1, artes=1, vínculo criado=1
+4. `npm run supabase status` — 3.205 cartas, 4.926 artes
+5. *Actions → Publicar*
+
+Conferido depois: `/api/saude` responde `{"ok":true}`, a arte do Luffy sai em
+**200, 18.524 bytes, 0,096 s** — o número que a decisão 113 promete —, e o
+volume manteve os 4.922 arquivos através do deploy.
+
+**O login da Fly tinha vencido de novo** (armadilha 94), e o `fly` ainda se
+atualizou sozinho no caminho (0.4.122 → 0.5.18). O `fly auth login` é
+interativo e é do dono do produto: ele para num prompt esperando, e o
+`whoami` só passa a responder depois que o navegador confirma. Conferir o
+*timestamp* de `~/.fly/config.yml` diz na hora se o login pegou.
 
 ## Playsets virou aba, e passou a mostrar o zero (25/11)
 
