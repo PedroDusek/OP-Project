@@ -15,6 +15,7 @@ import {
   roundedPath,
   toBlob,
 } from './sheet-canvas'
+import { isSealedLeaderCode } from '@/server/domain/catalog/lider-selado'
 
 /**
  * A decklist como uma imagem, para mandar no grupo (pedido do dono do produto
@@ -154,8 +155,22 @@ export function deckSections(deck: DeckSheet): Secao[] {
       porCusto(a, b),
   )
 
+  /*
+   * O aviso viaja junto com a imagem (decisão 115).
+   *
+   * O líder de evento selado só vale em evento designado, e a tela do Deck
+   * Builder diz isso a quem monta. A folha sai do produto e vai para um grupo,
+   * onde ninguém vê aquela tela — e uma lista que parece construída e é
+   * recusada na mesa é pior que nenhuma.
+   *
+   * Cabe no título porque ele é desenhado à esquerda numa folha de 1240 px.
+   */
+  const titulo = isSealedLeaderCode(deck.leader.cardCode)
+    ? 'Líder · só em evento designado'
+    : 'Líder'
+
   return [
-    { titulo: 'Líder', cartas: [deck.leader] },
+    { titulo, cartas: [deck.leader] },
     ...(fila.length > 0 ? [{ titulo: null, cartas: fila }] : []),
   ]
 }

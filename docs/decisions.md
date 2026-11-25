@@ -7538,3 +7538,122 @@ Nenhuma tabela e nenhuma coluna. As duas consultas novas usam
 ## Data
 
 2026-11-25
+
+# Decisão: 115 — O líder de evento selado entra no catálogo (muda a 095)
+
+Em 25/11 o dono do produto pediu: o líder promocional Luffy de todas as cores no
+Deck Builder, para dar para montar um deck com todas as cores, como em
+pré-lançamento.
+
+## A regra do deck não mudou — e isso é o principal
+
+`fitsLeader` pergunta se a carta tem **alguma** cor do líder:
+
+```ts
+export function fitsLeader(leaderColors, cardColors) {
+  return cardColors.some((color) => leaderColors.includes(color))
+}
+```
+
+Com um líder de seis cores, toda carta passa. A decisão 095 continua valendo
+letra por letra, sem exceção e sem caso especial no código. **O que faltava era
+a carta existir.**
+
+Medido em 25/11: nenhuma das 2.816 cartas de deck está sem cor, então as seis
+cores alcançam o catálogo inteiro de verdade.
+
+## Por que ela não entrou pelo caminho normal
+
+1. **A Bandai não a publica.** O nosso catálogo vem da lista oficial, e
+   "Leader Pack" não aparece no snapshot. A lista é organizada por número de
+   carta, e este líder não tem número.
+2. **O TCGplayer tem.** É a nossa fonte de **preço**, não de catálogo — mesma
+   situação do DON!! (decisão 112).
+3. **Ela vem sem o campo `Number`.** E `cards.code` é a chave única da
+   importação.
+
+## Decisão
+
+1. **Entra pelo molde do DON!!**: provedor próprio lendo o tcgcsv, comando
+   próprio (`npm run supabase lideres`), código derivado do `productId`.
+2. **O código é `SB-712746`.** `SB` de *Sealed Battle*, que é como a fonte
+   nomeia a linha.
+3. **Mora no set `PROMO`**, que já existe (decisão 024) — e não num set
+   artificial. O DON!! precisou de um porque não cabia em nenhum set nosso; este
+   cabe: é um produto promocional, e é assim que a fonte o classifica.
+4. **Só o do 4º aniversário** (produto 712746, vida 5, poder 5000). A fonte traz
+   **quatro** líderes de seis cores — os dois de 2023 têm vida 4, e há ainda o
+   Sealed Battle 2024 Vol. 2. Escolha do dono do produto: é o mais recente e o
+   que se usa hoje, e os quatro juntos seriam quatro Luffys indistinguíveis na
+   busca de líder.
+5. **É uma lista, e não uma regra.** `SEALED_LEADER_PRODUCT_IDS` tem um id
+   hoje. Uma regra que pescasse "todo líder de seis cores" traria sozinha o
+   próximo que a fonte publicasse, e quais entram é decisão de produto.
+6. **No catálogo e na coleção**, como qualquer carta — escolha do dono do
+   produto. Nenhuma tela ganha exceção.
+7. **O deck monta, e a tela avisa.** Ver abaixo.
+
+## O que muda na decisão 095
+
+O item 7 da 095 diz: **"O inválido é recusado"**, e não avisado.
+
+A carta diz, na própria fonte: *"This Leader can only be used in designated
+events according to the rules."* Um deck montado com ela **não é** um deck
+construído válido — nenhum torneio o aceita.
+
+O dono do produto escolheu **aceitar com aviso**, e esta é a exceção que a 095
+ganha, nomeada e registrada:
+
+- No **Deck Builder**, sob o nome do líder: "Só vale em evento designado, como
+  pré-lançamento", em laranja, com o triângulo de atenção.
+- Na **folha da decklist**, no título da seção do líder: "Líder · só em evento
+  designado". A imagem sai do produto e vai para um grupo, onde ninguém vê a
+  tela do Deck Builder — e uma lista que parece construída e é recusada na mesa
+  é pior que nenhuma.
+
+A regra geral não afrouxa: o inválido continua sendo recusado. O que se acrescenta
+é **um** líder que o produto aceita de propósito, e que se anuncia.
+
+## "todas as cores", e não as seis escritas
+
+`leader.colors.join(' e ')` produzia "Blue e Green e Purple e Red e Black e
+Yellow" — três linhas no celular, dizendo menos que duas palavras. `rotuloDeCores`
+escreve "todas as cores" quando as seis estão lá, e por extenso quando não.
+
+Cinco das seis **não** viram "todas": o rótulo mentiria sobre a que falta.
+
+## O prefixo não é enfeite
+
+Mesmo raciocínio da decisão 112. `SB-` faz duas coisas:
+
+1. **Não se passa por código da Bandai.** `P-712746` pareceria um promo oficial
+   e esconderia que o número é invenção nossa.
+2. **Mantém o link da Liga honesto.** `ligaEdition` só reconhece
+   `LETRAS+DÍGITOS-`, então `SB-712746` não produz edição — e o "Ver na Liga"
+   cai na **busca por nome**, como o DON!! já fazia, em vez de montar um
+   endereço direto para uma carta que a Liga não tem.
+
+**Este código é para sempre**: ele vai parar na coleção das pessoas, e trocá-lo
+depois exige migração de dados.
+
+## O vínculo de preço, e a armadilha que ele esconde
+
+O `source_id` da arte **é** o `productId`, então o vínculo com o TCGplayer é
+cópia, não palpite — e sem ele a carta ficaria sem preço para sempre, porque a
+dedução normal casa pelo código da Bandai.
+
+`linkDonProducts` passou a cobrir as duas famílias. **Mas o seletor delas não
+pode ser o mesmo:** o DON!! entra pelo **tipo**, e o líder selado é `Leader`,
+como 149 cartas da Bandai cujo `source_id` é `OP01-003`. Casar por tipo daria
+a cada uma delas um vínculo com um "productId" que é o código da carta. Então
+ele entra pela **lista de ids escolhidos**, e há um teste de integração só para
+guardar essa diferença.
+
+## O modelo de dados não muda
+
+Nenhuma tabela e nenhuma coluna. A carta usa `cards`, `card_variants`,
+`variant_printings` e `variant_source_products` como estão.
+
+## Data
+
+2026-11-25

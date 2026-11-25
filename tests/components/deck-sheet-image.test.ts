@@ -170,3 +170,35 @@ describe('a altura da imagem', () => {
     expect(altura(linhas)).toBeLessThan(3000)
   })
 })
+
+/**
+ * O aviso do líder de evento selado viaja junto com a imagem (decisão 115).
+ *
+ * A folha sai do produto e vai para um grupo, onde ninguém vê a tela do Deck
+ * Builder que dá o aviso. Uma lista que parece construída e é recusada na mesa
+ * é pior que nenhuma.
+ */
+describe('o líder de evento selado na folha', () => {
+  const comLider = (cardCode: string): DeckSheet => ({
+    name: 'Selado',
+    leader: { ...carta(cardCode, 'Leader', null), colors: ['Red', 'Green'] },
+    cards: [carta('OP01-001', 'Character', 3)],
+  })
+
+  it('o título da seção do líder leva o aviso', () => {
+    expect(deckSections(comLider('SB-712746'))[0].titulo).toBe('Líder · só em evento designado')
+  })
+
+  it('um líder comum continua só "Líder"', () => {
+    expect(deckSections(comLider('OP13-004'))[0].titulo).toBe('Líder')
+  })
+
+  /* O aviso é texto no título: a folha não ganha seção nem fileira por causa dele. */
+  it('o aviso não muda a forma da folha', () => {
+    const selado = deckSections(comLider('SB-712746'))
+    const comum = deckSections(comLider('OP13-004'))
+
+    expect(selado).toHaveLength(comum.length)
+    expect(sheetHeight(selado, 300)).toBe(sheetHeight(comum, 300))
+  })
+})

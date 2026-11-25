@@ -16,6 +16,10 @@ import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/cn'
 import { countActiveFilters, type CatalogSearchParams } from '@/lib/catalog-params'
 import { deckCatalogQuery } from '@/lib/deck-query'
+import {
+  isSealedLeaderCode,
+  rotuloDeCores,
+} from '@/server/domain/catalog/lider-selado'
 import type { CatalogVocabulary } from '@/server/application/catalog/vocabulary'
 import { Field, Input } from '@/components/ui/field'
 import { TransferDeckSheet, type DeckBox } from '@/components/decks/transfer-deck-sheet'
@@ -192,8 +196,29 @@ export function DeckBuilder({
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-text">{leader.cardName}</p>
               <p className="text-xs text-text-muted tabular-nums">
-                {leader.cardCode} · {leader.colors.join(' e ')}
+                {/*
+                  `todas as cores` em vez das seis escritas uma a uma: o líder
+                  de evento selado as tem todas, e `join(' e ')` produzia uma
+                  linha que ocupa duas no celular sem dizer mais nada.
+                */}
+                {leader.cardCode} · {rotuloDeCores(leader.colors)}
               </p>
+
+              {/*
+                O aviso da decisão 115, e ele muda o item 7 da 095 por acréscimo.
+
+                A carta diz, na própria fonte: "This Leader can only be used in
+                designated events according to the rules." O deck monta — foi o
+                pedido do dono do produto —, mas quem monta precisa saber antes
+                de levar a lista para um torneio construído, onde ela é recusada
+                na mesa.
+              */}
+              {isSealedLeaderCode(leader.cardCode) ? (
+                <p className="mt-1 flex items-start gap-1 text-xs text-warning">
+                  <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                  <span>Só vale em evento designado, como pré-lançamento.</span>
+                </p>
+              ) : null}
             </div>
             <Button
               size="sm"

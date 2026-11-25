@@ -41,6 +41,7 @@
  */
 
 import { isDonCode } from './don'
+import { isSealedLeaderCode } from './lider-selado'
 
 const BASE = 'https://www.ligaonepiece.com.br/'
 const HOST = 'www.ligaonepiece.com.br'
@@ -77,6 +78,20 @@ export function ligaEdition(cardCode: string): string | null {
   return `${letters.toUpperCase()}-${digits.padStart(2, '0')}`
 }
 
+/**
+ * Códigos que **nós** inventamos, e que a Liga não conhece.
+ *
+ * Hoje são dois: os DON!! (decisão 112) e os líderes de evento selado
+ * (decisão 115). Os dois vêm de produtos sem número na origem, e o código
+ * deles é derivado do `productId` do TCGplayer.
+ *
+ * Uma busca pelo código não acha nada na Liga, e um "Ver na Liga" que cai no
+ * vazio é pior que nenhum link — então a busca vai pelo **nome**.
+ */
+function codigoInventado(code: string): boolean {
+  return isDonCode(code) || isSealedLeaderCode(code)
+}
+
 export function ligaCardLink({ cardCode, cardName, variantType, verified }: LigaCardInput): LigaLink {
   const code = cardCode.trim()
 
@@ -93,7 +108,7 @@ export function ligaCardLink({ cardCode, cardName, variantType, verified }: Liga
    * proprio teste que eu escrevi para ele passou sem notar, porque so conferia
    * que a busca era uma busca.
    */
-  const termoDaBusca = isDonCode(code) ? cardName : code
+  const termoDaBusca = codigoInventado(code) ? cardName : code
 
   if (verified !== undefined) {
     return verified === null
@@ -101,7 +116,7 @@ export function ligaCardLink({ cardCode, cardName, variantType, verified }: Liga
       : { href: verified, exact: true }
   }
 
-  if (isDonCode(code)) return { href: ligaSearchLink(termoDaBusca), exact: false }
+  if (codigoInventado(code)) return { href: ligaSearchLink(termoDaBusca), exact: false }
 
   const edition = ligaEdition(code)
   if (variantType !== 'Normal' || edition === null) {
