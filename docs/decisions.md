@@ -7384,3 +7384,157 @@ de falha que causou isto.
 ## Data
 
 2026-09-25
+
+# Decisão: 114 — Playsets sai da coleção e vira destino, com o universo do catálogo (muda a 093)
+
+Em 25/11 o dono do produto pediu: tirar playsets de dentro da coleção, pôr entre
+as abas de Binders e Decks, e exibir de `0/4` até `4/4` — para que, clicando em
+"faltam", a pessoa veja também as cartas em zero e saiba **quais playsets fechar
+de acordo com cada filtro**.
+
+## A pergunta mudou, e é a diferença inteira
+
+Playset era leitura da **coleção**. A consulta saía de `collection_items`, e por
+isso a tela nunca pôde mostrar `0/4`: ela só conhecia as cartas que a pessoa
+tinha, e o menor valor possível era `1/4`.
+
+| | Pergunta |
+|---|---|
+| Até 23/11 | "Das minhas cartas, quais fecharam quatro?" |
+| Daqui | "De **todas as cartas que existem**, quais eu fechei?" |
+
+A segunda é a pergunta de quem monta coleção. Ela deixa de ser uma leitura da
+coleção e passa a ser uma leitura do catálogo — e por isso é um caso de uso novo
+(`application/collection/read-playsets.ts`), e não um parâmetro em
+`searchCollection`: inverter o lado de onde a consulta parte não é um filtro.
+
+## Decisão
+
+1. **Destino próprio**, em `/playsets`, **entre Binders e Decks** na gaveta. A
+   gaveta não tem teto de itens desde a decisão 081.
+2. **O universo é o catálogo**: todas as cartas que contam playset, inclusive as
+   que a pessoa não tem. Medido em 25/11: **2.816 cartas** — 2.325 Character,
+   438 Event, 53 Stage. `Leader` e `DON!!` nunca contam (regra 2.1 e decisão
+   112).
+3. **A porta é uma lista de coleções**, cada uma com "X de Y playsets". Escolha
+   do dono do produto, e não só arranjo de tela: sem recorte, "faltam" seria uma
+   lista de milhares de linhas que não responde nada. Por coleção são algumas
+   centenas — e é também o que mantém a consulta barata.
+4. **Os recortes saem da coleção.** As abas Todas / Playsets / Faltam e o atalho
+   para a tela 19 deixam `/colecao`. Dois "Faltam" com contas diferentes, um
+   sobre a coleção e outro sobre o catálogo, seria o pior resultado possível.
+5. **Os filtros são os da carta**: set, cor, tipo, custo, poder, atributo,
+   trait, mecânica e contador. **Não** raridade nem tipo de arte — ver abaixo.
+6. **A linha avisa quando conta arte paralela**, como a conferência do deck já
+   faz (decisão 095, item 4a).
+7. **Premium (decisão 093), com a aba à vista.** O Free vê "Playsets" na gaveta
+   e, ao entrar, encontra o convite em vez de uma porta fechada. É o lugar onde
+   o Premium interessa; esconder a aba esconderia que ela existe.
+8. **A regra do playset não muda.** Continua binária por carta, somando todas as
+   artes, sem `Leader` (`business-rules.md` 2.1).
+
+## O que muda na decisão 093
+
+A 093 lista, por escrito, como entrega do Premium: "os números do cabeçalho, as
+abas **Playsets** e **Faltam**, a lista de playsets (`/colecao/playsets`) e a
+marca 'Playset' na carta".
+
+Duas dessas quatro deixam de existir onde estavam:
+
+- **As abas saem** da coleção.
+- **`/colecao/playsets` vira `/playsets`**, e o endereço antigo redireciona.
+
+As outras duas ficam: os números do cabeçalho — contagem, e não recorte — e a
+marca "Playset" na carta da coleção. **Nada sai do Premium**: o que muda é onde
+mora, não quem paga.
+
+## Por que raridade e tipo de arte não são filtros aqui
+
+Foi a dúvida que mais custou pensar, e é conceitual.
+
+Playset conta **a carta**, somando todas as artes. Raridade e tipo de arte são
+propriedades da **variante**. Filtrando "arte paralela", uma linha `2/4` poderia
+ser duas cópias Normal: a tela diria estar mostrando arte paralela e o número
+seria de outra coisa.
+
+Havia três saídas, e o dono do produto escolheu a primeira:
+
+1. **Oferecer só os filtros da carta.** Painel menor que o da coleção, e todo
+   número honesto.
+2. Aceitar os dois e passar a contar só a arte filtrada — o que seria uma
+   **segunda definição** de playset, divergindo da regra 2.1.
+3. Aceitar os dois para escolher as linhas e ignorá-los na conta — o mais fácil
+   de ler errado.
+
+Os outros filtros ficam porque o problema não é deles: cor, tipo, custo, poder,
+atributo, trait, mecânica e contador são todos da carta.
+
+**A limpeza está no caso de uso, e não só na tela** (`semFiltroDeArte`), pelo
+mesmo motivo que o Premium é recusado no caso de uso: esconder o filtro e
+continuar respondendo a ele seria trava de fachada para quem monta o endereço à
+mão.
+
+## O aviso de arte paralela
+
+Pedido do dono do produto: contar as paralelas, como a regra manda, **e avisar**
+quando alguma estiver sendo contada. Quem fecha playset muitas vezes quer quatro
+iguais, e um `4/4` com uma paralela aparecia só como "completo".
+
+O precedente é a **decisão 095, item 4a**: na conferência do deck, a linha diz
+quantas das cópias que contaram são de outra arte. Mesmas palavras e mesma cor
+que `transfer-deck-sheet.tsx` já usava.
+
+**A diferença é a referência.** Na conferência do deck a pessoa escolheu uma
+arte, e "outra" quer dizer "diferente da escolhida". Num playset não existe arte
+escolhida — a linha é a carta. Então a referência é a **Normal**, que é uma das
+duas únicas classificações que o catálogo afirma (decisão 023).
+
+**Não há resguardo para carta sem Normal.** Uma carta que só existisse em arte
+paralela avisaria em 100% das linhas, e o aviso viraria ruído. Medido em 25/11:
+das 2.816 cartas que contam playset, **nenhuma** está nesse caso. Escrever a
+guarda seria código que nunca roda.
+
+## Duas armadilhas que a implementação obrigou a resolver
+
+**A soma atravessa sets, e o filtro não.** O filtro de set escolhe **quais
+cartas** aparecem; as cópias vêm de **todas** as artes da carta, impressas onde
+for. Uma arte paralela que saiu só em OP-09 conta no playset de uma carta
+reimpressa em OP-18 (regra 2.1). Escopar a segunda consulta pelo set pedido
+daria um número menor que a regra, e a tela não teria como avisar — ela diria
+que falta uma cópia que a pessoa tem. Há um teste de integração só para isso.
+
+**O total não é a soma das coleções.** Uma carta reimpressa pertence a dois sets
+e conta nos dois; somar os "X de Y" de cada coleção passaria do que o catálogo
+tem. O total vem contado sobre cartas **distintas**, no caso de uso, em vez de a
+tela somar a lista.
+
+## A coleção dos DON!! não aparece, e não há caso especial para isso
+
+Toda carta dela é do tipo `DON`, que nunca conta playset (decisão 112): o set
+termina sem nenhuma carta no universo e o caso de uso não o devolve. Um `if` com
+o código do set escrito à mão envelheceria no dia em que outro set assim
+existisse.
+
+## É lista, e não grade
+
+A coleção mostra uma grade de artes, porque lá a pergunta é "o que eu tenho".
+Aqui a pergunta é "quanto falta", e a resposta é um número por linha: numa grade
+ele seria um selo em cima da arte, e a leitura de vinte cartas seguidas viraria
+vinte paradas. A lista põe o número, a barra e o aviso na mesma linha do nome, e
+diz **"faltam 2"** em vez de repetir `2/4` — o número que se leva para a loja é
+o que falta.
+
+## Sem paginação
+
+A maior coleção tem algumas centenas de cartas, e elas chegam inteiras: os
+recortes Todos / Completos / Faltam e a busca respondem na tecla. Mesma escolha
+da lista de sets do catálogo, pelo mesmo motivo.
+
+## O modelo de dados não muda
+
+Nenhuma tabela e nenhuma coluna. As duas consultas novas usam
+`variant_printings`, `cards`, `card_variants` e `collection_items` como estão.
+
+## Data
+
+2026-11-25

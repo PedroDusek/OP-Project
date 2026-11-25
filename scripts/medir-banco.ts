@@ -7,10 +7,13 @@ import { searchCatalog } from '@/server/application/catalog/search-cards'
 import { readCollectionDashboard } from '@/server/application/collection/dashboard'
 import {
   getCollectionSummary,
-  listPlaysets,
   readDashboard,
   searchCollection,
 } from '@/server/application/collection/read-collection'
+import {
+  listPlaysetSets,
+  searchPlaysets,
+} from '@/server/application/collection/read-playsets'
 import { listNetwork } from '@/server/application/social/network'
 import { listStorageLocations } from '@/server/application/storage/read-locations'
 import { listWants } from '@/server/application/wants/read-wants'
@@ -77,7 +80,17 @@ async function main(): Promise<void> {
   await medir('Início: contagens', () => readDashboard(prisma, viewer))
   await medir('Minha Coleção: cabeçalho', () => getCollectionSummary(prisma, viewer))
   await medir('Minha Coleção: primeira página', () => searchCollection(prisma, viewer, { page: 1 }))
-  await medir('Minha Coleção: playsets', () => listPlaysets(prisma, viewer))
+  /*
+   * Playsets virou destino proprio na decisao 114, com o universo do catalogo.
+   * As duas consultas sao as que mais merecem olho aqui: o indice agrega os
+   * ~4.900 pares (carta, set) de `variant_printings`, e a tela de uma colecao
+   * faz duas idas — uma para escolher as cartas, outra para as copias.
+   */
+  await medir('Playsets: as colecoes', () => listPlaysetSets(prisma, viewer))
+  const primeiroSet = (await listSets(prisma))[0]?.code
+  if (primeiroSet) {
+    await medir(`Playsets: ${primeiroSet}`, () => searchPlaysets(prisma, viewer, primeiroSet))
+  }
   await medir('Catálogo: primeira página', () => searchCatalog(prisma, { page: 1, pageSize: 24 }))
   await medir('Catálogo: sets', () => listSets(prisma))
   await medir('Want list', () => listWants(prisma, viewer))

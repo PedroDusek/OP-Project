@@ -35,6 +35,21 @@ describe('activeDestination', () => {
   })
 })
 
+describe('a ordem dos destinos', () => {
+  /**
+   * O lugar de Playsets foi pedido assim pelo dono do produto na decisão 114:
+   * entre Binders e Decks. Ele vivia dentro da coleção, e a ordem da gaveta é
+   * escolha de produto — um destino novo acrescentado no fim mudaria isso sem
+   * ninguém notar.
+   */
+  it('Playsets fica entre Binders e Decks', () => {
+    const rotas = DESTINATIONS.map((destination) => destination.href)
+
+    expect(rotas.indexOf('/playsets')).toBe(rotas.indexOf('/binders') + 1)
+    expect(rotas.indexOf('/deck')).toBe(rotas.indexOf('/playsets') + 1)
+  })
+})
+
 describe('NavDrawer', () => {
   /**
    * A gaveta e o que destravou passar de cinco destinos: a barra inferior

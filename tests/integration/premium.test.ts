@@ -1,7 +1,11 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { AuthenticatedUser } from '@/server/application/auth'
 import { PREMIUM_REQUIRED } from '@/server/application/authorization'
-import { listPlaysets, readDashboard } from '@/server/application/collection/read-collection'
+import { readDashboard } from '@/server/application/collection/read-collection'
+import {
+  listPlaysetSets,
+  searchPlaysets,
+} from '@/server/application/collection/read-playsets'
 import { publishTradeBinder, readPublicTradeBinder } from '@/server/application/trades/public-binder'
 import { acceptInvite, inviteMember, joinTrade, startTrade } from '@/server/application/trades/start-trade'
 import { startConversation } from '@/server/application/social/conversations'
@@ -145,15 +149,32 @@ describe('o Início', () => {
     expect(doPremium.catalogVariants).toBeGreaterThan(0)
   })
 
-  it('a lista de playsets é Premium', async () => {
+  /*
+   * Eram as abas e a tela 19, dentro da colecao. Desde a decisao 114 playset
+   * e destino proprio, com dois casos de uso — e os **dois** recusam o Free,
+   * e nao so a tela. A aba continua aparecendo na gaveta: quem entra encontra
+   * o convite, que e divulgacao do Premium no lugar onde ela interessa.
+   */
+  it('os playsets são Premium, nos dois casos de uso', async () => {
     const free = await pessoa('Free', 'free')
     const premium = await pessoa('Premium', 'premium', { plan: 'PREMIUM', premiumUntil: AMANHA })
-    const { variant } = await createCardWithVariant()
+
+    const db = testPrisma()
+    const set = await db.set.create({ data: { code: 'OP01', name: 'OP01' } })
+    const { variant } = await createCardWithVariant('Character', 'OP01-001')
+    await db.variantPrinting.create({ data: { cardVariantId: variant.id, setId: set.id } })
     await own(free.collectionId, variant.id, 4)
     await own(premium.collectionId, variant.id, 4)
 
-    await expect(listPlaysets(testPrisma(), free)).rejects.toMatchObject({ code: PREMIUM_REQUIRED })
-    expect(await listPlaysets(testPrisma(), premium)).toMatchObject([{ closed: true }])
+    await expect(listPlaysetSets(db, free)).rejects.toMatchObject({
+      code: PREMIUM_REQUIRED,
+    })
+    await expect(searchPlaysets(db, free, 'OP01')).rejects.toMatchObject({
+      code: PREMIUM_REQUIRED,
+    })
+
+    expect(await listPlaysetSets(db, premium)).toMatchObject({ total: 1, closed: 1 })
+    expect(await searchPlaysets(db, premium, 'OP01')).toMatchObject([{ closed: true }])
   })
 
   it('coleção vazia não quebra em nenhum dos planos', async () => {

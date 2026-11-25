@@ -96,26 +96,30 @@ describe('GET /api/colecao', () => {
     expect(pagina.items.every((item) => item.cardCode.startsWith('MI'))).toBe(true)
   })
 
-  /*
-   * Decisão 093: o recorte das abas é análise da coleção, e análise é Premium.
-   * Para o Free ele cai em "todas" — esconder a aba e continuar respondendo ao
-   * parâmetro seria trava de fachada.
+  /**
+   * **A regra mudou em 25/11 (decisão 114).** Este teste verificava que o
+   * recorte `scope` era Premium e caía em "todas" para o Free — ele
+   * alimentava as abas Todas / Playsets / Faltam de Minha Coleção.
+   *
+   * As abas saíram: playset virou destino próprio, com o universo do
+   * catálogo. O parâmetro deixou de existir, e o schema é `.strict()`, então
+   * um endereço antigo é **recusado** em vez de ignorado em silêncio — que é
+   * o que este teste passa a guardar.
+   *
+   * O Premium dos playsets agora é verificado em
+   * `tests/integration/premium.test.ts`, nos dois casos de uso novos.
    */
-  it('o recorte só vale para Premium', async () => {
+  it('o recorte não existe mais, e é recusado', async () => {
     const dona = await comCartas(6, 'PL')
     await testPrisma().user.update({ where: { id: dona.id }, data: { authUserId: 'auth-dona' } })
     identity = { authUserId: 'auth-dona', email: dona.email, name: 'Colecionadora' }
 
-    const free = await ler(await colecao(new Request(url('?scope=playsets')), undefined))
-    expect(free.total).toBe(6)
+    const resposta = await colecao(new Request(url('?scope=playsets')), undefined)
+    expect(resposta.status).toBe(400)
 
-    await testPrisma().user.update({
-      where: { id: dona.id },
-      data: { plan: 'PREMIUM', premiumUntil: new Date('2046-01-01') },
-    })
-    const premium = await ler(await colecao(new Request(url('?scope=playsets')), undefined))
-    // Só as quatro primeiras cartas foram criadas com 4 cópias.
-    expect(premium.total).toBe(4)
+    // E a busca sem recorte continua trazendo a coleção inteira.
+    const todas = await ler(await colecao(new Request(url('')), undefined))
+    expect(todas.total).toBe(6)
   })
 
   it('recusa parâmetro desconhecido, como o catálogo', async () => {

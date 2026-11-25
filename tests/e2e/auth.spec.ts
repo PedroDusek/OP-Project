@@ -90,6 +90,8 @@ test.describe('rota protegida', () => {
       '/colecao',
       '/catalogo',
       '/binders',
+      // Destino proprio desde a decisao 114.
+      '/playsets',
       '/quero',
       '/trocas',
       '/social',

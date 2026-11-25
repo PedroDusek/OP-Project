@@ -51,7 +51,7 @@ existe comando de reset para produção, de propósito.
 ## O que está pronto
 
 **Checkpoints 0 a 13 concluídos, a Social, os Decks, o dashboard da coleção, o
-DON!! e as artes guardadas por nós.** 1.865 testes de unidade, integração e
+DON!! e as artes guardadas por nós.** 1.932 testes de unidade, integração e
 componente, mais 36 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -208,7 +208,8 @@ cada ida custa ~4 ms contra São Paulo, e é a multiplicação que mata.
 | Want list | 7 |
 | Catálogo, primeira página | 6 |
 | Início (contagens) e Minha Coleção (cabeçalho) | 5 |
-| Playsets | 4 |
+| Playsets: o índice das coleções | 7 |
+| Playsets: uma coleção | 6 |
 | Binders | 2 |
 | Sets | 1 |
 
@@ -1339,6 +1340,11 @@ de uma troca têm arte sem gesto e poderiam ganhar o mesmo link. **Playsets não
 entra sem decisão**: a linha é por carta, contando todas as artes, e não existe
 "a" variante para onde ir.
 
+> **O impedimento técnico caiu em 25/11** (decisão 114): a linha de playset
+> agora escolhe a arte **Normal** para exibir, e ela é um destino natural. O
+> link continua esperando decisão do dono do produto — ver "Playsets virou aba",
+> mais abaixo.
+
 Testes: `tests/components/deck-builder.test.tsx` (o link direto e o nome
 acessível) e `tests/components/storage-ui.test.tsx` (o link no painel do
 binder, e a ausência dele dentro da carta).
@@ -1781,6 +1787,125 @@ muda.
 `npm run dev` mostra só o **baixar**: `navigator.share` não existe fora de
 contexto seguro (armadilha 48). Para ver o botão de compartilhar, `npm run
 dev:https` ou o site publicado.
+
+## Playsets virou aba, e passou a mostrar o zero (25/11)
+
+Pedido do dono do produto: tirar playsets de dentro da coleção, pôr **entre
+Binders e Decks**, e exibir de `0/4` até `4/4` — para que, clicando em "faltam",
+a pessoa veja também as cartas em zero e saiba quais playsets fechar **de acordo
+com cada filtro**. É a decisão 114, e ela **muda a 093**.
+
+### A pergunta mudou, e é a diferença inteira
+
+Playset era leitura da **coleção**: a consulta saía de `collection_items`, e por
+isso a tela nunca pôde mostrar `0/4` — ela só conhecia as cartas que a pessoa
+tinha. O menor valor possível era `1/4`.
+
+| | Pergunta |
+|---|---|
+| Até 23/11 | "Das minhas cartas, quais fecharam quatro?" |
+| Daqui | "De **todas as cartas que existem**, quais eu fechei?" |
+
+Por isso é um caso de uso novo (`application/collection/read-playsets.ts`), e
+não um parâmetro em `searchCollection`: inverter o lado de onde a consulta parte
+não é um filtro.
+
+### A forma
+
+| | |
+|---|---|
+| `/playsets` | as 63 coleções, cada uma com "X de Y playsets" |
+| `/playsets/OP18` | a lista de cartas, com **Todos · Completos · Faltam** |
+| O universo | **2.816 cartas** (2.325 Character, 438 Event, 53 Stage) |
+| Os filtros | set, cor, tipo, custo, poder, atributo, trait, mecânica, contador |
+| Em cada linha | `N/4`, a barra, **"faltam 2"**, e o aviso de arte paralela |
+
+**A porta é a lista de coleções, e isso foi escolha, não arranjo.** Sem recorte,
+"faltam" seria uma lista de milhares de linhas que não responde nada. Por
+coleção são algumas centenas — e é também o que mantém a consulta barata.
+
+**Medido em 25/11** com `scripts/medir-banco.ts`: o índice custa **7 consultas,
+68 ms local**, e uma coleção, **6 consultas, 12 ms**. O índice é a mais cara das
+duas porque agrega os ~4.900 pares (carta, set) de `variant_printings` — ainda
+assim fica abaixo do catálogo (96 ms) e do Início (295 ms).
+
+### Por que raridade e tipo de arte não são filtros aqui
+
+Foi a dúvida que mais custou pensar. Playset conta **a carta**, somando todas as
+artes; raridade e tipo de arte são propriedades da **variante**. Filtrando "arte
+paralela", um `2/4` poderia ser duas cópias Normal — a tela diria estar
+mostrando arte paralela e o número seria de outra coisa.
+
+O dono do produto escolheu oferecer só os filtros da carta. Os outros ficam
+porque o problema não é deles: cor, tipo, custo, poder, atributo, trait,
+mecânica e contador são todos da carta.
+
+**A limpeza está no caso de uso** (`semFiltroDeArte`), e não só na tela, pelo
+mesmo motivo que o Premium é recusado no caso de uso: esconder o filtro e
+continuar respondendo a ele seria trava de fachada.
+
+### O aviso de arte paralela
+
+As paralelas **contam**, como a regra manda, **e a linha avisa** quantas das
+cópias contadas são de outra arte — um `4/4` com uma paralela aparecia só como
+"completo", e quem fecha playset muitas vezes quer quatro iguais.
+
+O precedente é a **decisão 095, item 4a**, e as palavras e a cor são as mesmas
+que `transfer-deck-sheet.tsx` já usava. A diferença é a referência: na
+conferência do deck a pessoa escolheu uma arte; num playset não existe arte
+escolhida, então a referência é a **Normal**.
+
+**Não há resguardo para carta sem Normal**, e isso foi medido: das 2.816 cartas
+que contam playset, **nenhuma** existe só em arte paralela. A guarda seria código
+que nunca roda.
+
+### Duas armadilhas que a implementação obrigou a resolver
+
+**A soma atravessa sets, e o filtro não.** O filtro de set escolhe **quais
+cartas** aparecem; as cópias vêm de todas as artes da carta, impressas onde for.
+Uma arte paralela que saiu só em OP-09 conta no playset de uma carta reimpressa
+em OP-18. Escopar a segunda consulta pelo set pedido daria um número menor que a
+regra — a tela diria que falta uma cópia que a pessoa tem. Há um teste de
+integração só para isso.
+
+**O total não é a soma das coleções.** Uma carta reimpressa pertence a dois sets
+e conta nos dois; somar os "X de Y" passaria do que o catálogo tem. O total vem
+contado sobre cartas **distintas**, no caso de uso.
+
+### O que saiu da coleção, e o que ficou
+
+Saíram as abas **Todas / Playsets / Faltam**, o atalho em painel, e com eles o
+`scope` da busca, do schema e de `/api/colecao` — duas consultas que a tela
+fazia em paralelo só para contar as abas. `/colecao/playsets` redireciona para
+`/playsets` (307, e não 308: um 308 fica guardado no navegador e desfazê-lo não
+está nas nossas mãos).
+
+Ficaram os **números do cabeçalho** — contagem, e não recorte — e a marca
+"Playset" na carta. **Nada saiu do Premium**: mudou onde mora, não quem paga. A
+aba aparece na gaveta para o Free, e quem entra encontra o convite, que é
+divulgação do Premium no lugar onde ela interessa.
+
+### Uma coisa que ficou como estava, e vale o seu olho
+
+Com oito cópias a linha mostra **`8/4`**. É o comportamento que a tela 19 já
+tinha, e é honesto — diz que há quatro sobrando, que é o que se leva para a
+troca. Mas numa tela que o dono do produto descreveu como "de 0/4 até 4/4", ele
+destoa. Trocar para `4/4` esconderia as sobras; é decisão de produto, e está
+esperando.
+
+### O que **não** entrou, e continua esperando decisão
+
+**A arte não leva ao catálogo.** O handoff registrava que "Playsets não entra sem
+decisão: a linha é por carta, contando todas as artes, e não existe 'a' variante
+para onde ir". O impedimento técnico deixou de existir — a linha agora escolhe a
+arte **Normal** para exibir, e ela é um destino natural. Mas o link continua
+sendo decisão do dono do produto, e sem ele uma linha `0/4` é um beco: a pessoa
+descobre o que falta e precisa procurar a carta no catálogo pelo código.
+
+### O modelo de dados não muda
+
+Nenhuma tabela e nenhuma coluna. As consultas novas usam `variant_printings`,
+`cards`, `card_variants` e `collection_items` como estão.
 
 ## Onde a troca está hoje
 

@@ -6,6 +6,7 @@ import {
   Layers,
   MessageCircle,
   Search,
+  Star,
   Swords,
   UserRound,
   Users,
@@ -27,7 +28,8 @@ import {
  *
  * Com a gaveta, Trocas voltou para a navegacao e Want list e Social entraram —
  * escolha do dono do produto, que muda a decisao 044. Conversas entrou com a
- * decisao 081.
+ * decisao 081, e Playsets com a decisao 114 — ele vivia dentro da colecao, e o
+ * lugar dele e entre Binders e Decks, que foi onde o dono do produto o pediu.
  *
  * ## A conta fica separada
  *
@@ -72,6 +74,13 @@ export const DESTINATIONS: Destination[] = [
     label: 'Binders',
     icon: BookOpen,
     description: 'Seus binders e caixas: criar, editar e ver o que está em cada um.',
+  },
+  {
+    href: '/playsets',
+    label: 'Playsets',
+    icon: Star,
+    description:
+      'Quanto falta para fechar quatro cópias de cada carta, coleção por coleção.',
   },
   {
     href: '/deck',

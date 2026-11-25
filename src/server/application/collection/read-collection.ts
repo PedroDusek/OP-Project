@@ -10,7 +10,7 @@ import {
 } from '@/server/domain/catalog/order'
 import { buildCatalogWhere, type CatalogFilters } from '@/server/application/catalog/search-cards'
 import type { AuthenticatedUser } from '@/server/application/auth'
-import { assertPremium, isPremium } from '@/server/application/authorization'
+import { isPremium } from '@/server/application/authorization'
 
 /**
  * Leitura da colecao.
@@ -132,8 +132,6 @@ export async function getCollectionSummary(
 export interface CollectionQuery extends CatalogFilters {
   page?: number
   pageSize?: number
-  /** `playsets` traz só cartas fechadas; `incomplete`, só as que faltam. */
-  scope?: 'all' | 'playsets' | 'incomplete'
   /** A ordem escolhida, a mesma do catálogo (decisão 110). */
   sort?: CatalogSort
 }
@@ -208,12 +206,17 @@ export async function searchCollection(
     }
   })
 
-  const scoped =
-    query.scope === 'playsets'
-      ? views.filter((view) => view.playsetClosed)
-      : query.scope === 'incomplete'
-        ? views.filter((view) => !view.playsetClosed && view.cardType !== 'Leader')
-        : views
+  /*
+   * Nao ha mais recorte aqui.
+   *
+   * A colecao tinha as abas Todas / Playsets / Faltam, e elas sairam na
+   * decisao 114: playset virou destino proprio, com o universo do catalogo e
+   * o `0/4`. Dois "Faltam" com contas diferentes seria o pior resultado.
+   *
+   * `playsetClosed` continua em cada item: e a marca "Playset" na carta, que
+   * e outra coisa e continua Premium (decisao 093).
+   */
+  const scoped = views
 
   /*
    * A mesma cadeia do catálogo: a ordem escolhida primeiro, a do catálogo como
@@ -259,75 +262,6 @@ async function quantityPerCard(
     perCard.set(key, (perCard.get(key) ?? 0) + row.quantity)
   }
   return perCard
-}
-
-export interface PlaysetRow {
-  cardCode: string
-  cardName: string
-  cardType: string
-  imageUrl: string | null
-  quantity: number
-  closed: boolean
-}
-
-/**
- * Playsets, por **codigo de carta**.
- *
- * A tela 19 lista cartas, e nao variantes: e a carta que fecha ou nao fecha um
- * playset. `Leader` fica de fora inteiro, porque nunca conta.
- */
-export async function listPlaysets(
-  prisma: PrismaClient,
-  user: AuthenticatedUser,
-): Promise<PlaysetRow[]> {
-  // Decisao 093: a analise da colecao e Premium. A tela ja esconde o caminho;
-  // isto recusa quem monta o endereco a mao.
-  assertPremium(user, 'A lista de playsets é um recurso Premium.')
-
-  const collectionId = await collectionIdOf(prisma, user)
-  if (!collectionId) return []
-
-  const rows = await prisma.collectionItem.findMany({
-    where: { collectionId, quantity: { gt: 0 }, cardVariant: { card: { type: { not: 'Leader' } } } },
-    select: {
-      quantity: true,
-      cardVariant: {
-        select: {
-          imageUrl: true,
-          card: { select: { id: true, code: true, name: true, type: true } },
-        },
-      },
-    },
-  })
-
-  const perCard = new Map<string, PlaysetRow>()
-  for (const row of rows) {
-    const card = row.cardVariant.card
-    const key = String(card.id)
-    const existing = perCard.get(key)
-
-    if (existing) {
-      existing.quantity += row.quantity
-      existing.imageUrl ??= row.cardVariant.imageUrl
-    } else {
-      perCard.set(key, {
-        cardCode: card.code,
-        cardName: card.name,
-        cardType: card.type,
-        imageUrl: row.cardVariant.imageUrl,
-        quantity: row.quantity,
-        closed: false,
-      })
-    }
-  }
-
-  const playsets = [...perCard.values()].map((row) => ({
-    ...row,
-    closed: row.quantity >= PLAYSET_SIZE,
-  }))
-
-  playsets.sort((a, b) => (a.cardCode < b.cardCode ? -1 : a.cardCode > b.cardCode ? 1 : 0))
-  return playsets
 }
 
 export interface Dashboard {

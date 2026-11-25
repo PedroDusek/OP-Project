@@ -265,7 +265,9 @@ export async function bulkAddAction(
     revalidatePath(`/binders/${storageLocationId}`)
     revalidatePath(`/binders/${storageLocationId}/cartas`)
     revalidatePath('/colecao')
-    revalidatePath('/colecao/playsets')
+    revalidatePath('/playsets')
+    // A tela de uma colecao e dinamica: sem o segundo argumento ela fica fora.
+    revalidatePath('/playsets/[code]', 'page')
     revalidatePath('/inicio')
 
     return { status: 'added', cards: result.cards, copies: result.copies }

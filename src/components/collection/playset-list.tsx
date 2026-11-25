@@ -9,11 +9,25 @@ import { Segmented } from '@/components/ui/segmented'
 import { EmptyState } from '@/components/ui/states'
 import { Panel } from '@/components/ui/surface'
 import { PLAYSET_SIZE } from '@/server/domain/collection/counting'
-import type { PlaysetRow } from '@/server/application/collection'
+import { missingCopies } from '@/server/domain/collection/playsets'
+import type { PlaysetCardRow } from '@/server/application/collection'
 import { cn } from '@/lib/cn'
 
 /**
- * Playsets (tela 19).
+ * Os playsets de uma coleção, **inclusive os que estão em zero** (decisão 114).
+ *
+ * Até 23/11 esta lista era a tela 19 e saía da coleção: ela só conhecia as
+ * cartas que a pessoa tinha, e o menor valor possível era `1/4`. Agora o
+ * universo é o catálogo, e o `0/4` é o que a tela existe para mostrar — é
+ * olhando para ele que se sabe qual playset fechar.
+ *
+ * ## É lista, e não grade
+ *
+ * A coleção mostra uma grade de artes, porque lá a pergunta é "o que eu tenho".
+ * Aqui a pergunta é "quanto falta", e a resposta é um número por linha: numa
+ * grade ele seria um selo em cima da arte, do tamanho de um selo, e a leitura
+ * de vinte cartas seguidas viraria vinte paradas. A lista põe o número, a barra
+ * e o aviso na mesma linha do nome.
  *
  * A barra usa `value` e `total` em vez de porcentagem: o leitor de tela anuncia
  * "3 de 4", que é a informação — e uma carta a que faltam duas cópias não deve
@@ -23,7 +37,7 @@ import { cn } from '@/lib/cn'
  * (`business-rules.md` 2.1), e uma barra em 250% diria que existe algo a mais
  * para alcançar.
  */
-export function PlaysetList({ rows }: { rows: PlaysetRow[] }) {
+export function PlaysetList({ rows }: { rows: PlaysetCardRow[] }) {
   const [scope, setScope] = useState<'all' | 'closed' | 'open'>('all')
   const [term, setTerm] = useState('')
 
@@ -57,7 +71,7 @@ export function PlaysetList({ rows }: { rows: PlaysetRow[] }) {
         options={[
           { value: 'all', label: 'Todos', count: counts.all },
           { value: 'closed', label: 'Completos', count: counts.closed },
-          { value: 'open', label: 'Incompletos', count: counts.open },
+          { value: 'open', label: 'Faltam', count: counts.open },
         ]}
       />
 
@@ -69,7 +83,7 @@ export function PlaysetList({ rows }: { rows: PlaysetRow[] }) {
       />
 
       {matches.length === 0 ? (
-        <EmptyState title="Nada neste recorte" description="Ajuste a busca ou a aba." />
+        <EmptyState title="Nada neste recorte" description="Ajuste a busca, os filtros ou a aba." />
       ) : (
         <ul className="flex flex-col gap-2">
           {matches.map((row) => (
@@ -106,10 +120,37 @@ export function PlaysetList({ rows }: { rows: PlaysetRow[] }) {
                     {row.quantity}
                     <span className="text-text-subtle">/{PLAYSET_SIZE}</span>
                   </span>
+
                   {row.closed ? (
                     <span className="flex items-center gap-1 text-xs text-success">
                       <CircleCheck className="size-3.5" aria-hidden />
                       Completo
+                    </span>
+                  ) : (
+                    /*
+                      "Faltam 4" e nao "0/4" de novo: o numero que a pessoa leva
+                      para a loja e o que falta, e ela nao deveria subtrair de
+                      cabeca numa lista de duzentas linhas.
+                    */
+                    <span className="text-xs text-text-muted tabular-nums">
+                      {missingCopies(row.quantity) === 1
+                        ? 'falta 1'
+                        : `faltam ${missingCopies(row.quantity)}`}
+                    </span>
+                  )}
+
+                  {/*
+                    O aviso de arte paralela (decisao 095, item 4a, e agora
+                    tambem aqui). As mesmas palavras e a mesma cor que a
+                    transferencia da decklist ja usa: um 4/4 com uma paralela
+                    aparecia so como "completo", e quem fecha playset muitas
+                    vezes quer quatro iguais.
+                  */}
+                  {row.otherArtCopies > 0 ? (
+                    <span className="text-xs text-warning tabular-nums">
+                      {row.otherArtCopies === 1
+                        ? '1 de outra arte'
+                        : `${row.otherArtCopies} de outra arte`}
                     </span>
                   ) : null}
                 </div>

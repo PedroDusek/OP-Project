@@ -34,7 +34,7 @@ sendo possuída. Alocar em armazenamento nunca altera o que a coleção contém.
 |---|---|
 | **Total de cartas** | `SUM(collection_items.quantity)` na coleção |
 | **Cartas únicas** | quantidade de `card_variant_id` distintos com `quantity > 0` |
-| **Playsets fechados** | ver 2.1 |
+| **Playsets fechados** | ver 2.1; o universo e a tela, em 2.1.1 |
 
 Normal, Alternate Art e Manga são variantes distintas e contam separadamente
 para as únicas.
@@ -52,6 +52,33 @@ contagem nunca é `floor(soma / 4)`.
 
 Cartas do tipo `Leader` nunca contam playset. `DON!!` está fora do catálogo.
 `Character`, `Event` e `Stage` contam.
+
+#### 2.1.1 O universo, e o `0/4` (decisão 114)
+
+A regra acima conta **a carta**, e não a coleção: ela vale igual para uma
+carta que a pessoa não tem — essa carta está em `0/4`.
+
+A tela de playsets (`/playsets`) lê o **catálogo**, e não a coleção: ela mostra
+todas as cartas que contam playset, inclusive as em zero, porque a pergunta é
+"de tudo que existe, o que eu já fechei". Medido em 25/11: **2.816 cartas** no
+universo — 2.325 `Character`, 438 `Event` e 53 `Stage`.
+
+A soma **atravessa sets**. O filtro de coleção escolhe quais cartas aparecem; as
+cópias vêm de todas as artes da carta, impressas onde for. Uma arte paralela que
+saiu só em OP-09 conta no playset de uma carta reimpressa em OP-18.
+
+**Raridade e tipo de arte não filtram playset.** Os dois são propriedades da
+variante, e a linha soma todas as artes: filtrando "arte paralela", um `2/4`
+poderia ser duas cópias Normal. Os filtros da carta — set, cor, tipo, custo,
+poder, atributo, trait, mecânica e contador — valem.
+
+#### 2.1.2 Cópias de arte paralela são avisadas
+
+As paralelas **contam**, como a regra manda. A linha diz quantas das cópias que
+contaram são de arte paralela, como na conferência do deck (7, decisão 095): um
+`4/4` com uma paralela aparecia só como "completo", e quem fecha playset muitas
+vezes quer quatro iguais. A referência é a arte **Normal** — num playset não
+existe arte escolhida, porque a linha é a carta.
 
 ### 2.2 Progresso
 
@@ -599,10 +626,15 @@ Stripe, com cartão ou Pix.
 2. **Começar uma troca**, pelo link ou pelo convite direto (4.6.1).
 3. **A análise da coleção**, onde aparecer: no Início (o dashboard da decisão
    098 — progresso, valor, custo para completar e distribuição, por coleção,
-   raridade e cor) e em Minha Coleção
-   (números do cabeçalho, abas Playsets e Faltam, a lista de playsets e a marca
-   "Playset" na carta), e a contagem de playsets no detalhe do binder. Inclui o
-   progresso (2.2) e, quando existir, o valor estimado.
+   raridade e cor), em Minha Coleção (números do cabeçalho e a marca "Playset"
+   na carta), na aba **Playsets** inteira (2.1.1) e na contagem de playsets do
+   detalhe do binder. Inclui o progresso (2.2) e, quando existir, o valor
+   estimado.
+
+   As **abas Playsets e Faltam de Minha Coleção** saíram na decisão 114, junto
+   com `/colecao/playsets`: playset virou destino próprio, entre Binders e
+   Decks. Nada saiu do Premium — mudou onde mora, não quem paga. A aba aparece
+   na gaveta para o Free, e quem entra encontra o convite.
 4. **Compartilhar a want list** — a folha com o que falta, em imagem ou
    impressa. Montá-la e usá-la como quiser é o recurso; **manter a want list**
    continua no Free.

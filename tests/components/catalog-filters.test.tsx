@@ -264,6 +264,35 @@ describe('traits', () => {
  * E lista suspensa, e nao chips: sao sessenta sets, e "as cartas de OP-09 ou de
  * OP-11" nao e uma pergunta que alguem faca.
  */
+describe('sem os filtros de arte (decisão 114)', () => {
+  /**
+   * Nos playsets a linha é a **carta**, somando todas as artes: raridade e
+   * tipo de arte são da **variante**, e filtrando por arte paralela um `2/4`
+   * poderia ser duas cópias Normal — a linha mentiria.
+   *
+   * Os outros ficam: cor, tipo, custo, poder, atributo, trait, mecânica e
+   * contador são todos da carta.
+   */
+  it('esconde raridade e variante, e mantém o resto', async () => {
+    render(<CatalogFilters vocabulary={VOCABULARY} activeCount={0} hideArtFilters />)
+    await userEvent.click(screen.getByRole('button', { name: /Filtros/ }))
+    const painel = await screen.findByRole('dialog')
+
+    expect(within(painel).queryByText('Raridade')).not.toBeInTheDocument()
+    expect(within(painel).queryByText('Variante')).not.toBeInTheDocument()
+
+    expect(within(painel).getByText('Atributo')).toBeInTheDocument()
+    expect(within(painel).getByText('Cor')).toBeInTheDocument()
+  })
+
+  it('sem a prop, os dois continuam lá', async () => {
+    const painel = await abrir()
+
+    expect(within(painel).getByText('Raridade')).toBeInTheDocument()
+    expect(within(painel).getByText('Variante')).toBeInTheDocument()
+  })
+})
+
 describe('filtro por set', () => {
   /**
    * O Radix so monta as opcoes depois de abrir, e num portal.

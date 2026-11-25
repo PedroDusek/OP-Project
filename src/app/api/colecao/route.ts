@@ -1,9 +1,8 @@
 import { searchCollection } from '@/server/application/collection'
-import { isPremium } from '@/server/application/authorization'
 import { CATALOG_READ_LIMIT, consumeRateLimit } from '@/server/http/rate-limit'
 import { jsonResponse } from '@/server/http/response'
 import { route } from '@/server/http/route'
-import { collectionQuerySchema } from '@/server/http/schemas/catalog'
+import { catalogQuerySchema } from '@/server/http/schemas/catalog'
 import { requireUser } from '@/server/http/session'
 import { parseOrThrow, queryToObject } from '@/server/http/validation'
 
@@ -24,15 +23,15 @@ export const GET = route(async (request: Request) => {
   const user = await requireUser(request)
   consumeRateLimit(`catalog:${user.id}`, CATALOG_READ_LIMIT)
 
-  const query = parseOrThrow(collectionQuerySchema, queryToObject(new URL(request.url)))
+  const query = parseOrThrow(catalogQuerySchema, queryToObject(new URL(request.url)))
 
   /*
-   * O recorte é Premium (decisão 093). Para o Free ele cai em "todas", como na
-   * tela: esconder a aba e continuar respondendo ao parâmetro seria trava de
-   * fachada.
+   * Nao ha recorte aqui desde a decisao 114. Havia `scope`, Premium, que a
+   * rota rebaixava para "todas" no Free; os recortes sairam da colecao e
+   * playset passou a ter destino proprio. O schema e `.strict()`, entao um
+   * endereco antigo com `scope=` e recusado em vez de ignorado em silencio.
    */
-  const scope = isPremium(user) ? query.scope : undefined
-  const result = await searchCollection(user, { ...query, scope })
+  const result = await searchCollection(user, query)
 
   return jsonResponse({
     ...result,

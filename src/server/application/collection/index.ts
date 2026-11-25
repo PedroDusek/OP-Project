@@ -3,10 +3,14 @@ import type { AuthenticatedUser } from '@/server/application/auth'
 import {
   getCollectionSummary as getCollectionSummaryWith,
   readDashboard as readDashboardWith,
-  listPlaysets as listPlaysetsWith,
   searchCollection as searchCollectionWith,
   type CollectionQuery,
 } from './read-collection'
+import {
+  listPlaysetSets as listPlaysetSetsWith,
+  searchPlaysets as searchPlaysetsWith,
+  type PlaysetQuery,
+} from './read-playsets'
 import {
   readCollectionDashboard as readCollectionDashboardWith,
   type DashboardFilterInput,
@@ -40,8 +44,16 @@ export function searchCollection(user: AuthenticatedUser, query: CollectionQuery
   return searchCollectionWith(prisma, user, query)
 }
 
-export function listPlaysets(user: AuthenticatedUser) {
-  return listPlaysetsWith(prisma, user)
+export function listPlaysetSets(user: AuthenticatedUser) {
+  return listPlaysetSetsWith(prisma, user)
+}
+
+export function searchPlaysets(
+  user: AuthenticatedUser,
+  setCode: string,
+  query: PlaysetQuery = {},
+) {
+  return searchPlaysetsWith(prisma, user, setCode, query)
 }
 
 export function setCollectionQuantity(
@@ -53,8 +65,14 @@ export function setCollectionQuantity(
   return setCollectionQuantityWith(prisma, user, cardVariantId, quantity, removals)
 }
 
-export type { CollectionQuery }
-export type { CollectionItemView, CollectionPage, CollectionSummary, PlaysetRow } from './read-collection'
+export type { CollectionQuery, PlaysetQuery }
+export type { CollectionItemView, CollectionPage, CollectionSummary } from './read-collection'
+export type {
+  PlaysetCardRow,
+  PlaysetFilters,
+  PlaysetOverview,
+  PlaysetSetSummary,
+} from './read-playsets'
 export type { AllocationSnapshot, SetQuantityResult } from './set-quantity'
 export { QUANTITY_BELOW_ALLOCATED, RESOLUTION_INVALID } from './set-quantity'
 export type { Removal }

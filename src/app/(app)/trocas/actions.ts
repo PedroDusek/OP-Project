@@ -226,7 +226,9 @@ export async function markExchangeAction(
      */
     if (completed) {
       revalidatePath('/colecao')
-      revalidatePath('/colecao/playsets')
+      revalidatePath('/playsets')
+      // A tela de uma colecao e dinamica: sem o segundo argumento ela fica fora.
+      revalidatePath('/playsets/[code]', 'page')
       revalidatePath('/inicio')
     }
 
