@@ -1,5 +1,6 @@
 import { Crown, Wallet } from 'lucide-react'
 import { CardArt } from '@/components/catalog/card-art'
+import { CardArtLink } from '@/components/catalog/card-art-link'
 import { SetCover } from '@/components/catalog/set-cover'
 import { ProgressBar } from '@/components/ui/progress-bar'
 import { Panel } from '@/components/ui/surface'
@@ -53,9 +54,18 @@ export function CollectionDashboardView({ dashboard }: { dashboard: CollectionDa
               <li key={carta.variantId}>
                 <Panel className="flex items-center gap-3 p-2.5">
                   <span className="w-5 text-center text-sm font-bold text-text-subtle tabular-nums">{i + 1}</span>
-                  <span className="w-10 shrink-0">
-                    <CardArt src={carta.imageUrl} alt={carta.cardName} fallback={carta.cardCode} sizes="40px" />
-                  </span>
+                  {/*
+                    A arte leva à carta (pedido do dono do produto em 11/11). O
+                    resto da linha não é link: o número à direita é o valor, e
+                    uma linha inteira clicável faria o preço parecer o destino.
+                  */}
+                  <CardArtLink
+                    variantId={carta.variantId}
+                    code={carta.cardCode}
+                    imageUrl={carta.imageUrl}
+                    className="w-10"
+                    sizes="40px"
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-text">{carta.cardName}</p>
                     <p className="text-xs text-text-muted tabular-nums">
