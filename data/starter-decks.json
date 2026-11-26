@@ -346,6 +346,266 @@
       ]
     },
     {
+      "deck": "ST-06",
+      "cartas": [
+        {
+          "carta": "ST06-002",
+          "copias": 2
+        },
+        {
+          "carta": "ST06-003",
+          "copias": 4
+        },
+        {
+          "carta": "ST06-004",
+          "copias": 2
+        },
+        {
+          "carta": "ST06-005",
+          "copias": 4
+        },
+        {
+          "carta": "ST06-006",
+          "copias": 4
+        },
+        {
+          "carta": "ST06-007",
+          "copias": 4
+        },
+        {
+          "carta": "ST06-008",
+          "copias": 2
+        },
+        {
+          "carta": "ST06-009",
+          "copias": 4
+        },
+        {
+          "carta": "ST06-010",
+          "copias": 4
+        },
+        {
+          "carta": "ST06-011",
+          "copias": 4
+        },
+        {
+          "carta": "ST06-012",
+          "copias": 2
+        },
+        {
+          "carta": "ST06-013",
+          "copias": 4
+        },
+        {
+          "carta": "ST06-014",
+          "copias": 2
+        },
+        {
+          "carta": "ST06-015",
+          "copias": 2
+        },
+        {
+          "carta": "ST06-016",
+          "copias": 4
+        },
+        {
+          "carta": "ST06-017",
+          "copias": 2
+        }
+      ]
+    },
+    {
+      "deck": "ST-07",
+      "cartas": [
+        {
+          "carta": "ST07-002",
+          "copias": 4
+        },
+        {
+          "carta": "ST07-003",
+          "copias": 2
+        },
+        {
+          "carta": "ST07-004",
+          "copias": 4
+        },
+        {
+          "carta": "ST07-005",
+          "copias": 2
+        },
+        {
+          "carta": "ST07-006",
+          "copias": 4
+        },
+        {
+          "carta": "ST07-007",
+          "copias": 2
+        },
+        {
+          "carta": "ST07-008",
+          "copias": 4
+        },
+        {
+          "carta": "ST07-009",
+          "copias": 2
+        },
+        {
+          "carta": "ST07-010",
+          "copias": 2
+        },
+        {
+          "carta": "ST07-011",
+          "copias": 4
+        },
+        {
+          "carta": "ST07-012",
+          "copias": 4
+        },
+        {
+          "carta": "ST07-013",
+          "copias": 4
+        },
+        {
+          "carta": "ST07-014",
+          "copias": 4
+        },
+        {
+          "carta": "ST07-015",
+          "copias": 4
+        },
+        {
+          "carta": "ST07-016",
+          "copias": 2
+        },
+        {
+          "carta": "ST07-017",
+          "copias": 2
+        }
+      ]
+    },
+    {
+      "deck": "ST-08",
+      "cartas": [
+        {
+          "carta": "ST08-002",
+          "copias": 2
+        },
+        {
+          "carta": "ST08-003",
+          "copias": 4
+        },
+        {
+          "carta": "ST08-004",
+          "copias": 4
+        },
+        {
+          "carta": "ST08-005",
+          "copias": 2
+        },
+        {
+          "carta": "ST08-006",
+          "copias": 4
+        },
+        {
+          "carta": "ST08-007",
+          "copias": 4
+        },
+        {
+          "carta": "ST08-008",
+          "copias": 4
+        },
+        {
+          "carta": "ST08-009",
+          "copias": 4
+        },
+        {
+          "carta": "ST08-010",
+          "copias": 4
+        },
+        {
+          "carta": "ST08-011",
+          "copias": 4
+        },
+        {
+          "carta": "ST08-012",
+          "copias": 4
+        },
+        {
+          "carta": "ST08-013",
+          "copias": 4
+        },
+        {
+          "carta": "ST08-014",
+          "copias": 4
+        },
+        {
+          "carta": "ST08-015",
+          "copias": 2
+        }
+      ]
+    },
+    {
+      "deck": "ST-09",
+      "cartas": [
+        {
+          "carta": "ST09-002",
+          "copias": 4
+        },
+        {
+          "carta": "ST09-003",
+          "copias": 4
+        },
+        {
+          "carta": "ST09-004",
+          "copias": 4
+        },
+        {
+          "carta": "ST09-005",
+          "copias": 2
+        },
+        {
+          "carta": "ST09-006",
+          "copias": 4
+        },
+        {
+          "carta": "ST09-007",
+          "copias": 4
+        },
+        {
+          "carta": "ST09-008",
+          "copias": 4
+        },
+        {
+          "carta": "ST09-009",
+          "copias": 4
+        },
+        {
+          "carta": "ST09-010",
+          "copias": 2
+        },
+        {
+          "carta": "ST09-011",
+          "copias": 4
+        },
+        {
+          "carta": "ST09-012",
+          "copias": 4
+        },
+        {
+          "carta": "ST09-013",
+          "copias": 4
+        },
+        {
+          "carta": "ST09-014",
+          "copias": 2
+        },
+        {
+          "carta": "ST09-015",
+          "copias": 4
+        }
+      ]
+    },
+    {
       "deck": "ST-10",
       "cartas": [
         {
@@ -609,6 +869,372 @@
         },
         {
           "carta": "ST14-017",
+          "copias": 2
+        }
+      ]
+    },
+    {
+      "deck": "ST-15",
+      "cartas": [
+        {
+          "carta": "OP02-008",
+          "copias": 4
+        },
+        {
+          "carta": "OP02-018",
+          "copias": 4
+        },
+        {
+          "carta": "OP02-019",
+          "copias": 4
+        },
+        {
+          "carta": "OP02-023",
+          "copias": 4
+        },
+        {
+          "carta": "OP03-003",
+          "copias": 4
+        },
+        {
+          "carta": "OP03-006",
+          "copias": 4
+        },
+        {
+          "carta": "OP03-007",
+          "copias": 4
+        },
+        {
+          "carta": "OP03-009",
+          "copias": 4
+        },
+        {
+          "carta": "OP03-010",
+          "copias": 4
+        },
+        {
+          "carta": "ST15-001",
+          "copias": 4
+        },
+        {
+          "carta": "ST15-002",
+          "copias": 2
+        },
+        {
+          "carta": "ST15-003",
+          "copias": 4
+        },
+        {
+          "carta": "ST15-004",
+          "copias": 2
+        },
+        {
+          "carta": "ST15-005",
+          "copias": 2
+        }
+      ]
+    },
+    {
+      "deck": "ST-16",
+      "cartas": [
+        {
+          "carta": "P-029",
+          "copias": 4
+        },
+        {
+          "carta": "P-057",
+          "copias": 4
+        },
+        {
+          "carta": "P-058",
+          "copias": 4
+        },
+        {
+          "carta": "P-059",
+          "copias": 4
+        },
+        {
+          "carta": "P-060",
+          "copias": 4
+        },
+        {
+          "carta": "P-061",
+          "copias": 4
+        },
+        {
+          "carta": "ST11-003",
+          "copias": 4
+        },
+        {
+          "carta": "ST11-004",
+          "copias": 4
+        },
+        {
+          "carta": "ST11-005",
+          "copias": 4
+        },
+        {
+          "carta": "ST16-001",
+          "copias": 2
+        },
+        {
+          "carta": "ST16-002",
+          "copias": 4
+        },
+        {
+          "carta": "ST16-003",
+          "copias": 4
+        },
+        {
+          "carta": "ST16-004",
+          "copias": 2
+        },
+        {
+          "carta": "ST16-005",
+          "copias": 2
+        }
+      ]
+    },
+    {
+      "deck": "ST-17",
+      "cartas": [
+        {
+          "carta": "OP01-073",
+          "copias": 4
+        },
+        {
+          "carta": "OP01-086",
+          "copias": 4
+        },
+        {
+          "carta": "OP02-054",
+          "copias": 4
+        },
+        {
+          "carta": "OP02-057",
+          "copias": 4
+        },
+        {
+          "carta": "P-030",
+          "copias": 4
+        },
+        {
+          "carta": "ST03-002",
+          "copias": 4
+        },
+        {
+          "carta": "ST03-004",
+          "copias": 4
+        },
+        {
+          "carta": "ST03-005",
+          "copias": 4
+        },
+        {
+          "carta": "ST03-008",
+          "copias": 4
+        },
+        {
+          "carta": "ST17-001",
+          "copias": 4
+        },
+        {
+          "carta": "ST17-002",
+          "copias": 2
+        },
+        {
+          "carta": "ST17-003",
+          "copias": 2
+        },
+        {
+          "carta": "ST17-004",
+          "copias": 2
+        },
+        {
+          "carta": "ST17-005",
+          "copias": 4
+        }
+      ]
+    },
+    {
+      "deck": "ST-18",
+      "cartas": [
+        {
+          "carta": "OP05-061",
+          "copias": 4
+        },
+        {
+          "carta": "OP05-063",
+          "copias": 4
+        },
+        {
+          "carta": "OP05-066",
+          "copias": 4
+        },
+        {
+          "carta": "OP05-067",
+          "copias": 4
+        },
+        {
+          "carta": "OP05-068",
+          "copias": 4
+        },
+        {
+          "carta": "OP05-070",
+          "copias": 4
+        },
+        {
+          "carta": "OP05-072",
+          "copias": 4
+        },
+        {
+          "carta": "OP05-076",
+          "copias": 4
+        },
+        {
+          "carta": "P-041",
+          "copias": 4
+        },
+        {
+          "carta": "ST18-001",
+          "copias": 2
+        },
+        {
+          "carta": "ST18-002",
+          "copias": 4
+        },
+        {
+          "carta": "ST18-003",
+          "copias": 4
+        },
+        {
+          "carta": "ST18-004",
+          "copias": 2
+        },
+        {
+          "carta": "ST18-005",
+          "copias": 2
+        }
+      ]
+    },
+    {
+      "deck": "ST-19",
+      "cartas": [
+        {
+          "carta": "OP02-098",
+          "copias": 4
+        },
+        {
+          "carta": "OP02-106",
+          "copias": 4
+        },
+        {
+          "carta": "OP02-108",
+          "copias": 4
+        },
+        {
+          "carta": "OP02-109",
+          "copias": 4
+        },
+        {
+          "carta": "OP02-113",
+          "copias": 4
+        },
+        {
+          "carta": "OP02-116",
+          "copias": 4
+        },
+        {
+          "carta": "OP02-117",
+          "copias": 4
+        },
+        {
+          "carta": "OP03-079",
+          "copias": 4
+        },
+        {
+          "carta": "OP03-089",
+          "copias": 4
+        },
+        {
+          "carta": "ST19-001",
+          "copias": 4
+        },
+        {
+          "carta": "ST19-002",
+          "copias": 2
+        },
+        {
+          "carta": "ST19-003",
+          "copias": 2
+        },
+        {
+          "carta": "ST19-004",
+          "copias": 2
+        },
+        {
+          "carta": "ST19-005",
+          "copias": 4
+        }
+      ]
+    },
+    {
+      "deck": "ST-20",
+      "cartas": [
+        {
+          "carta": "OP03-106",
+          "copias": 4
+        },
+        {
+          "carta": "OP03-107",
+          "copias": 4
+        },
+        {
+          "carta": "OP03-110",
+          "copias": 4
+        },
+        {
+          "carta": "OP03-112",
+          "copias": 4
+        },
+        {
+          "carta": "OP03-115",
+          "copias": 4
+        },
+        {
+          "carta": "OP03-118",
+          "copias": 4
+        },
+        {
+          "carta": "OP03-121",
+          "copias": 4
+        },
+        {
+          "carta": "ST07-005",
+          "copias": 4
+        },
+        {
+          "carta": "ST07-014",
+          "copias": 4
+        },
+        {
+          "carta": "ST20-001",
+          "copias": 2
+        },
+        {
+          "carta": "ST20-002",
+          "copias": 4
+        },
+        {
+          "carta": "ST20-003",
+          "copias": 4
+        },
+        {
+          "carta": "ST20-004",
+          "copias": 2
+        },
+        {
+          "carta": "ST20-005",
           "copias": 2
         }
       ]
