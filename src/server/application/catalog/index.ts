@@ -10,6 +10,16 @@ import {
 export { donSetsAvailable } from './don-sets'
 export type { DonSetOption, DonSetRow, DonSetsWorksheet } from './don-sets'
 import {
+  readStarterDecksWorksheet as readStarterDecksWorksheetWith,
+  recordStarterDeck as recordStarterDeckWith,
+} from './starter-decks'
+export { starterDecksAvailable, STARTER_DECK_CARDS } from './starter-decks'
+export type {
+  StarterDeckCardRow,
+  StarterDeckRow,
+  StarterDecksWorksheet,
+} from './starter-decks'
+import {
   readLigaWorksheet as readLigaWorksheetWith,
   readReprintReview as readReprintReviewWith,
   readDuplicateReview as readDuplicateReviewWith,
@@ -61,6 +71,18 @@ export function recordDonSets(arte: string, setCodes: readonly string[]) {
 
 export function applyDonSets() {
   return applyDonSetsWith(prisma)
+}
+
+/** Quantas copias cada starter deck traz, fora de producao (decisao 116). */
+export function readStarterDecksWorksheet() {
+  return readStarterDecksWorksheetWith(prisma)
+}
+
+export function recordStarterDeck(
+  deck: string,
+  cartas: readonly { carta: string; copias: number }[],
+) {
+  return recordStarterDeckWith(prisma, deck, cartas)
 }
 
 export function recordLigaCard(sourceId: string, url: string | null) {

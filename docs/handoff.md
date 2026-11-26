@@ -52,7 +52,7 @@ existe comando de reset para produção, de propósito.
 ## O que está pronto
 
 **Checkpoints 0 a 13 concluídos, a Social, os Decks, o dashboard da coleção, o
-DON!! e as artes guardadas por nós.** 1.967 testes de unidade, integração e
+DON!! e as artes guardadas por nós.** 2.011 testes de unidade, integração e
 componente, mais 36 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -1788,6 +1788,87 @@ muda.
 `npm run dev` mostra só o **baixar**: `navigator.share` não existe fora de
 contexto seguro (armadilha 48). Para ver o botão de compartilhar, `npm run
 dev:https` ou o site publicado.
+
+## A composição dos starter decks (25/11) — **13 decks esperando você**
+
+Pedido do dono do produto: um **"Adicionar ST"** no menu do local, que ponha no
+binder o deck base da caixa com um clique. É a decisão 116.
+
+### O que faltava, e ainda falta
+
+O catálogo sabe **quais** cartas saem em cada ST. Não sabe **quantas de cada** —
+e `variant_printings` tem duas colunas, `cardVariantId` e `setId`. Faltavam uns
+**576 números**.
+
+**Nenhuma fonte legível publica isso.** A Bandai diz o tamanho e as raridades e
+avisa que *"multiples of one card may appear"*, sem nunca dizer qual repete. A
+única fonte que tem (onepieceplayer.com) responde **403** atrás de proteção
+anti-bot — e buscar o mesmo no arquivo da web foi recusado, com razão: é
+contornar a recusa do site.
+
+### A tela
+
+`/dev/starter`, fora de produção, no molde do `/dev/don`. Um deck por vez, com
+arte, código, nome e raridade de cada carta, e **a soma travada em 50**: o botão
+de gravar só acende quando fecha, e o domínio exige o mesmo de quem chamar a
+ação sem a tela.
+
+**Ela aceita colar.** A lista vem de onde a pessoa conseguir, no formato que
+vier — tabela com tabulação, `4x`, markdown com barras. O leitor
+(`domain/catalog/starter-deck-paste.ts`) tem 17 testes, e a armadilha que o fez
+existir está entre eles: `ST02-002` tem um `02` dentro, e pegar o primeiro
+número solto daria 2 cópias de tudo — erro que ainda poderia somar 50 por
+acidente.
+
+### O que medimos sobre as listas trazidas de fora
+
+O dono do produto trouxe **31 listas** de outro assistente. Passadas pelo
+conferidor contra o catálogo:
+
+| | |
+|---|---|
+| Conferem | **18** |
+| Com erro estrutural | **13** |
+
+**O padrão do erro:** o nome certo com o código errado. A lista do ST-15 dizia
+`Speed Jil (OP02-010)`; o ST-15 traz `OP03-006 — Speed Jil`. No ST-23,
+`Bonk Punch` virou `OP01-010` em vez de `OP09-010`. É o erro que ninguém pega
+lendo e que o catálogo pega em um segundo.
+
+**E o que o conferidor não pega:** a distribuição. Um `4x` trocado com um `2x`
+passa inteiro. O verde dele é bom sinal, não é prova — e é por isso que a tela
+põe a arte e o nome ao lado do código, que é o que torna o deslocamento visível.
+
+### Três coisas que nenhuma suposição acertou
+
+1. **Nem todo ST tem 16 cartas.** Varia de **13 a 16**.
+2. **Nem todo ST tem um líder.** O ST-10 e o ST-13 têm **três** — 1 no deck e 2
+   alternativos, como a caixa diz.
+3. **Um ST traz cartas de outras coleções.** O ST-11 traz **dez** da OP-02, o
+   ST-10 traz `OP01-016` e `OP01-025`, e **12 promos** (`P-NNN`) estão impressos
+   em starter decks.
+
+### Onde parou
+
+**23 de 36 decks** na tabela. Faltam estes treze, e quatro são de um erro só:
+
+| Deck | O que falta |
+|---|---|
+| ST-06 | citar `ST06-013` (T-Bone) |
+| ST-07 | citar `ST07-014` (Pekoms) |
+| ST-26 | `ST14-010` não é desse deck |
+| ST-23 | `OP01-010` deveria ser `OP09-010` |
+| ST-08, ST-09 | as cartas estão certas; a soma dá 48 e 46 |
+| ST-15, 16, 17, 18, 19, 20, 35 | códigos trocados em bloco |
+
+**O "Adicionar ST" não entrou neste checkpoint**: sem a tabela cheia ele não
+teria o que adicionar. Está decidido que entra em todo local — binder, caixa e
+deckbox —, com o líder e as 50, sem os DON!! (nenhum está vinculado a um ST).
+
+### Uma divergência anotada, não investigada
+
+No **ST-26** a Bandai conta 15 tipos e o nosso catálogo tem 14. Uma carta a
+menos do nosso lado, descoberta de passagem.
 
 ## O líder de evento selado, e o deck de todas as cores (25/11)
 
