@@ -1378,6 +1378,67 @@
       ]
     },
     {
+      "deck": "ST-23",
+      "cartas": [
+        {
+          "carta": "OP09-006",
+          "copias": 4
+        },
+        {
+          "carta": "OP09-010",
+          "copias": 4
+        },
+        {
+          "carta": "OP09-011",
+          "copias": 4
+        },
+        {
+          "carta": "OP09-012",
+          "copias": 4
+        },
+        {
+          "carta": "OP09-013",
+          "copias": 4
+        },
+        {
+          "carta": "OP09-014",
+          "copias": 4
+        },
+        {
+          "carta": "OP09-015",
+          "copias": 4
+        },
+        {
+          "carta": "OP09-016",
+          "copias": 4
+        },
+        {
+          "carta": "OP09-020",
+          "copias": 4
+        },
+        {
+          "carta": "ST23-001",
+          "copias": 2
+        },
+        {
+          "carta": "ST23-002",
+          "copias": 2
+        },
+        {
+          "carta": "ST23-003",
+          "copias": 2
+        },
+        {
+          "carta": "ST23-004",
+          "copias": 4
+        },
+        {
+          "carta": "ST23-005",
+          "copias": 4
+        }
+      ]
+    },
+    {
       "deck": "ST-24",
       "cartas": [
         {
@@ -1496,6 +1557,67 @@
         {
           "carta": "ST25-005",
           "copias": 4
+        }
+      ]
+    },
+    {
+      "deck": "ST-26",
+      "cartas": [
+        {
+          "carta": "OP05-065",
+          "copias": 4
+        },
+        {
+          "carta": "OP05-066",
+          "copias": 4
+        },
+        {
+          "carta": "OP05-070",
+          "copias": 4
+        },
+        {
+          "carta": "OP09-063",
+          "copias": 4
+        },
+        {
+          "carta": "OP09-070",
+          "copias": 4
+        },
+        {
+          "carta": "OP09-076",
+          "copias": 4
+        },
+        {
+          "carta": "OP09-077",
+          "copias": 4
+        },
+        {
+          "carta": "OP09-078",
+          "copias": 4
+        },
+        {
+          "carta": "ST14-010",
+          "copias": 4
+        },
+        {
+          "carta": "ST26-001",
+          "copias": 4
+        },
+        {
+          "carta": "ST26-002",
+          "copias": 2
+        },
+        {
+          "carta": "ST26-003",
+          "copias": 2
+        },
+        {
+          "carta": "ST26-004",
+          "copias": 4
+        },
+        {
+          "carta": "ST26-005",
+          "copias": 2
         }
       ]
     },
@@ -2000,6 +2122,67 @@
         {
           "carta": "ST34-005",
           "copias": 4
+        }
+      ]
+    },
+    {
+      "deck": "ST-35",
+      "cartas": [
+        {
+          "carta": "OP12-090",
+          "copias": 4
+        },
+        {
+          "carta": "OP12-093",
+          "copias": 4
+        },
+        {
+          "carta": "OP12-098",
+          "copias": 4
+        },
+        {
+          "carta": "OP13-005",
+          "copias": 4
+        },
+        {
+          "carta": "OP13-008",
+          "copias": 4
+        },
+        {
+          "carta": "OP13-017",
+          "copias": 4
+        },
+        {
+          "carta": "OP13-019",
+          "copias": 4
+        },
+        {
+          "carta": "OP13-081",
+          "copias": 4
+        },
+        {
+          "carta": "P-105",
+          "copias": 4
+        },
+        {
+          "carta": "ST35-001",
+          "copias": 4
+        },
+        {
+          "carta": "ST35-002",
+          "copias": 2
+        },
+        {
+          "carta": "ST35-003",
+          "copias": 4
+        },
+        {
+          "carta": "ST35-004",
+          "copias": 2
+        },
+        {
+          "carta": "ST35-005",
+          "copias": 2
         }
       ]
     },
