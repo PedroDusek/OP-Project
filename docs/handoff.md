@@ -52,7 +52,7 @@ existe comando de reset para produção, de propósito.
 ## O que está pronto
 
 **Checkpoints 0 a 13 concluídos, a Social, os Decks, o dashboard da coleção, o
-DON!! e as artes guardadas por nós.** 2.014 testes de unidade, integração e
+DON!! e as artes guardadas por nós.** 2.028 testes de unidade, integração e
 componente, mais 36 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -1788,6 +1788,45 @@ muda.
 `npm run dev` mostra só o **baixar**: `navigator.share` não existe fora de
 contexto seguro (armadilha 48). Para ver o botão de compartilhar, `npm run
 dev:https` ou o site publicado.
+
+## "Adicionar ST": o deck da caixa, inteiro (25/11)
+
+A quinta linha no menu do local, pedida pelo dono do produto junto com a
+conferência. É a decisão 117, e ela só foi possível depois de a tabela da
+decisão 116 fechar em 36 decks.
+
+| | |
+|---|---|
+| Onde | **todo local** — binder, caixa e deckbox |
+| O que entra | o líder e as 50; os DON!! não |
+| Quantas vezes | de 1 a 12, num seletor |
+| Quem grava | `bulkAddToLocation`, a mesma de "Adicionar cartas" |
+
+**A prévia não é enfeite.** Adicionar 51 cartas é fácil de fazer e chato de
+desfazer — e não há desfazer: desfazer exigiria decidir o que fazer com cópias
+que a pessoa já moveu de lugar. A tela mostra o líder, as cartas e o total antes
+do clique.
+
+**Qual arte entra:** a impressa naquele set, preferindo a Normal. Sem esse
+cuidado, uma carta reimpressa cairia na arte de outra coleção, e a pessoa
+ganharia algo que não está na caixa dela.
+
+### O defeito que só o navegador pegou
+
+A lista dizia **"2 líderes"** no ST-21, ST-22, ST-29 e ST-30, que têm um só.
+Eu contava **impressões** de cartas do tipo `Leader`, e um líder com arte
+paralela no mesmo set tem duas.
+
+Nenhum teste pegaria: todos os meus decks de teste tinham uma arte por carta, e
+o dado real tinha duas. É o mesmo tipo de furo da legenda do líder na folha da
+decklist — o que o fixture não tem, o teste não vê.
+
+### O que ficou de fora
+
+O **"Adicionar ST" não aparece em lugar nenhum fora do menu do local.** Entrar
+pela coleção exigiria escolher um destino na hora, e a operação tem destino por
+natureza — foi onde o dono do produto pediu que ela morasse, como "Adicionar
+cartas".
 
 ## A composição dos starter decks (25/11) — **13 decks esperando você**
 

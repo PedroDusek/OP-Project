@@ -24,6 +24,11 @@ import {
 } from './unallocated'
 import { moveAllocation as moveAllocationWith } from './move'
 import { bulkAddToLocation as bulkAddToLocationWith, type BulkEntry } from './bulk'
+import {
+  addStarterDeckToLocation as addStarterDeckToLocationWith,
+  listStarterDeckOptions as listStarterDeckOptionsWith,
+  readStarterDeckContents as readStarterDeckContentsWith,
+} from './add-starter-deck'
 
 /**
  * Ponto de composicao dos casos de uso de armazenamento.
@@ -124,11 +129,36 @@ export function bulkAddToLocation(
   return bulkAddToLocationWith(prisma, user, storageLocationId, entries)
 }
 
+/** O deck que vem na caixa de um starter deck (decisao 117). */
+export function listStarterDeckOptions() {
+  return listStarterDeckOptionsWith(prisma)
+}
+
+export function readStarterDeckContents(deckCode: string) {
+  return readStarterDeckContentsWith(prisma, deckCode)
+}
+
+export function addStarterDeckToLocation(
+  user: AuthenticatedUser,
+  storageLocationId: bigint,
+  deckCode: string,
+  times = 1,
+) {
+  return addStarterDeckToLocationWith(prisma, user, storageLocationId, deckCode, times)
+}
+
 export type { BulkEntry }
 export type { LocationInput, StoredCardsQuery }
 export type { BulkAddResult } from './bulk'
 export type { MoveResult } from './move'
 export { MAX_BULK_ENTRIES } from './bulk'
+export { MAX_STARTER_DECK_COPIES } from './add-starter-deck'
+export type {
+  AddStarterDeckResult,
+  StarterDeckContents,
+  StarterDeckLine,
+  StarterDeckOption,
+} from './add-starter-deck'
 export { NOT_ENOUGH_HERE } from './move'
 export type { UnallocatedCard, UnallocatedSummary } from './unallocated'
 export type {

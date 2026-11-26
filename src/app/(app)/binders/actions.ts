@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import {
   addAllocation,
+  addStarterDeckToLocation,
   bulkAddToLocation,
   createStorageLocation,
   deleteStorageLocation,
@@ -14,7 +15,13 @@ import {
 import type { BulkEntry } from '@/server/application/storage'
 import { formError, formErrorFrom } from '@/server/http/form-state'
 import { currentViewer } from '@/server/http/viewer'
-import type { AllocationState, BulkAddState, LocationFormState, MoveState } from './state'
+import type {
+  AddStarterDeckState,
+  AllocationState,
+  BulkAddState,
+  LocationFormState,
+  MoveState,
+} from './state'
 
 /**
  * Criar, editar e excluir locais; guardar cópias num local.
@@ -297,5 +304,65 @@ async function readInput(data: FormData) {
     purpose: String(data.get('purpose') ?? '') || null,
     image,
     removeImage: data.get('removeImage') === 'on',
+  }
+}
+
+/**
+ * Põe num local o deck que vem na caixa de um starter deck (decisão 117).
+ *
+ * Camada: `app`. Fina de propósito — lê o formulário, chama **um** caso de uso
+ * e traduz o resultado. Quais cartas, quantas de cada e o limite de vezes
+ * estão no caso de uso; a composição, na tabela conferida (decisão 116).
+ *
+ * Revalida as mesmas rotas que `bulkAddAction`, e pelo mesmo motivo: 51 cartas
+ * de uma vez mexem na coleção, nos playsets e nos números do Início.
+ */
+export async function addStarterDeckAction(
+  _previous: AddStarterDeckState,
+  data: FormData,
+): Promise<AddStarterDeckState> {
+  const viewer = await currentViewer()
+  if (!viewer) return { status: 'error', message: SESSION_EXPIRED }
+
+  const storageLocationId = String(data.get('storageLocationId') ?? '')
+  if (!/^\d+$/.test(storageLocationId)) {
+    return { status: 'error', message: 'Local inválido.' }
+  }
+
+  const deck = String(data.get('deck') ?? '').trim()
+  if (deck === '') return { status: 'error', message: 'Deck não informado.' }
+
+  const times = Number.parseInt(String(data.get('vezes') ?? '1'), 10)
+  if (!Number.isFinite(times)) {
+    return { status: 'error', message: 'Quantidade inválida.' }
+  }
+
+  try {
+    const result = await addStarterDeckToLocation(
+      viewer,
+      BigInt(storageLocationId),
+      deck,
+      times,
+    )
+
+    revalidatePath('/binders')
+    revalidatePath('/binders/sem-lugar')
+    revalidatePath(`/binders/${storageLocationId}`)
+    revalidatePath(`/binders/${storageLocationId}/cartas`)
+    revalidatePath('/colecao')
+    revalidatePath('/playsets')
+    // A tela de uma colecao e dinamica: sem o segundo argumento ela fica fora.
+    revalidatePath('/playsets/[code]', 'page')
+    revalidatePath('/inicio')
+
+    return {
+      status: 'added',
+      cards: result.cards,
+      copies: result.copies,
+      times: result.times,
+      deck,
+    }
+  } catch (error) {
+    return { status: 'error', message: formErrorFrom(error).message }
   }
 }

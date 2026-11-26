@@ -7809,3 +7809,70 @@ não teria o que adicionar.
 ## Data
 
 2026-11-25
+
+# Decisão: 117 — "Adicionar ST": o deck da caixa, inteiro, num clique
+
+Pedido do dono do produto em 25/11, no mesmo fôlego da decisão 116: uma opção no
+menu do local, ao lado de "Ver cartas", "Adicionar cartas", "Editar informações"
+e "Excluir local", que ponha no binder o deck base que vem na caixa de um
+starter deck. Mais cliques põem mais cópias.
+
+## Decisão
+
+1. **Em todo local** — binder, caixa e deckbox. Quem comprou um ST pode querer
+   guardá-lo em qualquer um, e esconder a opção em alguns seria decidir pela
+   pessoa.
+2. **O líder e as 50.** Uma cópia de cada líder impresso no set, o que dá 1 nos
+   decks normais e **3** no ST-10 e no ST-13 — o que a caixa traz.
+3. **Os DON!! ficam de fora.** A caixa traz dez, mas nenhum está vinculado a
+   nenhum ST no catálogo, e inventar esse vínculo seria adivinhar.
+4. **Só os decks conferidos aparecem** (decisão 116). Oferecer "adicionar" sem
+   saber o que adicionar é o que aquela decisão existe para impedir.
+5. **Escolher, ver, confirmar.** A prévia mostra o líder, as cartas e o total
+   antes do clique.
+6. **De 1 a 12 vezes** de uma vez, num seletor.
+7. **O modelo de dados não muda.** A gravação é `bulkAddToLocation`, a mesma de
+   "Adicionar cartas": soma na coleção e aloca no local, numa transação só.
+
+## Por que a prévia existe
+
+**Adicionar 51 cartas é fácil de fazer e chato de desfazer** — e não há desfazer.
+Desfazer exigiria decidir o que fazer com cópias que a pessoa já moveu de lugar,
+e isso é conversa, não efeito colateral de um botão.
+
+O seletor de vezes existe pelo mesmo motivo: sem ele, quem comprou duas caixas
+clica duas vezes e fica na dúvida se o primeiro clique pegou — que é o jeito de
+acabar com três.
+
+## Qual arte entra
+
+A **impressa neste set**, preferindo a Normal. Uma carta pode ter duas artes no
+mesmo produto, e a do deck é a base; a paralela, quando existe, é a de
+tratamento. Sem esse cuidado, uma carta reimpressa cairia na arte de outra
+coleção, e a pessoa ganharia na coleção uma carta que não está na caixa dela.
+
+## O defeito que só o navegador pegou
+
+A lista dizia **"2 líderes"** no ST-21, ST-22, ST-29 e ST-30 — que têm um só — e
+discordava da prévia, que já contava certo.
+
+A causa: eu contava **impressões** de cartas do tipo `Leader`, e um líder com
+arte paralela no mesmo set tem duas. Nenhum teste pegaria, porque todos os meus
+decks de teste tinham uma arte por carta; o dado real tinha duas. Corrigido para
+contar cartas distintas, com teste que monta exatamente esse caso.
+
+## A escolha vive na URL
+
+`?deck=ST-01`, e não no estado do cliente: as 51 cartas com arte e nome vêm do
+servidor, e guardá-las no cliente exigiria baixar os 36 decks de uma vez.
+Recarregar a página ou voltar no navegador cai no mesmo lugar.
+
+## O que a tabela e o catálogo discordando produz
+
+Uma carta que deixou de estar impressa no set — numa reimportação, por exemplo —
+**recusa a operação inteira**, em vez de ser pulada. Um deck que entra incompleto
+sem ninguém ver é pior que um erro na cara.
+
+## Data
+
+2026-11-25
