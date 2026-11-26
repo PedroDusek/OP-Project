@@ -52,7 +52,7 @@ existe comando de reset para produção, de propósito.
 ## O que está pronto
 
 **Checkpoints 0 a 13 concluídos, a Social, os Decks, o dashboard da coleção, o
-DON!! e as artes guardadas por nós.** 2.011 testes de unidade, integração e
+DON!! e as artes guardadas por nós.** 2.014 testes de unidade, integração e
 componente, mais 36 ponta a ponta. Lint, typecheck e build passando.
 
 | # | Entregue |
@@ -1865,10 +1865,29 @@ põe a arte e o nome ao lado do código, que é o que torna o deslocamento visí
 teria o que adicionar. Está decidido que entra em todo local — binder, caixa e
 deckbox —, com o líder e as 50, sem os DON!! (nenhum está vinculado a um ST).
 
-### Uma divergência anotada, não investigada
+### A divergência do ST-26, encontrada e corrigida
 
-No **ST-26** a Bandai conta 15 tipos e o nosso catálogo tem 14. Uma carta a
-menos do nosso lado, descoberta de passagem.
+A Bandai conta **15** cartas no ST-26 e o nosso catálogo tinha **14**. A que
+faltava, apontada pelo dono do produto ao conferir o deck: `ST14-010`, o Brook
+preto.
+
+A causa não é nossa. O bloco `ST14-010_r1` na página do ST-26 vem **sem a
+linha de produtos** — o único assim em **4.844** blocos conferidos no
+snapshot. O parser faz o certo: não inventa, anota em `variantsWithoutSet` e
+segue. Mas o relatório é lido uma vez e esquecido, e a carta ficava fora do
+produto para sempre.
+
+**Corrigir não é inventar**, e a frase é do dono do produto: *"se assim que é
+impresso então não é erro"*. A carta está na caixa; o errado é o nosso dado.
+
+A correção mora em `domain/catalog/impressoes-ausentes.ts`, com a evidência ao
+lado de cada linha, e é aplicada **dentro de `importCatalog`** — fora dali, uma
+reimportação a apagaria. Arte ou set que não casem são **avisados, não
+criados**: deixar de casar quer dizer que a fonte mudou, e isso é notícia.
+
+É uma linha, e não um arquivo curado com tela e comando: os DON!! e a Liga
+ganharam arquivo porque são centenas de entradas que crescem. Se um dia virar
+dezenas, o lugar de mudar de ideia está escrito lá.
 
 ## O líder de evento selado, e o deck de todas as cores (25/11)
 

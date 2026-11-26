@@ -1,5 +1,6 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
 import { PROMO_SET } from '@/server/domain/catalog/types'
+import { IMPRESSOES_AUSENTES } from '@/server/domain/catalog/impressoes-ausentes'
 import type {
   CardDTO,
   CatalogPage,
@@ -47,6 +48,13 @@ export interface ImportReport {
   /** Impressoes gravadas a partir de reimpressoes (decisao 052). */
   reprintPrintings: number
   /**
+   * Impressoes que a fonte omite e que gravamos a mao.
+   *
+   * Ver `domain/catalog/impressoes-ausentes.ts`. Sai no relatorio para a
+   * correcao ser visivel em toda importacao, e nao um remendo silencioso.
+   */
+  impressoesAusentes: number
+  /**
    * sourceIds de reimpressoes cuja arte reimpressa nao foi encontrada.
    *
    * Nao deveria acontecer: a fonte publica a arte comum antes de reimprimi-la.
@@ -87,6 +95,7 @@ export async function importCatalog(
     promotionalProductNames: [],
     variantsWithoutSet: [],
     reprintPrintings: 0,
+    impressoesAusentes: 0,
     reprintsWithoutBase: [],
   }
   const promotional = new Set<string>()
@@ -144,6 +153,14 @@ export async function importCatalog(
         `${applied.withoutBase.length} sem arte correspondente`,
     )
   }
+
+  /*
+   * As impressoes que a fonte omite, gravadas depois de tudo.
+   *
+   * Depois das reimpressoes de proposito: a arte que recebe a impressao pode
+   * ter acabado de ser criada nesta mesma rodada.
+   */
+  report.impressoesAusentes = await aplicarImpressoesAusentes(prisma, log)
 
   report.promotionalProductNames = [...promotional].sort()
   report.finishedAt = new Date()
@@ -416,4 +433,58 @@ async function upsertNames(
     ids.push(row.id)
   }
   return ids
+}
+
+/**
+ * Grava as impressoes que a fonte omite (`domain/catalog/impressoes-ausentes.ts`).
+ *
+ * Roda dentro da importacao, e nao num comando a parte, porque a correcao
+ * precisa **sobreviver a uma reimportacao** — que e justamente o que a
+ * apagaria se ela morasse fora daqui.
+ *
+ * Arte ou set que nao existem sao **avisados, nao criados**: uma entrada que
+ * deixou de casar quer dizer que a fonte mudou, e isso e noticia para quem le
+ * o relatorio — nao algo para o importador resolver sozinho.
+ */
+async function aplicarImpressoesAusentes(
+  prisma: PrismaClient,
+  log: Pick<Console, 'info' | 'warn' | 'error'>,
+): Promise<number> {
+  let gravadas = 0
+
+  for (const entrada of IMPRESSOES_AUSENTES) {
+    const variante = await prisma.cardVariant.findFirst({
+      where: { sourceId: entrada.sourceId },
+      select: { id: true },
+    })
+    if (!variante) {
+      log.warn(`[import] impressao ausente: a arte ${entrada.sourceId} nao existe no catalogo.`)
+      continue
+    }
+
+    const set = await prisma.set.findFirst({
+      where: { code: entrada.setCode },
+      select: { id: true },
+    })
+    if (!set) {
+      log.warn(`[import] impressao ausente: o set ${entrada.setCode} nao existe no catalogo.`)
+      continue
+    }
+
+    const existente = await prisma.variantPrinting.findFirst({
+      where: { cardVariantId: variante.id, setId: set.id },
+      select: { cardVariantId: true },
+    })
+    if (existente) continue
+
+    await prisma.variantPrinting.create({
+      data: { cardVariantId: variante.id, setId: set.id },
+    })
+    gravadas += 1
+    log.info(
+      `[import] impressao ausente gravada: ${entrada.sourceId} em ${entrada.setCode}.`,
+    )
+  }
+
+  return gravadas
 }

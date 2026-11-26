@@ -7774,11 +7774,29 @@ Três coisas que nenhuma suposição minha acertou, e que a tela precisou aprend
    **12 promos** (`P-NNN`) estão impressos em starter decks. Um leitor que só
    aceitasse `ST…` perderia a maior parte do ST-11 em silêncio.
 
-## Uma divergência anotada, não resolvida
+## A divergência do ST-26, encontrada e corrigida
 
-No **ST-26** a Bandai conta 15 tipos ("Leader x1, Common x7, Uncommon x3,
-Rare x2, Super Rare x2") e o nosso catálogo tem 14. Uma carta a menos do nosso
-lado, descoberta aqui e não investigada — fica no handoff.
+A Bandai conta **15** cartas no ST-26 e o nosso catálogo tinha **14**. A que
+faltava, apontada pelo dono do produto ao conferir o deck: `ST14-010`, o Brook
+preto.
+
+A causa não é nossa. O bloco `ST14-010_r1` na página do ST-26 vem **sem a
+linha de produtos** — o único assim em **4.844** blocos conferidos no
+snapshot. O parser faz o certo: não inventa, anota em `variantsWithoutSet` e
+segue. Mas o relatório é lido uma vez e esquecido, e a carta ficava fora do
+produto para sempre.
+
+**Corrigir não é inventar**, e a frase é do dono do produto: *"se assim que é
+impresso então não é erro"*. A carta está na caixa; o errado é o nosso dado.
+
+A correção mora em `domain/catalog/impressoes-ausentes.ts`, com a evidência ao
+lado de cada linha, e é aplicada **dentro de `importCatalog`** — fora dali, uma
+reimportação a apagaria. Arte ou set que não casem são **avisados, não
+criados**: deixar de casar quer dizer que a fonte mudou, e isso é notícia.
+
+É uma linha, e não um arquivo curado com tela e comando: os DON!! e a Liga
+ganharam arquivo porque são centenas de entradas que crescem. Se um dia virar
+dezenas, o lugar de mudar de ideia está escrito lá.
 
 ## Estado em 25/11
 

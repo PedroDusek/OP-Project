@@ -247,3 +247,96 @@ async function snapshot() {
     cardMechanics: await db.cardMechanic.count(),
   }
 }
+
+/**
+ * As impressões que a fonte omite (decisão 116).
+ *
+ * A lista da Bandai diz, em cada bloco, os produtos em que a arte saiu. Em
+ * **um** bloco de 4.844 conferidos em 25/11 — o `ST14-010_r1` na página do
+ * ST-26 — ela simplesmente não traz esse campo, e a carta ficava fora do
+ * produto. A Bandai conta 15 cartas no ST-26; nós tínhamos 14.
+ *
+ * O parser faz o certo e não inventa. A correção mora em
+ * `domain/catalog/impressoes-ausentes.ts` e é aplicada **dentro** da
+ * importação, porque precisa sobreviver a uma reimportação.
+ */
+describe('impressoes que a fonte omite', () => {
+  /** Uma página com a arte e o set, mas sem a impressão que falta. */
+  function paginaComST14(): CatalogPage {
+    return {
+      sets: [
+        { code: 'ST-14', name: '3D2Y' },
+        { code: 'ST-26', name: 'PURPLE/BLACK Monkey.D.Luffy' },
+      ],
+      cards: [
+        {
+          code: 'ST14-010',
+          name: 'Brook',
+          type: 'Character',
+          cost: 4,
+          power: 5000,
+          life: null,
+          counter: 1000,
+          hasTrigger: false,
+          blockIcon: null,
+          colors: ['Black'],
+          traits: [],
+          attributes: [],
+          mechanics: [],
+        },
+      ],
+      variants: [
+        {
+          sourceId: 'ST14-010',
+          cardCode: 'ST14-010',
+          variantType: 'Normal',
+          rarity: 'C',
+          imageUrl: null,
+          printedInSetCodes: ['ST-14'],
+        },
+      ],
+      reprints: [],
+      rejected: [],
+      promotionalProductNames: [],
+      variantsWithoutSet: [],
+    }
+  }
+
+  it('grava a impressao que faltava, e conta no relatorio', async () => {
+    const db = testPrisma()
+
+    const report = await importCatalog(db, fakeProvider(paginaComST14()), { logger: silent })
+
+    expect(report.impressoesAusentes).toBe(1)
+
+    const set = await db.set.findFirst({ where: { code: 'ST-26' }, select: { id: true } })
+    const impressas = await db.variantPrinting.count({ where: { setId: set!.id } })
+    expect(impressas).toBe(1)
+  })
+
+  /* Reimportar nao pode duplicar: a correcao roda em toda importacao. */
+  it('rodar de novo nao duplica nem conta de novo', async () => {
+    const db = testPrisma()
+    await importCatalog(db, fakeProvider(paginaComST14()), { logger: silent })
+
+    const segunda = await importCatalog(db, fakeProvider(paginaComST14()), { logger: silent })
+
+    expect(segunda.impressoesAusentes).toBe(0)
+    const set = await db.set.findFirst({ where: { code: 'ST-26' }, select: { id: true } })
+    expect(await db.variantPrinting.count({ where: { setId: set!.id } })).toBe(1)
+  })
+
+  /*
+   * Arte ou set ausentes sao avisados, nao criados: uma entrada que deixou de
+   * casar quer dizer que a fonte mudou, e isso e noticia — nao algo para o
+   * importador resolver sozinho.
+   */
+  it('sem a arte no catalogo, avisa e nao cria nada', async () => {
+    const db = testPrisma()
+
+    const report = await importCatalog(db, fakeProvider(), { logger: silent })
+
+    expect(report.impressoesAusentes).toBe(0)
+    expect(await db.set.findFirst({ where: { code: 'ST-26' } })).toBeNull()
+  })
+})
