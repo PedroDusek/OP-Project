@@ -38,3 +38,16 @@ export type BulkAddState =
   | { status: 'error'; message: string }
 
 export const BULK_ADD_IDLE: BulkAddState = { status: 'idle' }
+
+/**
+ * O estado do "Adicionar ST" (decisao 117).
+ *
+ * Separado do `BulkAddState` porque diz tambem **quantas vezes** o deck entrou,
+ * que e o que a pessoa escolheu e precisa ver confirmado.
+ */
+export type AddStarterDeckState =
+  | { status: 'idle' }
+  | { status: 'added'; cards: number; copies: number; times: number; deck: string }
+  | { status: 'error'; message: string }
+
+export const ADD_STARTER_DECK_IDLE: AddStarterDeckState = { status: 'idle' }

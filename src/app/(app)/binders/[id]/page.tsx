@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { Layers, ListPlus, SquarePen, Star } from 'lucide-react'
+import { Layers, ListPlus, Package, SquarePen, Star } from 'lucide-react'
 import { DeleteLocation } from '@/components/storage/delete-location'
 import { LocationHeader } from '@/components/storage/location-header'
 import { StatTile } from '@/components/collection/stat-tile'
@@ -86,6 +86,19 @@ export default async function LocalPage({ params }: PageProps<'/binders/[id]'>) 
             leading={<ListPlus className="size-5 text-text-muted" aria-hidden />}
             title="Adicionar cartas"
             description="Várias de uma vez, com filtros do catálogo."
+          />
+          {/*
+            Decisão 117: o deck que vem na caixa, inteiro.
+
+            Em **todo** local — binder, caixa e deckbox —, escolha do dono do
+            produto: quem comprou um ST pode querer guardá-lo em qualquer um, e
+            esconder a opção em alguns seria decidir pela pessoa.
+          */}
+          <ListRow
+            href={`/binders/${location.id}/adicionar-st`}
+            leading={<Package className="size-5 text-text-muted" aria-hidden />}
+            title="Adicionar ST"
+            description="O deck base de um starter deck, de uma vez."
           />
           <ListRow
             href={`/binders/${location.id}/editar`}
