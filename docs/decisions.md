@@ -7657,3 +7657,155 @@ Nenhuma tabela e nenhuma coluna. A carta usa `cards`, `card_variants`,
 ## Data
 
 2026-11-25
+
+# Decisão: 116 — A composição dos starter decks é conferida à mão
+
+Em 25/11 o dono do produto pediu uma opção **"Adicionar ST"** no menu do local,
+ao lado de "Ver cartas", "Adicionar cartas", "Editar informações" e "Excluir
+local": um clique que põe no binder o deck base que vem na caixa, e mais cliques
+que põem mais cópias dele. Disse, e era a premissa a conferir, que já tínhamos
+esses dados.
+
+## Tínhamos metade
+
+| | |
+|---|---|
+| Starter decks no catálogo | **36** |
+| Cartas distintas em cada | **13 a 16** |
+| Quantas cópias de cada | **não tínhamos** |
+
+Um ST é **1 líder + 50 cartas**. As distintas somam 50 com multiplicidade, e
+`variant_printings` tem duas colunas: `cardVariantId` e `setId`. Faltavam uns
+**576 números**.
+
+## Nenhuma fonte legível publica isso
+
+Conferido em 25/11, quatro fontes:
+
+| Fonte | Tem as cópias? |
+|---|---|
+| **Bandai oficial** | **não** |
+| onepiececardlist.com | não |
+| cardsrealm | não |
+| onepieceplayer.com | **sim** — responde **403** atrás de proteção anti-bot |
+
+A oficial é a mais eloquente. Para o ST-38 ela publica:
+
+    Contents: Constructed Deck x 1 (51 cards), DON!! Cards x 10, ...
+    Rarity:   Leader Card x 1, Super Rare x 2, Common x 14
+    *Due to the nature of the product, multiples of one card may appear
+
+Ela diz que **há** repetição e nunca diz qual carta repete.
+
+A única fonte que tem bloqueia leitura automatizada. Buscar o mesmo conteúdo no
+arquivo da web foi tentado e **recusado** — é contornar a recusa do site, e a
+recusa está certa.
+
+## Decisão
+
+1. **Quem diz é gente**, um deck por vez, no molde da tabela dos DON!!
+   (decisão 112) e da conferência da Liga (047). O que a pessoa diz mora em
+   `data/starter-decks.json`, que vai a produção por PR.
+2. **Uma tela de conferência** em `/dev/starter`, fora de produção.
+3. **A soma travada em 50** é o coração: o botão de gravar só acende quando as
+   cópias fecham, e o domínio exige o mesmo de quem chamar a ação sem a tela.
+4. **O líder não se confere.** É uma cópia de cada líder impresso no set — 1 nos
+   decks normais e **3** no ST-10 e no ST-13, que é o que a caixa traz
+   ("Constructed Deck x1 (51 cards), Alternative Leader Card x2").
+5. **A tela aceita colar.** A lista vem de onde a pessoa conseguir, no formato
+   que vier.
+6. **O modelo de dados não muda.** Nenhuma tabela e nenhuma coluna.
+
+## Por que o colar existe, e por que ele não é confiança
+
+Digitar 16 números 36 vezes é onde o erro mora. Colar move o trabalho para
+**olhar**, que é onde a pessoa é boa.
+
+**Mas colar não é acreditar.** Em 25/11 o dono do produto trouxe **31 listas**
+produzidas por outro assistente. Passadas pelo conferidor contra o catálogo:
+
+| | |
+|---|---|
+| Conferem | **18** |
+| Com erro estrutural | **13** |
+
+O padrão do erro é o que vale registrar: **o nome certo com o código errado.** A
+lista do ST-15 dizia `Speed Jil (OP02-010)`; o catálogo diz que o ST-15 traz
+`OP03-006 — Speed Jil`. A carta existe, o personagem é aquele, a impressão é
+outra. No ST-23, `Bonk Punch` virou `OP01-010` em vez de `OP09-010`. No ST-19 e
+no ST-20, blocos inteiros na impressão errada.
+
+É o erro que ninguém pega lendo — a lista parece impecável — e que o catálogo
+pega em um segundo.
+
+## O que o conferidor **não** pega, e isso precisa estar escrito
+
+Ele confere a **estrutura**: toda carta impressa naquele deck, nenhuma do deck
+esquecida, de 1 a 4 cópias, somando 50.
+
+Ele é **cego para a distribuição**. Se o `4x` de uma carta estivesse trocado com
+o `2x` de outra, a lista passaria inteira. Das 18 que passaram, não há como
+saber quantas têm esse erro — e por isso a conferência continua sendo da pessoa,
+com a arte e o nome da carta ao lado do código, que é o que torna o deslocamento
+visível.
+
+**O verde do conferidor é bom sinal, não é prova.** Quem escrever uma lista
+sabendo os códigos do set e que SR costuma ser 2x passa nele sem esforço.
+
+## Por que eu não gerei as listas
+
+O dono do produto pediu que eu levantasse as 32 restantes de uma vez. Recusei, e
+o motivo é o mesmo que a decisão 112 já registrou — *"quem diz é gente"* — e o
+que a 047 pagou: *"adivinhar vínculo já custou 773 conferências manuais aqui"*.
+
+Eu não sei esses números de um jeito que possa defender. Escrevê-los sairia
+plausível, somaria 50 e passaria no meu próprio conferidor — e esse dado
+**escreve na coleção das pessoas**. Os 13 erros em 31 listas são a medida de
+quanto esse caminho custa.
+
+## O que a implementação descobriu sobre os decks
+
+Três coisas que nenhuma suposição minha acertou, e que a tela precisou aprender:
+
+1. **Nem todo ST tem 16 cartas.** Varia de **13 a 16**.
+2. **Nem todo ST tem um líder.** O ST-10 e o ST-13 têm **três**.
+3. **Um ST traz cartas de outras coleções.** O ST-11 traz **dez** cartas da
+   OP-02 — dois terços do deck —, o ST-10 traz `OP01-016` e `OP01-025`, e
+   **12 promos** (`P-NNN`) estão impressos em starter decks. Um leitor que só
+   aceitasse `ST…` perderia a maior parte do ST-11 em silêncio.
+
+## A divergência do ST-26, encontrada e corrigida
+
+A Bandai conta **15** cartas no ST-26 e o nosso catálogo tinha **14**. A que
+faltava, apontada pelo dono do produto ao conferir o deck: `ST14-010`, o Brook
+preto.
+
+A causa não é nossa. O bloco `ST14-010_r1` na página do ST-26 vem **sem a
+linha de produtos** — o único assim em **4.844** blocos conferidos no
+snapshot. O parser faz o certo: não inventa, anota em `variantsWithoutSet` e
+segue. Mas o relatório é lido uma vez e esquecido, e a carta ficava fora do
+produto para sempre.
+
+**Corrigir não é inventar**, e a frase é do dono do produto: *"se assim que é
+impresso então não é erro"*. A carta está na caixa; o errado é o nosso dado.
+
+A correção mora em `domain/catalog/impressoes-ausentes.ts`, com a evidência ao
+lado de cada linha, e é aplicada **dentro de `importCatalog`** — fora dali, uma
+reimportação a apagaria. Arte ou set que não casem são **avisados, não
+criados**: deixar de casar quer dizer que a fonte mudou, e isso é notícia.
+
+É uma linha, e não um arquivo curado com tela e comando: os DON!! e a Liga
+ganharam arquivo porque são centenas de entradas que crescem. Se um dia virar
+dezenas, o lugar de mudar de ideia está escrito lá.
+
+## Estado em 25/11
+
+**23 dos 36 decks** conferidos e na tabela. Faltam ST-06, 07, 08, 09, 15, 16,
+17, 18, 19, 20, 23, 26 e 35.
+
+O **"Adicionar ST"** em si não entrou neste checkpoint: sem a tabela cheia ele
+não teria o que adicionar.
+
+## Data
+
+2026-11-25
